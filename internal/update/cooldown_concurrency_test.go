@@ -40,14 +40,13 @@ func TestCheckAllWithCooldown_ConcurrentReviewModeDisablePreservesMode(t *testin
 
 	go func() {
 		defer close(actorADone)
-		checkAllWithCooldown(
+		checkAllWithCooldownReport(
 			ctx,
-			"1.0.0",
 			system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
 			home,
 			6*time.Hour,
 			func() time.Time { return now },
-			func(context.Context, string, system.PlatformProfile) []UpdateResult {
+			func(context.Context, system.PlatformProfile) []UpdateResult {
 				return []UpdateResult{{Status: UpToDate}}
 			},
 			func(homeDir string, timestamp time.Time) error {
@@ -123,14 +122,13 @@ func TestCheckAllWithCooldown_ContendedPersistenceRejectsReviewModeDisable(t *te
 
 	go func() {
 		defer close(actorADone)
-		checkAllWithCooldown(
+		checkAllWithCooldownReport(
 			ctx,
-			"1.0.0",
 			system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
 			home,
 			6*time.Hour,
 			func() time.Time { return now },
-			func(context.Context, string, system.PlatformProfile) []UpdateResult {
+			func(context.Context, system.PlatformProfile) []UpdateResult {
 				return []UpdateResult{{Status: UpToDate}}
 			},
 			func(homeDir string, timestamp time.Time) error {

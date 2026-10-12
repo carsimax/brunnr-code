@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/carsimax/brunnr-code/internal/state"
 	"github.com/carsimax/brunnr-code/internal/system"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -48,22 +46,15 @@ func TestRunArgsNoArgumentRequiresInteractiveStdinAndStdout(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			home := t.TempDir()
 			setupMockHome(t, home)
-			if err := state.Write(home, state.InstallState{PendingSync: true}); err != nil {
-				t.Fatalf("write pending state: %v", err)
-			}
 
 			origIsatty := isattyFn
 			origEnsure := ensureCurrentOSSupported
 			origDetect := detectSystem
-			origSelfUpdate := selfUpdateFn
-			origDeferredSync := deferredSyncFn
 			origRunTUI := runTUI
 			t.Cleanup(func() {
 				isattyFn = origIsatty
 				ensureCurrentOSSupported = origEnsure
 				detectSystem = origDetect
-				selfUpdateFn = origSelfUpdate
-				deferredSyncFn = origDeferredSync
 				runTUI = origRunTUI
 			})
 
@@ -84,14 +75,6 @@ func TestRunArgsNoArgumentRequiresInteractiveStdinAndStdout(t *testing.T) {
 						Profile:   system.PlatformProfile{OS: "linux", Supported: true},
 					},
 				}, nil
-			}
-			selfUpdateFn = func(context.Context, string, system.PlatformProfile, io.Writer) error {
-				record("self-update")
-				return nil
-			}
-			deferredSyncFn = func() error {
-				record("deferred sync")
-				return nil
 			}
 			runTUI = func(tea.Model, ...tea.ProgramOption) (tea.Model, error) {
 				record("Bubble Tea")
@@ -125,13 +108,11 @@ func TestRunArgsNoArgumentAllowsInteractiveStdinAndStdout(t *testing.T) {
 	origIsatty := isattyFn
 	origEnsure := ensureCurrentOSSupported
 	origDetect := detectSystem
-	origSelfUpdate := selfUpdateFn
 	origRunTUI := runTUI
 	t.Cleanup(func() {
 		isattyFn = origIsatty
 		ensureCurrentOSSupported = origEnsure
 		detectSystem = origDetect
-		selfUpdateFn = origSelfUpdate
 		runTUI = origRunTUI
 	})
 
@@ -153,10 +134,6 @@ func TestRunArgsNoArgumentAllowsInteractiveStdinAndStdout(t *testing.T) {
 				Profile:   system.PlatformProfile{OS: "linux", Supported: true},
 			},
 		}, nil
-	}
-	selfUpdateFn = func(context.Context, string, system.PlatformProfile, io.Writer) error {
-		calls = append(calls, "self-update")
-		return nil
 	}
 	runTUI = func(tea.Model, ...tea.ProgramOption) (tea.Model, error) {
 		calls = append(calls, "Bubble Tea")

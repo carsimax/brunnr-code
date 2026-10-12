@@ -323,14 +323,6 @@ func SyncDir(dir string) error {
 	return err
 }
 
-// FileDigest returns the SHA-256 and size of the file at path, read from disk.
-// Callers comparing a published file against what they staged use this on both
-// sides so the comparison is between two reads, not between a read and an
-// intention.
-func FileDigest(path string) (digest string, size int64, err error) {
-	return digestFileOnDisk(path)
-}
-
 // digestFileOnDisk streams path and returns its SHA-256 and size. It refuses
 // symlinks so a redirected destination cannot answer for the real one.
 func digestFileOnDisk(path string) (digest string, size int64, err error) {

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -21,7 +20,7 @@ func TestRunUpdate_ReturnsErrorWhenChecksFail(t *testing.T) {
 		updateCheckAll = origCheckAll
 	})
 
-	updateCheckAll = func(context.Context, string, system.PlatformProfile) []update.UpdateResult {
+	updateCheckAll = func(context.Context, system.PlatformProfile) []update.UpdateResult {
 		return []update.UpdateResult{{
 			Tool:   update.ToolInfo{Name: "engram"},
 			Status: update.CheckFailed,
@@ -29,7 +28,7 @@ func TestRunUpdate_ReturnsErrorWhenChecksFail(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	err := runUpdate(context.Background(), "1.0.0", system.PlatformProfile{OS: "darwin", PackageManager: "brew"}, &buf)
+	err := runUpdate(context.Background(), system.PlatformProfile{OS: "darwin", PackageManager: "brew"}, &buf)
 	if err == nil {
 		t.Fatal("runUpdate() error = nil, want non-nil")
 	}
@@ -57,7 +56,7 @@ func TestRunUpgrade_ReturnsErrorBeforeExecutingWhenAllChecksFail(t *testing.T) {
 	})
 
 	called := false
-	updateCheckFiltered = func(context.Context, string, system.PlatformProfile, []string) []update.UpdateResult {
+	updateCheckFiltered = func(context.Context, system.PlatformProfile, []string) []update.UpdateResult {
 		return []update.UpdateResult{
 			{
 				Tool:   update.ToolInfo{Name: "engram"},
@@ -117,8 +116,8 @@ func TestPartialUpdateChecks(t *testing.T) {
 				t.Cleanup(func() {
 					updateCheckAll, updateCheckFiltered, upgradeExecuteWithOptions = origAll, origFiltered, origExecute
 				})
-				updateCheckAll = func(context.Context, string, system.PlatformProfile) []update.UpdateResult { return results }
-				updateCheckFiltered = func(context.Context, string, system.PlatformProfile, []string) []update.UpdateResult { return results }
+				updateCheckAll = func(context.Context, system.PlatformProfile) []update.UpdateResult { return results }
+				updateCheckFiltered = func(context.Context, system.PlatformProfile, []string) []update.UpdateResult { return results }
 				calls := 0
 				upgradeExecuteWithOptions = func(_ context.Context, got []update.UpdateResult, _ system.PlatformProfile, gotHome string, dryRun bool, opts upgrade.ExecuteOptions) upgrade.UpgradeReport {
 					calls++
@@ -134,7 +133,7 @@ func TestPartialUpdateChecks(t *testing.T) {
 				profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
 				var err error
 				if command == "update" {
-					err = runUpdate(context.Background(), "1.0.0", profile, &out)
+					err = runUpdate(context.Background(), profile, &out)
 				} else {
 					err = runUpgrade(context.Background(), upgradeArgs{dryRun: command == "dry-run", noBackup: true}, system.DetectionResult{System: system.SystemInfo{Profile: profile}}, &out)
 				}
@@ -172,68 +171,6 @@ func TestPartialUpdateChecks(t *testing.T) {
 	}
 }
 
-// TestRunUpgrade_RestartsAfterGentleAIUpgrade verifies that `gentle-ai upgrade`
-// prints the restart guidance message after a successful gentle-ai upgrade.
-// After task 4.6, no re-exec occurs on any OS — the message is always printed.
-func TestRunUpgrade_RestartsAfterGentleAIUpgrade(t *testing.T) {
-	unsetEnv(t, envSelfUpdateDone)
-
-	origCheckFiltered := updateCheckFiltered
-	origUpgradeExecuteWithOptions := upgradeExecuteWithOptions
-	t.Cleanup(func() {
-		updateCheckFiltered = origCheckFiltered
-		upgradeExecuteWithOptions = origUpgradeExecuteWithOptions
-	})
-
-	updateCheckFiltered = func(context.Context, string, system.PlatformProfile, []string) []update.UpdateResult {
-		return []update.UpdateResult{{
-			Tool:             update.ToolInfo{Name: "gentle-ai", InstallMethod: update.InstallBinary},
-			InstalledVersion: "1.36.1",
-			LatestVersion:    "1.36.2",
-			Status:           update.UpdateAvailable,
-		}}
-	}
-	upgradeExecuteWithOptions = func(context.Context, []update.UpdateResult, system.PlatformProfile, string, bool, upgrade.ExecuteOptions) upgrade.UpgradeReport {
-		return upgrade.UpgradeReport{Results: []upgrade.ToolUpgradeResult{{
-			ToolName:   "gentle-ai",
-			OldVersion: "1.36.1",
-			NewVersion: "1.36.2",
-			Status:     upgrade.UpgradeSucceeded,
-		}}}
-	}
-
-	var buf bytes.Buffer
-	err := runUpgrade(context.Background(), upgradeArgs{noBackup: true}, system.DetectionResult{System: system.SystemInfo{Profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}}}, &buf)
-	if err != nil {
-		t.Fatalf("runUpgrade() error = %v", err)
-	}
-	// After task 4.6: restart message printed, no re-exec.
-	if !strings.Contains(buf.String(), "restart gentle-ai") {
-		t.Fatalf("runUpgrade() output missing restart notice:\n%s", buf.String())
-	}
-}
-
-// TestRestartAfterGentleAIUpgrade_PrintsRestartGuidance verifies that
-// restartAfterGentleAIUpgrade (converged in task 4.6) always prints
-// the restart guidance message and never re-execs, on any OS.
-func TestRestartAfterGentleAIUpgrade_PrintsRestartGuidance(t *testing.T) {
-	unsetEnv(t, envSelfUpdateDone)
-
-	var buf bytes.Buffer
-	err := restartAfterGentleAIUpgrade("1.36.2", &buf)
-	if err != nil {
-		t.Fatalf("restartAfterGentleAIUpgrade() error = %v", err)
-	}
-	out := buf.String()
-	// Must contain version and "restart" guidance.
-	if !strings.Contains(out, "1.36.2") {
-		t.Errorf("output = %q, want version 1.36.2 mentioned", out)
-	}
-	if !strings.Contains(strings.ToLower(out), "restart") {
-		t.Errorf("output = %q, want restart guidance", out)
-	}
-}
-
 func envContains(values []string, needle string) bool {
 	for _, value := range values {
 		if value == needle {
@@ -241,55 +178,6 @@ func envContains(values []string, needle string) bool {
 		}
 	}
 	return false
-}
-
-// TestRunUpgrade_DryRunDoesNotRestartAfterGentleAIUpgrade verifies that a dry-run
-// upgrade does not trigger the restart-guidance message (no actual upgrade occurred).
-// reExec was removed in task 4.6; restartAfterGentleAIUpgrade now prints+returns.
-// Dry-run skips that path entirely, so no restart message should appear.
-func TestRunUpgrade_DryRunDoesNotRestartAfterGentleAIUpgrade(t *testing.T) {
-	origCheckFiltered := updateCheckFiltered
-	origUpgradeExecuteWithOptions := upgradeExecuteWithOptions
-	t.Cleanup(func() {
-		updateCheckFiltered = origCheckFiltered
-		upgradeExecuteWithOptions = origUpgradeExecuteWithOptions
-	})
-
-	updateCheckFiltered = func(context.Context, string, system.PlatformProfile, []string) []update.UpdateResult {
-		return []update.UpdateResult{{Tool: update.ToolInfo{Name: "gentle-ai"}, Status: update.UpdateAvailable}}
-	}
-	upgradeExecuteWithOptions = func(context.Context, []update.UpdateResult, system.PlatformProfile, string, bool, upgrade.ExecuteOptions) upgrade.UpgradeReport {
-		return upgrade.UpgradeReport{DryRun: true, Results: []upgrade.ToolUpgradeResult{{ToolName: "gentle-ai", NewVersion: "1.36.2", Status: upgrade.UpgradeSucceeded}}}
-	}
-
-	var buf bytes.Buffer
-	err := runUpgrade(context.Background(), upgradeArgs{dryRun: true}, system.DetectionResult{System: system.SystemInfo{Profile: system.PlatformProfile{OS: "darwin", Supported: true}}}, &buf)
-	if err != nil {
-		t.Fatalf("runUpgrade() error = %v", err)
-	}
-	if strings.Contains(buf.String(), "restarting") {
-		t.Fatalf("dry-run output should not mention restart:\n%s", buf.String())
-	}
-}
-
-// TestTUIUpgrade_DoesNotRestartBeforeModelCanRenderReport verifies that the
-// TUI upgrade path returns the UpgradeReport without triggering any side-effects
-// (e.g. exit or restart) before the UI has a chance to render the result.
-// reExec was removed in task 4.6; tuiUpgrade must still return the report intact.
-func TestTUIUpgrade_DoesNotRestartBeforeModelCanRenderReport(t *testing.T) {
-	origUpgradeExecute := upgradeExecute
-	t.Cleanup(func() {
-		upgradeExecute = origUpgradeExecute
-	})
-
-	upgradeExecute = func(context.Context, []update.UpdateResult, system.PlatformProfile, string, bool, ...io.Writer) upgrade.UpgradeReport {
-		return upgrade.UpgradeReport{Results: []upgrade.ToolUpgradeResult{{ToolName: "gentle-ai", NewVersion: "1.36.2", Status: upgrade.UpgradeSucceeded}}}
-	}
-
-	report := tuiUpgrade(system.PlatformProfile{OS: "darwin", PackageManager: "brew"}, os.TempDir())(context.Background(), nil)
-	if len(report.Results) != 1 || report.Results[0].ToolName != "gentle-ai" {
-		t.Fatalf("tuiUpgrade() report = %#v", report)
-	}
 }
 
 // TestRunUpgrade_ForwardsParsedArgsOnceWithoutReparsing verifies the issue #535
@@ -307,7 +195,7 @@ func TestRunUpgrade_ForwardsParsedArgsOnceWithoutReparsing(t *testing.T) {
 
 	var checkFilters []string
 	checkCalls := 0
-	updateCheckFiltered = func(_ context.Context, _ string, _ system.PlatformProfile, filters []string) []update.UpdateResult {
+	updateCheckFiltered = func(_ context.Context, _ system.PlatformProfile, filters []string) []update.UpdateResult {
 		checkCalls++
 		checkFilters = filters
 		return []update.UpdateResult{{Tool: update.ToolInfo{Name: "gentle-ai"}, Status: update.UpToDate}}
@@ -347,105 +235,6 @@ func TestRunUpgrade_ForwardsParsedArgsOnceWithoutReparsing(t *testing.T) {
 	}
 }
 
-// TestPrintPostUpgradeDoctorAdvisory_OutputFormat verifies the advisory
-// message format: starts with a newline, has the [info] tag, and names the
-// `gentle-ai doctor` command. The exact wording is part of the public contract
-// because the issue (#1901) specifies the literal expected output.
-func TestPrintPostUpgradeDoctorAdvisory_OutputFormat(t *testing.T) {
-	var buf bytes.Buffer
-	printPostUpgradeDoctorAdvisory(&buf)
-
-	out := buf.String()
-	if !strings.HasPrefix(out, "\n[info]") {
-		t.Errorf("output must start with newline + [info] tag, got %q", out)
-	}
-	if !strings.Contains(out, "gentle-ai doctor") {
-		t.Errorf("output must mention 'gentle-ai doctor', got %q", out)
-	}
-	if !strings.Contains(out, "ecosystem health") {
-		t.Errorf("output must mention ecosystem health context, got %q", out)
-	}
-}
-
-// TestRunUpgrade_PrintsDoctorAdvisoryAfterGentleAIUpgrade verifies that a
-// successful `gentle-ai upgrade` of the gentle-ai binary prints the doctor
-// advisory (per #1901). The advisory must appear AFTER the restart message
-// and must NOT appear in dry-run mode.
-func TestRunUpgrade_PrintsDoctorAdvisoryAfterGentleAIUpgrade(t *testing.T) {
-	unsetEnv(t, envSelfUpdateDone)
-
-	origCheckFiltered := updateCheckFiltered
-	origUpgradeExecuteWithOptions := upgradeExecuteWithOptions
-	t.Cleanup(func() {
-		updateCheckFiltered = origCheckFiltered
-		upgradeExecuteWithOptions = origUpgradeExecuteWithOptions
-	})
-
-	updateCheckFiltered = func(context.Context, string, system.PlatformProfile, []string) []update.UpdateResult {
-		return []update.UpdateResult{{
-			Tool:             update.ToolInfo{Name: "gentle-ai", InstallMethod: update.InstallBinary},
-			InstalledVersion: "1.36.1",
-			LatestVersion:    "1.36.2",
-			Status:           update.UpdateAvailable,
-		}}
-	}
-	upgradeExecuteWithOptions = func(context.Context, []update.UpdateResult, system.PlatformProfile, string, bool, upgrade.ExecuteOptions) upgrade.UpgradeReport {
-		return upgrade.UpgradeReport{Results: []upgrade.ToolUpgradeResult{{
-			ToolName:   "gentle-ai",
-			OldVersion: "1.36.1",
-			NewVersion: "1.36.2",
-			Status:     upgrade.UpgradeSucceeded,
-		}}}
-	}
-
-	var buf bytes.Buffer
-	err := runUpgrade(context.Background(), upgradeArgs{noBackup: true}, system.DetectionResult{System: system.SystemInfo{Profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}}}, &buf)
-	if err != nil {
-		t.Fatalf("runUpgrade() error = %v", err)
-	}
-
-	out := buf.String()
-	if !strings.Contains(out, "restart gentle-ai") {
-		t.Errorf("runUpgrade() output missing restart notice:\n%s", out)
-	}
-	if !strings.Contains(out, "Run 'gentle-ai doctor' to verify ecosystem health after upgrade") {
-		t.Errorf("runUpgrade() output missing post-upgrade doctor advisory:\n%s", out)
-	}
-	// Advisory must come AFTER the restart notice (lexicographic order in output).
-	restartIdx := strings.Index(out, "restart gentle-ai")
-	advisoryIdx := strings.Index(out, "gentle-ai doctor")
-	if restartIdx < 0 || advisoryIdx < 0 || advisoryIdx <= restartIdx {
-		t.Errorf("advisory must appear AFTER restart notice (restart=%d, advisory=%d):\n%s", restartIdx, advisoryIdx, out)
-	}
-}
-
-// TestRunUpgrade_DryRunDoesNotPrintDoctorAdvisory verifies that a dry-run
-// upgrade does NOT print the doctor advisory because no actual upgrade occurred.
-func TestRunUpgrade_DryRunDoesNotPrintDoctorAdvisory(t *testing.T) {
-	origCheckFiltered := updateCheckFiltered
-	origUpgradeExecuteWithOptions := upgradeExecuteWithOptions
-	t.Cleanup(func() {
-		updateCheckFiltered = origCheckFiltered
-		upgradeExecuteWithOptions = origUpgradeExecuteWithOptions
-	})
-
-	updateCheckFiltered = func(context.Context, string, system.PlatformProfile, []string) []update.UpdateResult {
-		return []update.UpdateResult{{Tool: update.ToolInfo{Name: "gentle-ai"}, Status: update.UpdateAvailable}}
-	}
-	upgradeExecuteWithOptions = func(context.Context, []update.UpdateResult, system.PlatformProfile, string, bool, upgrade.ExecuteOptions) upgrade.UpgradeReport {
-		return upgrade.UpgradeReport{DryRun: true, Results: []upgrade.ToolUpgradeResult{{ToolName: "gentle-ai", NewVersion: "1.36.2", Status: upgrade.UpgradeSucceeded}}}
-	}
-
-	var buf bytes.Buffer
-	err := runUpgrade(context.Background(), upgradeArgs{dryRun: true}, system.DetectionResult{System: system.SystemInfo{Profile: system.PlatformProfile{OS: "darwin", Supported: true}}}, &buf)
-	if err != nil {
-		t.Fatalf("runUpgrade() error = %v", err)
-	}
-	if strings.Contains(buf.String(), "gentle-ai doctor") {
-		t.Fatalf("dry-run output must NOT mention 'gentle-ai doctor' advisory:\n%s", buf.String())
-	}
-}
-
 // TestRunUpgrade_NonGentleAIUpgradeDoesNotPrintDoctorAdvisory verifies that
 // upgrading a tool other than gentle-ai (e.g. engram, gga) does NOT trigger
 // the doctor advisory. The advisory is gated on gentle-ai specifically.
@@ -457,7 +246,7 @@ func TestRunUpgrade_NonGentleAIUpgradeDoesNotPrintDoctorAdvisory(t *testing.T) {
 		upgradeExecuteWithOptions = origUpgradeExecuteWithOptions
 	})
 
-	updateCheckFiltered = func(context.Context, string, system.PlatformProfile, []string) []update.UpdateResult {
+	updateCheckFiltered = func(context.Context, system.PlatformProfile, []string) []update.UpdateResult {
 		return []update.UpdateResult{{
 			Tool:             update.ToolInfo{Name: "engram", InstallMethod: update.InstallBinary},
 			InstalledVersion: "0.5.0",

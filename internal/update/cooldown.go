@@ -17,7 +17,7 @@ const UpdateCheckTTL = 6 * time.Hour
 
 // checkAllFn is the function type that matches CheckAll's signature, used to
 // allow injection of a stub in tests.
-type checkAllFn func(ctx context.Context, currentVersion string, profile system.PlatformProfile) []UpdateResult
+type checkAllFn func(ctx context.Context, profile system.PlatformProfile) []UpdateResult
 
 type installStateWriter func(string, state.InstallState) error
 
@@ -36,51 +36,22 @@ type CheckReport struct {
 	State   CheckState
 }
 
-// CheckAllWithCooldownReport is the status-aware variant of CheckAllWithCooldown.
-// A zero ttl forces a fresh check, while retaining successful-check persistence.
-func CheckAllWithCooldownReport(ctx context.Context, currentVersion string, profile system.PlatformProfile, homeDir string, ttl time.Duration, nowFn func() time.Time, checkFn checkAllFn) CheckReport {
-	return checkAllWithCooldownReport(ctx, currentVersion, profile, homeDir, ttl, nowFn, checkFn, persistLastUpdateCheck)
-}
-
-// CheckAllWithCooldown gates CheckAll behind a TTL-based cooldown. It reads
-// LastUpdateCheck from state.json in homeDir; if the elapsed time since the
-// last successful check is less than ttl, it returns nil (no network call).
-// When a check is performed and ALL results are non-failed, it writes the
-// current time back to LastUpdateCheck. On any read/write error the function
-// falls back to running the check (fail-open).
+// CheckAllWithCooldownReport gates CheckAll behind a TTL-based cooldown. It
+// reads LastUpdateCheck from state.json in homeDir; if the elapsed time since
+// the last successful check is less than ttl, it reports CheckSkipped with no
+// results (no network call). When a check is performed and it succeeds, it
+// writes the current time back to LastUpdateCheck. On any read/write error the
+// function falls back to running the check (fail-open). A zero ttl forces a
+// fresh check, while retaining successful-check persistence.
 //
 // When homeDir is "" (home directory resolution failed), both the state read
 // and write are skipped entirely: the check always runs and no state file is
 // touched, preventing writes to arbitrary CWD-relative paths.
-//
-// nowFn is injected for test determinism; pass func() time.Time { return time.Now() }
-// in production code. checkFn is injected for testing; pass CheckAll in production.
-func CheckAllWithCooldown(
-	ctx context.Context,
-	currentVersion string,
-	profile system.PlatformProfile,
-	homeDir string,
-	ttl time.Duration,
-	nowFn func() time.Time,
-	checkFn checkAllFn,
-) []UpdateResult {
-	return checkAllWithCooldown(ctx, currentVersion, profile, homeDir, ttl, nowFn, checkFn, persistLastUpdateCheck)
+func CheckAllWithCooldownReport(ctx context.Context, profile system.PlatformProfile, homeDir string, ttl time.Duration, nowFn func() time.Time, checkFn checkAllFn) CheckReport {
+	return checkAllWithCooldownReport(ctx, profile, homeDir, ttl, nowFn, checkFn, persistLastUpdateCheck)
 }
 
-func checkAllWithCooldown(
-	ctx context.Context,
-	currentVersion string,
-	profile system.PlatformProfile,
-	homeDir string,
-	ttl time.Duration,
-	nowFn func() time.Time,
-	checkFn checkAllFn,
-	persistTimestamp func(string, time.Time) error,
-) []UpdateResult {
-	return checkAllWithCooldownReport(ctx, currentVersion, profile, homeDir, ttl, nowFn, checkFn, persistTimestamp).Results
-}
-
-func checkAllWithCooldownReport(ctx context.Context, currentVersion string, profile system.PlatformProfile, homeDir string, ttl time.Duration, nowFn func() time.Time, checkFn checkAllFn, persistTimestamp func(string, time.Time) error) CheckReport {
+func checkAllWithCooldownReport(ctx context.Context, profile system.PlatformProfile, homeDir string, ttl time.Duration, nowFn func() time.Time, checkFn checkAllFn, persistTimestamp func(string, time.Time) error) CheckReport {
 	now := nowFn()
 
 	// When homeDir is empty (home resolution failed), skip both state read and
@@ -102,7 +73,7 @@ func checkAllWithCooldownReport(ctx context.Context, currentVersion string, prof
 	}
 
 	// Perform the remote check.
-	results := checkFn(ctx, currentVersion, profile)
+	results := checkFn(ctx, profile)
 
 	// Update LastUpdateCheck only when the check succeeded (at least one
 	// non-failed result, or empty-but-no-error; never if all are CheckFailed).

@@ -30,15 +30,15 @@ func TestCheckAllWithCooldown_FreshCacheSkipsNetwork(t *testing.T) {
 	}
 
 	checkCalled := 0
-	stubCheckAll := func(_ context.Context, _ string, _ system.PlatformProfile) []UpdateResult {
+	stubCheckAll := func(_ context.Context, _ system.PlatformProfile) []UpdateResult {
 		checkCalled++
 		return []UpdateResult{{Status: UpdateAvailable}}
 	}
 
-	results := CheckAllWithCooldown(context.Background(), "1.0.0", profile, home, 6*time.Hour,
+	results := CheckAllWithCooldownReport(context.Background(), profile, home, 6*time.Hour,
 		func() time.Time { return now },
 		stubCheckAll,
-	)
+	).Results
 
 	if checkCalled != 0 {
 		t.Errorf("network check called %d times, want 0 (cache is fresh)", checkCalled)
@@ -68,15 +68,15 @@ func TestCheckAllWithCooldown_StaleCacheRefreshes(t *testing.T) {
 
 	stubResults := []UpdateResult{{Tool: ToolInfo{Name: "gentle-ai"}, Status: UpToDate}}
 	checkCalled := 0
-	stubCheckAll := func(_ context.Context, _ string, _ system.PlatformProfile) []UpdateResult {
+	stubCheckAll := func(_ context.Context, _ system.PlatformProfile) []UpdateResult {
 		checkCalled++
 		return stubResults
 	}
 
-	results := CheckAllWithCooldown(context.Background(), "1.0.0", profile, home, 6*time.Hour,
+	results := CheckAllWithCooldownReport(context.Background(), profile, home, 6*time.Hour,
 		func() time.Time { return now },
 		stubCheckAll,
-	)
+	).Results
 
 	if checkCalled != 1 {
 		t.Errorf("network check called %d times, want 1 (cache is stale)", checkCalled)
@@ -104,12 +104,12 @@ func TestCheckAllWithCooldown_MissingCache(t *testing.T) {
 	now := time.Date(2026, 6, 14, 12, 0, 0, 0, time.UTC)
 
 	checkCalled := 0
-	stubCheckAll := func(_ context.Context, _ string, _ system.PlatformProfile) []UpdateResult {
+	stubCheckAll := func(_ context.Context, _ system.PlatformProfile) []UpdateResult {
 		checkCalled++
 		return nil
 	}
 
-	CheckAllWithCooldown(context.Background(), "1.0.0", profile, home, 6*time.Hour,
+	CheckAllWithCooldownReport(context.Background(), profile, home, 6*time.Hour,
 		func() time.Time { return now },
 		stubCheckAll,
 	)
@@ -141,11 +141,11 @@ func TestCheckAllWithCooldown_FailedCheckDoesNotAdvanceTimestamp(t *testing.T) {
 	failedResults := []UpdateResult{
 		{Tool: ToolInfo{Name: "gentle-ai"}, Status: CheckFailed},
 	}
-	stubCheckAll := func(_ context.Context, _ string, _ system.PlatformProfile) []UpdateResult {
+	stubCheckAll := func(_ context.Context, _ system.PlatformProfile) []UpdateResult {
 		return failedResults
 	}
 
-	CheckAllWithCooldown(context.Background(), "1.0.0", profile, home, 6*time.Hour,
+	CheckAllWithCooldownReport(context.Background(), profile, home, 6*time.Hour,
 		func() time.Time { return now },
 		stubCheckAll,
 	)
@@ -179,15 +179,15 @@ func TestCheckAllWithCooldown_EmptyHomeDirAlwaysChecks(t *testing.T) {
 	_ = os.Remove(filepath.Join(cwd, ".gentle-ai"))
 
 	checkCalled := 0
-	stubCheckAll := func(_ context.Context, _ string, _ system.PlatformProfile) []UpdateResult {
+	stubCheckAll := func(_ context.Context, _ system.PlatformProfile) []UpdateResult {
 		checkCalled++
 		return []UpdateResult{{Tool: ToolInfo{Name: "gentle-ai"}, Status: UpToDate}}
 	}
 
-	results := CheckAllWithCooldown(context.Background(), "1.0.0", profile, "", 6*time.Hour,
+	results := CheckAllWithCooldownReport(context.Background(), profile, "", 6*time.Hour,
 		func() time.Time { return now },
 		stubCheckAll,
-	)
+	).Results
 
 	if checkCalled != 1 {
 		t.Errorf("network check called %d times with empty homeDir, want 1 (always-check)", checkCalled)
@@ -211,7 +211,7 @@ func TestCheckAllWithCooldown_EmptyHomeDirNoStateRead(t *testing.T) {
 	recent := now.Add(-1 * time.Minute)
 
 	checkCalled := 0
-	stubCheckAll := func(_ context.Context, _ string, _ system.PlatformProfile) []UpdateResult {
+	stubCheckAll := func(_ context.Context, _ system.PlatformProfile) []UpdateResult {
 		checkCalled++
 		return nil
 	}
@@ -220,7 +220,7 @@ func TestCheckAllWithCooldown_EmptyHomeDirNoStateRead(t *testing.T) {
 	// never read state so the cooldown cannot engage — check must run.
 	_ = recent // intentionally unused: we cannot write to homeDir="" safely
 
-	CheckAllWithCooldown(context.Background(), "1.0.0", profile, "", 6*time.Hour,
+	CheckAllWithCooldownReport(context.Background(), profile, "", 6*time.Hour,
 		func() time.Time { return now },
 		stubCheckAll,
 	)
@@ -249,12 +249,12 @@ func TestCheckAllWithCooldown_FutureTimestampAlwaysChecks(t *testing.T) {
 	}
 
 	checkCalled := 0
-	stubCheckAll := func(_ context.Context, _ string, _ system.PlatformProfile) []UpdateResult {
+	stubCheckAll := func(_ context.Context, _ system.PlatformProfile) []UpdateResult {
 		checkCalled++
 		return nil
 	}
 
-	CheckAllWithCooldown(context.Background(), "1.0.0", profile, home, 6*time.Hour,
+	CheckAllWithCooldownReport(context.Background(), profile, home, 6*time.Hour,
 		func() time.Time { return now },
 		stubCheckAll,
 	)
@@ -283,14 +283,14 @@ func TestCheckAllWithCooldown_NonMissingReadErrorSkipsWrite(t *testing.T) {
 		t.Fatalf("WriteFile corrupt: %v", err)
 	}
 
-	stubCheckAll := func(_ context.Context, _ string, _ system.PlatformProfile) []UpdateResult {
+	stubCheckAll := func(_ context.Context, _ system.PlatformProfile) []UpdateResult {
 		// Return a successful result — checkSucceeded will be true.
 		return []UpdateResult{{Tool: ToolInfo{Name: "gentle-ai"}, Status: UpToDate}}
 	}
 
 	// stale first read: corrupt file → read error → always-check (skip cooldown).
 	// After check, re-read for write: corrupt → non-missing error → must skip write.
-	CheckAllWithCooldown(context.Background(), "1.0.0", profile, home, 6*time.Hour,
+	CheckAllWithCooldownReport(context.Background(), profile, home, 6*time.Hour,
 		func() time.Time { return now },
 		stubCheckAll,
 	)

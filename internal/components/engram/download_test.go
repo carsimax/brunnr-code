@@ -289,7 +289,7 @@ func TestDownloadLatestBinaryLinux(t *testing.T) {
 	t.Cleanup(func() { engramInstallDirFn = origInstallDirFn })
 
 	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-	installedPath, err := DownloadLatestBinary(profile, false)
+	installedPath, err := DownloadLatestBinary(profile)
 	if err != nil {
 		t.Fatalf("DownloadLatestBinary() error = %v", err)
 	}
@@ -336,7 +336,7 @@ func TestDownloadLatestBinaryWindows(t *testing.T) {
 	t.Cleanup(func() { engramInstallDirFn = origInstallDirFn })
 
 	profile := system.PlatformProfile{OS: "windows", PackageManager: "winget"}
-	installedPath, err := DownloadLatestBinary(profile, false)
+	installedPath, err := DownloadLatestBinary(profile)
 	if err != nil {
 		t.Fatalf("DownloadLatestBinary() error = %v", err)
 	}
@@ -376,7 +376,7 @@ func TestDownloadLatestBinaryDownloadError(t *testing.T) {
 	})
 
 	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-	_, err := DownloadLatestBinary(profile, false)
+	_, err := DownloadLatestBinary(profile)
 	if err == nil {
 		t.Fatal("expected error when GitHub API returns 500, got nil")
 	}
@@ -454,7 +454,7 @@ func TestDownloadLatestBinarySkipsLatestReleaseWithoutBinaryAssets(t *testing.T)
 	t.Cleanup(func() { engramInstallDirFn = origInstallDirFn })
 
 	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-	installedPath, err := DownloadLatestBinary(profile, false)
+	installedPath, err := DownloadLatestBinary(profile)
 	if err != nil {
 		t.Fatalf("DownloadLatestBinary() error = %v", err)
 	}
@@ -539,7 +539,7 @@ func TestDownloadLatestBinaryReleaseListFallsBackToAnonymousWhenTokenGets403(t *
 	t.Cleanup(func() { engramInstallDirFn = origInstallDirFn })
 
 	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-	installedPath, err := DownloadLatestBinary(profile, false)
+	installedPath, err := DownloadLatestBinary(profile)
 	if err != nil {
 		t.Fatalf("DownloadLatestBinary() error = %v", err)
 	}
@@ -576,7 +576,7 @@ func TestDownloadLatestBinaryWindowsStopsEngramBeforeReplace(t *testing.T) {
 		return nil
 	}
 
-	installedPath, err := DownloadLatestBinary(system.PlatformProfile{OS: "windows", PackageManager: "winget"}, false)
+	installedPath, err := DownloadLatestBinary(system.PlatformProfile{OS: "windows", PackageManager: "winget"})
 	if err != nil {
 		t.Fatalf("DownloadLatestBinary(windows) error = %v", err)
 	}
@@ -614,7 +614,7 @@ func TestDownloadLatestBinaryWindowsStopFailureAbortsBeforeReplace(t *testing.T)
 	engramInstallDirFn = func(goos string) string { return installDir }
 	engramStopProcessesFn = func() error { return errors.New("stop denied") }
 
-	_, err := DownloadLatestBinary(system.PlatformProfile{OS: "windows", PackageManager: "winget"}, false)
+	_, err := DownloadLatestBinary(system.PlatformProfile{OS: "windows", PackageManager: "winget"})
 	if err == nil {
 		t.Fatal("expected stop failure, got nil")
 	}
@@ -657,7 +657,7 @@ func TestDownloadLatestBinaryWindowsStopSucceedsWhenProcessNotRunning(t *testing
 	// Simulate stopEngramProcesses returning nil (no engram process found — clean).
 	engramStopProcessesFn = func() error { return nil }
 
-	installedPath, err := DownloadLatestBinary(system.PlatformProfile{OS: "windows", PackageManager: "winget"}, false)
+	installedPath, err := DownloadLatestBinary(system.PlatformProfile{OS: "windows", PackageManager: "winget"})
 	if err != nil {
 		t.Fatalf("DownloadLatestBinary(windows) should succeed when stop returns nil, got: %v", err)
 	}
@@ -700,7 +700,7 @@ func TestDownloadLatestBinaryWindowsStopNilProceedsToInstall(t *testing.T) {
 		return nil
 	}
 
-	installedPath, err := DownloadLatestBinary(system.PlatformProfile{OS: "windows", PackageManager: "winget"}, false)
+	installedPath, err := DownloadLatestBinary(system.PlatformProfile{OS: "windows", PackageManager: "winget"})
 	if err != nil {
 		t.Fatalf("DownloadLatestBinary(windows) should not abort when stop returns nil (warning path), got: %v", err)
 	}
@@ -795,7 +795,7 @@ func TestDownloadLatestBinaryIgnoresGentleEngramAndPiTags(t *testing.T) {
 	t.Cleanup(func() { engramInstallDirFn = origInstallDirFn })
 
 	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-	installedPath, err := DownloadLatestBinary(profile, false)
+	installedPath, err := DownloadLatestBinary(profile)
 	if err != nil {
 		t.Fatalf("DownloadLatestBinary() error = %v, want core engram v%s to be selected", err, binaryVersion)
 	}
@@ -892,7 +892,7 @@ func TestEngramChecksumVerification(t *testing.T) {
 			t.Cleanup(func() { engramInstallDirFn = origInstallDirFn })
 
 			profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-			_, err := DownloadLatestBinary(profile, false)
+			_, err := DownloadLatestBinary(profile)
 
 			if tt.wantErrSubstr == "" {
 				if err != nil {
@@ -1024,7 +1024,7 @@ func TestFetchLatestEngramVersionWithAssetsPaginates(t *testing.T) {
 	t.Cleanup(func() { engramInstallDirFn = origInstallDirFn })
 
 	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-	installedPath, err := DownloadLatestBinary(profile, false)
+	installedPath, err := DownloadLatestBinary(profile)
 	if err != nil {
 		t.Fatalf("DownloadLatestBinary() error = %v, want core engram v%s selected from page 2", err, binaryVersion)
 	}
@@ -1109,12 +1109,9 @@ func TestEngramExpectedChecksumFor(t *testing.T) {
 	}
 }
 
-// --- TestDownloadLatestBinary_ChannelRouting (Slice 3) ---
-
-// TestDownloadLatestBinary_StableChannelUsesRelease verifies that calling
-// DownloadLatestBinary with isBeta=false fetches from the release download
-// path (the existing GitHub Releases flow).
-func TestDownloadLatestBinary_StableChannelUsesRelease(t *testing.T) {
+// TestDownloadLatestBinaryUsesRelease verifies that DownloadLatestBinary
+// fetches from the GitHub Releases download path.
+func TestDownloadLatestBinaryUsesRelease(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping on Windows: uses tar.gz server fixture")
 	}
@@ -1138,205 +1135,12 @@ func TestDownloadLatestBinary_StableChannelUsesRelease(t *testing.T) {
 
 	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
 	// isBeta=false → should use the release download path.
-	installedPath, err := DownloadLatestBinary(profile, false)
+	installedPath, err := DownloadLatestBinary(profile)
 	if err != nil {
 		t.Fatalf("DownloadLatestBinary(stable): unexpected error: %v", err)
 	}
 	if !strings.HasPrefix(installedPath, tmpDir) {
 		t.Errorf("installedPath = %q, want prefix %q", installedPath, tmpDir)
-	}
-}
-
-// TestDownloadLatestBinary_BetaChannelUsesGoInstallMain verifies that calling
-// DownloadLatestBinary with isBeta=true performs go install @main instead of
-// fetching a release archive.
-func TestDownloadLatestBinary_BetaChannelUsesGoInstallMain(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping: requires go install command")
-	}
-
-	origGoInstallFn := engramGoInstallFn
-	t.Cleanup(func() { engramGoInstallFn = origGoInstallFn })
-
-	var gotPkg string
-	engramGoInstallFn = func(pkg string) (string, error) {
-		gotPkg = pkg
-		return "/tmp/engram-beta", nil
-	}
-
-	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-	// isBeta=true → should use go install @main, not release download.
-	installedPath, err := DownloadLatestBinary(profile, true)
-	if err != nil {
-		t.Fatalf("DownloadLatestBinary(beta): unexpected error: %v", err)
-	}
-	if !strings.Contains(gotPkg, "@main") {
-		t.Errorf("go install pkg = %q, want @main suffix", gotPkg)
-	}
-	if installedPath == "" {
-		t.Error("expected non-empty installedPath for beta channel")
-	}
-}
-
-func TestCanonicalEngramGoInstallPackagePreservesDeclaredModuleCasing(t *testing.T) {
-	tests := []struct {
-		name string
-		pkg  string
-		want string
-	}{
-		{
-			name: "lowercase owner is canonicalized",
-			pkg:  "github.com/gentleman-programming/engram/cmd/engram@main",
-			want: "github.com/Gentleman-Programming/engram/cmd/engram@main",
-		},
-		{
-			name: "canonical owner remains unchanged",
-			pkg:  "github.com/Gentleman-Programming/engram/cmd/engram@v1.2.3",
-			want: "github.com/Gentleman-Programming/engram/cmd/engram@v1.2.3",
-		},
-		{
-			name: "unrelated package remains unchanged",
-			pkg:  "github.com/gentleman-programming/gentle-ai/v3/cmd/gentle-ai@latest",
-			want: "github.com/gentleman-programming/gentle-ai/v3/cmd/gentle-ai@latest",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := canonicalEngramGoInstallPackage(tt.pkg); got != tt.want {
-				t.Fatalf("canonicalEngramGoInstallPackage(%q) = %q, want %q", tt.pkg, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestEngramGoInstallFromMainCanonicalizesModuleCasing(t *testing.T) {
-	const fakeInstallDir = "/custom/gobin"
-
-	origGoInstallCmdFn := engramGoInstallCmdFn
-	origGoEnvFn := engramGoEnvFn
-	t.Cleanup(func() {
-		engramGoInstallCmdFn = origGoInstallCmdFn
-		engramGoEnvFn = origGoEnvFn
-	})
-
-	var gotPkg string
-	engramGoInstallCmdFn = func(pkg string) error {
-		gotPkg = pkg
-		return nil
-	}
-	engramGoEnvFn = func(keys ...string) (map[string]string, error) {
-		return map[string]string{"GOBIN": fakeInstallDir, "GOPATH": ""}, nil
-	}
-
-	_, err := engramGoInstallFromMain("github.com/gentleman-programming/engram/cmd/engram@main")
-	if err != nil {
-		t.Fatalf("engramGoInstallFromMain: unexpected error: %v", err)
-	}
-
-	wantPkg := "github.com/Gentleman-Programming/engram/cmd/engram@main"
-	if gotPkg != wantPkg {
-		t.Fatalf("go install package = %q, want %q", gotPkg, wantPkg)
-	}
-}
-
-// TestEngramGoInstallFromMain_UsesGoEnvForBinDir verifies that
-// engramGoInstallFromMain resolves the install directory via `go env GOBIN GOPATH`
-// (the effective Go environment) rather than reading raw shell env vars.
-// This matters when GOBIN is set via `go env -w GOBIN=...` (stored in Go's
-// env file) but NOT exported into the shell environment.
-func TestEngramGoInstallFromMain_UsesGoEnvForBinDir(t *testing.T) {
-	fakeInstallDir := filepath.Join(t.TempDir(), "custom", "gobin", "via", "go-env")
-
-	origGoEnvFn := engramGoEnvFn
-	t.Cleanup(func() { engramGoEnvFn = origGoEnvFn })
-
-	// Simulate GOBIN set only via `go env -w` (not in shell env).
-	// The raw os.Getenv("GOBIN") would return "", but go env GOBIN returns
-	// the persisted value from the Go env file.
-	t.Setenv("GOBIN", "")
-	t.Setenv("GOPATH", "")
-
-	engramGoEnvFn = func(keys ...string) (map[string]string, error) {
-		result := make(map[string]string, len(keys))
-		for _, k := range keys {
-			if k == "GOBIN" {
-				result[k] = fakeInstallDir
-			} else {
-				result[k] = ""
-			}
-		}
-		return result, nil
-	}
-
-	// Inject a fake go install that does nothing (no real network/build).
-	origGoInstallCmdFn := engramGoInstallCmdFn
-	t.Cleanup(func() { engramGoInstallCmdFn = origGoInstallCmdFn })
-	engramGoInstallCmdFn = func(pkg string) error { return nil }
-
-	binaryPath, err := engramGoInstallFromMain("github.com/Gentleman-Programming/engram/cmd/engram@main")
-	if err != nil {
-		t.Fatalf("engramGoInstallFromMain: unexpected error: %v", err)
-	}
-
-	wantDir := fakeInstallDir
-	gotDir := filepath.Dir(binaryPath)
-	if gotDir != wantDir {
-		t.Errorf("binary dir = %q, want %q (from go env GOBIN)", gotDir, wantDir)
-	}
-}
-
-func TestEngramGoInstallFromMain_BypassesPublicGoProxy(t *testing.T) {
-	binDir := t.TempDir()
-	goPath := filepath.Join(binDir, "go")
-	recordPath := filepath.Join(t.TempDir(), "go-env.txt")
-	fakeGo := filepath.Join(binDir, "go")
-	if runtime.GOOS == "windows" {
-		fakeGo += ".exe"
-		executable, err := os.Executable()
-		if err != nil {
-			t.Fatal(err)
-		}
-		data, err := os.ReadFile(executable)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(fakeGo, data, 0o755); err != nil {
-			t.Fatal(err)
-		}
-		t.Setenv("GENTLE_AI_FAKE_GO", "1")
-	} else {
-		script := "#!/usr/bin/env bash\n" +
-			"printf 'GONOSUMDB=%s\\nGOPRIVATE=%s\\nGONOPROXY=%s\\n' \"${GONOSUMDB:-}\" \"${GOPRIVATE:-}\" \"${GONOPROXY:-}\" > \"$GO_ENV_RECORD\"\n"
-		if err := os.WriteFile(fakeGo, []byte(script), 0o755); err != nil {
-			t.Fatal(err)
-		}
-	}
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("GO_ENV_RECORD", recordPath)
-
-	origGoEnvFn := engramGoEnvFn
-	t.Cleanup(func() { engramGoEnvFn = origGoEnvFn })
-	engramGoEnvFn = func(keys ...string) (map[string]string, error) {
-		return map[string]string{"GOBIN": goPath, "GOPATH": filepath.Join(t.TempDir(), "gopath")}, nil
-	}
-
-	if _, err := engramGoInstallFromMain("github.com/Gentleman-Programming/engram/cmd/engram@main"); err != nil {
-		t.Fatalf("engramGoInstallFromMain() error = %v", err)
-	}
-
-	recorded, err := os.ReadFile(recordPath)
-	if err != nil {
-		t.Fatalf("ReadFile(%q) error = %v", recordPath, err)
-	}
-	for _, want := range []string{
-		"GONOSUMDB=github.com/Gentleman-Programming/engram",
-		"GOPRIVATE=github.com/Gentleman-Programming/engram",
-		"GONOPROXY=github.com/Gentleman-Programming/engram",
-	} {
-		if !strings.Contains(string(recorded), want) {
-			t.Fatalf("go install env missing %q\nrecorded:\n%s", want, recorded)
-		}
 	}
 }
 

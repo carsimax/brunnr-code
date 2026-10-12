@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -26,7 +24,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/planner"
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 	"github.com/carsimax/brunnr-code/internal/state"
-	"github.com/carsimax/brunnr-code/internal/statecoord"
 	"github.com/carsimax/brunnr-code/internal/system"
 	"github.com/carsimax/brunnr-code/internal/tui/screens"
 	"github.com/carsimax/brunnr-code/internal/update"
@@ -57,42 +54,6 @@ var tuiOpenBrowserFn = func(url string) error {
 		cmd = execCommandFn("xdg-open", url)
 	}
 	return cmd.Start()
-}
-
-// advisoryFetchFn is the function used to fetch the advisory manifest.
-// Package-level var so tests can override without network calls.
-var advisoryFetchFn = update.FetchAdvisory
-
-// ansiEscapeRe matches ANSI/VT100 escape sequences (CSI sequences and bare ESC).
-// These must be stripped from remote-controlled content before it is rendered
-// in the TUI to prevent layout corruption or terminal injection attacks.
-var ansiEscapeRe = regexp.MustCompile(`\x1b(?:\[[0-9;]*[A-Za-z]|[^[]|)`)
-
-// sanitizeAdvisoryMessage removes ANSI escape sequences and ASCII control
-// characters from a remote-sourced advisory message, keeping only printable
-// characters (≥ 0x20, excluding DEL 0x7f) and the ASCII space (0x20).
-// The function is pure and allocation-minimal for typical short strings.
-func sanitizeAdvisoryMessage(s string) string {
-	// First pass: strip ANSI escape sequences.
-	s = ansiEscapeRe.ReplaceAllString(s, "")
-	// Second pass: remove remaining control characters (0x00–0x1f, 0x7f).
-	var b strings.Builder
-	b.Grow(len(s))
-	for _, r := range s {
-		if r >= 0x20 && r != 0x7f {
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
-}
-
-func sanitizeAdvisoryURL(raw string) string {
-	cleaned := sanitizeAdvisoryMessage(strings.TrimSpace(raw))
-	parsed, err := url.ParseRequestURI(cleaned)
-	if err != nil || parsed.Scheme != "https" || parsed.Host == "" {
-		return ""
-	}
-	return parsed.String()
 }
 
 var osStatPathFn = os.Stat
@@ -286,12 +247,6 @@ type UpdateCheckResultMsg struct {
 	State   update.CheckState
 	// Forced marks a zero-TTL refresh result so its failure cannot auto-retry.
 	Forced bool
-}
-
-// AdvisoryMsg is sent when the background advisory manifest fetch completes.
-// Advisory is the zero value (Advisory{}) when there is no message to display.
-type AdvisoryMsg struct {
-	Advisory update.Advisory
 }
 
 // UpgradeDoneMsg is sent when the upgrade operation completes.
@@ -582,13 +537,6 @@ type Model struct {
 	UpdateCheckDone  bool
 	UpdateCheckState update.CheckState
 
-	// AdvisoryMessage holds the informational text from the advisory manifest
-	// fetch, when a non-empty message was returned. Empty string means no
-	// advisory to display. Set asynchronously via AdvisoryMsg.
-	AdvisoryMessage string
-	AdvisoryURL     string
-	AdvisoryScroll  int
-
 	// pipelineRunning tracks whether the pipeline goroutine is active.
 	pipelineRunning bool
 
@@ -811,14 +759,13 @@ func claudePhaseAssignmentsToLegacy(assignments map[string]model.ClaudePhaseAssi
 }
 
 func (m Model) updateCheckCommand(ttl time.Duration) tea.Cmd {
-	version := m.Version
 	profile := m.Detection.System.Profile
 	home := homeDir()
 
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		report := update.CheckAllWithCooldownReport(ctx, version, profile, home, ttl,
+		report := update.CheckAllWithCooldownReport(ctx, profile, home, ttl,
 			tuiNowFn,
 			updateCheckFn,
 		)
@@ -827,21 +774,7 @@ func (m Model) updateCheckCommand(ttl time.Duration) tea.Cmd {
 }
 
 func (m Model) Init() tea.Cmd {
-	updateCmd := m.updateCheckCommand(update.UpdateCheckTTL)
-
-	// Fetch the advisory manifest concurrently with the update check.
-	// advisoryFetchFn is a package-level var so tests can override it.
-	// The fetch is fully non-blocking: it runs in its own goroutine and
-	// delivers an AdvisoryMsg when done. Zero latency is added to TUI launch.
-	advisoryCmd := func() tea.Msg {
-		a, ok := advisoryFetchFn(context.Background())
-		if !ok {
-			return AdvisoryMsg{}
-		}
-		return AdvisoryMsg{Advisory: a}
-	}
-
-	return tea.Batch(updateCmd, advisoryCmd)
+	return m.updateCheckCommand(update.UpdateCheckTTL)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -849,7 +782,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
 		m.Height = msg.Height
-		m.clampAdvisoryScroll()
 		return m, nil
 	case TickMsg:
 		if tuiAnimationsDisabled() {
@@ -1033,15 +965,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if update.HasUpdates(m.UpdateResults) && m.Screen == ScreenWelcome {
 			m.setScreen(ScreenUpdatePrompt)
 		}
-		return m, nil
-	case AdvisoryMsg:
-		// Store the advisory message for display on the Welcome screen.
-		// Empty Advisory.Message (no advisory or fetch failed) is a no-op.
-		// Sanitize before storing: strip ANSI escape sequences and control
-		// characters so remote-controlled content cannot corrupt the TUI layout.
-		m.AdvisoryMessage = sanitizeAdvisoryMessage(msg.Advisory.Message)
-		m.AdvisoryURL = sanitizeAdvisoryURL(msg.Advisory.URL)
-		m.AdvisoryScroll = 0
 		return m, nil
 	case CodexModelsDiscoveredMsg:
 		if m.Screen != ScreenCodexModelPicker || msg.RequestID != m.codexModelDiscoveryRequest {
@@ -1272,10 +1195,9 @@ func (m Model) View() string {
 		if m.UpdateCheckDone && update.HasUpdates(m.UpdateResults) {
 			banner = "Updates available: " + update.UpdateSummaryLine(m.UpdateResults)
 		}
-		return screens.RenderWelcomeWithAdvisory(
+		return screens.RenderWelcomeWithSize(
 			m.Cursor, m.Version, banner, m.UpdateResults, m.UpdateCheckDone && m.UpdateCheckState == update.CheckCompleted, m.hasAgentBuilderEngines(),
 			m.Width, m.Height,
-			screens.WelcomeAdvisory{Message: m.AdvisoryMessage, URL: m.AdvisoryURL, Scroll: m.AdvisoryScroll},
 		)
 	case ScreenUpgrade:
 		return screens.RenderUpgradeWithWidth(m.UpdateResults, m.UpgradeReport, m.UpgradeErr, m.OperationRunning, m.UpdateCheckDone, m.Cursor, m.SpinnerFrame, m.Width)
@@ -1531,18 +1453,6 @@ func (m Model) handleKeyPress(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.OperationRunning && keyStr != "q" && keyStr != "ctrl+c" {
 		return m, nil
 	}
-	if m.Screen == ScreenWelcome {
-		pageSize, maxScroll := screens.WelcomeAdvisoryScrollBounds(m.AdvisoryMessage, m.AdvisoryURL, m.Width, m.Height)
-		switch keyStr {
-		case "pgup":
-			m.AdvisoryScroll = max(0, m.AdvisoryScroll-pageSize)
-			return m, nil
-		case "pgdown":
-			m.AdvisoryScroll = min(maxScroll, m.AdvisoryScroll+pageSize)
-			return m, nil
-		}
-	}
-
 	switch keyStr {
 	case "ctrl+c", "q":
 		return m, tea.Quit
@@ -1627,9 +1537,6 @@ func (m Model) handleKeyPress(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if (m.Screen == ScreenInstalling && (m.pipelineRunning || m.InstallReviewModePersisting)) || m.Screen == ScreenCommunityToolInstalling {
 			return m, nil
 		}
-		if _, ok := m.GentleAIUpgradeVersion(); ok {
-			return m, tea.Quit
-		}
 		var cmd tea.Cmd
 		m = m.goBack(&cmd)
 		return m, cmd
@@ -1702,11 +1609,6 @@ func (m Model) codexModelDiscoveryCmd(requestID uint64) tea.Cmd {
 			Capabilities: catalog.Capabilities,
 		}
 	}
-}
-
-func (m *Model) clampAdvisoryScroll() {
-	_, maxScroll := screens.WelcomeAdvisoryScrollBounds(m.AdvisoryMessage, m.AdvisoryURL, m.Width, m.Height)
-	m.AdvisoryScroll = min(max(0, m.AdvisoryScroll), maxScroll)
 }
 
 func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
@@ -1905,11 +1807,6 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 		if m.OperationRunning {
 			return m, nil
 		}
-		// If gentle-ai itself was upgraded, leave the TUI so the app layer can restart
-		// or ask for restart using the platform-specific restart helper.
-		if _, ok := m.GentleAIUpgradeVersion(); ok {
-			return m, tea.Quit
-		}
 		// If showing results (UpgradeReport != nil or UpgradeErr != nil), return to welcome.
 		if m.UpgradeReport != nil || m.UpgradeErr != nil {
 			m = m.withResetOperationState()
@@ -1948,11 +1845,6 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 		// Guard: don't re-launch while running.
 		if m.OperationRunning {
 			return m, nil
-		}
-		// If gentle-ai itself was upgraded, leave the TUI so the app layer can restart
-		// or ask for restart using the platform-specific restart helper.
-		if _, ok := m.GentleAIUpgradeVersion(); ok {
-			return m, tea.Quit
 		}
 		// If operations are done, return to welcome.
 		if m.HasSyncRun || m.UpgradeReport != nil || m.UpgradeErr != nil {
@@ -2851,8 +2743,6 @@ func (m Model) detectProjectEngramData() bool {
 // startUpgradeSync runs upgrade then sync sequentially via tea.Sequence.
 // Design decision: sync normally runs regardless of tool-level upgrade outcome.
 // Tool-level upgrade failures are per-tool (in UpgradeReport.Results), not fatal.
-// Exception: if gentle-ai itself was upgraded, sync is skipped so the old
-// running binary cannot rewrite configs after installing a newer binary.
 //
 // The first command runs the upgrade and sends UpgradePhaseCompletedMsg
 // (so the UI can show State 2: sync running). The second command runs sync
@@ -2862,7 +2752,6 @@ func (m Model) startUpgradeSync() tea.Cmd {
 	syncFn := m.SyncFn
 	detailed := m.SyncDetailedFn
 	updateResults := m.UpdateResults
-	gentleAIUpdated := false
 
 	upgradeCmd := func() tea.Msg {
 		if upgradeFn == nil {
@@ -2870,26 +2759,10 @@ func (m Model) startUpgradeSync() tea.Cmd {
 		}
 		ctx := context.Background()
 		report := upgradeFn(ctx, updateResults)
-		gentleAIUpdated = reportUpgradedGentleAI(report)
 		return UpgradePhaseCompletedMsg{Report: report}
 	}
 
 	syncCmd := func() tea.Msg {
-		if gentleAIUpdated {
-			// Deferred sync (task 4.8): gentle-ai was upgraded in this session.
-			// Set PendingSync=true so the new binary runs sync on next launch
-			// instead of silently skipping it. Non-fatal if state write fails.
-			//
-			// No-clobber guard: only fall back to a fresh InstallState{} when
-			// the file is genuinely missing (ErrNotExist). Any other read error
-			// (e.g. corrupt JSON, permission denied) means an existing file is
-			// present — skip writing to avoid dropping installed_agents, model
-			// assignments, and other persisted fields.
-			if h := homeDir(); h != "" {
-				markPendingSyncUnderLock(h)
-			}
-			return SyncDoneMsg{}
-		}
 		if detailed != nil {
 			files, actions, err := detailed(nil)
 			return SyncDoneMsg{Files: files, ManualActions: actions, Err: err}
@@ -2905,46 +2778,6 @@ func (m Model) startUpgradeSync() tea.Cmd {
 	}
 
 	return tea.Sequence(upgradeCmd, syncCmd)
-}
-
-// markPendingSyncUnderLock flags PendingSync under the canonical install-state
-// lock. It re-reads the latest state inside the lock so a concurrent writer's
-// change is not clobbered, and preserves the no-clobber guard: when the read
-// fails with anything other than os.ErrNotExist, nothing is written. Lock and
-// write failures stay non-fatal, as before this helper existed.
-func markPendingSyncUnderLock(h string) {
-	_ = statecoord.WithLock(h, func() error {
-		s, readErr := state.Read(h)
-		if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
-			// File exists but unreadable/corrupt — skip to avoid clobber.
-			return nil
-		}
-		s.PendingSync = true
-		return state.Write(h, s)
-	})
-}
-
-func reportUpgradedGentleAI(report upgrade.UpgradeReport) bool {
-	for _, result := range report.Results {
-		if result.ToolName == "gentle-ai" && result.Status == upgrade.UpgradeSucceeded {
-			return true
-		}
-	}
-	return false
-}
-
-// GentleAIUpgradeVersion returns the upgraded gentle-ai version when the current
-// TUI result requires restarting the app before continuing with config sync.
-func (m Model) GentleAIUpgradeVersion() (string, bool) {
-	if m.UpgradeReport == nil {
-		return "", false
-	}
-	for _, result := range m.UpgradeReport.Results {
-		if result.ToolName == "gentle-ai" && result.Status == upgrade.UpgradeSucceeded {
-			return strings.TrimPrefix(result.NewVersion, "v"), true
-		}
-	}
-	return "", false
 }
 
 // restoreBackup triggers a backup restore in a goroutine.

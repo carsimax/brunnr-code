@@ -22,8 +22,9 @@ func TestMain(m *testing.M) {
 	// tests keep their own explicit t.Setenv("", "") resets, which still work
 	// fine on top of this baseline.
 	testenv.Isolate()
-	if err := os.Unsetenv("GENTLE_AI_CHANNEL"); err != nil {
-		panic(err)
+	// No test may download a real engram release.
+	engramDownloadFn = func(system.PlatformProfile) (string, error) {
+		return filepath.Join(os.TempDir(), "engram"), nil
 	}
 
 	os.Exit(m.Run())
@@ -66,256 +67,7 @@ func TestRunStrategy_BrewUpgrade(t *testing.T) {
 	}
 }
 
-// --- TestRunStrategy_GoInstallUpgrade ---
-
-func TestRunStrategy_GoInstallUpgrade(t *testing.T) {
-	origExecCommand := execCommand
-	t.Cleanup(func() { execCommand = origExecCommand })
-
-	var gotName string
-	var gotArgs []string
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		gotName = name
-		gotArgs = args
-		return mockCmd("echo", "go install ok")
-	}
-
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "engram",
-			InstallMethod: update.InstallGoInstall,
-			GoImportPath:  "github.com/Gentleman-Programming/engram/cmd/engram",
-		},
-		LatestVersion: "0.4.0",
-	}
-	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-
-	_, err := runStrategy(context.Background(), r, profile)
-	if err != nil {
-		t.Fatalf("runStrategy go-install: unexpected error: %v", err)
-	}
-
-	if gotName != "go" {
-		t.Errorf("exec name = %q, want %q", gotName, "go")
-	}
-	// Expected: go install github.com/Gentleman-Programming/engram/cmd/engram@v0.4.0
-	wantArg0, wantArg1 := "install", "github.com/Gentleman-Programming/engram/cmd/engram@v0.4.0"
-	if len(gotArgs) < 2 || gotArgs[0] != wantArg0 || gotArgs[1] != wantArg1 {
-		t.Errorf("exec args = %v, want [%s %s]", gotArgs, wantArg0, wantArg1)
-	}
-}
-
-// TestRunStrategy_GoInstallUpgradeCrossMajorDerivesSuffixFromVersion is the
-// acceptance scenario for issue #4687: a stable-channel upgrade target whose
-// major differs from the running binary's major must compose a /vN suffix
-// matching the TARGET version, not the running binary. This is what makes a
-// cross-major upgrade resolvable: a v3 binary targeting v4.0.0 composes
-// .../v4/... and a v3 binary targeting v2.0.0 composes .../v2/....
-//
-// The composition happens inside goInstallUpgrade, which is reached from
-// runStrategy only on a Windows profile with Go on PATH and a declared
-// GoImportPath — gentleAISelfUpgradeMethod routes gentle-ai on Linux and
-// macOS to InstallBinary (the minisign-verified release download) and the
-// beta channel bypasses this path through goInstallMainUpgrade. The previous
-// rewrite used a Linux profile and never reached the composition: the
-// routing went straight to binaryUpgrade and the test failed on
-// ErrReleaseTrustUnavailable. The preflight gate inside goInstallUpgrade is
-// satisfied the same way as
-// TestWindowsBetaGentleAIUpgradeUsesShippedRegistryGoTarget: a fake binary
-// is written into a temp GOBIN, lookPathFn resolves "gentle-ai" to that
-// path, and execCommand hands a synthetic GOBIN back to goInstallDestinationDir.
-func TestRunStrategy_GoInstallUpgradeCrossMajorDerivesSuffixFromVersion(t *testing.T) {
-	var tool update.ToolInfo
-	for _, candidate := range update.Tools {
-		if candidate.Name == "gentle-ai" {
-			tool = candidate
-			break
-		}
-	}
-	if tool.GoImportPath == "" {
-		t.Fatal("shipped gentle-ai registry entry must declare GoImportPath")
-	}
-
-	tests := []struct {
-		name       string
-		latestVer  string
-		wantTarget string
-	}{
-		{
-			name:       "v3 binary targeting v4.0.0 composes /v4",
-			latestVer:  "4.0.0",
-			wantTarget: "github.com/gentleman-programming/gentle-ai/v4/cmd/gentle-ai@v4.0.0",
-		},
-		{
-			name:       "v3 binary targeting v2.0.0 composes /v2",
-			latestVer:  "2.0.0",
-			wantTarget: "github.com/gentleman-programming/gentle-ai/v2/cmd/gentle-ai@v2.0.0",
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			gobin := t.TempDir()
-			destination := writeFakeBinary(t, gobin, "gentle-ai.exe")
-
-			origLookPath := lookPathFn
-			t.Cleanup(func() { lookPathFn = origLookPath })
-			lookPathFn = func(string) (string, error) { return destination, nil }
-
-			origExec := execCommand
-			t.Cleanup(func() { execCommand = origExec })
-
-			var gotName string
-			var gotArgs []string
-			execCommand = func(name string, args ...string) *exec.Cmd {
-				if name == "go" && len(args) == 2 && args[0] == "env" {
-					return mockCmd("echo", gobin)
-				}
-				gotName = name
-				gotArgs = args
-				return mockCmd("true")
-			}
-
-			r := update.UpdateResult{
-				Tool:          tool,
-				LatestVersion: tc.latestVer,
-				Status:        update.UpdateAvailable,
-			}
-			profile := system.PlatformProfile{OS: "windows", PackageManager: "winget", GoAvailable: true, Supported: true}
-
-			if _, err := runStrategy(context.Background(), r, profile); err != nil {
-				t.Fatalf("runStrategy: %v", err)
-			}
-
-			wantArgs := []string{"install", tc.wantTarget}
-			if gotName != "go" || len(gotArgs) != len(wantArgs) || gotArgs[0] != wantArgs[0] || gotArgs[1] != wantArgs[1] {
-				t.Fatalf("exec command = %q %v, want %v", gotName, gotArgs, wantArgs)
-			}
-		})
-	}
-}
-
-func TestRunStrategy_BetaGentleAISelfUpgradeUsesGoInstallMain(t *testing.T) {
-	origExecCommand := execCommand
-	t.Cleanup(func() { execCommand = origExecCommand })
-
-	var gotName string
-	var gotArgs []string
-	var gotCmd *exec.Cmd
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		gotName = name
-		gotArgs = args
-		gotCmd = mockCmd("true")
-		return gotCmd
-	}
-
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "gentle-ai",
-			Owner:         "Gentleman-Programming",
-			Repo:          "gentle-ai",
-			InstallMethod: update.InstallBinary,
-		},
-		LatestVersion:  "main@972997650b51",
-		BetaCommit:     "972997650b51abcdef0123456789abcdef012345",
-		BetaModulePath: "github.com/gentleman-programming/gentle-ai/v4",
-		Status:         update.UpdateAvailable,
-	}
-	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt", Supported: true}
-
-	_, err := runStrategy(context.Background(), r, profile)
-	if err != nil {
-		t.Fatalf("runStrategy beta gentle-ai: unexpected error: %v", err)
-	}
-
-	if gotName != "go" {
-		t.Fatalf("exec name = %q, want %q", gotName, "go")
-	}
-	wantArgs := []string{"install", "github.com/gentleman-programming/gentle-ai/v4/cmd/gentle-ai@972997650b51abcdef0123456789abcdef012345"}
-	if len(gotArgs) != len(wantArgs) || gotArgs[0] != wantArgs[0] || gotArgs[1] != wantArgs[1] {
-		t.Fatalf("exec args = %v, want %v", gotArgs, wantArgs)
-	}
-	for _, want := range []string{
-		"GONOSUMDB=github.com/gentleman-programming/gentle-ai/v4",
-		"GOPRIVATE=github.com/gentleman-programming/gentle-ai/v4",
-		"GONOPROXY=github.com/gentleman-programming/gentle-ai/v4",
-	} {
-		if !envContains(gotCmd.Env, want) {
-			t.Fatalf("go install env missing %q in %v", want, gotCmd.Env)
-		}
-	}
-}
-
-func TestBetaInstallRejectsUnverifiedTargetBeforeMutation(t *testing.T) {
-	origExec := execCommand
-	t.Cleanup(func() { execCommand = origExec })
-	called := false
-	execCommand = func(name string, args ...string) *exec.Cmd { called = true; return mockCmd("true") }
-	tool := update.ToolInfo{Name: "gentle-ai", Owner: "Gentleman-Programming", Repo: "gentle-ai", InstallMethod: update.InstallBinary}
-	cases := []struct{ name, sha, module, version string }{
-		{name: "no metadata", version: "main@972997650b51"},
-		{name: "wrong module", sha: "972997650b51abcdef0123456789abcdef012345", module: "github.com/other/gentle-ai/v4", version: "main@972997650b51"},
-		{name: "mismatched short revision", sha: "972997650b51abcdef0123456789abcdef012345", module: "github.com/gentleman-programming/gentle-ai/v4", version: "main@6eff4a1ba110"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			r := update.UpdateResult{Tool: tool, LatestVersion: tc.version, BetaCommit: tc.sha, BetaModulePath: tc.module, Status: update.UpdateAvailable}
-			_, err := runStrategy(context.Background(), r, system.PlatformProfile{OS: "linux", PackageManager: "apt"})
-			if err == nil || called {
-				t.Fatalf("unverified target should not execute: err=%v, called=%v", err, called)
-			}
-		})
-	}
-}
-
-func envContains(env []string, want string) bool {
-	for _, entry := range env {
-		if entry == want {
-			return true
-		}
-	}
-	return false
-}
-
-func TestGoProxyBypassEnvPreservesExistingPatterns(t *testing.T) {
-	module := "github.com/gentleman-programming/gentle-ai/v3"
-	env := goProxyBypassEnv([]string{
-		"PATH=/usr/bin",
-		"GONOSUMDB=example.com/private",
-		"GOPRIVATE=github.com/acme/*",
-		"GONOPROXY=github.com/gentleman-programming/gentle-ai/v3",
-	}, module)
-
-	for _, want := range []string{
-		"PATH=/usr/bin",
-		"GONOSUMDB=github.com/gentleman-programming/gentle-ai/v3,example.com/private",
-		"GOPRIVATE=github.com/gentleman-programming/gentle-ai/v3,github.com/acme/*",
-		"GONOPROXY=github.com/gentleman-programming/gentle-ai/v3",
-	} {
-		if !envContains(env, want) {
-			t.Fatalf("env missing %q in %v", want, env)
-		}
-	}
-}
-
 // --- TestRunStrategy_GoInstallMissingImportPath ---
-
-func TestRunStrategy_GoInstallMissingImportPath(t *testing.T) {
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "engram",
-			InstallMethod: update.InstallGoInstall,
-			GoImportPath:  "", // missing
-		},
-		LatestVersion: "0.4.0",
-	}
-	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-
-	_, err := runStrategy(context.Background(), r, profile)
-	if err == nil {
-		t.Errorf("expected error when GoImportPath is empty, got nil")
-	}
-}
 
 // --- TestRunStrategy_UnsupportedMethodManualFallback ---
 
@@ -362,77 +114,6 @@ func TestRunStrategy_BrewUpgradeFailure(t *testing.T) {
 }
 
 // --- TestRunStrategy_GoInstallFailure ---
-
-func TestRunStrategy_GoInstallFailure(t *testing.T) {
-	origExecCommand := execCommand
-	t.Cleanup(func() { execCommand = origExecCommand })
-
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		return mockCmd("false")
-	}
-
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "engram",
-			InstallMethod: update.InstallGoInstall,
-			GoImportPath:  "github.com/Gentleman-Programming/engram/cmd/engram",
-		},
-		LatestVersion: "0.4.0",
-	}
-	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-
-	_, err := runStrategy(context.Background(), r, profile)
-	if err == nil {
-		t.Errorf("expected error when go install fails, got nil")
-	}
-}
-
-// TestEffectiveMethodGentleAIOnWindowsUsesFailClosedBinaryPolicy verifies that
-// Windows never routes gentle-ai through a remote installer, and that when no
-// usable `go install` target is declared it falls back to the binary strategy —
-// which on Windows is an explicit refusal naming a runnable source-install
-// command, not a download.
-func TestEffectiveMethodGentleAIOnWindowsUsesFailClosedBinaryPolicy(t *testing.T) {
-	tests := []struct {
-		name string
-		tool update.ToolInfo
-	}{
-		{
-			name: "binary remains policy boundary",
-			tool: update.ToolInfo{Name: "gentle-ai", InstallMethod: update.InstallBinary},
-		},
-		{
-			name: "legacy script declaration is disabled",
-			tool: update.ToolInfo{Name: "gentle-ai", InstallMethod: update.InstallScript},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			profile := system.PlatformProfile{OS: "windows", PackageManager: "winget", GoAvailable: true}
-			method := effectiveMethod(tc.tool, profile)
-			if method != update.InstallBinary {
-				t.Errorf("effectiveMethod(%q) = %q, want %q", tc.tool.Name, method, update.InstallBinary)
-			}
-		})
-	}
-
-	// Renamed from "Go availability still requires an explicit source install",
-	// which encoded the previous policy: Windows refused to self-upgrade even
-	// with Go on PATH. That policy has been changed deliberately. No signed
-	// Windows binary is published, so there is no asset to download and verify
-	// with minisign; a pinned `go install <importPath>@vX.Y.Z` — still checked
-	// against the Go checksum database, since goInstallUpgrade does not touch
-	// cmd.Env — is the only automatic upgrade path Windows has.
-	t.Run("Go availability upgrades through a pinned go install", func(t *testing.T) {
-		tool := update.ToolInfo{Name: "gentle-ai", InstallMethod: update.InstallBinary, GoImportPath: "github.com/Gentleman-Programming/gentle-ai/v3/cmd/gentle-ai"}
-		profile := system.PlatformProfile{OS: "windows", PackageManager: "winget", GoAvailable: true}
-		method := effectiveMethod(tool, profile)
-		if method != update.InstallGoInstall {
-			t.Errorf("effectiveMethod(%q) = %q, want %q", tool.Name, method, update.InstallGoInstall)
-		}
-	})
-}
 
 // --- TestEffectiveMethod_NonGentleAIToolsOnWindowsUseBinary ---
 
@@ -487,8 +168,8 @@ func TestEffectiveMethod(t *testing.T) {
 		want          update.InstallMethod
 	}{
 		{
-			name:          "brew-owned package overrides go-install",
-			tool:          update.ToolInfo{Name: "engram", InstallMethod: update.InstallGoInstall},
+			name:          "brew-owned package overrides binary for engram",
+			tool:          update.ToolInfo{Name: "engram", InstallMethod: update.InstallBinary},
 			profile:       system.PlatformProfile{PackageManager: "brew"},
 			brewInstalled: true,
 			want:          update.InstallBrew,
@@ -514,18 +195,6 @@ func TestEffectiveMethod(t *testing.T) {
 			want:    update.InstallBinary,
 		},
 		{
-			name:    "brew profile without package ownership can use go-install fallback",
-			tool:    update.ToolInfo{Name: "mytool", InstallMethod: update.InstallBinary, GoImportPath: "github.com/example/mytool/cmd/mytool"},
-			profile: system.PlatformProfile{PackageManager: "brew", GoAvailable: true},
-			want:    update.InstallGoInstall,
-		},
-		{
-			name:    "apt profile respects declared method (go-install)",
-			tool:    update.ToolInfo{Name: "engram", InstallMethod: update.InstallGoInstall},
-			profile: system.PlatformProfile{PackageManager: "apt"},
-			want:    update.InstallGoInstall,
-		},
-		{
 			name:    "apt profile respects declared method (binary)",
 			tool:    update.ToolInfo{Name: "gga", InstallMethod: update.InstallBinary},
 			profile: system.PlatformProfile{PackageManager: "apt"},
@@ -536,32 +205,6 @@ func TestEffectiveMethod(t *testing.T) {
 			tool:    update.ToolInfo{Name: "gga", InstallMethod: update.InstallScript},
 			profile: system.PlatformProfile{PackageManager: "apt"},
 			want:    update.InstallScript,
-		},
-		// Auto-detect order: brew-owned package → go-install → binary (issue #246).
-		{
-			name:          "auto-detect: brew-owned package wins regardless of GoImportPath",
-			tool:          update.ToolInfo{Name: "mytool", InstallMethod: update.InstallBinary, GoImportPath: "github.com/example/mytool/cmd/mytool"},
-			profile:       system.PlatformProfile{PackageManager: "brew", GoAvailable: true},
-			brewInstalled: true,
-			want:          update.InstallBrew,
-		},
-		{
-			name:    "auto-detect: brew missing + go available + GoImportPath set → go-install",
-			tool:    update.ToolInfo{Name: "mytool", InstallMethod: update.InstallBinary, GoImportPath: "github.com/example/mytool/cmd/mytool"},
-			profile: system.PlatformProfile{PackageManager: "apt", GoAvailable: true},
-			want:    update.InstallGoInstall,
-		},
-		{
-			name:    "auto-detect: brew missing + go missing + GoImportPath set → binary fallback",
-			tool:    update.ToolInfo{Name: "mytool", InstallMethod: update.InstallBinary, GoImportPath: "github.com/example/mytool/cmd/mytool"},
-			profile: system.PlatformProfile{PackageManager: "apt", GoAvailable: false},
-			want:    update.InstallBinary,
-		},
-		{
-			name:    "auto-detect: go available but GoImportPath empty → binary (no upgrade)",
-			tool:    update.ToolInfo{Name: "mytool", InstallMethod: update.InstallBinary, GoImportPath: ""},
-			profile: system.PlatformProfile{PackageManager: "apt", GoAvailable: true},
-			want:    update.InstallBinary,
 		},
 	}
 
@@ -1385,24 +1028,11 @@ func TestRunStrategy_ScriptUpgradeExecFailure(t *testing.T) {
 	}
 }
 
-// --- TestEngramBinaryUpgrade_ChannelRouting (Slice 3) ---
-
-// TestEngramBinaryUpgrade_StableChannelCallsDownloadFn verifies that when
-// GENTLE_AI_CHANNEL is unset or "stable", engramBinaryUpgrade delegates to
-// engramDownloadFn (the release-download path) and NOT go install @main.
-func TestEngramBinaryUpgrade_StableChannelCallsDownloadFn(t *testing.T) {
-	tests := []struct {
-		name   string
-		envVal string
-	}{
-		{name: "channel unset", envVal: ""},
-		{name: "channel explicit stable", envVal: "stable"},
-	}
-
-	for _, tt := range tests {
+// TestEngramBinaryUpgrade_CallsDownloadFn verifies that engramBinaryUpgrade
+// delegates to engramDownloadFn (the release-download path) and never execs.
+func TestEngramBinaryUpgrade_CallsDownloadFn(t *testing.T) {
+	for _, tt := range []struct{ name string }{{name: "release download"}} {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("GENTLE_AI_CHANNEL", tt.envVal)
-
 			origDownloadFn := engramDownloadFn
 			origExecCommand := execCommand
 			t.Cleanup(func() {
@@ -1416,56 +1046,19 @@ func TestEngramBinaryUpgrade_StableChannelCallsDownloadFn(t *testing.T) {
 				return "/tmp/engram", nil
 			}
 
-			// go install must NOT be called for stable channel.
 			execCommand = func(name string, args ...string) *exec.Cmd {
-				t.Errorf("execCommand called unexpectedly for stable channel: %s %v", name, args)
+				t.Errorf("execCommand called unexpectedly: %s %v", name, args)
 				return mockCmd("echo", "unexpected")
 			}
 
 			profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
 			err := engramBinaryUpgrade(profile)
 			if err != nil {
-				t.Fatalf("engramBinaryUpgrade stable: unexpected error: %v", err)
+				t.Fatalf("engramBinaryUpgrade: unexpected error: %v", err)
 			}
 			if !downloadCalled {
-				t.Error("expected engramDownloadFn to be called for stable channel, but it was not")
+				t.Error("expected engramDownloadFn to be called, but it was not")
 			}
 		})
-	}
-}
-
-// TestEngramBinaryUpgrade_BetaChannelUsesGoInstallMain verifies that when
-// GENTLE_AI_CHANNEL=beta, engramBinaryUpgrade delegates to
-// engramBetaInstallFn (the consolidated beta path, backed by
-// engram.DownloadLatestBinary(profile, true) in production). The stable
-// engramDownloadFn must NOT be called.
-func TestEngramBinaryUpgrade_BetaChannelUsesGoInstallMain(t *testing.T) {
-	t.Setenv("GENTLE_AI_CHANNEL", "beta")
-
-	origDownloadFn := engramDownloadFn
-	origBetaFn := engramBetaInstallFn
-	t.Cleanup(func() {
-		engramDownloadFn = origDownloadFn
-		engramBetaInstallFn = origBetaFn
-	})
-
-	engramDownloadFn = func(profile system.PlatformProfile) (string, error) {
-		t.Error("engramDownloadFn (stable path) must NOT be called for beta channel")
-		return "", nil
-	}
-
-	var betaCalled bool
-	engramBetaInstallFn = func(profile system.PlatformProfile) (string, error) {
-		betaCalled = true
-		return "/tmp/engram-beta", nil
-	}
-
-	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-	err := engramBinaryUpgrade(profile)
-	if err != nil {
-		t.Fatalf("engramBinaryUpgrade beta: unexpected error: %v", err)
-	}
-	if !betaCalled {
-		t.Fatal("expected engramBetaInstallFn (beta path) to be called, but it was not")
 	}
 }

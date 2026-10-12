@@ -50,7 +50,7 @@ The CLI is an installer and configurator. It writes managed configuration, skill
 - **Ownership and state:** `managedownership` keeps a hash ledger of the bytes the tool owns, so user edits are never overwritten blindly. `state` and `statecoord` manage `state.json` under a lock. `backup` and `restore` take snapshots.
 - **Embedded assets:** `internal/assets` uses `go:embed` to ship the per-agent orchestrator prompts, personas, output styles and skills (`internal/assets/skills/`). These are the source of the files written to user machines. The root `skills/` directory holds repo-local development skills, which are not shipped.
 - **Review subsystem (RDD, the largest area):** the CLI side is in `internal/cli/review*.go`. The transaction and lineage logic is in `internal/reviewtransaction`. `internal/reviewerprovider` is the boundary between review authority, which Go owns, and the host-specific reviewer calls. The JSON and text contracts are frozen under `contracts/`. Receipt-driven review is disabled in this clone.
-- **Other:** `doctor`/`verify` (diagnostics), `update` and `releasepolicy`/`releaseprovenance` (self-update with signature verification).
+- **Other:** `doctor`/`verify` (diagnostics), `update` (update checks and upgrades for managed tools such as Engram; the binary never updates itself).
 
 ## Conventions
 

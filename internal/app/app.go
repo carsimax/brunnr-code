@@ -26,6 +26,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/update/upgrade"
 	"github.com/carsimax/brunnr-code/internal/verify"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mattn/go-isatty"
 )
 
 // Version is set from main via ldflags at build time.
@@ -36,52 +37,27 @@ var (
 	updateCheckFiltered       = update.CheckFiltered
 	upgradeExecute            = upgrade.Execute
 	upgradeExecuteWithOptions = upgrade.ExecuteWithOptions
-	selfUpdateFn              = selfUpdate
 	ensureCurrentOSSupported  = system.EnsureCurrentOSSupported
 	detectSystem              = system.Detect
 	runTUI                    = func(m tea.Model, opts ...tea.ProgramOption) (tea.Model, error) {
 		p := tea.NewProgram(m, opts...)
 		return p.Run()
 	}
-	// deferredSyncFn is the function called when PendingSync=true is found on
-	// launch. Swappable for tests; production value calls cli.RunSync directly.
-	// cli.RunSync is idempotent (re-reads state + re-applies configs each call),
-	// so retrying on failure (spec scenario "deferred sync fails → retry") is safe.
-	deferredSyncFn = func() error {
-		args := []string(nil)
-		if h, err := os.UserHomeDir(); err == nil {
-			args = syncArgsForDiscoveredAgents(h)
-		}
-		_, err := cli.RunSync(args)
-		return err
-	}
 )
+
+// isTerminal reports whether fd belongs to a native or Cygwin/MSYS2 terminal.
+func isTerminal(fd uintptr) bool {
+	return isatty.IsTerminal(fd) || isatty.IsCygwinTerminal(fd)
+}
+
+// isattyFn is a package-level var for TTY detection, injectable for tests.
+var isattyFn = isTerminal
 
 func Run() error {
 	return RunArgs(os.Args[1:], os.Stdout)
 }
 
 const nonInteractiveTUIError = "gentle-ai requires both stdin and stdout to be terminals (TTYs); use --version, gentle-ai update, or --help for non-interactive use"
-
-// clearPendingSyncAfterDeferredSync clears PendingSync under the canonical
-// install-state lock. It re-reads the latest state inside the lock so changes
-// written by a concurrent writer between the deferred sync and this clear are
-// preserved; the stale fallback is used only when the state file does not
-// exist yet.
-func clearPendingSyncAfterDeferredSync(homeDir string, fallback state.InstallState) error {
-	return statecoord.WithLock(homeDir, func() error {
-		current, readErr := state.Read(homeDir)
-		if readErr != nil {
-			if errors.Is(readErr, os.ErrNotExist) {
-				current = fallback
-			} else {
-				return readErr
-			}
-		}
-		current.PendingSync = false
-		return state.Write(homeDir, current)
-	})
-}
 
 func RunArgs(args []string, stdout io.Writer) error {
 	if len(args) == 0 && (!isattyFn(os.Stdin.Fd()) || !isattyFn(os.Stdout.Fd())) {
@@ -93,11 +69,8 @@ func RunArgs(args []string, stdout io.Writer) error {
 	cli.AppVersion = Version
 	upgrade.AppVersion = Version
 
-	// --yes as a global CLI flag for self-update is handled via GENTLE_AI_YES=1.
-	// Per-subcommand --yes flags (e.g. restore --yes) are parsed by each subcommand.
-
-	// Platform-independent commands: no system detection, self-update, or
-	// platform validation.
+	// Platform-independent commands: no system detection or platform
+	// validation.
 	if len(args) > 0 {
 		switch args[0] {
 		case "version", "--version", "-v":
@@ -153,7 +126,7 @@ func RunArgs(args []string, stdout io.Writer) error {
 	}
 
 	// Issue #535: parse the upgrade command's arguments exactly once, before
-	// any platform validation, system detection, self-update, update check,
+	// any platform validation, system detection, update check,
 	// backup, or execution effect. Unsupported pre-delimiter dash arguments
 	// are rejected here with zero effects. The parsed value is forwarded to
 	// runUpgrade below so the executor never reparses raw CLI args. The
@@ -184,8 +157,8 @@ func RunArgs(args []string, stdout io.Writer) error {
 		return system.EnsureSupportedPlatform(result.System.Profile)
 	}
 
-	// Reject invalid install plans before self-update can persist its cooldown
-	// or replace the binary. Dispatch reuses this plan without reparsing flags.
+	// Reject invalid install plans before any other effect. Dispatch reuses
+	// this plan without reparsing flags.
 	var preparedInstall cli.PreparedInstall
 	if len(args) > 0 && args[0] == "install" {
 		preparedInstall, err = cli.PrepareInstall(args[1:], result)
@@ -206,17 +179,6 @@ func RunArgs(args []string, stdout io.Writer) error {
 		return profile
 	}
 
-	// Self-update: check for a newer gentle-ai release and apply it before
-	// CLI/TUI dispatch. Errors are non-fatal — logged and swallowed.
-	// Skip auto-upgrade on TUI entry (len(args) == 0) to avoid silently
-	// replacing the binary while the user expects a clean TUI launch (#696).
-	isTUIFlow := len(args) == 0
-	if !isTUIFlow && !isExplicitUpdateFlow(args) {
-		if err := selfUpdateFn(context.Background(), Version, resolveProfile(), stdout); err != nil {
-			_, _ = fmt.Fprintf(stdout, "Warning: self-update failed: %v\n", err)
-		}
-	}
-
 	if len(args) == 0 {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
@@ -230,32 +192,6 @@ func RunArgs(args []string, stdout io.Writer) error {
 		installedState, err := state.Read(homeDir)
 		if err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("read install state: %w", err)
-		}
-
-		// Deferred sync: if a previous gentle-ai self-upgrade set PendingSync=true,
-		// run sync now with the new binary before entering the TUI. On success,
-		// clear the flag. On failure, log and leave the flag set for idempotent
-		// retry on the next launch (per spec scenario "deferred sync fails → retry").
-		// This is non-fatal — a sync failure must never block the TUI from opening.
-		if installedState.PendingSync {
-			if err := deferredSyncFn(); err != nil {
-				_, _ = fmt.Fprintf(stdout, "Warning: deferred sync failed: %v\n", err)
-				// Leave PendingSync=true so the next launch retries.
-			} else {
-				// Re-read the latest state inside the canonical lock so a
-				// concurrent writer's changes survive the PendingSync clear.
-				if writeErr := clearPendingSyncAfterDeferredSync(homeDir, installedState); writeErr != nil {
-					// Best-effort: surface the failure so it's not silently swallowed.
-					// Idempotent re-sync on the next launch is acceptable.
-					_, _ = fmt.Fprintf(stdout, "Warning: failed to clear PendingSync flag: %v\n", writeErr)
-				}
-			}
-			// TUI self-update path: the previous launch completed a gentle-ai
-			// self-upgrade under the old binary and set PendingSync=true. We are
-			// now running under the new binary; print the doctor advisory so the
-			// user can verify ecosystem health against the post-upgrade state.
-			// Print regardless of sync outcome — the advisory is informational.
-			printPostUpgradeDoctorAdvisory(stdout)
 		}
 
 		m := tui.NewModel(result, Version, installedState)
@@ -284,19 +220,13 @@ func RunArgs(args []string, stdout io.Writer) error {
 		// mean.
 		m.ReviewStoreResetSurveyFn = tuiReviewStoreSurvey
 		m.ReviewStoreResetFn = tuiReviewStoreReset
-		finalModel, err := runTUI(m, tea.WithAltScreen())
-		if err != nil {
-			return err
-		}
-		if latestVersion, ok := gentleAIUpgradeVersionFromTUI(finalModel); ok {
-			return restartAfterGentleAIUpgrade(latestVersion, stdout)
-		}
-		return nil
+		_, err = runTUI(m, tea.WithAltScreen())
+		return err
 	}
 
 	switch args[0] {
 	case "update":
-		return runUpdate(context.Background(), Version, resolveProfile(), stdout)
+		return runUpdate(context.Background(), resolveProfile(), stdout)
 	case "upgrade":
 		return runUpgrade(context.Background(), *parsedUpgrade, result, stdout)
 	case "install":
@@ -352,20 +282,6 @@ func hasHelpFlag(args []string) bool {
 	}
 
 	return false
-}
-
-func gentleAIUpgradeVersionFromTUI(finalModel tea.Model) (string, bool) {
-	switch m := finalModel.(type) {
-	case tui.Model:
-		return m.GentleAIUpgradeVersion()
-	case *tui.Model:
-		if m == nil {
-			return "", false
-		}
-		return m.GentleAIUpgradeVersion()
-	default:
-		return "", false
-	}
 }
 
 func runSkillRegistry(args []string, stdout io.Writer) error {
@@ -512,8 +428,8 @@ func runSkillRegistryList(args []string, stdout io.Writer) error {
 	return nil
 }
 
-func runUpdate(ctx context.Context, currentVersion string, profile system.PlatformProfile, stdout io.Writer) error {
-	results := updateCheckAll(ctx, currentVersion, profile)
+func runUpdate(ctx context.Context, profile system.PlatformProfile, stdout io.Writer) error {
+	results := updateCheckAll(ctx, profile)
 	_, _ = fmt.Fprint(stdout, update.RenderCLI(results))
 	if err := updateCheckError(results); err != nil {
 		return err
@@ -524,11 +440,9 @@ func runUpdate(ctx context.Context, currentVersion string, profile system.Platfo
 // runUpgrade handles the `gentle-ai upgrade [--dry-run] [tool...]` command.
 //
 // This command:
-//   - Checks for available updates for managed tools (gentle-ai, engram, gga)
+//   - Checks for available updates for managed tools (engram, gga)
 //   - Snapshots agent config paths before execution (config preservation by design)
 //   - Executes binary-only upgrades; does NOT invoke install or sync pipelines
-//   - Skips gentle-ai itself when running as a dev build (version="dev")
-//   - Falls back to source-install guidance where official binaries are unavailable
 //
 // Issue #535: runUpgrade consumes a structured upgradeArgs value parsed once
 // in RunArgs. It forwards the parsed flags and tool filters to the update
@@ -547,7 +461,7 @@ func runUpgrade(ctx context.Context, args upgradeArgs, detection system.Detectio
 
 	// Check for available updates (filtered to requested tools if specified).
 	sp := upgrade.NewSpinner(stdout, "Checking for updates")
-	checkResults := updateCheckFiltered(ctx, Version, profile, toolFilter)
+	checkResults := updateCheckFiltered(ctx, profile, toolFilter)
 	checkErr := updateCheckError(checkResults)
 	sp.Finish(!update.HasCheckFailures(checkResults))
 	if update.HasCheckFailures(checkResults) {
@@ -577,22 +491,7 @@ func runUpgrade(ctx context.Context, args upgradeArgs, detection system.Detectio
 		}
 	}
 
-	if err := errors.Join(errs...); err != nil {
-		return err
-	}
-	if !dryRun {
-		if latestVersion, ok := gentleAIUpgradeSucceeded(report); ok {
-			if err := restartAfterGentleAIUpgrade(latestVersion, stdout); err != nil {
-				return err
-			}
-			// CLI upgrade path: print the doctor advisory so the user can verify
-			// ecosystem health against the post-upgrade state. Informational only;
-			// does not run any checks or change exit status.
-			printPostUpgradeDoctorAdvisory(stdout)
-			return nil
-		}
-	}
-	return nil
+	return errors.Join(errs...)
 }
 
 func updateCheckError(results []update.UpdateResult) error {
@@ -813,19 +712,6 @@ func syncShouldIncludePermissions(agentIDs []model.AgentID) bool {
 		}
 	}
 	return false
-}
-
-func syncArgsForDiscoveredAgents(homeDir string) []string {
-	if persisted, err := state.Read(homeDir); err == nil && persisted.SelectionConfigured {
-		if (model.Selection{Components: persisted.Components}).HasComponent(model.ComponentPermission) {
-			return []string{"--include-permissions"}
-		}
-		return nil
-	}
-	if syncShouldIncludePermissions(cli.DiscoverAgents(homeDir)) {
-		return []string{"--include-permissions"}
-	}
-	return nil
 }
 
 // applyOverrides merges non-nil fields from overrides into selection.
@@ -1087,16 +973,6 @@ func ListBackups() []backup.Manifest {
 	}
 
 	return manifests
-}
-
-// isExplicitUpdateFlow reports whether the current invocation is already in the
-// explicit update/upgrade path. In those cases, self-update must be skipped to
-// avoid preempting the user's requested command behavior.
-func isExplicitUpdateFlow(args []string) bool {
-	if len(args) == 0 {
-		return false
-	}
-	return args[0] == "update" || args[0] == "upgrade"
 }
 
 func codexOrchestratorToState(a *model.CodexOrchestratorAssignment) *state.CodexOrchestratorAssignmentState {

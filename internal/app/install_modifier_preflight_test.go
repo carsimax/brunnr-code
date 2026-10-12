@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"context"
-	"io"
 	"reflect"
 	"testing"
 	"time"
@@ -12,7 +11,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/system"
 )
 
-func TestRunArgsOrphanInstallModifiersBeforeSelfUpdate(t *testing.T) {
+func TestRunArgsOrphanInstallModifiersRejectedWithoutEffects(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		args []string
@@ -39,19 +38,11 @@ func TestRunArgsOrphanInstallModifiersBeforeSelfUpdate(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				oldSelf, oldDetect, oldEnsure := selfUpdateFn, detectSystem, ensureCurrentOSSupported
-				t.Cleanup(func() { selfUpdateFn, detectSystem, ensureCurrentOSSupported = oldSelf, oldDetect, oldEnsure })
+				oldDetect, oldEnsure := detectSystem, ensureCurrentOSSupported
+				t.Cleanup(func() { detectSystem, ensureCurrentOSSupported = oldDetect, oldEnsure })
 				ensureCurrentOSSupported = func() error { return nil }
 				detectSystem = func(context.Context) (system.DetectionResult, error) {
 					return system.DetectionResult{System: system.SystemInfo{Supported: true, Profile: system.PlatformProfile{OS: "windows", Supported: true}}}, nil
-				}
-				updates := 0
-				selfUpdateFn = func(context.Context, string, system.PlatformProfile, io.Writer) error {
-					updates++
-					next := before
-					now := timestamp.Add(time.Hour)
-					next.LastUpdateCheck = &now
-					return state.Write(home, next)
 				}
 				args := append([]string{"install", "--agent", "claude-code", "--component", "theme"}, tc.args...)
 				if dryRun {
@@ -64,9 +55,6 @@ func TestRunArgsOrphanInstallModifiersBeforeSelfUpdate(t *testing.T) {
 				}
 				if out.String() != "" {
 					t.Fatalf("stdout = %q, want empty", out.String())
-				}
-				if updates != 0 {
-					t.Fatalf("self-update calls = %d, want 0", updates)
 				}
 				after, err := state.Read(home)
 				if err != nil {

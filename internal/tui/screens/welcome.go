@@ -1,7 +1,6 @@
 package screens
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/carsimax/brunnr-code/internal/tui/styles"
@@ -10,17 +9,7 @@ import (
 	"github.com/rivo/uniseg"
 )
 
-const (
-	welcomeAdvisoryMaxRegionHeight = 7
-	welcomePrimaryContentHeight    = 44
-	welcomeHelpText                = "j/k: navigate • enter: select • q: quit"
-)
-
-type WelcomeAdvisory struct {
-	Message string
-	URL     string
-	Scroll  int
-}
+const welcomeHelpText = "j/k: navigate • enter: select • q: quit"
 
 // WelcomeOptions returns the welcome menu options.
 // When hasEngines is false, "Create your own Agent" is shown as disabled
@@ -62,10 +51,10 @@ func RenderWelcome(cursor int, version string, updateBanner string, updateResult
 }
 
 func RenderWelcomeWithWidth(cursor int, version string, updateBanner string, updateResults []update.UpdateResult, updateCheckDone bool, hasEngines bool, width int) string {
-	return RenderWelcomeWithAdvisory(cursor, version, updateBanner, updateResults, updateCheckDone, hasEngines, width, 0, WelcomeAdvisory{})
+	return RenderWelcomeWithSize(cursor, version, updateBanner, updateResults, updateCheckDone, hasEngines, width, 0)
 }
 
-func RenderWelcomeWithAdvisory(cursor int, version string, updateBanner string, updateResults []update.UpdateResult, updateCheckDone bool, hasEngines bool, width int, height int, advisory WelcomeAdvisory) string {
+func RenderWelcomeWithSize(cursor int, version string, updateBanner string, updateResults []update.UpdateResult, updateCheckDone bool, hasEngines bool, width int, height int) string {
 	render := func(includeLogo, includeOptional, compact bool) string {
 		var b strings.Builder
 
@@ -80,10 +69,6 @@ func RenderWelcomeWithAdvisory(cursor int, version string, updateBanner string, 
 			if includeOptional {
 				if updateBanner != "" {
 					b.WriteString(styles.WarningStyle.Render(wrapWelcomeBanner(updateBanner, welcomeContentWidth(width))))
-					b.WriteString("\n")
-				}
-				if rendered := renderWelcomeAdvisory(advisory, width, height); rendered != "" {
-					b.WriteString(rendered)
 					b.WriteString("\n")
 				}
 			}
@@ -231,64 +216,6 @@ func wrapWelcomeLine(text string, width int) []string {
 	return wrapPlainLine(text, width)
 }
 
-func WelcomeAdvisoryScrollBounds(message string, releaseURL string, width int, height int) (int, int) {
-	lines := welcomeAdvisoryLines(message, releaseURL, welcomeContentWidth(width))
-	regionHeight := welcomeAdvisoryRegionHeight(height)
-	if len(lines) == 0 || regionHeight == 0 {
-		return 0, 0
-	}
-	if len(lines) <= regionHeight {
-		return len(lines), 0
-	}
-	if regionHeight < 2 {
-		return 0, 0
-	}
-	pageSize := regionHeight - 1
-	return pageSize, len(lines) - pageSize
-}
-
-func renderWelcomeAdvisory(advisory WelcomeAdvisory, width int, height int) string {
-	lines := welcomeAdvisoryLines(advisory.Message, advisory.URL, welcomeContentWidth(width))
-	pageSize, maxScroll := WelcomeAdvisoryScrollBounds(advisory.Message, advisory.URL, width, height)
-	if pageSize == 0 {
-		return ""
-	}
-	scroll := min(max(0, advisory.Scroll), maxScroll)
-	end := min(scroll+pageSize, len(lines))
-	rendered := styles.WarningStyle.Render(strings.Join(lines[scroll:end], "\n"))
-	if maxScroll > 0 {
-		hint := fmt.Sprintf("PgUp/PgDn: scroll  •  lines %d-%d/%d", scroll+1, end, len(lines))
-		rendered += "\n" + styles.HelpStyle.Render(hint)
-	}
-	return rendered
-}
-
-func welcomeAdvisoryLines(message string, releaseURL string, width int) []string {
-	message = strings.TrimSpace(message)
-	if message == "" {
-		return nil
-	}
-	if !strings.HasPrefix(message, "Advisory:") {
-		message = "Advisory: " + message
-	}
-	messageLines := strings.Split(wrapWelcomeBanner(message, width), "\n")
-	if releaseURL == "" {
-		return messageLines
-	}
-	link := "Latest release: " + releaseURL
-	if width <= 0 {
-		return append([]string{link}, messageLines...)
-	}
-	return append(wrapPlainLine(link, width), messageLines...)
-}
-
-func welcomeAdvisoryRegionHeight(height int) int {
-	if height <= 0 {
-		return welcomeAdvisoryMaxRegionHeight
-	}
-	return min(welcomeAdvisoryMaxRegionHeight, max(0, height-welcomePrimaryContentHeight))
-}
-
 func welcomeContentWidth(width int) int {
 	if width <= 0 {
 		return 0
@@ -308,7 +235,6 @@ func welcomeFrameStyle(width int) lipgloss.Style {
 }
 
 func wrapWelcomeBanner(text string, width int) string {
-	text = formatWelcomeAdvisoryList(text)
 	if width <= 0 {
 		return text
 	}
@@ -318,78 +244,6 @@ func wrapWelcomeBanner(text string, width int) string {
 		wrapped = append(wrapped, wrapPlainLine(line, width)...)
 	}
 	return strings.Join(wrapped, "\n")
-}
-
-func formatWelcomeAdvisoryList(text string) string {
-	const advisoryPrefix = "Advisory: "
-	const plusMarker = ". Plus: "
-	if !strings.HasPrefix(text, advisoryPrefix) || !strings.Contains(text, plusMarker) {
-		return text
-	}
-
-	body := strings.TrimPrefix(text, advisoryPrefix)
-	head, rest, ok := strings.Cut(body, plusMarker)
-	if !ok {
-		return text
-	}
-
-	header, firstFeature, ok := strings.Cut(head, ": ")
-	if !ok || strings.TrimSpace(firstFeature) == "" {
-		return text
-	}
-
-	featuresPart, suffix := splitAdvisorySuffix(rest)
-	features := []string{strings.TrimSpace(firstFeature) + "."}
-	features = append(features, splitAdvisoryFeatures(featuresPart)...)
-
-	var b strings.Builder
-	b.WriteString(advisoryPrefix)
-	b.WriteString(strings.TrimSpace(header))
-	b.WriteString(":")
-	for _, feature := range features {
-		feature = strings.TrimSpace(strings.TrimSuffix(feature, "."))
-		feature = strings.TrimPrefix(feature, "and ")
-		feature = strings.TrimSpace(feature)
-		if feature == "" {
-			continue
-		}
-		b.WriteString("\n• ")
-		b.WriteString(feature)
-		b.WriteString(".")
-	}
-	if suffix != "" {
-		b.WriteString("\n")
-		b.WriteString(suffix)
-	}
-	return b.String()
-}
-
-func splitAdvisorySuffix(text string) (string, string) {
-	markers := []string{" Thanks ", " See "}
-	cutAt := -1
-	for _, marker := range markers {
-		if idx := strings.Index(text, marker); idx >= 0 && (cutAt == -1 || idx < cutAt) {
-			cutAt = idx
-		}
-	}
-	if cutAt == -1 {
-		return text, ""
-	}
-	return strings.TrimSpace(text[:cutAt]), strings.TrimSpace(text[cutAt:])
-}
-
-func splitAdvisoryFeatures(text string) []string {
-	text = strings.ReplaceAll(text, ", and ", ", ")
-	parts := strings.Split(text, ",")
-	features := make([]string, 0, len(parts))
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		part = strings.TrimPrefix(part, "and ")
-		if part != "" {
-			features = append(features, part)
-		}
-	}
-	return features
 }
 
 func wrapPlainLine(line string, width int) []string {

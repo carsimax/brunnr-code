@@ -102,15 +102,6 @@ type InstallState struct {
 	// state files that lack the field entirely).
 	LastUpdateCheck *time.Time `json:"last_update_check,omitempty"`
 
-	// PendingSync is set to true when a gentle-ai self-upgrade succeeded and
-	// the process is about to exit (restart required). The next launch reads
-	// this flag and runs sync automatically before entering the normal flow,
-	// then clears the flag on success. On sync failure the flag is left set
-	// so the following launch retries idempotently.
-	// False (zero value) = no deferred sync pending. Omitted from JSON when
-	// false for backward-compatibility with existing state files.
-	PendingSync bool `json:"pending_sync,omitempty"`
-
 	// RDDMode is the global, user-owned receipt-driven-development kill switch
 	// ("on"|"off"). It lives in uncommitted user state precisely so that no
 	// repository can ship, share, or force a review policy onto a clone.
@@ -288,7 +279,6 @@ func MergeAgents(existing InstallState, newAgents []string) InstallState {
 		Persona:                     existing.Persona,
 		PersonaPresent:              existing.PersonaPresent,
 		LastUpdateCheck:             existing.LastUpdateCheck,
-		PendingSync:                 existing.PendingSync,
 		RDDMode:                     existing.RDDMode,
 		RDDModeRecordedAt:           existing.RDDModeRecordedAt,
 		LastSyncedAt:                existing.LastSyncedAt,

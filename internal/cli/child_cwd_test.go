@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -86,19 +85,5 @@ func TestCodeGraphHomeRunnerSurvivesDeletedWorkingDirectory(t *testing.T) {
 	runner := codeGraphHomeRunner{homeDir: home}
 	if err := runner.Run(argv[0], argv[1:]...); err != nil {
 		t.Fatalf("codeGraphHomeRunner from deleted working directory: %v", err)
-	}
-}
-
-func TestDefaultGoEnvSurvivesDeletedWorkingDirectory(t *testing.T) {
-	if testing.Short() {
-		t.Skip("requires the real go toolchain")
-	}
-	if _, err := exec.LookPath("go"); err != nil {
-		t.Skipf("go toolchain not on PATH: %v", err)
-	}
-	chdirIntoDeletedDir(t)
-
-	if _, err := defaultGoEnv("GOBIN"); err != nil {
-		t.Fatalf("defaultGoEnv from deleted working directory: %v", err)
 	}
 }

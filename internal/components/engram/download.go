@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -22,11 +21,9 @@ import (
 )
 
 const (
-	engramOwner            = "Gentleman-Programming"
-	engramRepo             = "engram"
-	engramName             = "engram"
-	engramCanonicalModule  = "github.com/Gentleman-Programming/engram"
-	engramCanonicalPackage = engramCanonicalModule + "/cmd/engram"
+	engramOwner = "Gentleman-Programming"
+	engramRepo  = "engram"
+	engramName  = "engram"
 )
 
 // Package-level vars for testability.
@@ -36,88 +33,7 @@ var (
 	engramInstallDirFn    = engramInstallDir
 	engramChecksumURLFn   = engramChecksumURL
 	engramStopProcessesFn = stopEngramProcesses
-
-	// engramGoInstallFn runs `go install <pkg>` and returns the path to the installed binary.
-	// Package-level var for testability — swapped in tests to avoid real go install calls.
-	engramGoInstallFn = engramGoInstallFromMain
-
-	// engramGoInstallCmdFn executes `go install <pkg>`. Package-level var for testability.
-	engramGoInstallCmdFn = func(pkg string) error {
-		cmd := exec.Command("go", "install", pkg)
-		cmd.Env = goPrivateModuleEnv(os.Environ(), engramCanonicalModule)
-		cmd.Stdin = nil
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("go install %s: %w (output: %s)", pkg, err, strings.TrimSpace(string(out)))
-		}
-		return nil
-	}
-
-	// engramGoEnvFn queries the Go toolchain's effective environment for the
-	// given keys (e.g. "GOBIN", "GOPATH"). Package-level var for testability —
-	// swapped in tests to simulate values set via `go env -w` without mutating
-	// the real Go env file.
-	engramGoEnvFn = func(keys ...string) (map[string]string, error) {
-		args := append([]string{"env"}, keys...)
-		out, err := exec.Command("go", args...).Output()
-		if err != nil {
-			return nil, err
-		}
-		lines := strings.Split(strings.TrimRight(string(out), "\r\n"), "\n")
-		values := make(map[string]string, len(keys))
-		for i, key := range keys {
-			if i < len(lines) {
-				values[key] = strings.TrimSpace(lines[i])
-			}
-		}
-		return values, nil
-	}
 )
-
-func goPrivateModuleEnv(base []string, modulePath string) []string {
-	values := map[string]string{
-		"GONOSUMDB": modulePath,
-		"GOPRIVATE": modulePath,
-		"GONOPROXY": modulePath,
-	}
-	merged := make([]string, 0, len(base)+3)
-	for _, entry := range base {
-		key, _, ok := strings.Cut(entry, "=")
-		if ok {
-			if required, managed := values[key]; managed {
-				values[key] = appendGoEnvPattern(required, strings.TrimPrefix(entry, key+"="))
-				continue
-			}
-		}
-		merged = append(merged, entry)
-	}
-	return append(merged,
-		"GONOSUMDB="+values["GONOSUMDB"],
-		"GOPRIVATE="+values["GOPRIVATE"],
-		"GONOPROXY="+values["GONOPROXY"],
-	)
-}
-
-func appendGoEnvPattern(required, existing string) string {
-	existing = strings.TrimSpace(existing)
-	if existing == "" {
-		return required
-	}
-	for _, part := range strings.Split(existing, ",") {
-		if strings.TrimSpace(part) == required {
-			return existing
-		}
-	}
-	return existing + "," + required
-}
-
-func canonicalEngramGoInstallPackage(pkg string) string {
-	const lowerPackage = "github.com/gentleman-programming/engram/cmd/engram"
-	if strings.HasPrefix(strings.ToLower(pkg), lowerPackage) {
-		return engramCanonicalPackage + pkg[len(lowerPackage):]
-	}
-	return pkg
-}
 
 // engramCoreTagPattern matches only plain semver tags (vX.Y.Z) that identify
 // core engram binary releases. The Gentleman-Programming/engram repository also
@@ -132,23 +48,13 @@ const engramCoreTagPattern = `^v[0-9]+\.[0-9]+\.[0-9]+$`
 // installs it to the appropriate directory for the given platform.
 // It returns the full path to the installed binary.
 //
-// When isBeta is true, engram is installed from source via `go install @main`
-// instead of downloading a release archive. This mirrors the install-time beta
-// path used by the CLI and ensures the upgrade executor honors GENTLE_AI_CHANNEL.
-//
-// Checksum verification is mandatory for the stable (release) path: the install
-// fails if checksums.txt is unavailable, if the archive is not listed, or if
+// Checksum verification is mandatory: the install fails if checksums.txt is
+// unavailable, if the archive is not listed, or if
 // the digest does not match.
 //
 // This is the non-brew installation method for Linux and Windows.
 // On macOS, brew handles engram transitively and this should not be called.
-func DownloadLatestBinary(profile system.PlatformProfile, isBeta bool) (string, error) {
-	// Beta channel: install from HEAD via go install rather than a release archive.
-	// This mirrors the installBetaEngramFromMain path used at install time.
-	if isBeta {
-		return engramGoInstallFn(engramCanonicalPackage + "@main")
-	}
-
+func DownloadLatestBinary(profile system.PlatformProfile) (string, error) {
 	ctx := context.Background()
 
 	// 1. Fetch the latest version tag from GitHub API. Only tags matching the
@@ -798,44 +704,6 @@ func (b *byteReaderAt) ReadAt(p []byte, off int64) (int, error) {
 		return n, io.EOF
 	}
 	return n, nil
-}
-
-// engramGoInstallFromMain installs engram from the given Go package path (expected
-// to be engramCanonicalPackage + "@main") using `go install`.
-// It returns the path to the installed binary. This is the beta-channel upgrade path.
-//
-// The install directory is resolved via `go env GOBIN GOPATH` (the effective Go
-// environment) so that values set via `go env -w GOBIN=...` (stored in Go's env
-// file, NOT in shell env) are honored correctly. This mirrors the resolution done
-// by goInstallBinDirFromGoEnv in internal/cli/run.go.
-func engramGoInstallFromMain(pkg string) (string, error) {
-	pkg = canonicalEngramGoInstallPackage(pkg)
-	if err := engramGoInstallCmdFn(pkg); err != nil {
-		return "", err
-	}
-
-	// Resolve the directory where `go install` placed the binary using the
-	// effective Go environment (honors `go env -w GOBIN=...`, not just shell env).
-	values, err := engramGoEnvFn("GOBIN", "GOPATH")
-	if err != nil {
-		return "", fmt.Errorf("resolve go install bin dir: %w", err)
-	}
-	gobin := strings.TrimSpace(values["GOBIN"])
-	gopath := strings.TrimSpace(values["GOPATH"])
-
-	if gobin == "" && gopath != "" {
-		gobin = filepath.Join(gopath, "bin")
-	}
-	if gobin == "" {
-		home, _ := os.UserHomeDir()
-		gobin = filepath.Join(home, "go", "bin")
-	}
-
-	binaryName := engramName
-	if runtime.GOOS == "windows" {
-		binaryName += ".exe"
-	}
-	return filepath.Join(gobin, binaryName), nil
 }
 
 // writeExecutable writes a binary to outPath using an atomic rename to avoid

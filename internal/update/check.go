@@ -3,28 +3,23 @@ package update
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/carsimax/brunnr-code/internal/system"
 )
 
-var updateChannelEnv = os.Getenv
-
 // CheckAll runs update checks for all registered tools concurrently.
-// currentVersion is the build-time version of gentle-ai (from app.Version).
 // profile determines platform-specific update instructions.
-func CheckAll(ctx context.Context, currentVersion string, profile system.PlatformProfile) []UpdateResult {
-	return CheckFiltered(ctx, currentVersion, profile, nil)
+func CheckAll(ctx context.Context, profile system.PlatformProfile) []UpdateResult {
+	return CheckFiltered(ctx, profile, nil)
 }
 
 // CheckFiltered runs update checks for a subset of tools identified by name.
 // If toolNames is nil or empty, it behaves identically to CheckAll (all tools).
 // Unknown tool names in toolNames are silently ignored.
-func CheckFiltered(ctx context.Context, currentVersion string, profile system.PlatformProfile, toolNames []string) []UpdateResult {
+func CheckFiltered(ctx context.Context, profile system.PlatformProfile, toolNames []string) []UpdateResult {
 	// Build the target slice: all tools when filter is empty, otherwise only matching ones.
 	var targets []ToolInfo
 	if len(toolNames) == 0 {
@@ -48,7 +43,7 @@ func CheckFiltered(ctx context.Context, currentVersion string, profile system.Pl
 		wg.Add(1)
 		go func(idx int, t ToolInfo) {
 			defer wg.Done()
-			results[idx] = checkSingleTool(ctx, t, currentVersion, profile)
+			results[idx] = checkSingleTool(ctx, t, profile)
 		}(i, tool)
 	}
 
@@ -57,7 +52,7 @@ func CheckFiltered(ctx context.Context, currentVersion string, profile system.Pl
 }
 
 // checkSingleTool checks a single tool: detects local version, fetches remote, compares.
-func checkSingleTool(ctx context.Context, tool ToolInfo, currentBuildVersion string, profile system.PlatformProfile) UpdateResult {
+func checkSingleTool(ctx context.Context, tool ToolInfo, profile system.PlatformProfile) UpdateResult {
 	result := UpdateResult{Tool: tool}
 	homebrewOwnership := HomebrewNone
 	if profile.PackageManager == "brew" {
@@ -70,33 +65,21 @@ func checkSingleTool(ctx context.Context, tool ToolInfo, currentBuildVersion str
 		}
 	}
 
-	// The advertisement must name a target the effective installer can deliver.
-	// A brew-owned install only ever receives the tap's stable formula, so a
-	// main-head beta target is advertised only when Homebrew does not own the
-	// tool (issue #2323: checker advertised main@sha while the instruction
-	// installed stable).
-	betaMainHead := usesBetaMainHeadCheck(tool, currentBuildVersion) && homebrewOwnership == HomebrewNone
-
 	// Run local detection and remote fetch concurrently.
 	var wg sync.WaitGroup
 	var localVersion string
 	var release githubRelease
-	var mainCommit githubCommit
 	var fetchErr error
 
 	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
-		localVersion = detectInstalledVersion(ctx, tool, currentBuildVersion)
+		localVersion = detectInstalledVersion(ctx, tool)
 	}()
 
 	go func() {
 		defer wg.Done()
-		if betaMainHead {
-			mainCommit, fetchErr = fetchMainCommit(ctx, tool.Owner, tool.Repo)
-			return
-		}
 		release, fetchErr = fetchLatestReleaseForTool(ctx, tool)
 	}()
 
@@ -109,29 +92,7 @@ func checkSingleTool(ctx context.Context, tool ToolInfo, currentBuildVersion str
 	if fetchErr != nil {
 		result.Err = fetchErr
 		result.Status = CheckFailed
-		if betaMainHead {
-			result.UpdateHint = "Beta target metadata is unavailable; rerun the update check."
-		}
 		return result
-	}
-
-	if betaMainHead {
-		if !validBetaCommit(mainCommit.SHA) {
-			result.Status = CheckFailed
-			result.UpdateHint = "Beta target metadata is unavailable; rerun the update check."
-			result.Err = fmt.Errorf("invalid beta main commit SHA")
-			return result
-		}
-		module, err := fetchBetaModulePath(ctx, tool.Owner, tool.Repo, mainCommit.SHA)
-		if err != nil {
-			result.Status = CheckFailed
-			result.UpdateHint = "Beta target metadata is unavailable; rerun the update check."
-			result.Err = err
-			return result
-		}
-		result.BetaCommit = strings.ToLower(mainCommit.SHA)
-		result.BetaModulePath = module
-		return applyBetaMainHeadStatus(result, localVersion, mainCommit)
 	}
 
 	result.LatestVersion = normalizeVersion(release.TagName)
@@ -139,16 +100,13 @@ func checkSingleTool(ctx context.Context, tool ToolInfo, currentBuildVersion str
 
 	// Determine status based on local version.
 	if localVersion == "" {
-		if tool.DetectCmd == nil {
-			// gentle-ai with no build version (shouldn't happen, but handle gracefully).
+		// Binary not found on PATH.
+		if len(tool.DetectCmd) == 0 {
 			result.Status = VersionUnknown
+		} else if _, err := lookPath(tool.DetectCmd[0]); err != nil {
+			result.Status = NotInstalled
 		} else {
-			// Binary not found on PATH.
-			if _, err := lookPath(tool.DetectCmd[0]); err != nil {
-				result.Status = NotInstalled
-			} else {
-				result.Status = VersionUnknown
-			}
+			result.Status = VersionUnknown
 		}
 		return result
 	}
@@ -169,157 +127,6 @@ func checkSingleTool(ctx context.Context, tool ToolInfo, currentBuildVersion str
 	// Compare versions.
 	result.Status = compareVersions(normalizedLocal, result.LatestVersion)
 	return result
-}
-
-func usesBetaMainHeadCheck(tool ToolInfo, currentVersion string) bool {
-	return isGentleAIRepo(tool) && (isBetaUpdateChannel() || isGoPseudoVersionWithCommit(currentVersion))
-}
-
-func isGentleAIRepo(tool ToolInfo) bool {
-	return tool.Name == "gentle-ai" && strings.EqualFold(tool.Owner, "Gentleman-Programming") && tool.Repo == "gentle-ai"
-}
-
-func isBetaUpdateChannel() bool {
-	switch strings.ToLower(strings.TrimSpace(updateChannelEnv("GENTLE_AI_CHANNEL"))) {
-	case "beta", "nightly":
-		return true
-	default:
-		return false
-	}
-}
-
-func applyBetaMainHeadStatus(result UpdateResult, localVersion string, commit githubCommit) UpdateResult {
-	remoteSHA := strings.TrimSpace(commit.SHA)
-	shortRemote := shortCommit(remoteSHA)
-	if shortRemote == "" {
-		result.Status = VersionUnknown
-		return result
-	}
-
-	result.LatestVersion = "main@" + shortRemote
-	result.ReleaseURL = strings.TrimSpace(commit.HTMLURL)
-	// Compose the fallback from the verified module and full checked commit.
-	// A stable-channel hint or mutable @main would not deliver this target.
-	result.UpdateHint = BetaSourceInstallCommand(result.BetaModulePath, result.BetaCommit)
-
-	if strings.TrimSpace(localVersion) == "" {
-		result.Status = VersionUnknown
-		return result
-	}
-	if strings.TrimSpace(localVersion) == "dev" {
-		result.Status = DevBuild
-		return result
-	}
-
-	localSHA := localBuildCommit(localVersion)
-	if localSHA == "" {
-		result.Status = VersionUnknown
-		return result
-	}
-
-	if sameCommitPrefix(localSHA, remoteSHA) {
-		result.Status = UpToDate
-		return result
-	}
-
-	// Ordering guard: a prefix mismatch alone does not mean the local build is
-	// behind main. When the local pseudo-version timestamp is newer than the
-	// fetched commit's date, offering an "update" advertises a downgrade
-	// (issue #2319 offer half). Unknown dates fail open and keep the offer.
-	if localTime, ok := pseudoVersionTime(localVersion); ok {
-		remoteTime := commit.Commit.Committer.Date
-		if !remoteTime.IsZero() && localTime.After(remoteTime) {
-			result.Status = UpToDate
-			return result
-		}
-	}
-
-	result.Status = UpdateAvailable
-	result.ReleaseURL = fmt.Sprintf("https://github.com/%s/%s/compare/%s...%s", result.Tool.Owner, result.Tool.Repo, shortCommit(localSHA), shortRemote)
-	return result
-}
-
-// pseudoVersionTime extracts the UTC timestamp a Go pseudo-version embeds
-// (vX.Y.Z-0.yyyymmddhhmmss-abcdefabcdef). It reports false for any version
-// that does not carry a well-formed 14-digit timestamp.
-func pseudoVersionTime(version string) (time.Time, bool) {
-	if !isGoPseudoVersionWithCommit(version) {
-		return time.Time{}, false
-	}
-	parts := strings.Split(strings.TrimSpace(version), "-")
-	timestampPart := parts[len(parts)-2]
-	if idx := strings.LastIndex(timestampPart, "."); idx >= 0 {
-		timestampPart = timestampPart[idx+1:]
-	}
-	ts, err := time.Parse("20060102150405", timestampPart)
-	if err != nil {
-		return time.Time{}, false
-	}
-	return ts.UTC(), true
-}
-
-func localBuildCommit(version string) string {
-	parts := strings.Split(strings.TrimSpace(version), "-")
-	if len(parts) == 0 {
-		return ""
-	}
-	candidate := parts[len(parts)-1]
-	if len(candidate) < 7 {
-		return ""
-	}
-	for _, r := range candidate {
-		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
-			return ""
-		}
-	}
-	return strings.ToLower(candidate)
-}
-
-func isGoPseudoVersionWithCommit(version string) bool {
-	version = strings.TrimSpace(version)
-	if localBuildCommit(version) == "" {
-		return false
-	}
-
-	parts := strings.Split(version, "-")
-	if len(parts) < 3 {
-		return false
-	}
-	if !versionRegexp.MatchString(parts[0]) {
-		return false
-	}
-
-	timestampPart := parts[len(parts)-2]
-	if idx := strings.LastIndex(timestampPart, "."); idx >= 0 {
-		timestampPart = timestampPart[idx+1:]
-	}
-	if len(timestampPart) != 14 {
-		return false
-	}
-	for _, r := range timestampPart {
-		if r < '0' || r > '9' {
-			return false
-		}
-	}
-
-	return true
-}
-
-func sameCommitPrefix(local, remote string) bool {
-	local = strings.ToLower(strings.TrimSpace(local))
-	remote = strings.ToLower(strings.TrimSpace(remote))
-	if len(local) < 7 || len(remote) < 7 {
-		return false
-	}
-	return strings.HasPrefix(remote, local) || strings.HasPrefix(local, remote)
-}
-
-func shortCommit(sha string) string {
-	sha = strings.ToLower(strings.TrimSpace(sha))
-	if len(sha) < 12 {
-		return sha
-	}
-	return sha[:12]
 }
 
 func fetchLatestReleaseForTool(ctx context.Context, tool ToolInfo) (githubRelease, error) {

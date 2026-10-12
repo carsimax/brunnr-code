@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"context"
-	"io"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -25,16 +24,12 @@ func TestRunArgsRejectsInvalidIsolationVariablesBeforeDetection(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			setupMockHome(t, t.TempDir())
 			t.Setenv(tc.env, tc.value)
-			oldSelf, oldDetect, oldEnsure := selfUpdateFn, detectSystem, ensureCurrentOSSupported
-			t.Cleanup(func() { selfUpdateFn, detectSystem, ensureCurrentOSSupported = oldSelf, oldDetect, oldEnsure })
+			oldDetect, oldEnsure := detectSystem, ensureCurrentOSSupported
+			t.Cleanup(func() { detectSystem, ensureCurrentOSSupported = oldDetect, oldEnsure })
 			ensureCurrentOSSupported = func() error { return nil }
 			detectSystem = func(context.Context) (system.DetectionResult, error) {
 				t.Fatal("system detection ran despite an invalid isolation variable")
 				return system.DetectionResult{}, nil
-			}
-			selfUpdateFn = func(context.Context, string, system.PlatformProfile, io.Writer) error {
-				t.Fatal("self-update ran despite an invalid isolation variable")
-				return nil
 			}
 
 			err := RunArgs([]string{"install", "--agent", "claude-code", "--dry-run"}, &bytes.Buffer{})

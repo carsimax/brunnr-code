@@ -86,12 +86,12 @@ func TestCheckSingleToolHomebrewBoundary(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 		want := "brew upgrade --" + string(kind) + " engram"
-		if got := checkSingleTool(ctx, tool, "", system.PlatformProfile{PackageManager: "brew"}).UpdateHint; got != want {
+		if got := checkSingleTool(ctx, tool, system.PlatformProfile{PackageManager: "brew"}).UpdateHint; got != want {
 			t.Errorf("ownership %s hint=%q, want %q", kind, got, want)
 		}
 	}
 	homebrewOwnershipDetector = func(string) (HomebrewOwnership, error) { return HomebrewNone, errors.New("cask list denied") }
-	result := checkSingleTool(t.Context(), tool, "", system.PlatformProfile{PackageManager: "brew"})
+	result := checkSingleTool(t.Context(), tool, system.PlatformProfile{PackageManager: "brew"})
 	output := RenderCLI([]UpdateResult{result})
 	for _, want := range []string{"cask list denied", "brew list --cask --full-name", "command -v engram"} {
 		if result.Status != CheckFailed || !strings.Contains(output, want) {

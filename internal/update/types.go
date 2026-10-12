@@ -19,9 +19,8 @@ const (
 type InstallMethod string
 
 const (
-	InstallBrew      InstallMethod = "brew"
-	InstallGoInstall InstallMethod = "go-install"
-	InstallBinary    InstallMethod = "binary"
+	InstallBrew   InstallMethod = "brew"
+	InstallBinary InstallMethod = "binary"
 	// InstallScript downloads and executes the project's install.sh via pipe.
 	// Used for tools that distribute via shell scripts rather than pre-built binaries
 	// (e.g., GGA which has no release binary assets).
@@ -30,14 +29,13 @@ const (
 
 // ToolInfo describes a managed tool that can be checked for updates.
 type ToolInfo struct {
-	Name              string        // human-readable name (e.g., "gentle-ai")
+	Name              string        // human-readable name (e.g., "engram")
 	Owner             string        // GitHub repository owner
 	Repo              string        // GitHub repository name
-	DetectCmd         []string      // command to detect installed version; nil = use build var
+	DetectCmd         []string      // command to detect installed version
 	VersionPrefix     string        // prefix to strip from version output (e.g., "v")
 	ReleaseTagPattern string        // optional regexp for selecting the correct GitHub release channel
 	InstallMethod     InstallMethod // how this tool is installed (used by upgrade executor)
-	GoImportPath      string        // for go-install tools (e.g. "github.com/.../cmd/engram")
 
 	// FallbackPaths returns a list of absolute paths to check when exec.LookPath
 	// fails. This covers the Windows scenario where AddToUserPath updates the
@@ -58,7 +56,5 @@ type UpdateResult struct {
 	Status           UpdateStatus
 	ReleaseURL       string
 	UpdateHint       string
-	BetaCommit       string // full immutable commit verified by the beta check
-	BetaModulePath   string // validated go.mod module at BetaCommit
 	Err              error
 }

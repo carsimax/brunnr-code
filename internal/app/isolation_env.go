@@ -9,8 +9,7 @@ import (
 )
 
 // validateIsolationEnv rejects an invalid GENTLE_AI_HOME or
-// GENTLE_AI_ENGRAM_BIN before detection,
-// self-update or any write, then applies GENTLE_AI_HOME to backup checks.
+// GENTLE_AI_ENGRAM_BIN before detection or any write, then applies GENTLE_AI_HOME to backup checks.
 func validateIsolationEnv() error {
 	for _, validate := range []func() error{state.ValidateHomeEnv, engram.ValidateCallerBinary} {
 		if err := validate(); err != nil {

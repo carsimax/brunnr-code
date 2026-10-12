@@ -8,36 +8,13 @@ import (
 //
 // InstallMethod controls which non-Homebrew upgrade strategy the executor uses:
 //   - InstallBrew: explicitly managed via Homebrew
-//   - InstallGoInstall: installed via `go install <GoImportPath>@version`,
-//     where GoImportPath is the suffix-less module/import base and the /vN
-//     suffix is derived from the target version via ModulePathForVersion.
-//   - InstallBinary: downloaded binary from GitHub Releases (atomic replace)
+//   - InstallBinary: downloaded binary from GitHub Releases
+//   - InstallScript: the project's install script
 //
 // On platforms where Homebrew is available, the executor selects brew only
 // when Homebrew confirms it owns the specific tool. Otherwise this field is
 // the fallback strategy.
 var Tools = []ToolInfo{
-	{
-		Name:          "gentle-ai",
-		Owner:         "Gentleman-Programming",
-		Repo:          "gentle-ai",
-		DetectCmd:     nil, // version comes from build-time ldflags (app.Version)
-		VersionPrefix: "v",
-		// gentle-ai: Homebrew when the package is brew-owned, authenticated binary
-		// release download on Linux/macOS, and `go install` on Windows, where no
-		// official signed binary is published.
-		InstallMethod: InstallBinary,
-		// GoImportPath is what makes the Windows self-upgrade possible. It is
-		// deliberately NOT a general opt-in to go-install: effectiveMethod routes
-		// gentle-ai on Linux/macOS to InstallBinary regardless of this field, so
-		// those platforms keep the minisign-verified release download.
-		//
-		// The path stores the module/import base WITHOUT the /vN suffix; the
-		// /vN suffix is derived at composition time from the target version via
-		// ModulePathForVersion so a v2 binary composing "go install ...@v3.0.1"
-		// resolves to github.com/.../v3/... and not the unresolvable /v2 path.
-		GoImportPath: "github.com/gentleman-programming/gentle-ai/cmd/gentle-ai",
-	},
 	{
 		Name:              "engram",
 		Owner:             "Gentleman-Programming",

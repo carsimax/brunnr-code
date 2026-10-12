@@ -3266,7 +3266,6 @@ func TestRunSyncPreservesCompletePersistedState(t *testing.T) {
 		Persona:                     "neutral",
 		PersonaPresent:              true,
 		LastUpdateCheck:             &lastUpdate,
-		PendingSync:                 true,
 	}
 	writer, err := managedAssetDigest()
 	if err != nil {

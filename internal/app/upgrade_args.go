@@ -8,7 +8,7 @@ import (
 
 // upgradeArgs is the structured, once-parsed representation of the `upgrade`
 // command's argument list. RunArgs parses the raw CLI args into this value
-// exactly once before any platform, system, self-update, update-check, backup,
+// exactly once before any platform, system, update-check, backup,
 // or execution effect, and runUpgrade consumes only these fields without
 // reparsing. See issue #535.
 type upgradeArgs struct {

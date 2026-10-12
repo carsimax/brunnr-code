@@ -20,7 +20,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/planner"
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 	"github.com/carsimax/brunnr-code/internal/state"
-	"github.com/carsimax/brunnr-code/internal/statecoord"
 	"github.com/carsimax/brunnr-code/internal/system"
 	"github.com/carsimax/brunnr-code/internal/tui/screens"
 	"github.com/carsimax/brunnr-code/internal/tui/styles"
@@ -1392,21 +1391,6 @@ func TestUpgradePhaseCompletedClearsUpdateResults(t *testing.T) {
 	}
 	if state.UpdateCheckDone {
 		t.Fatalf("expected UpdateCheckDone=false after UpgradePhaseCompletedMsg, got true")
-	}
-}
-
-func TestReportUpgradedGentleAI(t *testing.T) {
-	report := upgrade.UpgradeReport{Results: []upgrade.ToolUpgradeResult{
-		{ToolName: "engram", Status: upgrade.UpgradeSucceeded},
-		{ToolName: "gentle-ai", Status: upgrade.UpgradeSucceeded},
-	}}
-	if !reportUpgradedGentleAI(report) {
-		t.Fatal("reportUpgradedGentleAI() = false, want true")
-	}
-
-	report.Results[1].Status = upgrade.UpgradeFailed
-	if reportUpgradedGentleAI(report) {
-		t.Fatal("reportUpgradedGentleAI() = true for failed gentle-ai upgrade")
 	}
 }
 
@@ -4128,51 +4112,6 @@ func TestCodexModelPickerCustomModeEscResetsCursor(t *testing.T) {
 	}
 }
 
-func TestGentleAIUpgradeVersionDetectsSucceededGentleAI(t *testing.T) {
-	report := upgrade.UpgradeReport{Results: []upgrade.ToolUpgradeResult{
-		{ToolName: "engram", Status: upgrade.UpgradeSucceeded, NewVersion: "1.0.0"},
-		{ToolName: "gentle-ai", Status: upgrade.UpgradeSucceeded, NewVersion: "v1.40.0"},
-	}}
-	m := Model{UpgradeReport: &report}
-	got, ok := m.GentleAIUpgradeVersion()
-	if !ok {
-		t.Fatal("GentleAIUpgradeVersion() ok = false, want true")
-	}
-	if got != "1.40.0" {
-		t.Fatalf("GentleAIUpgradeVersion() = %q, want %q", got, "1.40.0")
-	}
-}
-
-func TestUpgradeResultEnterQuitsWhenGentleAIWasUpgraded(t *testing.T) {
-	report := upgrade.UpgradeReport{Results: []upgrade.ToolUpgradeResult{
-		{ToolName: "gentle-ai", Status: upgrade.UpgradeSucceeded, NewVersion: "v1.40.0"},
-	}}
-	m := Model{Screen: ScreenUpgrade, UpgradeReport: &report}
-	_, cmd := m.confirmSelection()
-	if cmd == nil {
-		t.Fatal("confirmSelection() cmd = nil, want tea.Quit")
-	}
-	if _, ok := cmd().(tea.QuitMsg); !ok {
-		t.Fatalf("confirmSelection() command returned %T, want tea.QuitMsg", cmd())
-	}
-}
-
-func TestUpgradeSyncResultEscQuitsWhenGentleAIWasUpgraded(t *testing.T) {
-	report := upgrade.UpgradeReport{Results: []upgrade.ToolUpgradeResult{
-		{ToolName: "gentle-ai", Status: upgrade.UpgradeSucceeded, NewVersion: "v1.40.0"},
-	}}
-	m := Model{Screen: ScreenUpgradeSync, UpgradeReport: &report, HasSyncRun: true}
-	_, cmd := m.handleKeyPress(tea.KeyMsg{Type: tea.KeyEsc})
-	if cmd == nil {
-		t.Fatal("handleKeyPress(esc) cmd = nil, want tea.Quit")
-	}
-	if _, ok := cmd().(tea.QuitMsg); !ok {
-		t.Fatalf("handleKeyPress(esc) command returned %T, want tea.QuitMsg", cmd())
-	}
-}
-
-// ─── TUI-path PendingSync (task 4.8) ────────────────────────────────────────
-
 // executeUpgradeSyncSequence runs the tea.Sequence returned by startUpgradeSync
 // and collects the messages produced by each command in order.
 // tea.Sequence returns a Cmd whose result is an internal sequenceMsg (type []Cmd).
@@ -4218,12 +4157,9 @@ func executeUpgradeSyncSequence(t *testing.T, m Model) []tea.Msg {
 	return msgs
 }
 
-// TestStartUpgradeSync_SetsPendingSyncWhenGentleAIUpgraded verifies that when
-// the UpgradeFn reports gentle-ai as upgraded, the syncCmd branch of
-// startUpgradeSync writes PendingSync=true to state.json before returning
-// SyncDoneMsg. This is the TUI-path equivalent of the selfupdate.go path tested
-// in TestSelfUpdate_SetsPendingSyncOnSuccess.
-func TestStartUpgradeSync_SetsPendingSyncWhenGentleAIUpgraded(t *testing.T) {
+// TestStartUpgradeSync_RunsSyncAfterUpgrade verifies that sync runs via
+// SyncFn after the upgrade phase completes.
+func TestStartUpgradeSync_RunsSyncAfterUpgrade(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -4232,58 +4168,6 @@ func TestStartUpgradeSync_SetsPendingSyncWhenGentleAIUpgraded(t *testing.T) {
 	m.Screen = ScreenUpgradeSync
 	m.OperationRunning = true
 
-	// UpgradeFn reports gentle-ai as successfully upgraded.
-	m.UpgradeFn = func(_ context.Context, _ []update.UpdateResult) upgrade.UpgradeReport {
-		return upgrade.UpgradeReport{
-			Results: []upgrade.ToolUpgradeResult{
-				{ToolName: "gentle-ai", Status: upgrade.UpgradeSucceeded, NewVersion: "1.8.0"},
-			},
-		}
-	}
-
-	msgs := executeUpgradeSyncSequence(t, m)
-
-	// Verify the sequence produced both expected messages.
-	var gotUpgradePhase bool
-	var gotSyncDone bool
-	for _, msg := range msgs {
-		if _, ok := msg.(UpgradePhaseCompletedMsg); ok {
-			gotUpgradePhase = true
-		}
-		if _, ok := msg.(SyncDoneMsg); ok {
-			gotSyncDone = true
-		}
-	}
-	if !gotUpgradePhase {
-		t.Errorf("sequence did not produce UpgradePhaseCompletedMsg; msgs = %v", msgs)
-	}
-	if !gotSyncDone {
-		t.Errorf("sequence did not produce SyncDoneMsg; msgs = %v", msgs)
-	}
-
-	// The key assertion: PendingSync=true must be written to state.json on disk.
-	s, err := state.Read(home)
-	if err != nil {
-		t.Fatalf("state.Read(%q) error = %v (PendingSync was not written)", home, err)
-	}
-	if !s.PendingSync {
-		t.Errorf("PendingSync = false after gentle-ai self-upgrade in TUI flow, want true")
-	}
-}
-
-// TestStartUpgradeSync_DoesNotSetPendingSyncWhenGentleAINotUpgraded verifies
-// that when gentle-ai was NOT upgraded (e.g. only engram was upgraded), the
-// syncCmd branch does NOT set PendingSync, and sync proceeds normally via SyncFn.
-func TestStartUpgradeSync_DoesNotSetPendingSyncWhenGentleAINotUpgraded(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
-
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenUpgradeSync
-	m.OperationRunning = true
-
-	// UpgradeFn reports only engram upgraded, not gentle-ai.
 	m.UpgradeFn = func(_ context.Context, _ []update.UpdateResult) upgrade.UpgradeReport {
 		return upgrade.UpgradeReport{
 			Results: []upgrade.ToolUpgradeResult{
@@ -4300,23 +4184,8 @@ func TestStartUpgradeSync_DoesNotSetPendingSyncWhenGentleAINotUpgraded(t *testin
 
 	msgs := executeUpgradeSyncSequence(t, m)
 
-	// SyncFn must have been called (not the deferred-PendingSync path).
 	if !syncCalled {
-		t.Errorf("SyncFn was not called — expected normal sync when gentle-ai was not upgraded")
-	}
-
-	// PendingSync must NOT be set when gentle-ai was not upgraded.
-	// state.json may not exist at all if nothing wrote it; that is expected and
-	// means PendingSync was never set (correct). Any other read error is
-	// unexpected and should fail the test loudly.
-	s, readErr := state.Read(home)
-	if readErr != nil {
-		if !errors.Is(readErr, os.ErrNotExist) {
-			t.Fatalf("unexpected state.Read error: %v", readErr)
-		}
-		// File absent → PendingSync was never set — correct.
-	} else if s.PendingSync {
-		t.Errorf("PendingSync = true after non-gentle-ai upgrade, want false")
+		t.Errorf("SyncFn was not called — expected sync after upgrade")
 	}
 
 	// Verify SyncDoneMsg arrived.
@@ -4331,297 +4200,6 @@ func TestStartUpgradeSync_DoesNotSetPendingSyncWhenGentleAINotUpgraded(t *testin
 	}
 	if !gotSyncDone {
 		t.Errorf("sequence did not produce SyncDoneMsg; msgs = %v", msgs)
-	}
-}
-
-// TestStartUpgradeSync_NoClobberOnCorruptStateFile verifies that when the HOME
-// directory has a corrupt (non-missing) state.json, the TUI syncCmd branch does
-// NOT overwrite it when setting PendingSync=true — matching the no-clobber
-// pattern in internal/update/cooldown.go.
-func TestStartUpgradeSync_NoClobberOnCorruptStateFile(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
-
-	// Write a corrupt state file so state.Read returns a non-ErrNotExist error.
-	stateDir := filepath.Join(home, ".gentle-ai")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
-		t.Fatalf("MkdirAll: %v", err)
-	}
-	corruptPayload := []byte("this is not valid JSON {{{")
-	stateFilePath := filepath.Join(stateDir, "state.json")
-	if err := os.WriteFile(stateFilePath, corruptPayload, 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenUpgradeSync
-	m.OperationRunning = true
-
-	// UpgradeFn reports gentle-ai as successfully upgraded.
-	m.UpgradeFn = func(_ context.Context, _ []update.UpdateResult) upgrade.UpgradeReport {
-		return upgrade.UpgradeReport{
-			Results: []upgrade.ToolUpgradeResult{
-				{ToolName: "gentle-ai", Status: upgrade.UpgradeSucceeded, NewVersion: "1.8.0"},
-			},
-		}
-	}
-
-	executeUpgradeSyncSequence(t, m)
-
-	// The corrupt state file must NOT have been overwritten.
-	got, readErr := os.ReadFile(stateFilePath)
-	if readErr != nil {
-		t.Fatalf("os.ReadFile after startUpgradeSync: %v", readErr)
-	}
-	if string(got) != string(corruptPayload) {
-		t.Errorf("state file was overwritten on corrupt-read error\ngot:  %q\nwant: %q", got, corruptPayload)
-	}
-}
-
-// ─── AdvisoryMsg TUI layer tests ─────────────────────────────────────────────
-
-// TestAdvisoryMsg_SetsAdvisoryMessage verifies that dispatching AdvisoryMsg
-// into model.Update stores the advisory text in m.AdvisoryMessage.
-func TestAdvisoryMsg_SetsAdvisoryMessage(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-
-	updated, _ := m.Update(AdvisoryMsg{Advisory: update.Advisory{Message: "test advisory"}})
-	state := updated.(Model)
-
-	if state.AdvisoryMessage != "test advisory" {
-		t.Fatalf("AdvisoryMessage = %q, want %q", state.AdvisoryMessage, "test advisory")
-	}
-}
-
-// TestAdvisoryMsg_EmptyAdvisoryNoChange verifies that dispatching an AdvisoryMsg
-// with an empty message leaves AdvisoryMessage as the empty string.
-func TestAdvisoryMsg_EmptyAdvisoryNoChange(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-
-	updated, _ := m.Update(AdvisoryMsg{})
-	state := updated.(Model)
-
-	if state.AdvisoryMessage != "" {
-		t.Fatalf("AdvisoryMessage = %q, want empty for zero-value AdvisoryMsg", state.AdvisoryMessage)
-	}
-}
-
-// TestWelcomeView_ContainsAdvisoryMessage verifies that View() on ScreenWelcome
-// renders the advisory message when AdvisoryMessage is set.
-func TestWelcomeView_ContainsAdvisoryMessage(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenWelcome
-	m.AdvisoryMessage = "security notice"
-
-	view := m.View()
-
-	if !strings.Contains(view, "security notice") {
-		t.Fatalf("View() does not contain advisory message %q\nView output:\n%s", "security notice", view)
-	}
-}
-
-// TestWelcomeView_AdvisoryPrefixed verifies that the advisory message is
-// rendered with the "Advisory: " prefix on the Welcome screen.
-func TestWelcomeView_AdvisoryPrefixed(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenWelcome
-	m.AdvisoryMessage = "critical update"
-
-	view := m.View()
-
-	if !strings.Contains(view, "Advisory: critical update") {
-		t.Fatalf("View() does not contain %q\nView output:\n%s", "Advisory: critical update", view)
-	}
-}
-
-// TestWelcomeView_NewlineSeparatorBetweenUpdateAndAdvisory verifies that when
-// both an update banner and an advisory message are present, they are rendered
-// on separate lines (the banner string uses "\n" as separator so RenderWelcome
-// outputs them as distinct visual lines).
-func TestWelcomeView_NewlineSeparatorBetweenUpdateAndAdvisory(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenWelcome
-	m.UpdateCheckDone = true
-	m.UpdateResults = []update.UpdateResult{
-		{
-			Tool:             update.ToolInfo{Name: "engram"},
-			InstalledVersion: "1.0.0",
-			LatestVersion:    "1.1.0",
-			Status:           update.UpdateAvailable,
-		},
-	}
-	m.AdvisoryMessage = "advisory here"
-
-	view := m.View()
-
-	// Both pieces must appear in the view.
-	if !strings.Contains(view, "Updates available") {
-		t.Fatalf("View() does not contain update banner\nView output:\n%s", view)
-	}
-	if !strings.Contains(view, "Advisory: advisory here") {
-		t.Fatalf("View() does not contain advisory message\nView output:\n%s", view)
-	}
-	// The box renderer wraps the banner string into per-line box rows, so the
-	// update line and the advisory line must appear on distinct lines. Verify
-	// that no single rendered line contains both substrings at once.
-	lines := strings.Split(view, "\n")
-	updateLineIdx, advisoryLineIdx := -1, -1
-	for i, line := range lines {
-		if strings.Contains(line, "Updates available") {
-			updateLineIdx = i
-		}
-		if strings.Contains(line, "Advisory: advisory here") {
-			advisoryLineIdx = i
-		}
-	}
-	if updateLineIdx < 0 {
-		t.Fatalf("no line contains 'Updates available'\nView output:\n%s", view)
-	}
-	if advisoryLineIdx < 0 {
-		t.Fatalf("no line contains 'Advisory: advisory here'\nView output:\n%s", view)
-	}
-	if updateLineIdx == advisoryLineIdx {
-		t.Fatalf("update banner and advisory appear on the same line (%d); expected separate lines\nView output:\n%s", updateLineIdx, view)
-	}
-}
-
-func TestWelcomeView_LongAdvisoryStaysWithinWindowWidth(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenWelcome
-	m.Width = 50
-	m.AdvisoryMessage = "🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 advisory must stay within the visible frame width"
-
-	view := m.View()
-
-	foundAdvisory := false
-	for i, line := range strings.Split(view, "\n") {
-		if !strings.Contains(line, "Advisory:") && !strings.Contains(line, "visible frame") {
-			continue
-		}
-		foundAdvisory = true
-		if width := lipgloss.Width(line); width > m.Width {
-			t.Fatalf("advisory line %d width = %d, want <= %d\nline: %q\nview:\n%s", i, width, m.Width, line, view)
-		}
-	}
-	if !foundAdvisory {
-		t.Fatalf("advisory text was not rendered\nview:\n%s", view)
-	}
-}
-
-func TestWelcomeAdvisory_BoundsAndScrollsOverflow(t *testing.T) {
-	const releaseURL = "https://github.com/Gentleman-Programming/gentle-ai/releases/tag/v1.49.0"
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Width = 60
-	m.Height = 50
-	updated, _ := m.Update(AdvisoryMsg{Advisory: update.Advisory{
-		Message: strings.Repeat("release detail ", 80),
-		URL:     releaseURL,
-	}})
-	state := updated.(Model)
-	initial := state.View()
-
-	if got := lipgloss.Height(initial); got > state.Height {
-		t.Fatalf("welcome height = %d, want <= terminal height %d", got, state.Height)
-	}
-	if !strings.Contains(initial, "PgUp/PgDn: scroll") {
-		t.Fatalf("overflowing advisory missing scroll affordance\nview:\n%s", initial)
-	}
-	if !strings.Contains(initial, "Latest release:") || !strings.Contains(initial, "v1.49.0") {
-		t.Fatalf("overflowing advisory did not keep release link visible\nview:\n%s", initial)
-	}
-	if !strings.Contains(initial, "Start installation") {
-		t.Fatalf("overflowing advisory crowded out primary action\nview:\n%s", initial)
-	}
-
-	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeyPgDown})
-	state = updated.(Model)
-	if state.AdvisoryScroll == 0 {
-		t.Fatal("Page Down did not advance advisory scroll")
-	}
-	if state.Cursor != 0 {
-		t.Fatalf("Page Down changed menu cursor to %d", state.Cursor)
-	}
-	if got := state.View(); got == initial {
-		t.Fatal("Page Down did not change visible advisory content")
-	}
-
-	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeyPgUp})
-	if got := updated.(Model).AdvisoryScroll; got != 0 {
-		t.Fatalf("Page Up scroll = %d, want 0", got)
-	}
-}
-
-func TestWelcomeAdvisory_FittingContentShowsLatestReleaseWithoutScrollHint(t *testing.T) {
-	const releaseURL = "https://github.com/Gentleman-Programming/gentle-ai/releases/tag/v1.49.0"
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Width = 100
-	m.Height = 60
-	updated, _ := m.Update(AdvisoryMsg{Advisory: update.Advisory{
-		Message: "Maintenance improvements are available.",
-		URL:     releaseURL,
-	}})
-	state := updated.(Model)
-	view := state.View()
-
-	if state.AdvisoryURL != releaseURL || !strings.Contains(view, "Latest release: "+releaseURL) {
-		t.Fatalf("latest release link not carried through\nview:\n%s", view)
-	}
-	if strings.Contains(view, "PgUp/PgDn: scroll") {
-		t.Fatalf("fitting advisory unexpectedly shows scroll affordance\nview:\n%s", view)
-	}
-}
-
-func TestWelcomeAdvisory_SmallTerminalPreservesMenu(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Width = 60
-	m.Height = 35
-	baselineHeight := lipgloss.Height(m.View())
-	updated, _ := m.Update(AdvisoryMsg{Advisory: update.Advisory{
-		Message: strings.Repeat("long advisory ", 80),
-		URL:     "https://github.com/Gentleman-Programming/gentle-ai/releases/tag/v1.49.0",
-	}})
-	view := updated.(Model).View()
-
-	if got := lipgloss.Height(view); got != baselineHeight {
-		t.Fatalf("small-terminal advisory added %d lines, want none", got-baselineHeight)
-	}
-	if !strings.Contains(view, "Start installation") {
-		t.Fatalf("small-terminal welcome lost primary action\nview:\n%s", view)
-	}
-}
-
-func TestWelcomeAdvisory_ResizeAndContentChangesClampScroll(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Width = 45
-	m.Height = 60
-	updated, _ := m.Update(AdvisoryMsg{Advisory: update.Advisory{
-		Message: strings.Repeat("release detail ", 12),
-		URL:     "https://github.com/Gentleman-Programming/gentle-ai/releases/tag/v1.49.0",
-	}})
-	state := updated.(Model)
-	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeyPgDown})
-	state = updated.(Model)
-	if state.AdvisoryScroll == 0 {
-		t.Fatal("test setup did not produce advisory overflow")
-	}
-
-	updated, _ = state.Update(tea.WindowSizeMsg{Width: 120, Height: 80})
-	state = updated.(Model)
-	if state.AdvisoryScroll != 0 {
-		t.Fatalf("scroll after fitting resize = %d, want 0", state.AdvisoryScroll)
-	}
-	if strings.Contains(state.View(), "PgUp/PgDn: scroll") {
-		t.Fatal("scroll affordance remained after content fit")
-	}
-
-	updated, _ = state.Update(tea.WindowSizeMsg{Width: 45, Height: 60})
-	state = updated.(Model)
-	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeyPgDown})
-	state = updated.(Model)
-	updated, _ = state.Update(AdvisoryMsg{Advisory: update.Advisory{Message: "Short notice."}})
-	if got := updated.(Model).AdvisoryScroll; got != 0 {
-		t.Fatalf("scroll after advisory content change = %d, want 0", got)
 	}
 }
 
@@ -4658,7 +4236,6 @@ func TestWelcomeView_WindowResizeFitsMeasuredViewport(t *testing.T) {
 					LatestVersion:    "1.1.0",
 					Status:           update.UpdateAvailable,
 				}}
-				m.AdvisoryMessage = "Optional advisory content"
 			}
 			updated, _ := m.Update(tea.WindowSizeMsg{Width: tc.width, Height: tc.height})
 			state := updated.(Model)
@@ -4738,136 +4315,6 @@ func TestWelcomeView_MinimumResizePreservesNonzeroCursor(t *testing.T) {
 	}
 	if strings.Contains(view, styles.SelectedStyle.Render("Start installation")) {
 		t.Fatalf("minimum welcome state marked Start installation selected for cursor %d\nview:\n%s", cursor, view)
-	}
-}
-
-// ─── Advisory message sanitization tests ─────────────────────────────────────
-
-// TestSanitizeAdvisoryMessage_StripControlChars verifies that ASCII control
-// characters (including carriage return, bell, backspace, etc.) are removed
-// from the advisory message, keeping only printable characters and normal spaces.
-func TestSanitizeAdvisoryMessage_StripControlChars(t *testing.T) {
-	cases := []struct {
-		name  string
-		input string
-		want  string
-	}{
-		{
-			name:  "carriage return stripped",
-			input: "hello\rworld",
-			want:  "helloworld",
-		},
-		{
-			name:  "bell stripped",
-			input: "ring\x07bell",
-			want:  "ringbell",
-		},
-		{
-			name:  "backspace stripped",
-			input: "a\x08b",
-			want:  "ab",
-		},
-		{
-			name:  "null byte stripped",
-			input: "null\x00byte",
-			want:  "nullbyte",
-		},
-		{
-			name:  "tab stripped",
-			input: "ta\tb",
-			want:  "tab",
-		},
-		{
-			name:  "newline stripped",
-			input: "line\nbreak",
-			want:  "linebreak",
-		},
-		{
-			name:  "clean message unchanged",
-			input: "security notice: update now",
-			want:  "security notice: update now",
-		},
-		{
-			name:  "empty string unchanged",
-			input: "",
-			want:  "",
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := sanitizeAdvisoryMessage(tc.input)
-			if got != tc.want {
-				t.Errorf("sanitizeAdvisoryMessage(%q) = %q, want %q", tc.input, got, tc.want)
-			}
-		})
-	}
-}
-
-// TestSanitizeAdvisoryMessage_StripANSIEscapes verifies that ANSI escape
-// sequences (e.g. color codes, cursor movement) are stripped from the message
-// so they cannot corrupt the TUI layout.
-func TestSanitizeAdvisoryMessage_StripANSIEscapes(t *testing.T) {
-	cases := []struct {
-		name  string
-		input string
-		want  string
-	}{
-		{
-			name:  "color reset stripped",
-			input: "\x1b[0mhello",
-			want:  "hello",
-		},
-		{
-			name:  "bold red color stripped",
-			input: "\x1b[1;31mwarn\x1b[0m",
-			want:  "warn",
-		},
-		{
-			name:  "cursor movement stripped",
-			input: "a\x1b[2Jb",
-			want:  "ab",
-		},
-		{
-			name:  "mixed text and escapes",
-			input: "normal \x1b[32mgreen\x1b[0m text",
-			want:  "normal green text",
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := sanitizeAdvisoryMessage(tc.input)
-			if got != tc.want {
-				t.Errorf("sanitizeAdvisoryMessage(%q) = %q, want %q", tc.input, got, tc.want)
-			}
-		})
-	}
-}
-
-// TestAdvisoryMsg_SanitizesOnStore verifies that control characters in an
-// advisory message dispatched via AdvisoryMsg are sanitized before being stored
-// in m.AdvisoryMessage, so they can never reach the rendered View.
-func TestAdvisoryMsg_SanitizesOnStore(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-
-	dirty := "notice\x1b[1;31m URGENT\x1b[0m\r\nupdate now"
-	updated, _ := m.Update(AdvisoryMsg{Advisory: update.Advisory{Message: dirty}})
-	state := updated.(Model)
-
-	// Must not contain any ESC character or control character.
-	for i, ch := range state.AdvisoryMessage {
-		if ch < 0x20 || ch == 0x7f {
-			t.Errorf("AdvisoryMessage[%d] = %U (%q) — control character not stripped; full value: %q",
-				i, ch, ch, state.AdvisoryMessage)
-		}
-	}
-	// Printable parts of the original message must be preserved.
-	if !strings.Contains(state.AdvisoryMessage, "notice") {
-		t.Errorf("AdvisoryMessage = %q — expected printable word %q to survive sanitization", state.AdvisoryMessage, "notice")
-	}
-	if !strings.Contains(state.AdvisoryMessage, "update now") {
-		t.Errorf("AdvisoryMessage = %q — expected printable phrase %q to survive sanitization", state.AdvisoryMessage, "update now")
 	}
 }
 
@@ -6261,53 +5708,5 @@ func TestNoAnimationPreservesSyncOperationCommand(t *testing.T) {
 	}
 	if !called {
 		t.Fatal("sync operation command was not executed")
-	}
-}
-
-// TestMarkPendingSyncUnderLockReReadsLatestStateAfterLockContention is the
-// #1809 preservation proof for the deferred-sync PendingSync flag. The helper
-// re-reads the latest state inside the canonical install-state lock, so a
-// concurrent writer's change survives. A contended lock must fail fast
-// without writing anything.
-func TestMarkPendingSyncUnderLockReReadsLatestStateAfterLockContention(t *testing.T) {
-	home := t.TempDir()
-	lockPath, err := statecoord.LockPath(home)
-	if err != nil {
-		t.Fatalf("install state lock path: %v", err)
-	}
-	held, err := reviewtransaction.AcquireAuthorityFileLock(lockPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := state.Write(home, state.InstallState{
-		InstalledAgents: []string{"codex"},
-		RDDMode:         string(reviewtransaction.RDDModeOn),
-	}); err != nil {
-		t.Fatal(err)
-	}
-	// Contended run: the helper must fail fast and leave the state untouched.
-	markPendingSyncUnderLock(home)
-	contended, err := state.Read(home)
-	if err != nil || contended.PendingSync || contended.RDDMode != string(reviewtransaction.RDDModeOn) {
-		t.Fatalf("state after contended run = %#v, err = %v", contended, err)
-	}
-	if err := held.Release(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Uncontended run: PendingSync is set and the concurrent fields survive.
-	markPendingSyncUnderLock(home)
-	got, err := state.Read(home)
-	if err != nil {
-		t.Fatalf("re-read state: %v", err)
-	}
-	if !got.PendingSync {
-		t.Fatal("PendingSync = false after markPendingSyncUnderLock, want true")
-	}
-	if len(got.InstalledAgents) != 1 || got.InstalledAgents[0] != "codex" {
-		t.Fatalf("InstalledAgents = %v, want [codex]", got.InstalledAgents)
-	}
-	if got.RDDMode != string(reviewtransaction.RDDModeOn) {
-		t.Fatalf("concurrent RDDMode clobbered: got %q, want %q", got.RDDMode, reviewtransaction.RDDModeOn)
 	}
 }

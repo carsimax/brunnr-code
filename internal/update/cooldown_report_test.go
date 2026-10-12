@@ -30,7 +30,7 @@ func TestCooldownReportProvenance(t *testing.T) {
 				t.Fatal(err)
 			}
 			calls := 0
-			report := CheckAllWithCooldownReport(context.Background(), "1.0.0", system.PlatformProfile{}, home, tc.ttl, func() time.Time { return now }, func(context.Context, string, system.PlatformProfile) []UpdateResult { calls++; return tc.results })
+			report := CheckAllWithCooldownReport(context.Background(), system.PlatformProfile{}, home, tc.ttl, func() time.Time { return now }, func(context.Context, system.PlatformProfile) []UpdateResult { calls++; return tc.results })
 			if report.State != tc.want || calls != tc.calls || !reflect.DeepEqual(report.Results, tc.results) {
 				t.Fatalf("report=%+v calls=%d", report, calls)
 			}

@@ -78,28 +78,6 @@ func TestInstallHintNodeSilverblue(t *testing.T) {
 	}
 }
 
-func TestInstallHintsSilverblueAllDeps(t *testing.T) {
-	profile := PlatformProfile{OS: "linux", PackageManager: "rpm-ostree", LinuxDistro: LinuxDistroFedora}
-	tests := []struct {
-		dep  string
-		want string
-	}{
-		{dep: "git", want: "rpm-ostree install -y --apply-live git"},
-		{dep: "curl", want: "rpm-ostree install -y --apply-live curl"},
-		{dep: "node", want: "rpm-ostree install -y --apply-live nodejs npm"},
-		{dep: "go", want: "rpm-ostree install -y --apply-live golang"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.dep, func(t *testing.T) {
-			got := InstallHintForDep(tt.dep, profile)
-			if got != tt.want {
-				t.Fatalf("InstallHintForDep(%q) = %q, want %q", tt.dep, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestInstallHintBrew(t *testing.T) {
 	hint := installHintBrew()
 	if !strings.Contains(hint, "Homebrew") {

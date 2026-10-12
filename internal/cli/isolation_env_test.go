@@ -31,7 +31,7 @@ func TestBackupRootsHonorGentleAIHome(t *testing.T) {
 				want = filepath.Join(override, "backups")
 			}
 
-			rt, err := newInstallRuntime(home, ScopeGlobal, ChannelStable, model.Selection{}, planner.ResolvedPlan{}, system.PlatformProfile{})
+			rt, err := newInstallRuntime(home, ScopeGlobal, model.Selection{}, planner.ResolvedPlan{}, system.PlatformProfile{})
 			if err != nil {
 				t.Fatalf("newInstallRuntime() error = %v", err)
 			}
@@ -107,7 +107,7 @@ func TestEngramStepUsesCallerSuppliedBinary(t *testing.T) {
 	step := componentApplyStep{
 		component: model.ComponentEngram, homeDir: home, workspaceDir: t.TempDir(), scope: ScopeGlobal,
 		agents: []model.AgentID{model.AgentClaudeCode}, selection: model.Selection{Components: []model.ComponentID{model.ComponentEngram}},
-		profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}, channel: ChannelStable, state: state,
+		profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}, state: state,
 	}
 	if err := step.Run(); err != nil {
 		t.Fatalf("engram step error = %v", err)

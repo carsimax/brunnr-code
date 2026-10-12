@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -601,89 +600,6 @@ func TestRunInstallMacOSEngramStillUsesBrew(t *testing.T) {
 	}
 	if !foundBrew {
 		t.Fatalf("expected brew install engram on macOS, got commands: %v", commands)
-	}
-}
-
-func TestRunInstallBetaEngramUsesMainGoInstallAndInstalledBinary(t *testing.T) {
-	home := t.TempDir()
-	gobin := filepath.Join(home, "go-bin")
-	binaryName := "engram"
-	if runtime.GOOS == "windows" {
-		binaryName += ".exe"
-	}
-	betaEngram := filepath.Join(gobin, binaryName)
-
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	restoreGoEnv := goEnv
-	restorePath := os.Getenv("PATH")
-	restoreVerifyVersionCommand := verifyEngramVersionCommand
-	restoreProbeCommand := probeEngramProtocolFlagCommand
-	t.Cleanup(func() {
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-		goEnv = restoreGoEnv
-		os.Setenv("PATH", restorePath)
-		verifyEngramVersionCommand = restoreVerifyVersionCommand
-		probeEngramProtocolFlagCommand = restoreProbeCommand
-	})
-
-	cmdLookPath = func(name string) (string, error) {
-		if name == "engram" {
-			return "/usr/local/bin/engram", nil
-		}
-		if name == "go" {
-			return "/usr/local/bin/go", nil
-		}
-		return missingBinaryLookPath(name)
-	}
-	goEnv = func(keys ...string) (map[string]string, error) {
-		return map[string]string{"GOBIN": gobin, "GOPATH": filepath.Join(home, "go")}, nil
-	}
-	recorder := &commandRecorder{}
-	runCommand = recorder.record
-	var versionCommand string
-	verifyEngramVersionCommand = func(command string) (string, error) {
-		versionCommand = command
-		return "engram 1.18.0", nil
-	}
-	var probeCommand string
-	probeEngramProtocolFlagCommand = func(_ context.Context, command string) (string, error) {
-		probeCommand = command
-		return "Usage: engram setup <slug> [--protocol=slim|full]\n", nil
-	}
-
-	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
-	_, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram", "--channel", "beta"},
-		detection,
-	)
-	if err != nil {
-		t.Fatalf("RunInstall() error = %v", err)
-	}
-
-	commands := recorder.get()
-	foundGoInstall := false
-	foundSetupWithBetaBinary := false
-	for _, cmd := range commands {
-		if cmd == "go install github.com/Gentleman-Programming/engram/cmd/engram@main" {
-			foundGoInstall = true
-		}
-		if strings.HasPrefix(cmd, betaEngram+" setup ") {
-			foundSetupWithBetaBinary = true
-		}
-	}
-	if !foundGoInstall {
-		t.Fatalf("expected beta engram go install from main, got commands: %v", commands)
-	}
-	if !foundSetupWithBetaBinary {
-		t.Fatalf("expected setup to use beta engram binary %q, got commands: %v", betaEngram, commands)
-	}
-	if versionCommand != betaEngram {
-		t.Fatalf("expected version gate to use beta engram binary %q, got %q", betaEngram, versionCommand)
-	}
-	if probeCommand != betaEngram {
-		t.Fatalf("expected protocol probe to use beta engram binary %q, got %q", betaEngram, probeCommand)
 	}
 }
 

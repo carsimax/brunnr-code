@@ -74,9 +74,6 @@ func TestMain(m *testing.M) {
 	// against. The same LookPath stubs as the harness keep agent discovery
 	// hermetic.
 	if os.Getenv("GENTLE_AI_TEST_CLI_STANDIN") == "1" {
-		if err := os.Unsetenv("GENTLE_AI_CHANNEL"); err != nil {
-			panic(err)
-		}
 		agentPresent := func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
 		claude.LookPathOverride = agentPresent
 		// The same routing app.RunArgs performs for the sync subcommand
@@ -97,9 +94,6 @@ func TestMain(m *testing.M) {
 			os.Exit(1)
 		}
 		os.Exit(0)
-	}
-	if err := os.Unsetenv("GENTLE_AI_CHANNEL"); err != nil {
-		panic(err)
 	}
 	// Go derives its module and build caches from HOME. Pin them to the
 	// developer's existing caches before HOME moves, so tests that build the

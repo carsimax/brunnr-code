@@ -23,13 +23,10 @@ func TestCooldownReleaseWelcomeDoesNotClaimCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := NewModel(system.DetectionResult{}, "1.0.0")
-	commands := m.Init()().(tea.BatchMsg)
-	next, _ := m.Update(commands[0]())
-	m = next.(Model)
-	next, _ = m.Update(AdvisoryMsg{Advisory: update.Advisory{Message: "Release 2.0.0 is available"}})
+	next, _ := m.Update(m.Init()())
 	m = next.(Model)
 	view := m.View()
-	if !strings.Contains(view, "Release 2.0.0") || strings.Contains(view, "Upgrade tools (up to date)") {
+	if strings.Contains(view, "Upgrade tools (up to date)") {
 		t.Fatalf("contradictory welcome: %s", view)
 	}
 	saved, err := state.Read(home)
@@ -61,13 +58,12 @@ func TestCooldownReleaseRefreshOnUpgradeEntry(t *testing.T) {
 			t.Cleanup(func() { updateCheckFn, tuiNowFn = oldCheck, oldNow })
 			tuiNowFn = func() time.Time { return now }
 			calls := 0
-			updateCheckFn = func(context.Context, string, system.PlatformProfile) []update.UpdateResult {
+			updateCheckFn = func(context.Context, system.PlatformProfile) []update.UpdateResult {
 				calls++
 				return []update.UpdateResult{makeUpdateResult(update.UpdateAvailable, "https://example.com/release")}
 			}
 			m := NewModel(system.DetectionResult{}, "1.0.0")
-			batch := m.Init()().(tea.BatchMsg)
-			next, _ := m.Update(batch[0]())
+			next, _ := m.Update(m.Init()())
 			m = next.(Model)
 			if calls != 0 || m.UpdateCheckState != update.CheckSkipped {
 				t.Fatal("startup did not respect cooldown")
@@ -126,7 +122,7 @@ func TestCooldownReleaseLateFailedStartupRefreshesOnce(t *testing.T) {
 				oldCheck := updateCheckFn
 				t.Cleanup(func() { updateCheckFn = oldCheck })
 				calls := 0
-				updateCheckFn = func(context.Context, string, system.PlatformProfile) []update.UpdateResult {
+				updateCheckFn = func(context.Context, system.PlatformProfile) []update.UpdateResult {
 					calls++
 					if calls == 2 && succeeds {
 						return []update.UpdateResult{makeUpdateResult(update.UpdateAvailable, "https://example.com/release")}
@@ -134,7 +130,7 @@ func TestCooldownReleaseLateFailedStartupRefreshesOnce(t *testing.T) {
 					return []update.UpdateResult{{Status: update.CheckFailed}}
 				}
 				m := NewModel(system.DetectionResult{}, "1.0.0")
-				startup := m.Init()().(tea.BatchMsg)[0]
+				startup := m.Init()
 				m.Cursor = cursor
 				next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 				m = next.(Model)

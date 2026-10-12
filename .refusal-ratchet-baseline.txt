@@ -252,7 +252,6 @@ internal/cli/run.go	"%s is not in the user PATH, so user-scoped PATH repair cann
 internal/cli/run.go	"component %q is not supported in install runtime"
 internal/cli/run.go	"empty command in sequence"
 internal/cli/run.go	"empty command sequence"
-internal/cli/run.go	"go env returned empty GOBIN and GOPATH"
 internal/cli/run.go	"go was installed but is still not available in PATH"
 internal/cli/run.go	"go was installed but is still not available in PATH; restart the terminal and retry"
 internal/cli/run.go	"post-apply verification failed:\n%s"

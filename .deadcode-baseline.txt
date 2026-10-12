@@ -206,7 +206,6 @@ internal/tui/screens/welcome.go	RenderWelcome
 internal/tui/screens/welcome.go	RenderWelcomeWithWidth
 internal/update/homebrew.go	homebrewPackageInstalledWith
 internal/update/homebrew.go	pathWithinPrefix
-internal/update/upgrade/download.go	downloadBinary
 internal/update/upgrade/executor.go	enumerateFilesInDir
 internal/update/upgrade/homebrew.go	homebrewPackageInstalledWith
 internal/update/upgrade/homebrew.go	pathWithinPrefix

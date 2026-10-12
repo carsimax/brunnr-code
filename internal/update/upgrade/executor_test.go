@@ -56,7 +56,7 @@ func makeResult(name string, status update.UpdateStatus, oldVer, newVer string, 
 func TestExecute_NoopWhenNothingIsExecutable(t *testing.T) {
 	results := []update.UpdateResult{
 		makeResult("gentle-ai", update.UpToDate, "1.0.0", "1.0.0", update.InstallBinary),
-		makeResult("engram", update.NotInstalled, "", "0.4.0", update.InstallGoInstall),
+		makeResult("engram", update.NotInstalled, "", "0.4.0", update.InstallBinary),
 		// gga: CheckFailed — should also be omitted from results.
 		makeResult("gga", update.CheckFailed, "", "", update.InstallScript),
 	}
@@ -178,9 +178,8 @@ func TestExecute_BackupBeforeExecution(t *testing.T) {
 	}
 
 	results := []update.UpdateResult{
-		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallGoInstall),
+		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallBinary),
 	}
-	results[0].Tool.GoImportPath = "github.com/Gentleman-Programming/engram/cmd/engram"
 
 	report := Execute(context.Background(), results, linuxProfile(), t.TempDir(), false)
 
@@ -215,9 +214,8 @@ func TestExecuteProgressDoesNotIncludeBackupExclusionDiagnostics(t *testing.T) {
 	}
 
 	results := []update.UpdateResult{
-		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallGoInstall),
+		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallBinary),
 	}
-	results[0].Tool.GoImportPath = "github.com/Gentleman-Programming/engram/cmd/engram"
 
 	var progress bytes.Buffer
 	report := Execute(context.Background(), results, linuxProfile(), home, false, &progress)
@@ -249,9 +247,8 @@ func TestExecute_DryRunNeverExecs(t *testing.T) {
 	}
 
 	results := []update.UpdateResult{
-		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallGoInstall),
+		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallBinary),
 	}
-	results[0].Tool.GoImportPath = "github.com/Gentleman-Programming/engram/cmd/engram"
 
 	report := Execute(context.Background(), results, linuxProfile(), t.TempDir(), true)
 
@@ -291,9 +288,8 @@ func TestExecute_PerToolSuccessAndFailure(t *testing.T) {
 	}
 
 	results := []update.UpdateResult{
-		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallGoInstall),
+		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallBinary),
 	}
-	results[0].Tool.GoImportPath = "github.com/Gentleman-Programming/engram/cmd/engram"
 
 	report := Execute(context.Background(), results, linuxProfile(), t.TempDir(), false)
 
@@ -322,9 +318,8 @@ func TestExecute_DevBuildIsSkipped(t *testing.T) {
 
 	results := []update.UpdateResult{
 		makeResult("gentle-ai", update.DevBuild, "dev", "1.0.0", update.InstallBinary),
-		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallGoInstall),
+		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallBinary),
 	}
-	results[1].Tool.GoImportPath = "github.com/Gentleman-Programming/engram/cmd/engram"
 
 	report := Execute(context.Background(), results, linuxProfile(), t.TempDir(), false)
 
@@ -366,18 +361,17 @@ func TestExecute_DevBuildIsSkipped(t *testing.T) {
 // TestExecute_FailureDoesNotImplyConfigLoss verifies that when a tool upgrade fails,
 // we can still retrieve the BackupID — confirming config was snapshotted first.
 func TestExecute_FailureDoesNotImplyConfigLoss(t *testing.T) {
-	origExecCommand := execCommand
-	t.Cleanup(func() { execCommand = origExecCommand })
+	origDownload := engramDownloadFn
+	t.Cleanup(func() { engramDownloadFn = origDownload })
 
-	// Force all exec to fail.
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		return mockCmd("false")
+	// Force the engram download to fail.
+	engramDownloadFn = func(system.PlatformProfile) (string, error) {
+		return "", errors.New("download failed")
 	}
 
 	results := []update.UpdateResult{
-		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallGoInstall),
+		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallBinary),
 	}
-	results[0].Tool.GoImportPath = "github.com/Gentleman-Programming/engram/cmd/engram"
 
 	report := Execute(context.Background(), results, linuxProfile(), t.TempDir(), false)
 
@@ -418,9 +412,8 @@ func TestExecute_DevBuildSurfacedAsSkipped(t *testing.T) {
 
 	results := []update.UpdateResult{
 		makeResult("gentle-ai", update.DevBuild, "dev", "1.0.0", update.InstallBinary),
-		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallGoInstall),
+		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallBinary),
 	}
-	results[1].Tool.GoImportPath = "github.com/Gentleman-Programming/engram/cmd/engram"
 
 	report := Execute(context.Background(), results, linuxProfile(), t.TempDir(), false)
 
@@ -493,9 +486,8 @@ func TestExecute_ConfigNotMutatedDuringUpgrade(t *testing.T) {
 	}
 
 	results := []update.UpdateResult{
-		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallGoInstall),
+		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallBinary),
 	}
-	results[0].Tool.GoImportPath = "github.com/Gentleman-Programming/engram/cmd/engram"
 
 	profile := linuxProfile()
 
@@ -662,9 +654,8 @@ func TestExecute_ForcedSnapshotFailureSurfacesWarningEndToEnd(t *testing.T) {
 	}
 
 	results := []update.UpdateResult{
-		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallGoInstall),
+		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallBinary),
 	}
-	results[0].Tool.GoImportPath = "github.com/Gentleman-Programming/engram/cmd/engram"
 
 	report := Execute(context.Background(), results, linuxProfile(), t.TempDir(), false)
 
@@ -731,9 +722,8 @@ func TestExecute_UpgradeBackupManifestHasUpgradeMetadata(t *testing.T) {
 	}
 
 	results := []update.UpdateResult{
-		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallGoInstall),
+		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallBinary),
 	}
-	results[0].Tool.GoImportPath = "github.com/Gentleman-Programming/engram/cmd/engram"
 
 	report := Execute(context.Background(), results, linuxProfile(), homeDir, false)
 
@@ -780,9 +770,8 @@ func TestExecute_SuccessfulSnapshotHasNoWarning(t *testing.T) {
 	// snapshotCreator is intentionally left at its real default.
 
 	results := []update.UpdateResult{
-		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallGoInstall),
+		makeResult("engram", update.UpdateAvailable, "0.3.0", "0.4.0", update.InstallBinary),
 	}
-	results[0].Tool.GoImportPath = "github.com/Gentleman-Programming/engram/cmd/engram"
 
 	report := Execute(context.Background(), results, linuxProfile(), t.TempDir(), false)
 

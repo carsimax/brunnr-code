@@ -15,13 +15,10 @@ type InstallFlags struct {
 	Preset     string
 	SDDMode    string
 	Scope      string
-	Channel    string
 	DryRun     bool
 
 	ClaudeOrchestratorModules bool
 }
-
-const installChannelHelp = "Gentle AI channel: stable (default), beta, or nightly (alias for beta) — env: GENTLE_AI_CHANNEL"
 
 func PrintInstallHelp(w io.Writer) {
 	fmt.Fprint(w, `USAGE
@@ -34,7 +31,6 @@ FLAGS
   --persona <name>                   Persona to apply (requires persona in the resolved plan, except custom)
   --preset <name>                    Preset to apply
   --scope global|workspace           Install scope (env: GENTLE_AI_INSTALL_SCOPE)
-  --channel stable|beta|nightly      Release channel; nightly is an alias for beta (env: GENTLE_AI_CHANNEL)
   --claude-orchestrator-modules      Global Claude only: install the orchestrator as a core plus on-demand modules
                                      under ~/.claude/gentle-ai/orchestrator/ (default off)
   --dry-run                          Preview plan without executing
@@ -65,7 +61,6 @@ func ParseInstallFlags(args []string) (InstallFlags, error) {
 	fs.StringVar(&opts.Persona, "persona", "", "persona to apply")
 	fs.StringVar(&opts.Preset, "preset", "", "preset to apply")
 	fs.StringVar(&opts.Scope, "scope", "", "install scope: global (default) or workspace — env: GENTLE_AI_INSTALL_SCOPE")
-	fs.StringVar(&opts.Channel, "channel", "", installChannelHelp)
 	fs.BoolVar(&opts.ClaudeOrchestratorModules, "claude-orchestrator-modules", false, "global Claude only: install the orchestrator as a core plus on-demand modules")
 	fs.BoolVar(&opts.DryRun, "dry-run", false, "preview plan without executing")
 

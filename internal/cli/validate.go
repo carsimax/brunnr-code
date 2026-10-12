@@ -15,7 +15,6 @@ import (
 type InstallInput struct {
 	Selection model.Selection
 	Scope     InstallScope
-	Channel   InstallChannel
 	DryRun    bool
 
 	// ClaudeOrchestratorModules opts a global install that selects Claude into
@@ -95,12 +94,7 @@ func NormalizeInstallFlags(flags InstallFlags, detection system.DetectionResult)
 		}
 	}
 
-	channel, err := ResolveInstallChannel(flags.Channel)
-	if err != nil {
-		return InstallInput{}, err
-	}
-
-	return InstallInput{Selection: selection, Scope: scope, Channel: channel, DryRun: flags.DryRun, ClaudeOrchestratorModules: flags.ClaudeOrchestratorModules}, nil
+	return InstallInput{Selection: selection, Scope: scope, DryRun: flags.DryRun, ClaudeOrchestratorModules: flags.ClaudeOrchestratorModules}, nil
 }
 
 // validateInstallModifierConsumers checks explicit payloads against the final plan,

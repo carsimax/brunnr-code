@@ -59,7 +59,6 @@ var (
 	runCommand                   = executeCommand
 	cmdLookPath                  = exec.LookPath
 	streamCommandOutput          = true
-	goEnv                        = defaultGoEnv
 	installCommunityTool         = communitytool.Install
 	installCommunityToolWithHome = communitytool.InstallWithHome
 	injectInstallPersona         = persona.Inject
@@ -78,11 +77,7 @@ var (
 
 	// engramDownloadFn is the function used to download the engram binary on non-brew platforms.
 	// Package-level var for testability — tests can replace this to avoid real HTTP calls.
-	// Always uses the stable (release) path; beta channel at install time is handled
-	// separately via installBetaEngramFromMain.
-	engramDownloadFn = func(profile system.PlatformProfile) (string, error) {
-		return engram.DownloadLatestBinary(profile, false)
-	}
+	engramDownloadFn = engram.DownloadLatestBinary
 
 	// verifyEngramVersion resolves the installed engram binary version, threaded
 	// into InjectOptions.Version (Decision 1 gate) and used to compute the
@@ -191,7 +186,7 @@ func RunPreparedInstall(prepared PreparedInstall, detection system.DetectionResu
 				"will be written to each selected agent's global config directory and will affect ALL workspaces for those agents on this machine.\n"+
 				"To install only into the current workspace, rerun with --scope=workspace.\n\n")
 	}
-	runtime, err := newInstallRuntime(homeDir, input.Scope, input.Channel, input.Selection, resolved, profile)
+	runtime, err := newInstallRuntime(homeDir, input.Scope, input.Selection, resolved, profile)
 	if err != nil {
 		return result, err
 	}
@@ -503,41 +498,6 @@ func goInstallBinDir() string {
 	return filepath.Join("~", "go", "bin")
 }
 
-func defaultGoEnv(keys ...string) (map[string]string, error) {
-	args := append([]string{"env"}, keys...)
-	cmd := exec.Command("go", args...)
-	system.EnsureCommandDir(cmd)
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
-
-	lines := strings.Split(strings.TrimRight(string(out), "\r\n"), "\n")
-	values := make(map[string]string, len(keys))
-	for i, key := range keys {
-		if i < len(lines) {
-			values[key] = strings.TrimSpace(lines[i])
-		}
-	}
-	return values, nil
-}
-
-func goInstallBinDirFromGoEnv() (string, error) {
-	values, err := goEnv("GOBIN", "GOPATH")
-	if err != nil {
-		return "", err
-	}
-	if gobin := strings.TrimSpace(values["GOBIN"]); gobin != "" {
-		return gobin, nil
-	}
-	if gopath := strings.TrimSpace(values["GOPATH"]); gopath != "" {
-		return filepath.Join(gopath, "bin"), nil
-	}
-	return "", fmt.Errorf("go env returned empty GOBIN and GOPATH")
-}
-
-const engramBetaGoInstallPackage = "github.com/Gentleman-Programming/engram/cmd/engram@main"
-
 // validateCallerEngramRuns proves a caller-supplied Engram binary runs before
 // anything is installed, when the plan applies Engram.
 func validateCallerEngramRuns(components []model.ComponentID) error {
@@ -552,48 +512,6 @@ func validateCallerEngramRuns(components []model.ComponentID) error {
 		return fmt.Errorf("%s=%s does not run: %w", system.EngramBinEnv, bin, err)
 	}
 	return nil
-}
-
-func betaEngramRequiresGo(channel InstallChannel, component model.ComponentID) bool {
-	if _, ok := engram.CallerBinary(); ok {
-		return false
-	}
-	return channel.IsBeta() && component == model.ComponentEngram
-}
-
-func installBetaEngramFromMain() (string, error) {
-	if err := runCommand("go", "install", engramBetaGoInstallPackage); err != nil {
-		return "", err
-	}
-
-	binDir, err := goInstallBinDirFromGoEnv()
-	if err != nil {
-		return "", fmt.Errorf("resolve go install bin dir: %w", err)
-	}
-
-	binaryName := "engram"
-	if runtime.GOOS == "windows" {
-		binaryName += ".exe"
-	}
-	binaryPath := filepath.Join(binDir, binaryName)
-	if err := prependToPath(binDir); err != nil {
-		return "", err
-	}
-	return binaryPath, nil
-}
-
-func prependToPath(dir string) error {
-	if dir == "" {
-		return nil
-	}
-	if isInPATH(dir) {
-		return nil
-	}
-	path := os.Getenv("PATH")
-	if path == "" {
-		return osSetenv("PATH", dir)
-	}
-	return osSetenv("PATH", dir+string(os.PathListSeparator)+path)
 }
 
 // isInPATH reports whether dir is present in the current PATH.
@@ -634,7 +552,6 @@ type installRuntime struct {
 	selection    model.Selection
 	resolved     planner.ResolvedPlan
 	profile      system.PlatformProfile
-	channel      InstallChannel
 	backupRoot   string
 	state        *runtimeState
 
@@ -696,7 +613,7 @@ func (s *runtimeState) compatibilityChangedFiles() []string {
 	return s.compatibilityTransaction.ChangedFiles()
 }
 
-func newInstallRuntime(homeDir string, scope InstallScope, channel InstallChannel, selection model.Selection, resolved planner.ResolvedPlan, profile system.PlatformProfile) (*installRuntime, error) {
+func newInstallRuntime(homeDir string, scope InstallScope, selection model.Selection, resolved planner.ResolvedPlan, profile system.PlatformProfile) (*installRuntime, error) {
 	backupRoot := state.BackupsDir(homeDir)
 	compatibilityTransaction, err := newCompatibilityRefreshTransaction(homeDir, resolved.OrderedComponents, selection)
 	if err != nil {
@@ -717,7 +634,6 @@ func newInstallRuntime(homeDir string, scope InstallScope, channel InstallChanne
 		selection:    selection,
 		resolved:     resolved,
 		profile:      profile,
-		channel:      channel,
 		backupRoot:   backupRoot,
 		state:        state,
 	}, nil
@@ -742,7 +658,7 @@ func (r *installRuntime) stagePlan() pipeline.StagePlan {
 
 	apply := make([]pipeline.Step, 0, len(r.resolved.Agents)+len(r.selection.CommunityTools)+len(r.resolved.OrderedComponents)+1)
 	// Check prerequisites before anything else in the prepare stage.
-	prepare = append([]pipeline.Step{checkDependenciesStep{id: "prepare:check-dependencies", profile: r.profile, homeDir: r.homeDir, selection: r.selection, resolved: r.resolved, channel: r.channel}}, prepare...)
+	prepare = append([]pipeline.Step{checkDependenciesStep{id: "prepare:check-dependencies", profile: r.profile, homeDir: r.homeDir, selection: r.selection, resolved: r.resolved}}, prepare...)
 	apply = append(apply, rollbackRestoreStep{id: "apply:rollback-restore", state: r.state, homeDir: r.homeDir, workspaceDir: r.workspaceDir})
 
 	for _, agent := range r.resolved.Agents {
@@ -768,7 +684,6 @@ func (r *installRuntime) stagePlan() pipeline.StagePlan {
 			agents:       r.resolved.Agents,
 			selection:    r.selection,
 			profile:      r.profile,
-			channel:      r.channel,
 			state:        r.state,
 		}
 		apply = append(apply, step)
@@ -1322,7 +1237,6 @@ type componentApplyStep struct {
 	agents       []model.AgentID
 	selection    model.Selection
 	profile      system.PlatformProfile
-	channel      InstallChannel
 	state        *runtimeState
 
 	backgroundPolicy bool
@@ -1456,12 +1370,6 @@ func (s componentApplyStep) Run() error {
 			// A caller-supplied Engram is used as is: no brew, download, go
 			// install or PATH change. RunPreparedInstall already checked it runs.
 			engramCommand = callerBinary
-		} else if betaEngramRequiresGo(s.channel, s.component) {
-			binaryPath, err := installBetaEngramFromMain()
-			if err != nil {
-				return fmt.Errorf("install beta engram from main: %w", err)
-			}
-			engramCommand = binaryPath
 		} else if installedPath, found := resolveEngramInstalledPath(s.profile); !found {
 			// Engram not on PATH — install it.
 			if s.profile.PackageManager == "brew" {
@@ -1763,7 +1671,7 @@ func ExecuteTUIInstallRecordingCodexServiceTier(homeDir string, selection model.
 }
 
 func executeTUIInstall(homeDir string, selection model.Selection, resolved planner.ResolvedPlan, profile system.PlatformProfile, onProgress pipeline.ProgressFunc) (pipeline.ExecutionResult, *pipeline.Orchestrator, *string) {
-	runtime, err := newInstallRuntime(homeDir, ScopeGlobal, ChannelStable, selection, resolved, profile)
+	runtime, err := newInstallRuntime(homeDir, ScopeGlobal, selection, resolved, profile)
 	if err != nil {
 		return pipeline.ExecutionResult{Err: err}, nil, nil
 	}
@@ -2662,7 +2570,6 @@ type checkDependenciesStep struct {
 	homeDir   string
 	selection model.Selection
 	resolved  planner.ResolvedPlan
-	channel   InstallChannel
 }
 
 func (s checkDependenciesStep) ID() string {
@@ -2670,15 +2577,6 @@ func (s checkDependenciesStep) ID() string {
 }
 
 func (s checkDependenciesStep) Run() error {
-	for _, component := range s.resolved.OrderedComponents {
-		if betaEngramRequiresGo(s.channel, component) {
-			if _, err := cmdLookPath("go"); err != nil {
-				return fmt.Errorf("beta Engram requires Go; stopped before backup or component apply. Run `%s`, restart the terminal, then rerun your original `gentle-ai install` command", system.InstallHintForDep("go", s.profile))
-			}
-			break
-		}
-	}
-
 	// Run detection but do NOT write to stdout/stderr — this step runs
 	// inside the Bubble Tea alternate screen in TUI mode, so any raw
 	// output corrupts the display (see issue #2). Missing deps are
