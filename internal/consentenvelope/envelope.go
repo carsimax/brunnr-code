@@ -5,8 +5,8 @@
 // invocation, plus the documented off path outside the choice set.
 //
 // It was extracted from the review consent contract (#2554, S4a of #2540) so
-// the SDD edit-authority consent question reuses the same discipline instead
-// of hand-copying it. The package owns only the COMPLETENESS half of
+// other consent questions can reuse the same discipline instead of
+// hand-copying it. The package owns only the COMPLETENESS half of
 // validation; every consumer keeps its own identity half (schema, operation,
 // frozen target, invocation shape) next to its builder. The JSON field names
 // on Choice and OffPath are shipped contract bytes: the review consent

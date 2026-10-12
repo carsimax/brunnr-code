@@ -147,7 +147,7 @@ type manifest struct {
 // reviewerprovider applies to registeredRuntimeIdentities: a runtime is added
 // here only once it has no other delivery channel for the review execution
 // contract inside Brunnr-Code's own installer (no system prompt, skill, or
-// file-subagent surface to splice generic SDD composition into), so this
+// file-subagent surface to splice the review contract into), so this
 // bundle becomes that runtime's sole channel. Every supported runtime
 // currently receives the contract through its installed system prompt, so the
 // list is empty and the manifest's orchestration inventory stays empty.

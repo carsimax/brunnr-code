@@ -1342,7 +1342,6 @@ func TestManagedAgentBackupPathsOmitAbsentRetiredRuntimeFiles(t *testing.T) {
 	}
 	absent := map[model.AgentID][]string{
 		model.AgentCodex: {
-			filepath.Join(homeDir, ".codex", "sdd-strong.config.toml"),
 			filepath.Join(homeDir, ".codex", "agents.md"),
 		},
 	}

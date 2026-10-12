@@ -35,3 +35,5 @@ Each task: `go run ./internal/gofmtcheck`, `go build ./... && go vet ./...`, tou
 ## Progress
 
 Branch created from `9cb3a35b`. All tasks done. Full `go test ./...` green after T5.
+
+Follow-up (inline): stale SDD comments outside the T4/T5 writer surfaces (`catalog/skills_test.go`, `consentenvelope/envelope.go`, `providercontractbundle/bundle.go`, `scripts/darwin-release-blockers.manifest`) and the `sdd-strong.config.toml` sample path in `update/upgrade/executor_test.go`. Verified: gofmtcheck, build, vet, touched-package tests, `darwin-release-blockers.sh verify`. Final sweep survivors: frozen-contract guards (`adapter_forbidden_construction_guard_test.go`, `compact_receipt_gate_removal_guard_test.go`, `scripts/test-review-contract-package.sh`), Windows `SDDL`, the Engram old-protocol fixture, and historical design notes under `skills/rdd-advisory-transport/references/`.

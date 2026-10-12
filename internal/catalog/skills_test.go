@@ -9,7 +9,7 @@ import (
 
 // TestMVPSkillsCoverAllPresetSkills ensures every skill that presets.go would
 // install is also registered in the catalog's mvpSkills allowlist. This
-// prevents a future addition to sddSkills or foundationSkills from being
+// prevents a future addition to foundationSkills from being
 // silently rejected by normalizeSkills in cli/validate.go.
 func TestMVPSkillsCoverAllPresetSkills(t *testing.T) {
 	catalogSet := make(map[model.SkillID]bool)

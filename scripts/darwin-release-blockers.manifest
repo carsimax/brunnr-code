@@ -70,9 +70,6 @@
 ./internal/reviewtransaction TestPublishNoReplaceDarwinENOTSUPFallbackNeverReplaces  # the fallback keeps the immutability contract
 ./internal/reviewtransaction TestPublishNoReplaceDarwinOtherErrnoPropagatesUnchanged # fallback is ENOTSUP-only; other errnos stay typed
 
-# #1850 first-use SDD RuntimeStore contention is historical: its package and
-# grant tests were retired. Flow 22 in the testing guide records the original
-# Darwin evidence, not a runnable oracle for this ODD-only branch.
 
 # --- #1872: RAR plan-authority lock convoy (fixed by 6457a4a8) ----------------
 # Reproduced ONLY on Darwin: the critical section costs hundreds of ms there
