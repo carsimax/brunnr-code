@@ -230,7 +230,7 @@ func TestAuthorityDispositionPlanRequiresClosedClassification(t *testing.T) {
 }
 
 func TestReleasedHistoricalCompactRecordRemainsForensicallyClassifiable(t *testing.T) {
-	payload, err := os.ReadFile(filepath.Join("..", "..", "bench", "testdata", "issue2879", "released-v2.2.4-review-state.json"))
+	payload, err := os.ReadFile(filepath.Join("testdata", "issue2879", "released-v2.2.4-review-state.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

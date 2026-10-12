@@ -127,10 +127,7 @@ import (
 	"testing"
 )
 
-// refusalRatchetByDesignShapes is the closed by-design vocabulary. It MUST
-// stay identical to the bench classifier's (bench/classify.go), so there is
-// one taxonomy, not two; TestRefusalRatchetVocabularyMatchesBenchClassifier
-// enforces that mechanically.
+// refusalRatchetByDesignShapes is the closed by-design vocabulary.
 var refusalRatchetByDesignShapes = map[string]bool{
 	"operator-knowledge": true, // the product cannot know a value only the operator has
 	"world-action":       true, // the exit is an action in the world, not a command
@@ -259,62 +256,6 @@ func refusalRatchetClassifyBaselineDrift(baseline []string, analyzed map[string]
 }
 
 // --- Tests ---------------------------------------------------------------
-
-// TestRefusalRatchetVocabularyMatchesBenchClassifier proves the marker
-// vocabulary and the bench classifier's by-design vocabulary are the same
-// set, extracted mechanically from bench/classify.go, so the taxonomy cannot
-// fork. bench is its own module (package main), so importing it is not an
-// option; the extraction fails closed when it stops finding anything.
-func TestRefusalRatchetVocabularyMatchesBenchClassifier(t *testing.T) {
-	source, err := os.ReadFile(filepath.Join("..", "..", "bench", "classify.go"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, "classify.go", source, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	benchShapes := map[string]bool{}
-	ast.Inspect(file, func(node ast.Node) bool {
-		decl, ok := node.(*ast.GenDecl)
-		if !ok || decl.Tok != token.CONST {
-			return true
-		}
-		for _, spec := range decl.Specs {
-			value, ok := spec.(*ast.ValueSpec)
-			if !ok || len(value.Names) != 1 || len(value.Values) != 1 {
-				continue
-			}
-			if !strings.HasPrefix(value.Names[0].Name, "ByDesign") {
-				continue
-			}
-			literal, ok := value.Values[0].(*ast.BasicLit)
-			if !ok || literal.Kind != token.STRING {
-				continue
-			}
-			shape, unquoteErr := strconv.Unquote(literal.Value)
-			if unquoteErr != nil {
-				continue
-			}
-			benchShapes[shape] = true
-		}
-		return false
-	})
-	if len(benchShapes) == 0 {
-		t.Fatal("extracted no ByDesign* string constants from bench/classify.go; the extraction is stale")
-	}
-	for shape := range benchShapes {
-		if !refusalRatchetByDesignShapes[shape] {
-			t.Errorf("bench vocabulary has shape %q; the ratchet vocabulary does not -- the taxonomy has forked", shape)
-		}
-	}
-	for shape := range refusalRatchetByDesignShapes {
-		if !benchShapes[shape] {
-			t.Errorf("ratchet vocabulary has shape %q; bench/classify.go does not -- the taxonomy has forked", shape)
-		}
-	}
-}
 
 // TestRefusalRatchetClassifiesSyntheticSites is the unit contract of the
 // analyzer: every rule demonstrated on synthetic source, including the two

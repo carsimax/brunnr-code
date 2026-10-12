@@ -35,7 +35,6 @@ Ratchets: `.refusal-ratchet-baseline.txt` is enforced by `internal/cli/refusal_r
 
 Other test suites:
 
-- **`bench/`** is a separate Go module. In that directory run `go vet ./... && go test ./...`. CI then runs the bench binary against the built CLI with `run --binary <cli> --out x.json`.
 - **Real-agent e2e** needs the Claude Code CLI installed: `go test -tags real_agent_e2e -v ./e2e/organicruntime -count=1 -timeout=25m`.
 - **Docker e2e:** `./e2e/docker-test.sh`. Set `RUN_FULL_E2E=1` and/or `RUN_BACKUP_TESTS=1` to add the extra tiers. The images are `e2e/Dockerfile.*`.
 

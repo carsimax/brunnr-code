@@ -133,8 +133,7 @@ func TestApprovedAcknowledgementHasNoImmediateBurnOrSidecarRevival(t *testing.T)
 		filepath.Join(root, "internal", "cli", "review_status_contract.go"),
 		filepath.Join(root, "internal", "reviewtransaction", "compact_burn.go"),
 		filepath.Join(root, "scripts", "crosslane", "battery.go"),
-		filepath.Join(root, "bench", "journeys_wave3.go"),
-		filepath.Join(root, "bench", "journeys_provider_capture.go"), filepath.Join(root, "e2e", "organicruntime", "organic_runtime_test.go"),
+		filepath.Join(root, "e2e", "organicruntime", "organic_runtime_test.go"),
 	} {
 		payload, err := os.ReadFile(source)
 		if err != nil {

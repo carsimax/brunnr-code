@@ -48,7 +48,6 @@ func TestMVPSkillsIncludeRequestedBundledSkillsWithCanonicalNames(t *testing.T) 
 		model.SkillImprover:            "skill-improver",
 		model.SkillRDDDefectWorkflow:   "rdd-defect-workflow",
 		model.SkillSystemicIssueTriage: "systemic-issue-triage",
-		model.SkillGentleAIBench:       "gentle-ai-bench",
 	}
 
 	found := make(map[model.SkillID]string)

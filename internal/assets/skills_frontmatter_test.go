@@ -70,8 +70,6 @@ func TestSkillFrontmatterIsLintClean(t *testing.T) {
 			switch path {
 			case "skills/systemic-issue-triage/SKILL.md":
 				budget = 205
-			case "skills/gentle-ai-bench/SKILL.md":
-				budget = 194
 			}
 			if got := len([]rune(fm.description)); got > budget {
 				t.Errorf("description length = %d chars, want <=%d for Claude Code budget: %q", got, budget, fm.description)

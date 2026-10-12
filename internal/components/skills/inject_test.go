@@ -235,6 +235,5 @@ func requiredBundledSkillIDs() []model.SkillID {
 		model.SkillImprover,
 		model.SkillRDDDefectWorkflow,
 		model.SkillSystemicIssueTriage,
-		model.SkillGentleAIBench,
 	}
 }

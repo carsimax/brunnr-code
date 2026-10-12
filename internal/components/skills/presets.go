@@ -9,7 +9,6 @@ var orchestrationSkills = []model.SkillID{model.SkillJudgmentDay}
 // selectable through the TUI skill picker and explicit `--skills` resolution,
 // but no default preset installs them.
 var contributorSkills = []model.SkillID{
-	model.SkillGentleAIBench,
 	model.SkillBranchPR,
 	model.SkillIssueCreation,
 	model.SkillCommentWriter,
@@ -21,7 +20,6 @@ var contributorSkills = []model.SkillID{
 // general skills. Contributor skills keep their historical positions.
 var selectableFoundationSkills = []model.SkillID{
 	model.SkillGoTesting,
-	model.SkillGentleAIBench,
 	model.SkillCreator,
 	model.SkillImprover,
 	model.SkillBranchPR,

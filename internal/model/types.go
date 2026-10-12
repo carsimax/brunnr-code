@@ -92,7 +92,6 @@ const (
 	SkillWorkUnitCommits     SkillID = "work-unit-commits"
 	SkillRDDDefectWorkflow   SkillID = "rdd-defect-workflow"
 	SkillSystemicIssueTriage SkillID = "systemic-issue-triage"
-	SkillGentleAIBench       SkillID = "gentle-ai-bench"
 )
 
 // SystemPromptStrategy defines how an agent's system prompt file is managed.

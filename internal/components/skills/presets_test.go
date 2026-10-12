@@ -67,7 +67,6 @@ func TestSkillsForPresetFullIncludesAll(t *testing.T) {
 	}
 
 	contributorOnly := map[model.SkillID]bool{
-		model.SkillGentleAIBench:       true,
 		model.SkillBranchPR:            true,
 		model.SkillIssueCreation:       true,
 		model.SkillCommentWriter:       true,
@@ -90,7 +89,6 @@ func TestSkillsForPresetExcludesContributorSkills(t *testing.T) {
 		model.SkillIssueCreation,
 		model.SkillSystemicIssueTriage,
 		model.SkillRDDDefectWorkflow,
-		model.SkillGentleAIBench,
 		model.SkillCommentWriter,
 	}
 	required := []model.SkillID{
@@ -138,7 +136,6 @@ func TestAllSkillIDsIncludesEveryKnownSkill(t *testing.T) {
 		model.SkillImprover,
 		model.SkillGoTesting,
 		model.SkillSystemicIssueTriage,
-		model.SkillGentleAIBench,
 	}
 
 	skillSet := make(map[model.SkillID]struct{}, len(all))

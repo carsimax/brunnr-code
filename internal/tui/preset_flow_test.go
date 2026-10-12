@@ -251,7 +251,6 @@ Review Skills
 
 Foundation Skills
   [x] Go Testing
-  [x] Brunnr-Code Bench
   [x] Skill Creator
   [x] Skill Improver
   [x] Branch & PR
