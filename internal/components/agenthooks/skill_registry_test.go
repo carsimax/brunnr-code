@@ -85,7 +85,7 @@ func TestSkillRegistryRejectsSymlinkWithoutChangingTarget(t *testing.T) {
 	}
 }
 
-func TestSkillRegistryHooksWithoutSDD(t *testing.T) {
+func TestSkillRegistryHooksInstall(t *testing.T) {
 	for _, tc := range []struct {
 		agent         model.AgentID
 		file, command string

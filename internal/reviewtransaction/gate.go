@@ -717,9 +717,8 @@ func HashLedgerArtifact(path string) (string, error) {
 
 // EscalationAccountingReasonTemplate is the single source of truth for the
 // escalation accounting sentence. The organic gate surface renders it through
-// compactEscalatedGateReason, the SDD-bound surface through
-// sddstatus.resolveBoundedRemediation (which aliases this constant), and the
-// organic-dx narration registry samples it, so the surfaces cannot drift.
+// compactEscalatedGateReason and the organic-dx narration registry samples it,
+// so the surfaces cannot drift.
 const EscalationAccountingReasonTemplate = "compact review authority is escalated (%s): spent %d, remaining %d, total %d correction lines"
 
 // compactEscalatedGateReason names why a compact authority is terminally

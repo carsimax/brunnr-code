@@ -59,9 +59,7 @@ func reviewNegotiatedTransition(t *testing.T, repo string, extra ...string) (kin
 // target as ready and emits an executable review.start, the consumer runs
 // those exact tokens as the contract requires, and START's preflight refuses
 // or resolves a different scope. Two surfaces answering the same question
-// differently is root 13 of #2471; this pins the review pair the way
-// TestStatusAndAcquireAgreeOnEveryRepositoryBlocker pinned the SDD pair after
-// #2114.
+// differently is root 13 of #2471; this pins the review pair.
 //
 // The property, not the instances: for every repository shape staged here,
 // if STATUS answers kind=execute operation=review.start, then executing the

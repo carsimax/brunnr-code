@@ -37,11 +37,6 @@ func TestCanonicalImplementationRoutingBoundaries(t *testing.T) {
 			DelegateWhenReadPreparesWrite:  true,
 			DelegateWhenBroadResearch:      true,
 		},
-		SDD: SDDProposalFacts{
-			ProposeWhenSubstantialOrAmbiguous:     true,
-			DurableArtifactsMustReduceUncertainty: true,
-			SelectionPolicy:                       SDDSelectionExplicitRequestOrAcceptedProposal,
-		},
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -164,24 +159,6 @@ func TestManifestRejectsWeakenedRoutingFacts(t *testing.T) {
 				manifest.ImplementationRouting.DelegatedDirect.DelegateWhenBroadResearch = false
 			},
 		},
-		{
-			name: "substantial ambiguity no longer proposes SDD",
-			weaken: func(manifest *AgentCapabilityManifest) {
-				manifest.ImplementationRouting.SDD.ProposeWhenSubstantialOrAmbiguous = false
-			},
-		},
-		{
-			name: "SDD proposal need not reduce durable uncertainty",
-			weaken: func(manifest *AgentCapabilityManifest) {
-				manifest.ImplementationRouting.SDD.DurableArtifactsMustReduceUncertainty = false
-			},
-		},
-		{
-			name: "SDD selection bypasses explicit consent",
-			weaken: func(manifest *AgentCapabilityManifest) {
-				manifest.ImplementationRouting.SDD.SelectionPolicy = "automatic"
-			},
-		},
 	}
 
 	for _, test := range tests {
@@ -201,13 +178,13 @@ func TestManifestRejectsWeakenedRoutingFacts(t *testing.T) {
 func TestEveryManifestKeepsWorkRoutingDormantAndHashesCanonically(t *testing.T) {
 	t.Parallel()
 
-	const wantRoutingDigest = "sha256:c0a1447d01dbc41b4e22db194ecbd2dc185cc5d5c2ead8c0220937d9a55ff32a"
+	const wantRoutingDigest = "sha256:071cfb1ce66e6bc15147f28b4bc0b06e5388e5fca83ccc2f3b1ee059c8c71a8d"
 	// Digests pin the two providers with an enforceable fresh-reviewer
 	// boundary: Claude Code's generated reviewer has no live tools, and
 	// Codex's provider subprocess reaches the same contract.
 	wantManifestDigests := map[model.AgentID]string{
-		model.AgentClaudeCode: "sha256:3fd781489ca4c50738ded9200eb9c308fdfb42e678c2c11c5b2075d4e597c910",
-		model.AgentCodex:      "sha256:e5de61ab4a49eaee933c3c7aa2cda09053edb832c036cd660301e05704ec1011",
+		model.AgentClaudeCode: "sha256:7d8cd521acb85ab76f718dd5a8f7d6e3a7081f16df4abf6f466ece50b866c025",
+		model.AgentCodex:      "sha256:1a05e0bb521bca71ae33f58c67d7d67fbbd6641f5fadca4a09babade5a2c41c0",
 	}
 
 	for agent, wantDigest := range wantManifestDigests {
@@ -285,8 +262,8 @@ func TestEveryManifestDigestStaysByteStable(t *testing.T) {
 	t.Parallel()
 
 	wantDigests := map[model.AgentID]string{
-		model.AgentClaudeCode: "sha256:3fd781489ca4c50738ded9200eb9c308fdfb42e678c2c11c5b2075d4e597c910",
-		model.AgentCodex:      "sha256:e5de61ab4a49eaee933c3c7aa2cda09053edb832c036cd660301e05704ec1011",
+		model.AgentClaudeCode: "sha256:7d8cd521acb85ab76f718dd5a8f7d6e3a7081f16df4abf6f466ece50b866c025",
+		model.AgentCodex:      "sha256:1a05e0bb521bca71ae33f58c67d7d67fbbd6641f5fadca4a09babade5a2c41c0",
 	}
 
 	agents := make([]model.AgentID, 0, len(wantDigests))

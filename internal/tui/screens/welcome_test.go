@@ -9,15 +9,10 @@ import (
 
 // ─── WelcomeOptions ──────────────────────────────────────────────────────────
 
-func TestWelcomeOptions_NoLegacyProfilesEntry(t *testing.T) {
+func TestWelcomeOptions_OffersConfigureModels(t *testing.T) {
 	opts := screens.WelcomeOptions(nil, true, true)
 	if !containsOption(opts, "Configure models") {
 		t.Fatalf("unexpected menu: %v", opts)
-	}
-	for _, opt := range opts {
-		if strings.Contains(opt, "SDD Profiles") {
-			t.Fatalf("legacy profile entry remains: %v", opts)
-		}
 	}
 }
 

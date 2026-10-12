@@ -1080,7 +1080,7 @@ func repairAuthorityDispositionAtRepo(ctx context.Context, repo, planDigest, inv
 		// copied from a stale preflight; the fix is running
 		// `review repair --preflight` again).
 		//
-		// Fix cycle 2 (WARNING-4, sdd-verify cycle-2): base bb3c22a9's own
+		// Fix cycle 2 (WARNING-4, verify cycle-2): base bb3c22a9's own
 		// version of this exact refusal ended with a runnable continuation
 		// ("run `brunnr-code review repair --preflight` again for the current
 		// values"); Wave 6 Slice S3 replaced the CLI-level pre-check this

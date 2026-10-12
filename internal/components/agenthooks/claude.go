@@ -9,7 +9,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/model"
 )
 
-// InstallRetainedClaudeHooks installs review hooks independently of SDD.
+// InstallRetainedClaudeHooks installs the Claude Code review hooks.
 func InstallRetainedClaudeHooks(homeDir string, adapter agents.Adapter) (Result, error) {
 	if adapter.Agent() != model.AgentClaudeCode {
 		return Result{}, nil

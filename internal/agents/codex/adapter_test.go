@@ -179,12 +179,12 @@ func TestAdapterSystemPromptFile_UsesUppercaseAGENTSmd(t *testing.T) {
 
 // TestAdapterSubAgentsStayFalse is a REGRESSION GUARD.
 //
-// Codex multi-agent delegation is config+asset driven (features.multi_agent in
-// ~/.codex/config.toml + sdd-orchestrator.md capability gate). It does NOT use
-// the file-based sub-agents directory mechanism that SupportsSubAgents() gates.
+// Codex multi-agent delegation is config driven (features.multi_agent in
+// ~/.codex/config.toml). It does NOT use the file-based sub-agents directory
+// mechanism that SupportsSubAgents() gates.
 //
 // Flipping SupportsSubAgents() to true with an empty EmbeddedSubAgentsDir()
-// would cause sdd/inject.go and uninstall/service.go to call
+// would cause the sub-agent installers and uninstall/service.go to call
 // assets.FS.ReadDir("") — which returns the embedded root and would copy the
 // entire asset tree into ~/.codex/agents/. This is catastrophic. Therefore
 // SupportsSubAgents() MUST remain false indefinitely for the Codex adapter.

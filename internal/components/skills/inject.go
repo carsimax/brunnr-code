@@ -167,8 +167,6 @@ func InjectDirectoryWithCapabilityWithWriter(skillDir string, skillIDs []model.S
 // The skills directory is determined by adapter.SkillsDir(), removing
 // the need for any agent-specific switch statements.
 //
-// Retired SDD skill IDs are skipped; they cannot be restored by explicit selection.
-//
 // Individual skill failures (e.g., missing embedded asset) are logged
 // and skipped rather than aborting the entire operation.
 func Inject(homeDir string, adapter agents.Adapter, skillIDs []model.SkillID) (InjectionResult, error) {

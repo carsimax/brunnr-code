@@ -334,7 +334,7 @@ func TestClaudeRetainedHooksRejectsNonRegularPath(t *testing.T) {
 	}
 }
 
-func TestClaudeRetainedHooksWithoutSDD(t *testing.T) {
+func TestClaudeRetainedHooksInstall(t *testing.T) {
 	adapter, err := agents.NewAdapter(model.AgentClaudeCode)
 	if err != nil {
 		t.Fatal(err)

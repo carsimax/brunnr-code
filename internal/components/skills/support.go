@@ -15,9 +15,8 @@ import (
 
 // Support assets are the non-skill files that installed skills depend on:
 // the skills/_shared references (skill-resolver, review-ledger-contract, ...).
-// Up to v3.7.0 the SDD component installed them; its
-// retirement dropped them by accident while the installed skills still point
-// at them (#4471). The skills component now owns them.
+// The skills component owns them, since installed skills point at them
+// (#4471).
 
 const (
 	// runtimeAgentIDPlaceholder is the identity slot the shared review ledger

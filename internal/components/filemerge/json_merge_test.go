@@ -266,11 +266,11 @@ func TestMergeJSONObjects_Issue278_ReplaceSentinelFixesWildcard(t *testing.T) {
 	// Same base: existing user with old wildcard.
 	base := []byte(`{
   "agent": {
-    "sdd-orchestrator": {
+    "example-orchestrator": {
       "permission": {
         "task": {
           "*": "deny",
-          "sdd-*": "allow"
+          "example-*": "allow"
         }
       }
     }
@@ -280,21 +280,21 @@ func TestMergeJSONObjects_Issue278_ReplaceSentinelFixesWildcard(t *testing.T) {
 	// Overlay using __replace__ sentinel on the task block.
 	overlay := []byte(`{
   "agent": {
-    "sdd-orchestrator": {
+    "example-orchestrator": {
       "permission": {
         "task": {
           "__replace__": {
             "*": "deny",
-            "sdd-init": "allow",
-            "sdd-explore": "allow",
-            "sdd-propose": "allow",
-            "sdd-spec": "allow",
-            "sdd-design": "allow",
-            "sdd-tasks": "allow",
-            "sdd-apply": "allow",
-            "sdd-verify": "allow",
-            "sdd-archive": "allow",
-            "sdd-onboard": "allow"
+            "example-init": "allow",
+            "example-explore": "allow",
+            "example-propose": "allow",
+            "example-spec": "allow",
+            "example-design": "allow",
+            "example-tasks": "allow",
+            "example-apply": "allow",
+            "example-verify": "allow",
+            "example-archive": "allow",
+            "example-onboard": "allow"
           }
         }
       }
@@ -313,13 +313,13 @@ func TestMergeJSONObjects_Issue278_ReplaceSentinelFixesWildcard(t *testing.T) {
 	}
 
 	agent := got["agent"].(map[string]any)
-	orch := agent["sdd-orchestrator"].(map[string]any)
+	orch := agent["example-orchestrator"].(map[string]any)
 	perm := orch["permission"].(map[string]any)
 	task := perm["task"].(map[string]any)
 
 	// The wildcard MUST be gone.
-	if _, hasWildcard := task["sdd-*"]; hasWildcard {
-		t.Fatal("'sdd-*' survived __replace__ — sentinel is broken")
+	if _, hasWildcard := task["example-*"]; hasWildcard {
+		t.Fatal("'example-*' survived __replace__ — sentinel is broken")
 	}
 
 	// __replace__ must NOT leak into output.
@@ -328,7 +328,7 @@ func TestMergeJSONObjects_Issue278_ReplaceSentinelFixesWildcard(t *testing.T) {
 	}
 
 	// All explicit entries must be present.
-	expected := []string{"*", "sdd-init", "sdd-explore", "sdd-propose", "sdd-spec", "sdd-design", "sdd-tasks", "sdd-apply", "sdd-verify", "sdd-archive", "sdd-onboard"}
+	expected := []string{"*", "example-init", "example-explore", "example-propose", "example-spec", "example-design", "example-tasks", "example-apply", "example-verify", "example-archive", "example-onboard"}
 	for _, key := range expected {
 		if _, ok := task[key]; !ok {
 			t.Fatalf("expected key %q missing from task block after __replace__", key)
@@ -344,7 +344,7 @@ func TestMergeJSONObjects_Issue278_ReplaceSentinelFixesWildcard(t *testing.T) {
 
 // exactNumberSettings holds number tokens that float64 decoding would round,
 // reformat or reject (#1672); every rewrite must keep them verbatim.
-const exactNumberSettings = `{"agent":{"custom":{"tools":{},"__managed_by":"brunnr-code/sdd"}},` +
+const exactNumberSettings = `{"agent":{"custom":{"tools":{},"__managed_by":"brunnr-code"}},` +
 	`"big":9007199254740993,"neg":-9007199254740995,"max":9223372036854775807,` +
 	`"nested":{"list":[1.10,6.02214076e23,1E+2,{"min":-9223372036854775808}]},"huge":1e999}`
 

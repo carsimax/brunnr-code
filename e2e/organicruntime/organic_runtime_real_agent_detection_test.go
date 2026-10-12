@@ -1,8 +1,7 @@
 //go:build real_agent_e2e
 
 // This file is gated behind the real_agent_e2e build tag, the same shape
-// internal/reviewtransaction and internal/sddstatus use for bench_fixture:
-// code that needs a real prerequisite the ordinary `go test ./...` sweep
+// internal/reviewtransaction uses for bench_fixture: code that needs a real prerequisite the ordinary `go test ./...` sweep
 // never provides does not compile into that sweep at all, rather than
 // running and depending on ambient machine state, or skipping in a way that
 // reads as passing.

@@ -14,15 +14,12 @@ func TestSkillPickerCanonicalRowsAndActions(t *testing.T) {
 		t.Fatalf("canonical skills = %d, want %d", len(skills), len(labels))
 	}
 	for i, skill := range skills {
-		if strings.HasPrefix(string(skill), "sdd-") {
-			t.Errorf("retired skill %q remains in canonical picker", skill)
-		}
 		if got := skillLabelFor(skill); got != labels[i] || !strings.Contains(RenderSkillPicker(skills, i, 0), styles.Cursor+"[x] "+labels[i]) {
 			t.Errorf("canonical row %d for %q has label %q or focus mismatch", i, skill, got)
 		}
 	}
 	view := RenderSkillPicker(skills, 0, 0)
-	if !strings.Contains(view, "Review Skills\n"+styles.Cursor+"[x] Judgment Day") || !strings.Contains(view, "Foundation Skills\n  [x] Go Testing") || strings.Contains(view, "SDD Skills") {
+	if !strings.Contains(view, "Review Skills\n"+styles.Cursor+"[x] Judgment Day") || !strings.Contains(view, "Foundation Skills\n  [x] Go Testing") {
 		t.Fatalf("picker groups do not identify review and foundation skills: %q", view)
 	}
 	boundary := RenderSkillPicker(skills, 1, 9)
@@ -34,7 +31,7 @@ func TestSkillPickerCanonicalRowsAndActions(t *testing.T) {
 			t.Errorf("cursor %d does not focus action %q", len(skills)+i, action)
 		}
 	}
-	if view := RenderSkillPicker(skills, len(skills)+1, 7); !strings.Contains(view, styles.Cursor+"Back") || strings.Contains(view, "SDD Init") || !strings.Contains(view, "Rows 15-15 of 15") {
+	if view := RenderSkillPicker(skills, len(skills)+1, 7); !strings.Contains(view, styles.Cursor+"Back") || !strings.Contains(view, "Rows 15-15 of 15") {
 		t.Fatal("small viewport did not follow Back with a scroll hint")
 	}
 }

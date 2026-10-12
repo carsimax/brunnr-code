@@ -2398,7 +2398,7 @@ func runReviewFacadeStart(ctx context.Context, args []string, stdout io.Writer) 
 			// decline is no longer durably recorded at all -- consistent with
 			// Wave 4 decision 4 ("decline = unmanaged proceed: nothing
 			// recorded"), an inert authority-shaped file is exactly the mirror
-			// pattern that decision removed on the SDD side. Declining here
+			// pattern that decision removed. Declining here
 			// governs only this exact `review start` call: it never creates a
 			// review lineage, a receipt, or any durable authorization a later
 			// gate could read.

@@ -10,8 +10,8 @@ import (
 	"testing"
 )
 
-func TestSDDOrchestratorsRequireSafeFormatterOrdering(t *testing.T) {
-	for _, path := range allSDDOrchestratorAssetPaths(t) {
+func TestOrchestratorsRequireSafeFormatterOrdering(t *testing.T) {
+	for _, path := range allOrchestratorAssetPaths(t) {
 		t.Run(path, func(t *testing.T) {
 			content := MustRead(path)
 			for _, required := range []string{

@@ -60,8 +60,9 @@ func buildReviewNarrationRegistry() map[string]reviewNarrationEmission {
 		registry[id] = reviewNarrationEmission{ID: id, Tier: reviewNarrationTierA, Statement: statement}
 	}
 	// A representative rendering proves the template itself stays
-	// vocabulary-clean; the real call site (sddstatus/review_gate.go) fills
-	// in the same template with live numbers at run time.
+	// vocabulary-clean; the real call site (compactEscalatedGateReason in
+	// reviewtransaction/gate.go) fills in the same template with live numbers
+	// at run time.
 	escalationSample := fmt.Sprintf(reviewtransaction.EscalationAccountingReasonTemplate,
 		reviewtransactionEscalationCauseSample, 10, 0, 10)
 	registry["escalation:accounting"] = reviewNarrationEmission{

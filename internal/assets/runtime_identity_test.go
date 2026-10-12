@@ -21,8 +21,9 @@ var runtimeIdentityBindingRegexp = regexp.MustCompile(`(?:--agent|agent:) +([A-Z
 // embedded asset renders verbatim into some runtime's generated instructions,
 // so a literal runtime identity baked into shared prose is a claim about who
 // is executing that only the renderer can truthfully make. The only admissible
-// binding in an asset is the substitution placeholder
-// internal/components/sdd/boundedreview.go fills in with the real runtime.
+// binding in an asset is the substitution placeholder the renderers
+// (internal/components/agentguidance and internal/components/skills) fill in
+// with the real runtime.
 func TestEmbeddedAssetsBindNoLiteralRuntimeIdentity(t *testing.T) {
 	t.Parallel()
 
@@ -68,10 +69,9 @@ func TestEmbeddedAssetsBindNoLiteralRuntimeIdentity(t *testing.T) {
 	}
 }
 
-// runtimeAgentIDPlaceholderForAssets mirrors
-// internal/components/sdd.runtimeAgentIDPlaceholder, which is unexported and in
-// another package. TestAssetPlaceholderMatchesTheRenderer keeps the two from
-// drifting apart.
+// runtimeAgentIDPlaceholderForAssets mirrors the runtimeAgentIDPlaceholder
+// constants in internal/components/agentguidance and internal/components/skills,
+// which are unexported and in other packages.
 const runtimeAgentIDPlaceholderForAssets = "{{BRUNNR_CODE_RUNTIME_AGENT_ID}}"
 
 // TestSharedReviewLedgerContractBindsTheRuntimePlaceholder pins the specific

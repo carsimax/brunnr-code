@@ -342,8 +342,8 @@ func containsPath(paths []string, want string) bool {
 // ─── Organic routing guidance is installed for every configured agent ──────
 //
 // Routing guidance decides how an agent picks between direct, delegated, and
-// proposed work. It is therefore unconditional: an install that did not select
-// the optional SDD component must still receive it (issue #1794).
+// proposed work. It is therefore unconditional: an install must receive it
+// whatever components it selected (issue #1794).
 
 const (
 	routingOpenMarker  = "<!-- brunnr-code:" + agentguidance.RoutingSectionID + " -->"
@@ -427,13 +427,13 @@ func TestInstallRemoteAuthorizationIndependentOfComponents(t *testing.T) {
 			runInstallInjectionSteps(t, newTestInstallRuntime(t, home, selection))
 			prompt := readTextFile(t, systemPromptFileFor(t, home, model.AgentClaudeCode))
 			if !strings.Contains(prompt, "<!-- brunnr-code:remote-authorization -->") {
-				t.Fatal("install omitted remote authorization without SDD/default persona")
+				t.Fatal("install omitted remote authorization without the default persona")
 			}
 		})
 	}
 }
 
-func TestInstallDeliversRoutingGuidanceWithoutSDDComponent(t *testing.T) {
+func TestInstallDeliversRoutingGuidanceWithPersonaOnly(t *testing.T) {
 	home := t.TempDir()
 
 	rt := newTestInstallRuntime(t, home, model.Selection{
@@ -444,14 +444,14 @@ func TestInstallDeliversRoutingGuidanceWithoutSDDComponent(t *testing.T) {
 
 	prompt := readTextFile(t, systemPromptFileFor(t, home, model.AgentClaudeCode))
 	if !strings.Contains(prompt, routingOpenMarker) || !strings.Contains(prompt, routingCloseMarker) {
-		t.Fatalf("install without the SDD component left the agent unrouted:\n%s", prompt)
+		t.Fatalf("persona-only install left the agent unrouted:\n%s", prompt)
 	}
 	if !strings.Contains(prompt, "Implementation Routing") {
 		t.Fatalf("routing section is present but carries no routing guidance:\n%s", prompt)
 	}
 }
 
-func TestInstallRetainedAgentsWithoutSDD(t *testing.T) {
+func TestInstallRetainedAgentsIdempotently(t *testing.T) {
 	for _, agent := range []model.AgentID{model.AgentClaudeCode} {
 		t.Run(string(agent), func(t *testing.T) {
 			home := t.TempDir()
@@ -478,7 +478,7 @@ func TestInstallRetainedAgentsWithoutSDD(t *testing.T) {
 	}
 }
 
-func TestInstallCodexSkillRegistryHookWithoutSDD(t *testing.T) {
+func TestInstallCodexSkillRegistryHookIdempotently(t *testing.T) {
 	home := t.TempDir()
 	selection := model.Selection{Agents: []model.AgentID{model.AgentCodex}}
 	runInstallInjectionSteps(t, newTestInstallRuntime(t, home, selection))

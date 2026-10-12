@@ -13,8 +13,8 @@ import (
 )
 
 // RoutingSectionID is the managed marker section that owns routing guidance.
-// It is deliberately independent of the SDD sections so that installing or
-// removing optional SDD assets can never add or drop routing guidance.
+// It is deliberately independent of other managed sections so that installing
+// or removing optional assets can never add or drop routing guidance.
 const RoutingSectionID = "agent-routing"
 
 // ErrInvalidTarget rejects an unusable installation root before any write, so
@@ -32,8 +32,8 @@ var ErrUnreadableSettings = errors.New("unreadable agent settings document")
 // exact failure this component exists to prevent.
 var ErrUnloadableGuidance = errors.New("routing guidance target is not loaded by the agent")
 
-// Result mirrors the shape returned by the SDD injector so both installers can
-// be aggregated by the same caller.
+// Result mirrors the shape returned by the other component injectors so they
+// can be aggregated by the same caller.
 type Result struct {
 	Changed bool
 	Files   []string
@@ -90,7 +90,7 @@ func InjectRoutingWithOptions(targetDir string, agent model.AgentID, options Rou
 	}
 
 	// Keep the boundary in the unconditional guidance carrier, independent of
-	// persona and SDD selection. Nesting inside the owned routing section also
+	// persona selection. Nesting inside the owned routing section also
 	// preserves it when other component writers retain that section.
 	rendered = InjectRemoteAuthorization(rendered)
 

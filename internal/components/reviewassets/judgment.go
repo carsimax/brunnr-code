@@ -2,7 +2,7 @@ package reviewassets
 
 import "fmt"
 
-// NativeReviewerResultSchema is shared with legacy SDD tests and Judgment Day.
+// NativeReviewerResultSchema is the reviewer result shape shared with Judgment Day.
 const NativeReviewerResultSchema = `{"findings":[{"location":"path:line or path:start-end","severity":"CRITICAL","claim":"observable incorrect behavior","evidence_class":"deterministic","causal_disposition":"introduced","proof_refs":["concrete proof"]}],"evidence":["what was inspected"]}`
 
 // JudgmentDayReviewerContract is shared by the legacy installer and the retained owner.

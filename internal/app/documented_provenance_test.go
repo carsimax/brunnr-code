@@ -20,7 +20,7 @@ import (
 // the goldens no longer contain the review command, but reviewassets still
 // binds runtime identity in the installed contract. Derive golden owners from
 // catalog.AllAgents() and inspect the actual per-runtime render, not an
-// invented golden or a removed SDD overlay.
+// invented golden.
 
 var rawAgentBindingRegexp = regexp.MustCompile(`--agent[= ]+[A-Za-z0-9._{}-]+`)
 

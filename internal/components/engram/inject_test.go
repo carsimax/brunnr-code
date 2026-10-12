@@ -898,8 +898,8 @@ func TestInjectCodexInvalidRuntimeDoesNotMutateFiles(t *testing.T) {
 // ─── Codex multi-agent config injection tests ────────────────────────────────
 
 // TestInjectCodexMultiAgentDefaultOn asserts that after a plain Inject call,
-// config.toml contains [features] with multi_agent = true. Codex SDD enables
-// multi-agent delegation by default so the per-phase reasoning_effort table applies.
+// config.toml contains [features] with multi_agent = true. Multi-agent
+// delegation is on by default so the per-role reasoning_effort table applies.
 func TestInjectCodexMultiAgentDefaultOn(t *testing.T) {
 	validCodexRuntime(t)
 	home := t.TempDir()

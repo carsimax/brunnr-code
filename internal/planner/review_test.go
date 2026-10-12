@@ -122,7 +122,7 @@ func TestBuildReviewPayloadPlatformDecisionPropagatesPerProfile(t *testing.T) {
 func TestBuildReviewPayloadIncludesSkills(t *testing.T) {
 	selection := model.Selection{
 		Preset: model.PresetFull,
-		Skills: []model.SkillID{"sdd-apply", "sdd-spec", "go-testing"},
+		Skills: []model.SkillID{"judgment-day", "branch-pr", "go-testing"},
 	}
 	resolved := ResolvedPlan{
 		Agents:            []model.AgentID{model.AgentClaudeCode},
@@ -134,8 +134,8 @@ func TestBuildReviewPayloadIncludesSkills(t *testing.T) {
 	if len(payload.Skills) != 3 {
 		t.Fatalf("Skills len = %d, want 3; got %v", len(payload.Skills), payload.Skills)
 	}
-	if payload.Skills[0] != "sdd-apply" {
-		t.Errorf("Skills[0] = %q, want %q", payload.Skills[0], "sdd-apply")
+	if payload.Skills[0] != "judgment-day" {
+		t.Errorf("Skills[0] = %q, want %q", payload.Skills[0], "judgment-day")
 	}
 	if payload.Skills[2] != "go-testing" {
 		t.Errorf("Skills[2] = %q, want %q", payload.Skills[2], "go-testing")

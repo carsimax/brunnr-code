@@ -78,8 +78,7 @@ func TestReviewNarrationNeverClaimsNothingMoreToDo(t *testing.T) {
 // TestReviewNarrationNamesAUniversalOrBetterExit is the narration-surface
 // sibling of the shipped asset's stop-reason table guard
 // (TestEveryReviewStopReasonCodeHasAShippedContinuation in
-// review_next_transition_docs_test.go) and of TestCompactBlockedNamesExitForEveryReachableReason
-// in internal/sddstatus: every registered Tier C stop statement must either
+// review_next_transition_docs_test.go): every registered Tier C stop statement must either
 // name a real `brunnr-code` command / `--flag` of its own, or fall back to the
 // universal self-service exit `brunnr-code review mode disable`
 // (blocking-budget rule 2: every blocking gate offers a documented

@@ -31,13 +31,13 @@ func TestWriteFileAtomicReadOnlyDirRelaxesOwnerWritePermission(t *testing.T) {
 		t.Skip("chmod 555 semantics differ on Windows")
 	}
 	base := t.TempDir()
-	skillDir := filepath.Join(base, "sdd-init")
+	skillDir := filepath.Join(base, "example-skill")
 	if err := os.Mkdir(skillDir, 0o555); err != nil {
 		t.Fatalf("Mkdir() error = %v", err)
 	}
 
 	path := filepath.Join(skillDir, "SKILL.md")
-	content := []byte("# SDD Init\n")
+	content := []byte("# Example Skill\n")
 
 	_, err := WriteFileAtomic(path, content, 0o644)
 	if err != nil {

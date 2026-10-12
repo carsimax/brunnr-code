@@ -68,7 +68,7 @@ func pruneClaudeLegacySkillRegistryHooks(entries []any) ([]any, bool) {
 	return keptEntries, changed
 }
 
-// InstallSkillRegistry installs startup refresh hooks without selecting SDD.
+// InstallSkillRegistry installs the skill-registry startup refresh hooks.
 func InstallSkillRegistry(homeDir string, adapter agents.Adapter) (Result, error) {
 	return installSkillRegistry(homeDir, adapter, runtime.GOOS)
 }

@@ -62,7 +62,7 @@ func TestManagedDirectReplyAssetsEnforceEnglishNoCodeSwitching(t *testing.T) {
 }
 
 func TestODDOrchestratorAssetsEnforceLanguageContract(t *testing.T) {
-	assetPaths := allSDDOrchestratorAssetPaths(t)
+	assetPaths := allOrchestratorAssetPaths(t)
 	if len(assetPaths) != 3 {
 		t.Fatalf("ODD orchestrator asset count = %d, want 3", len(assetPaths))
 	}
@@ -250,7 +250,7 @@ func TestNeutralOutputStyleAssetsProvideMeaningfulContract(t *testing.T) {
 	}
 }
 
-func allSDDOrchestratorAssetPaths(t *testing.T) []string {
+func allOrchestratorAssetPaths(t *testing.T) []string {
 	t.Helper()
 	var paths []string
 	if err := fs.WalkDir(FS, ".", func(path string, d fs.DirEntry, err error) error {

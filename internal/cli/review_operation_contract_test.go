@@ -5,26 +5,10 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
-
-func TestRetiredBindSDDRejectsBothPublishedContractsWithoutAnEnvelope(t *testing.T) {
-	for _, contract := range []string{ReviewIntegrationContractV1, ReviewIntegrationContractV2} {
-		t.Run(contract, func(t *testing.T) {
-			var output bytes.Buffer
-			err := RunReview([]string{"bind-sdd", "--contract", contract, "--cwd", t.TempDir()}, &output)
-			if err == nil || !strings.Contains(err.Error(), "unknown review command") {
-				t.Fatalf("retired bind-sdd error = %v", err)
-			}
-			if output.Len() != 0 {
-				t.Fatalf("retired bind-sdd emitted an operation envelope: %q", output.String())
-			}
-		})
-	}
-}
 
 func TestNegotiatedReviewOperationsRejectInvalidContractsBeforeMutation(t *testing.T) {
 	reviewEnabledHome(t)

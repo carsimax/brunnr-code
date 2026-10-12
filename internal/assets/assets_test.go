@@ -206,7 +206,7 @@ func TestAllShippedOrchestratorsKeepDeliveryUnmanaged(t *testing.T) {
 	const ordinaryDelivery = "Commit, push, PR, direct-main, emergency, and release gates are informational and unmanaged; ordinary repository policy decides delivery and they never reopen review for unchanged content."
 	const receiptValidation = "Commit, push, PR, direct-main, emergency, and release gates validate the same exact owner-issued receipt/authorization"
 
-	for _, path := range allSDDOrchestratorAssetPaths(t) {
+	for _, path := range allOrchestratorAssetPaths(t) {
 		content := MustRead(path)
 		if !strings.Contains(content, ordinaryDelivery) {
 			t.Fatalf("%s does not leave delivery to ordinary repository policy", path)

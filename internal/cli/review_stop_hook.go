@@ -27,8 +27,7 @@ const reviewStopHookSchema = "brunnr-code.review-stop-hook/v1"
 // alongside target_identity (see reviewStopHookReminderRecord).
 const reviewStopHookReminderSchema = "brunnr-code.review-stop-hook-reminder/v1"
 
-// maxReviewStopHookPayloadBytes bounds the hook stdin payload, mirroring the
-// sdd-task-result precedent (internal/cli/sdd_task_result.go): a hook reports
+// maxReviewStopHookPayloadBytes bounds the hook stdin payload: a hook reports
 // a small event, never a large or unbounded stream.
 const maxReviewStopHookPayloadBytes = 1 << 20
 

@@ -140,17 +140,6 @@ func TestNegotiatedReviewFailuresPreserveRequestedLineage(t *testing.T) {
 	}
 }
 
-func TestRetiredBindSDDDoesNotProduceANegotiatedFailure(t *testing.T) {
-	var output bytes.Buffer
-	err := RunReview([]string{"bind-sdd", "--contract", ReviewIntegrationContractV1, "--cwd", t.TempDir()}, &output)
-	if err == nil || !strings.Contains(err.Error(), "unknown review command") {
-		t.Fatalf("retired bind-sdd error = %v", err)
-	}
-	if output.Len() != 0 {
-		t.Fatalf("retired bind-sdd emitted a negotiated envelope: %q", output.String())
-	}
-}
-
 func TestNegotiatedFailureLineageUsesCanonicalFlagParsing(t *testing.T) {
 	tests := []struct {
 		name      string

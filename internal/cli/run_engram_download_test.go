@@ -607,7 +607,6 @@ func TestRunInstallMacOSEngramStillUsesBrew(t *testing.T) {
 var _ = engram.DownloadLatestBinary
 
 // Engram is user-owned: installing ordinary guidance does not attempt an implicit download.
-// The old SDD auto-added-dependency warning was retired with SDD selection.
 func TestRunInstallClaudeGuidanceDoesNotAutoInstallEngram(t *testing.T) {
 	home := t.TempDir()
 	restoreHome, restoreCommand, restoreLookPath, restoreDownload := osUserHomeDir, runCommand, cmdLookPath, engramDownloadFn

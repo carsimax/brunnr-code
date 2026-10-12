@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Captured by actual sdd.Inject in the disposable af4ce122 worktree, TestParityCapture.
+// Captured from a real native-agent install in the disposable af4ce122 worktree, TestParityCapture.
 // The four Claude review-* lens hashes were re-pinned deliberately when the
 // shared reviewerprovider.SeverityRules joined the rendered severity section,
 // and again when those rules gained the observable-harm qualification.
@@ -117,9 +117,6 @@ func TestInstalledNativeAgentParity(t *testing.T) {
 				t.Fatalf("installed %d entries, want %d agents plus ledger", len(entries), len(expected)+1)
 			}
 			for name, want := range expected {
-				if strings.HasPrefix(name, "sdd-") {
-					t.Fatal("SDD asset in retained fixture")
-				}
 				path := filepath.Join(adapter.SubAgentsDir(home), name)
 				data, err := os.ReadFile(path)
 				if err != nil {

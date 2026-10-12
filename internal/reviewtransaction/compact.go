@@ -2309,8 +2309,7 @@ func (state *CompactState) CompleteCorrectionVerification(snapshot Snapshot, act
 }
 
 // CompactEscalationAccounting labels are deliberately distinct so no consumer
-// ever confuses a remaining-budget value with the frozen total, mirroring the
-// sddstatus.RemediationState precedent (CorrectionBudgetRemaining/Total).
+// ever confuses a remaining-budget value with the frozen total.
 const (
 	CompactEscalationCauseBudgetExceeded             = "budget_exceeded"
 	CompactEscalationCauseOriginalCriteriaFailed     = "original_criteria_failed"

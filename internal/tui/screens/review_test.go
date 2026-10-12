@@ -21,12 +21,12 @@ func TestRenderReviewShowsSkillNames(t *testing.T) {
 		Components: []planner.ComponentAction{
 			{ID: model.ComponentSkills, Action: "selected"},
 		},
-		Skills: []model.SkillID{"sdd-apply", "sdd-spec", "go-testing"},
+		Skills: []model.SkillID{"judgment-day", "branch-pr", "go-testing"},
 	}
 
 	out := RenderReview(payload, 0, "")
 
-	for _, skillName := range []string{"sdd-apply", "sdd-spec", "go-testing"} {
+	for _, skillName := range []string{"judgment-day", "branch-pr", "go-testing"} {
 		if !strings.Contains(out, skillName) {
 			t.Errorf("RenderReview output missing skill %q; output:\n%s", skillName, out)
 		}

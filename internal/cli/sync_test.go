@@ -243,7 +243,7 @@ func TestBuildSyncSelectionDefaultScopeIncludesManagedComponents(t *testing.T) {
 
 	sel := BuildSyncSelection(flags, agents)
 
-	// Default sync includes managed ODD dependencies, not the legacy SDD component.
+	// Default sync includes managed ODD dependencies.
 	// Persona is included because the content between <!-- brunnr-code:persona -->
 	// markers is harness-managed; sync must propagate embedded-asset changes to
 	// users who already have a persona installed. Content outside the markers
@@ -1504,8 +1504,8 @@ func TestRunSyncWithSelection_WritesExpectedFiles(t *testing.T) {
 		t.Fatalf("Verify.Ready = false, report = %#v", result.Verify)
 	}
 
-	// Without SDD, routing guidance still belongs to the managed Codex
-	// prompt. No retired commands are recreated.
+	// Routing guidance belongs to the managed Codex prompt. No retired
+	// commands are recreated.
 	promptPath := filepath.Join(home, ".codex", "AGENTS.md")
 	if !containsPath(result.ChangedFiles, promptPath) {
 		t.Fatalf("ChangedFiles = %v, want managed Codex prompt", result.ChangedFiles)
@@ -1777,7 +1777,7 @@ func TestParseSyncFlagsProfileMultiple(t *testing.T) {
 }
 
 func TestParseSyncFlagsProfilePhaseAssignment(t *testing.T) {
-	_, err := ParseSyncFlags([]string{"--profile-phase", "cheap:sdd-apply:anthropic/claude-sonnet-4-20250514"})
+	_, err := ParseSyncFlags([]string{"--profile-phase", "cheap:odd-worker:anthropic/claude-sonnet-4-20250514"})
 	if err == nil || !strings.Contains(err.Error(), "profile-phase") {
 		t.Fatalf("retired --profile-phase accepted: %v", err)
 	}
@@ -1822,10 +1822,10 @@ func TestParseSyncFlagsProfileReservedNameReturnsError(t *testing.T) {
 func TestParseSyncFlagsProfilePhaseUnknownPhaseReturnsError(t *testing.T) {
 	_, err := ParseSyncFlags([]string{
 		"--profile", "cheap:anthropic/claude-haiku-3-5-20241022",
-		"--profile-phase", "cheap:sdd-bogus:anthropic/claude-haiku-3-5-20241022",
+		"--profile-phase", "cheap:unknown-phase:anthropic/claude-haiku-3-5-20241022",
 	})
 	if err == nil {
-		t.Fatalf("expected error for --profile-phase with unknown phase 'sdd-bogus', got nil")
+		t.Fatalf("expected error for --profile-phase with unknown phase 'unknown-phase', got nil")
 	}
 }
 
@@ -2181,8 +2181,8 @@ func TestRenderSyncReportIncludesChangedFilePaths(t *testing.T) {
 		FilesChanged: 3,
 		ChangedFiles: []string{
 			"~/.codex/AGENTS.md",
-			"~/.codex/skills/sdd-apply/SKILL.md",
-			"~/.codex/sdd-overlay-single.json",
+			"~/.codex/skills/judgment-day/SKILL.md",
+			"~/.codex/hooks.json",
 		},
 		Selection: model.Selection{
 			Components: []model.ComponentID{model.ComponentSkills},
@@ -2586,7 +2586,7 @@ func TestRunSync_DefaultKeepsSkillHookAndODDRouting(t *testing.T) {
 // ─── Organic routing guidance is refreshed for every configured agent ──────
 //
 // Sync must reach the same unconditional guarantee install does: a persisted
-// selection without the optional SDD component still routes work (issue #1794).
+// selection still routes work whatever components it holds (issue #1794).
 
 func runSyncInjectionSteps(t *testing.T, home string, selection model.Selection) []string {
 	t.Helper()
@@ -2643,7 +2643,7 @@ func TestSyncRemoteAuthorizationUpdatesExistingInstallation(t *testing.T) {
 	}
 }
 
-func TestSyncDeliversRoutingGuidanceWithoutSDDComponent(t *testing.T) {
+func TestSyncDeliversRoutingGuidanceWithPersonaOnly(t *testing.T) {
 	home := t.TempDir()
 
 	runSyncInjectionSteps(t, home, model.Selection{
@@ -2653,7 +2653,7 @@ func TestSyncDeliversRoutingGuidanceWithoutSDDComponent(t *testing.T) {
 
 	prompt := readTextFile(t, systemPromptFileFor(t, home, model.AgentClaudeCode))
 	if !strings.Contains(prompt, routingOpenMarker) || !strings.Contains(prompt, routingCloseMarker) {
-		t.Fatalf("sync without the SDD component left the agent unrouted:\n%s", prompt)
+		t.Fatalf("persona-only sync left the agent unrouted:\n%s", prompt)
 	}
 }
 

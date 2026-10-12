@@ -26,12 +26,12 @@ func SupportedAgentIDs(ids []string) []string {
 }
 
 // SupportTier indicates how fully an agent supports the Brunnr-Code ecosystem.
-// All current agents receive the full SDD orchestrator, skill files, MCP config,
+// All current agents receive the full orchestrator, skill files, MCP config,
 // and system prompt injection. The tier is kept as metadata for display purposes.
 type SupportTier string
 
 const (
-	// TierFull — the agent receives all ecosystem features: SDD orchestrator,
+	// TierFull — the agent receives all ecosystem features: orchestrator,
 	// skill files, MCP servers, system prompt, and sub-agent delegation.
 	TierFull SupportTier = "full"
 )

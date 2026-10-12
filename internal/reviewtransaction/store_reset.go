@@ -145,7 +145,7 @@ var storeResetRemovableTargets = []storeResetTarget{
 }
 
 // storeResetPreservedTargets is the complete exclusion list. Two of these are
-// the kill switch, one is state another component owns, one is the lease this
+// the kill switch, one is unfiled defect reports, one is the lease this
 // operation holds, and one is a path no brunnr-code code has ever written --
 // which is itself the reason.
 var storeResetPreservedTargets = []storeResetTarget{

@@ -98,8 +98,8 @@ type InjectOptions struct {
 	// still holds exactly that value; any other user value is left untouched.
 	CodexManagedServiceTier string
 
-	// CodexCarrilModelAssignments retains saved model choices for ODD workers.
-	// Existing legacy carril keys remain readable, but no SDD profiles are written.
+	// CodexCarrilModelAssignments retains saved model choices for ODD workers,
+	// keyed by ODD role.
 	CodexCarrilModelAssignments map[string]string
 
 	// CodexModelAssignments retains saved effort choices for ODD/RDD routing.

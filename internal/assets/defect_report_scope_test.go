@@ -19,16 +19,16 @@ import (
 //
 // The discriminator is what PRODUCED the failure, not what the user happened to
 // be doing when it happened. A Brunnr-Code workflow merely HOSTING a failure is
-// not enough: an SDD phase is carried out by the client runtime, so that
-// runtime failing mid-phase is that runtime's defect even though our contract
-// prescribed the phase.
+// not enough: a delegated task is carried out by the client runtime, so that
+// runtime failing mid-task is that runtime's defect even though our contract
+// prescribed the task.
 //
 // Nothing is routed elsewhere. Naming another project as responsible is a claim
 // that has to be right, it is not our work to triage, and it reintroduces the
 // prompt noise this exists to remove. Out of scope means silent.
 
 func TestDefectHandoffAdmitsOnlyFailuresBrunnrCodeProduced(t *testing.T) {
-	for _, path := range allSDDOrchestratorAssetPaths(t) {
+	for _, path := range allOrchestratorAssetPaths(t) {
 		t.Run(path, func(t *testing.T) {
 			content := MustRead(path)
 

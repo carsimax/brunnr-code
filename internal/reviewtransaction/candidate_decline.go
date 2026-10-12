@@ -8,7 +8,7 @@ package reviewtransaction
 // funnel's own decline check, both removed in the same slice). Consistent
 // with Wave 4 decision 4 ("decline = unmanaged proceed: nothing recorded"),
 // an inert authority-shaped file is exactly the mirror pattern that
-// decision already removed on the SDD side.
+// decision already removed.
 //
 // parseCandidateDeclineAuthorization (and its own dependencies:
 // canonicalCandidateDeclinePayload, candidateDeclineDigest, and

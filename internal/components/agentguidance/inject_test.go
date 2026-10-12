@@ -31,7 +31,7 @@ func TestCodexODDRoutingInjectionPreservesUserTextAndResync(t *testing.T) {
 	options := RoutingOptions{
 		CodexPhaseModelAssignments:  map[string]string{"odd-worker": "gpt-custom-worker"},
 		CodexModelAssignments:       map[string]model.CodexEffort{"odd-worker": model.CodexEffortXHigh},
-		CodexCarrilModelAssignments: map[string]string{"sdd-cheap": "gpt-custom-cheap", "sdd-strong": "gpt-custom-strong"},
+		CodexCarrilModelAssignments: map[string]string{"odd-explorer": "gpt-custom-cheap", "odd-verify": "gpt-custom-strong"},
 	}
 	first, err := InjectRoutingWithOptions(home, model.AgentCodex, options)
 	if err != nil || !first.Changed {
@@ -119,9 +119,6 @@ func TestInjectRoutingDeliversOnlyODDWorkflow(t *testing.T) {
 			block := managedRoutingBlock(deliveredGuidance(t, result.Files[0]))
 			if !strings.Contains(block, "### ODD protocol") {
 				t.Fatal("installed routing has no ODD protocol")
-			}
-			if strings.Contains(strings.ToLower(block), "sdd") {
-				t.Fatalf("agent %q received an SDD route in installed routing", agent.ID)
 			}
 		})
 	}

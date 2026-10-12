@@ -463,7 +463,7 @@ func authorityDispositionAuthorizationBinding(plan AuthorityDispositionPlan) str
 // Authorization binds to its own plan_digest AND the
 // authority_inventory_revision named by callerAuthorityInventoryRevision.
 //
-// Fix cycle 2 (WARNING-2, sdd-verify cycle-2): callerAuthorityInventoryRevision
+// Fix cycle 2 (WARNING-2, verify cycle-2): callerAuthorityInventoryRevision
 // is NOT always the live, freshly re-derived revision — its meaning is
 // caller-supplied and depends on the execution path. On a FRESH execution
 // (lockedAuthorityDispositionMutation, authority_disposition_execute.go) the

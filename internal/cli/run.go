@@ -1243,7 +1243,7 @@ func (s componentApplyStep) Run() error {
 				if s.selection.HasComponent(model.ComponentEngram) {
 					return installErr
 				}
-				// engram was auto-added as an sdd dependency, not requested. Its
+				// engram was auto-added as a dependency, not requested. Its
 				// failure must not abort the components the user asked for, and
 				// no configuration may point at a binary that does not exist:
 				// report the missing binary as a warning with its own install
@@ -1738,7 +1738,7 @@ func installBackupTargets(homeDir, workspaceDir string, scope InstallScope, sele
 				paths[path] = struct{}{}
 			}
 		}
-		// Native review and Judgment Day agents are installed independently of SDD.
+		// Native review and Judgment Day agents are installed with their own component.
 		// Retired review agents are listed too: the installer may remove them.
 		if names := reviewassets.NativeAgentFileNames(adapter.Agent()); len(names) > 0 {
 			dir := adapter.SubAgentsDir(componentInjectionDirScoped(homeDir, workspaceDir, scope, adapter))

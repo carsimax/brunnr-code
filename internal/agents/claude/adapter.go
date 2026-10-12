@@ -218,10 +218,10 @@ func (a *Adapter) SupportsMCP() bool {
 // --- Sub-agent support ---
 //
 // Claude Code loads agent files from ~/.claude/agents/*.md. Each file carries
-// frontmatter (name, description, tools, model) and a prompt body. The SDD
-// component copies the embedded set at install time, resolving the
-// {{CLAUDE_MODEL}} placeholder in each file against the user's model
-// assignments so the per-phase model contract is enforced at the agent layer
+// frontmatter (name, description, tools, model) and a prompt body. The
+// reviewassets component copies the embedded set at install time, resolving
+// the {{CLAUDE_MODEL}} placeholder in each file against the user's model
+// assignments so the per-role model contract is enforced at the agent layer
 // rather than relying on orchestrator prose.
 
 func (a *Adapter) SupportsSubAgents() bool {
@@ -239,7 +239,7 @@ func (a *Adapter) EmbeddedSubAgentsDir() string {
 // ClaudeModelID resolves a ClaudeModelAlias to the string Claude Code accepts
 // in the `model:` frontmatter field of a sub-agent file. Claude Code uses the
 // aliases ("fable", "opus", "sonnet", "haiku") verbatim, so this is an identity over
-// alias.String(). Implemented as a method so the SDD injector's
+// alias.String(). Implemented as a method so the reviewassets installer's
 // claudeModelResolver type assertion fires for this adapter.
 func (a *Adapter) ClaudeModelID(alias model.ClaudeModelAlias) string {
 	return alias.String()

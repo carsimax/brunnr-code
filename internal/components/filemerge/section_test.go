@@ -6,9 +6,9 @@ import (
 )
 
 func TestInjectMarkdownSection_EmptyFile(t *testing.T) {
-	result := InjectMarkdownSection("", "sdd", "## SDD Config\nSome content here.\n")
+	result := InjectMarkdownSection("", "workflow", "## Workflow Config\nSome content here.\n")
 
-	want := "<!-- brunnr-code:sdd -->\n## SDD Config\nSome content here.\n<!-- /brunnr-code:sdd -->\n"
+	want := "<!-- brunnr-code:workflow -->\n## Workflow Config\nSome content here.\n<!-- /brunnr-code:workflow -->\n"
 	if result != want {
 		t.Fatalf("empty file inject:\ngot:  %q\nwant: %q", result, want)
 	}
@@ -78,10 +78,10 @@ func TestInjectMarkdownSection_AppendToExistingContent(t *testing.T) {
 }
 
 func TestInjectMarkdownSection_UpdateExistingSection(t *testing.T) {
-	existing := "# Config\n\n<!-- brunnr-code:sdd -->\nOld SDD content.\n<!-- /brunnr-code:sdd -->\n\nOther stuff.\n"
-	result := InjectMarkdownSection(existing, "sdd", "New SDD content.\n")
+	existing := "# Config\n\n<!-- brunnr-code:workflow -->\nOld Workflow content.\n<!-- /brunnr-code:workflow -->\n\nOther stuff.\n"
+	result := InjectMarkdownSection(existing, "workflow", "New Workflow content.\n")
 
-	want := "# Config\n\n<!-- brunnr-code:sdd -->\nNew SDD content.\n<!-- /brunnr-code:sdd -->\n\nOther stuff.\n"
+	want := "# Config\n\n<!-- brunnr-code:workflow -->\nNew Workflow content.\n<!-- /brunnr-code:workflow -->\n\nOther stuff.\n"
 	if result != want {
 		t.Fatalf("update existing section:\ngot:  %q\nwant: %q", result, want)
 	}
@@ -97,7 +97,7 @@ func TestInjectMarkdownSection_CollapsesDuplicateTargetSections(t *testing.T) {
 	second := open + "\nsecond\n" + close
 	third := open + "\nthird\n" + close
 	canonical := open + "\ncurrent\n" + close
-	sdd := "<!-- brunnr-code:sdd -->\nkeep sdd\n<!-- /brunnr-code:sdd -->"
+	workflow := "<!-- brunnr-code:workflow -->\nkeep workflow\n<!-- /brunnr-code:workflow -->"
 
 	tests := []struct {
 		name        string
@@ -125,9 +125,9 @@ func TestInjectMarkdownSection_CollapsesDuplicateTargetSections(t *testing.T) {
 		},
 		{
 			name:        "unrelated managed section remains unchanged",
-			existing:    first + "\n" + sdd + "\n" + second,
+			existing:    first + "\n" + workflow + "\n" + second,
 			replacement: "current\n",
-			want:        canonical + "\n" + sdd + "\n",
+			want:        canonical + "\n" + workflow + "\n",
 		},
 		{
 			name:        "empty replacement removes every target block",
@@ -153,12 +153,12 @@ func TestInjectMarkdownSection_CollapsesDuplicateTargetSections(t *testing.T) {
 }
 
 func TestInjectMarkdownSection_MultipleSectionsOnlyTargetedOneUpdated(t *testing.T) {
-	existing := "# Config\n\n<!-- brunnr-code:persona -->\nPersona content.\n<!-- /brunnr-code:persona -->\n\n<!-- brunnr-code:sdd -->\nOld SDD.\n<!-- /brunnr-code:sdd -->\n\n<!-- brunnr-code:skills -->\nSkills content.\n<!-- /brunnr-code:skills -->\n"
+	existing := "# Config\n\n<!-- brunnr-code:persona -->\nPersona content.\n<!-- /brunnr-code:persona -->\n\n<!-- brunnr-code:workflow -->\nOld Workflow.\n<!-- /brunnr-code:workflow -->\n\n<!-- brunnr-code:skills -->\nSkills content.\n<!-- /brunnr-code:skills -->\n"
 
-	result := InjectMarkdownSection(existing, "sdd", "Updated SDD.\n")
+	result := InjectMarkdownSection(existing, "workflow", "Updated Workflow.\n")
 
 	// persona and skills should be unchanged
-	want := "# Config\n\n<!-- brunnr-code:persona -->\nPersona content.\n<!-- /brunnr-code:persona -->\n\n<!-- brunnr-code:sdd -->\nUpdated SDD.\n<!-- /brunnr-code:sdd -->\n\n<!-- brunnr-code:skills -->\nSkills content.\n<!-- /brunnr-code:skills -->\n"
+	want := "# Config\n\n<!-- brunnr-code:persona -->\nPersona content.\n<!-- /brunnr-code:persona -->\n\n<!-- brunnr-code:workflow -->\nUpdated Workflow.\n<!-- /brunnr-code:workflow -->\n\n<!-- brunnr-code:skills -->\nSkills content.\n<!-- /brunnr-code:skills -->\n"
 	if result != want {
 		t.Fatalf("multiple sections:\ngot:  %q\nwant: %q", result, want)
 	}
@@ -177,8 +177,8 @@ func TestInjectMarkdownSection_PreserveUserContentBeforeAndAfter(t *testing.T) {
 
 func TestInjectMarkdownSection_MalformedMarkersTreatedAsNotFound(t *testing.T) {
 	// Only opening marker, no closing marker — treat as not found, append.
-	existing := "# Config\n\n<!-- brunnr-code:sdd -->\nOrphaned content.\n"
-	result := InjectMarkdownSection(existing, "sdd", "New SDD content.\n")
+	existing := "# Config\n\n<!-- brunnr-code:workflow -->\nOrphaned content.\n"
+	result := InjectMarkdownSection(existing, "workflow", "New Workflow content.\n")
 
 	// Should append since closing marker is missing.
 	if result == existing {
@@ -186,7 +186,7 @@ func TestInjectMarkdownSection_MalformedMarkersTreatedAsNotFound(t *testing.T) {
 	}
 
 	// Result should contain the new properly-formed section.
-	wantOpen := "<!-- brunnr-code:sdd -->\nNew SDD content.\n<!-- /brunnr-code:sdd -->\n"
+	wantOpen := "<!-- brunnr-code:workflow -->\nNew Workflow content.\n<!-- /brunnr-code:workflow -->\n"
 	if !strings.Contains(result, wantOpen) {
 		t.Fatalf("malformed markers: result should contain proper section:\ngot: %q", result)
 	}
@@ -194,11 +194,11 @@ func TestInjectMarkdownSection_MalformedMarkersTreatedAsNotFound(t *testing.T) {
 
 func TestInjectMarkdownSection_CloseBeforeOpenTreatedAsNotFound(t *testing.T) {
 	// Closing marker appears before opening — treat as not found.
-	existing := "<!-- /brunnr-code:sdd -->\nSome content.\n<!-- brunnr-code:sdd -->\n"
-	result := InjectMarkdownSection(existing, "sdd", "New content.\n")
+	existing := "<!-- /brunnr-code:workflow -->\nSome content.\n<!-- brunnr-code:workflow -->\n"
+	result := InjectMarkdownSection(existing, "workflow", "New content.\n")
 
 	// Should append the section, not replace.
-	wantSuffix := "<!-- brunnr-code:sdd -->\nNew content.\n<!-- /brunnr-code:sdd -->\n"
+	wantSuffix := "<!-- brunnr-code:workflow -->\nNew content.\n<!-- /brunnr-code:workflow -->\n"
 	if !strings.HasSuffix(result, wantSuffix) {
 		t.Fatalf("close-before-open: expected appended section:\ngot: %q\nwant suffix: %q", result, wantSuffix)
 	}
@@ -329,8 +329,8 @@ func TestInjectMarkdownSection_OrphanRepair(t *testing.T) {
 }
 
 func TestInjectMarkdownSection_EmptyContentRemovesSection(t *testing.T) {
-	existing := "# Config\n\n<!-- brunnr-code:sdd -->\nSDD content here.\n<!-- /brunnr-code:sdd -->\n\nOther stuff.\n"
-	result := InjectMarkdownSection(existing, "sdd", "")
+	existing := "# Config\n\n<!-- brunnr-code:workflow -->\nWorkflow content here.\n<!-- /brunnr-code:workflow -->\n\nOther stuff.\n"
+	result := InjectMarkdownSection(existing, "workflow", "")
 
 	want := "# Config\n\nOther stuff.\n"
 	if result != want {
@@ -340,7 +340,7 @@ func TestInjectMarkdownSection_EmptyContentRemovesSection(t *testing.T) {
 
 func TestInjectMarkdownSection_EmptyContentOnMissingSectionNoOp(t *testing.T) {
 	existing := "# Config\n\nSome content.\n"
-	result := InjectMarkdownSection(existing, "sdd", "")
+	result := InjectMarkdownSection(existing, "workflow", "")
 
 	if result != existing {
 		t.Fatalf("empty content on missing section should be no-op:\ngot:  %q\nwant: %q", result, existing)

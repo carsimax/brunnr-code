@@ -1,4 +1,4 @@
-// Package reviewassets owns runtime review contract rendering independently of SDD.
+// Package reviewassets owns runtime review contract rendering and native review agents.
 package reviewassets
 
 import (

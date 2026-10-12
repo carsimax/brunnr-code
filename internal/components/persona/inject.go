@@ -68,7 +68,7 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 		promptPath := adapter.SystemPromptFile(homeDir)
 
 		// Codex shares ~/.codex/AGENTS.md with user-authored content and with
-		// other managed sections (engram, SDD) that are appended after persona.
+		// other managed sections (engram, routing) that are appended after persona.
 		// The persona must therefore live inside a <!-- brunnr-code:persona -->
 		// marker section instead of owning the whole file, so install, sync and
 		// uninstall can replace or remove exactly the managed persona content
@@ -90,12 +90,12 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 			break
 		}
 
-		// Writing ONLY the persona content would destroy any SDD/engram
+		// Writing ONLY the persona content would destroy any routing/engram
 		// sections that are injected later in the pipeline. Instead, we write the
-		// persona content as the base and let subsequent inject steps (SDD, engram)
-		// append their sections.
+		// persona content as the base and let subsequent inject steps (routing,
+		// engram) append their sections.
 		//
-		// If the file already exists and has managed sections (SDD, engram), we
+		// If the file already exists and has managed sections (routing, engram), we
 		// must preserve them — replace only the persona portion at the top.
 		existing, readErr := readFileOrEmpty(promptPath)
 		if readErr != nil {
@@ -216,7 +216,7 @@ var osReadFile = func(path string) ([]byte, error) {
 }
 
 // preserveManagedSections checks whether the existing file content has
-// brunnr-code managed sections (SDD orchestrator, engram protocol, etc.) and
+// brunnr-code managed sections (routing guidance, engram protocol, etc.) and
 // returns new content that preserves those sections while replacing only the
 // persona text before them. Returns ("", false) when no preservation is needed
 // (empty file or no managed markers found).

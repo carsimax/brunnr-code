@@ -40,10 +40,6 @@ const (
 	ContractExposureAdvertised ContractExposure = "advertised"
 )
 
-type SDDSelectionPolicy string
-
-const SDDSelectionExplicitRequestOrAcceptedProposal SDDSelectionPolicy = "explicit_request_or_accepted_proposal"
-
 var ErrUnsupportedAgent = errors.New("unsupported agent capability manifest")
 
 // AgentCapabilityManifest is the immutable v1 capability projection for one
@@ -72,11 +68,10 @@ type AgentFeatureClaims struct {
 
 // ImplementationRoutingFacts is a semantic projection of the orchestrator's
 // always-active delegation rules. It is data for renderers and parity checks,
-// not an implementation-route selector or SDD admission authority.
+// not an implementation-route selector.
 type ImplementationRoutingFacts struct {
 	DirectInline    DirectInlineFacts    `json:"directInline"`
 	DelegatedDirect DelegatedDirectFacts `json:"delegatedDirect"`
-	SDD             SDDProposalFacts     `json:"sdd"`
 }
 
 type DirectInlineFacts struct {
@@ -106,12 +101,6 @@ type DelegatedDirectFacts struct {
 	WriterMinNonTrivialFiles       uint8  `json:"writerMinNonTrivialFiles"`
 	DelegateWhenReadPreparesWrite  bool   `json:"delegateWhenReadPreparesWrite"`
 	DelegateWhenBroadResearch      bool   `json:"delegateWhenBroadResearch"`
-}
-
-type SDDProposalFacts struct {
-	ProposeWhenSubstantialOrAmbiguous     bool               `json:"proposeWhenSubstantialOrAmbiguous"`
-	DurableArtifactsMustReduceUncertainty bool               `json:"durableArtifactsMustReduceUncertainty"`
-	SelectionPolicy                       SDDSelectionPolicy `json:"selectionPolicy"`
 }
 
 type ContractClaims struct {
@@ -221,11 +210,6 @@ func CanonicalImplementationRouting() ImplementationRoutingFacts {
 			WriterMinNonTrivialFiles:       2,
 			DelegateWhenReadPreparesWrite:  true,
 			DelegateWhenBroadResearch:      true,
-		},
-		SDD: SDDProposalFacts{
-			ProposeWhenSubstantialOrAmbiguous:     true,
-			DurableArtifactsMustReduceUncertainty: true,
-			SelectionPolicy:                       SDDSelectionExplicitRequestOrAcceptedProposal,
 		},
 	}
 }

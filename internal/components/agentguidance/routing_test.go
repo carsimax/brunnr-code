@@ -75,9 +75,6 @@ func TestRenderRoutingOffersOnlyODD(t *testing.T) {
 			if !strings.Contains(rendered, "Organic Driven Development (ODD) is the predefined workflow") {
 				t.Fatal("ODD workflow is missing")
 			}
-			if strings.Contains(strings.ToLower(rendered), "sdd") {
-				t.Fatalf("agent %q still offers SDD routing", agent.ID)
-			}
 		})
 	}
 }

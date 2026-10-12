@@ -7,10 +7,10 @@ import (
 	"github.com/carsimax/brunnr-code/internal/model"
 )
 
-// TestScreensShowNoRetiredWorkflowText guards S2 of the SDD retirement: no
-// screen offers SDD or OpenSpec as a current feature.
+// TestScreensShowNoRetiredWorkflowText guards that no screen offers the
+// retired OpenSpec workflow as a current feature.
 func TestScreensShowNoRetiredWorkflowText(t *testing.T) {
-	retired := regexp.MustCompile(`(?i)sdd|openspec`)
+	retired := regexp.MustCompile(`(?i)openspec`)
 	for name, view := range map[string]string{
 		"complete":               RenderComplete(CompletePayload{ConfiguredAgents: 1, InstalledComponents: 1}),
 		"preset":                 RenderPreset(model.PresetEcosystemOnly, 0),

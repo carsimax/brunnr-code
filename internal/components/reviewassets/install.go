@@ -57,7 +57,7 @@ type claudeModelResolver interface {
 }
 
 // InstallNativeAgents installs only retained review and Judgment Day native agents.
-// It never removes legacy SDD files or user-owned agents.
+// It never removes user-owned agents.
 func InstallNativeAgents(home string, adapter agents.Adapter, opts InstallOptions) (InstallResult, error) {
 	if !NativeAgentsSupported(adapter.Agent()) {
 		return InstallResult{}, fmt.Errorf("unsupported native agent runtime: %s", adapter.Agent())

@@ -134,12 +134,6 @@ func TestInjectRoutingInstallsOrchestratorForEveryRuntime(t *testing.T) {
 			if wantReview == 0 && headingCount(prompt, "Review Execution Contract") != 0 {
 				t.Error("runtime without review transport kept the review execution placeholder section")
 			}
-
-			for _, forbidden := range []string{"SDD Workflow", "SDD Init Guard", "Native SDD Dispatcher Guard", "Artifact Store Mode", "sdd-integration.consent"} {
-				if strings.Contains(prompt, forbidden) {
-					t.Errorf("installed prompt carries SDD-only content %q", forbidden)
-				}
-			}
 		})
 	}
 }
