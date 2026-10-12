@@ -29,8 +29,8 @@ type SDDInventory struct {
 type SDDPromptFile struct{ Root, Path, Active string }
 
 // RetiredSDDInventory resolves the inventory of adapter under root, the home
-// or workspace directory releases resolved its config from. Workflows and
-// scope-specific prompt files are the caller's to add.
+// or workspace directory releases resolved its config from. Scope-specific
+// prompt files are the caller's to add.
 func RetiredSDDInventory(adapter agents.Adapter, root string) SDDInventory {
 	inv := SDDInventory{Agent: adapter.Agent()}
 	if adapter.SupportsSkills() {

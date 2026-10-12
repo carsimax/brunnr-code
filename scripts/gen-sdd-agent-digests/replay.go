@@ -17,13 +17,10 @@ import (
 	"sync"
 )
 
-// Three retired SDD files were rendered by Go code, with no golden of any:
+// Two retired SDD files were rendered by Go code, with no golden of either:
 //   - Codex's sdd-{strong,mid,cheap}.config.toml profiles (v1.36.0 to
 //     v3.7.0), upserted by codex.WriteCodexProfiles into whatever the file
 //     held, so a render depends on the state the previous release left;
-//   - Kimi's sdd-orchestrator.md Jinja module (v1.21.0 to v3.7.0), the
-//     embedded asset verbatim until v1.46.0 and rendered by the SDD
-//     component afterwards;
 //   - Claude Code's lazy skills/_shared/sdd-orchestrator-workflow.md
 //     (v1.43.3 to v3.7.0), written by writeClaudeLazySDDWorkflow. Until
 //     v2.6.0 it carried the user's model assignments: it is replayed with
@@ -41,8 +38,6 @@ import (
 // between releases is covered.
 const (
 	codexProfilesFile = "internal/agents/codex/profiles.go"
-	kimiModuleAsset   = "internal/assets/kimi/sdd-orchestrator.md"
-	kimiModuleKey     = "modules/sdd-orchestrator.md"
 	claudeModelFile   = "internal/model/claude_model.go"
 	claudeWorkflowKey = "skills/_shared/sdd-orchestrator-workflow.md"
 	replayTestFile    = "zz_gentle_ai_replay_test.go"
@@ -53,10 +48,7 @@ const (
 )
 
 var (
-	kimiModuleWrite     = regexp.MustCompile(`(?m)^\s*content := (.+)\n\s*modulePath := filepath\.Join\(configDir, "sdd-orchestrator\.md"\)\n\s*writeResult, err := filemerge\.WriteFileAtomic\(modulePath, \[\]byte\(content\), 0o644\)$`)
-	kimiVerbatimAsset   = regexp.MustCompile(`case model\.AgentKimi:\n\s*return "kimi/sdd-orchestrator\.md"`)
 	sessionPreflight    = "prompt, lazyWorkflow, workflows, err := prepareSessionPreflight(homeDir, adapter, opts)"
-	promptReassignment  = regexp.MustCompile(`(?m)^\s*prompt\s*(?:=|\+=)[^=]`)
 	codexWriterArgs     = map[string]string{"func WriteCodexProfiles(codexHomeDir string) (": "", "func WriteCodexProfiles(codexHomeDir string, assignments []ProfileAssignment) (": ", nil"}
 	codexProfilePaths   = "func SddProfilePaths(codexHomeDir string) []string"
 	modulePath          = regexp.MustCompile(`(?m)^module (\S+)$`)
@@ -75,7 +67,7 @@ var (
 
 type replayGroup struct {
 	tags []string
-	// kind is the render a group replays: kimi, claude, or codex.
+	// kind is the render a group replays: claude or codex.
 	kind string
 	pkg  string
 	// test is the replay test source with the module path still to fill in.
@@ -86,63 +78,24 @@ type replayGroup struct {
 }
 
 type replayHarvest struct {
-	kimi, claude, codex []*replayGroup
-	byKey               map[string]*replayGroup
-	// verbatim maps a tag to the Kimi asset it installed unchanged.
-	verbatim map[string]string
-	tmp      string
+	claude, codex []*replayGroup
+	byKey         map[string]*replayGroup
+	tmp           string
 }
 
 func newReplayHarvest() *replayHarvest {
-	return &replayHarvest{byKey: map[string]*replayGroup{}, verbatim: map[string]string{}}
+	return &replayHarvest{byKey: map[string]*replayGroup{}}
 }
 
-// collect classifies one release's Kimi module, Claude Code workflow, and
-// Codex profile writers.
+// collect classifies one release's Claude Code workflow and Codex profile
+// writers.
 func (h *replayHarvest) collect(tag string, files map[string]string) {
-	if blob, ok := files[kimiModuleAsset]; ok {
-		h.collectKimi(tag, files, cachedBlob(blob))
-	}
 	if blob, ok := files[sddInjectFile]; ok && strings.Contains(cachedBlob(blob), claudeWriter) {
 		h.collectClaude(tag, files, cachedBlob(blob))
 	}
 	if blob, ok := files[codexProfilesFile]; ok {
 		h.collectCodex(tag, cachedBlob(blob))
 	}
-}
-
-func (h *replayHarvest) collectKimi(tag string, files map[string]string, asset string) {
-	inject := cachedBlob(files[sddInjectFile])
-	m := kimiModuleWrite.FindStringSubmatch(inject)
-	if m == nil {
-		fail("%s: the Kimi sdd-orchestrator.md module write is not recognized; update the generator", tag)
-	}
-	var render string
-	switch expr := strings.TrimSpace(m[1]); expr {
-	case "assets.MustRead(sddOrchestratorAsset(adapter.Agent()))":
-		if !kimiVerbatimAsset.MatchString(inject) {
-			fail("%s: sddOrchestratorAsset does not map Kimi to its own asset; update the generator", tag)
-		}
-		h.verbatim[tag] = asset
-		return
-	case "renderSDDOrchestratorAsset(adapter.Agent())", "renderSDDOrchestratorAsset(adapter.Agent(), opts.orchestratorPolicyRenderOptions())":
-		render = "\treturn " + expr + "\n"
-	case "prompt":
-		body := inject[strings.Index(inject, "\nfunc Inject("):]
-		body = body[:strings.Index(body[1:], "\nfunc ")+1]
-		if strings.Count(body, sessionPreflight) != 1 || promptReassignment.MatchString(body) {
-			fail("%s: the Kimi module prompt is not the session preflight render; update the generator", tag)
-		}
-		render = "\tprompt, _, _, err := prepareSessionPreflight(homeDir, adapter, opts)\n\tif err != nil {\n\t\tt.Fatal(err)\n\t}\n\treturn prompt\n"
-	default:
-		fail("%s: Kimi module render %q is not recognized; update the generator", tag, expr)
-	}
-	options := "\treturn []InjectOptions{{}}\n"
-	if strings.Contains(render, "opts") {
-		options = kimiReplayPolicyOptions
-	}
-	test := fmt.Sprintf(kimiReplayTest, options, render)
-	h.group("kimi", tag, "./internal/components/sdd", test, "internal/components", "internal/assets", "internal/model", "internal/agents")
 }
 
 // collectClaude replays the release's writeClaudeLazySDDWorkflow with every
@@ -210,8 +163,6 @@ func (h *replayHarvest) group(kind, tag, pkg, test string, trees ...string) {
 	g := &replayGroup{tags: []string{tag}, kind: kind, pkg: pkg, test: test}
 	h.byKey[key] = g
 	switch kind {
-	case "kimi":
-		h.kimi = append(h.kimi, g)
 	case "claude":
 		h.claude = append(h.claude, g)
 	default:
@@ -219,12 +170,12 @@ func (h *replayHarvest) group(kind, tag, pkg, test string, trees ...string) {
 	}
 }
 
-// groups lists every replay group: Kimi, Claude Code, then Codex.
+// groups lists every replay group: Claude Code, then Codex.
 func (h *replayHarvest) groups() []*replayGroup {
-	return slices.Concat(h.kimi, h.claude, h.codex)
+	return slices.Concat(h.claude, h.codex)
 }
 
-// run replays every group: Kimi and Claude Code once, Codex until its
+// run replays every group: Claude Code once, Codex until its
 // renders are closed under every upgrade.
 func (h *replayHarvest) run() {
 	var err error
@@ -237,7 +188,7 @@ func (h *replayHarvest) run() {
 	for i, g := range h.groups() {
 		g.dir = filepath.Join(h.tmp, strconv.Itoa(i))
 	}
-	parallel(slices.Concat(h.kimi, h.claude), func(g *replayGroup) { g.replay(nil) })
+	parallel(h.claude, func(g *replayGroup) { g.replay(nil) })
 	// Groups are in first-release order. Each writer rewrites absence, every
 	// render an earlier release left, and its own renders until they are
 	// stable. Downgrades are not modeled: a v1.36.0 writer appends a blank
@@ -336,14 +287,6 @@ func (h *replayHarvest) register(tags []string, assets *assetHarvest) {
 		}
 	}
 	for _, tag := range tags {
-		if asset, ok := h.verbatim[tag]; ok {
-			assets.add(kimiModuleKey, asset, tag)
-		}
-		if g := groupOf["kimi"+tag]; g != nil {
-			for _, render := range g.outputs["kimi"] {
-				assets.add(kimiModuleKey, render, tag)
-			}
-		}
 		if g := groupOf["claude"+tag]; g != nil {
 			for _, render := range g.outputs["claude"] {
 				assets.add(claudeWorkflowKey, render, tag)
@@ -360,7 +303,7 @@ func (h *replayHarvest) register(tags []string, assets *assetHarvest) {
 			}
 		}
 	}
-	fmt.Fprintf(os.Stderr, "gen-sdd-agent-digests: replayed %d Kimi module, %d Claude Code workflow, and %d Codex profile writers\n", len(h.kimi), len(h.claude), len(h.codex))
+	fmt.Fprintf(os.Stderr, "gen-sdd-agent-digests: replayed %d Claude Code workflow and %d Codex profile writers\n", len(h.claude), len(h.codex))
 }
 
 func sortedKeys(m map[string][]string) []string {
@@ -428,56 +371,6 @@ func readFile(path string) string {
 	}
 	return string(data)
 }
-
-const kimiReplayTest = `package sdd
-
-import (
-	"os"
-	"path/filepath"
-	"reflect"
-	"strconv"
-	"testing"
-
-	"{{MODULE}}/internal/agents/kimi"
-)
-
-var _ = reflect.TypeOf
-
-func TestGentleAIReplay(t *testing.T) {
-	out := os.Getenv("GENTLE_AI_REPLAY_OUT")
-	for i, opts := range gentleAIReplayOptions(t) {
-		dir := filepath.Join(out, strconv.Itoa(i))
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(filepath.Join(dir, "kimi"), []byte(gentleAIReplayRender(t, t.TempDir(), kimi.NewAdapter(), opts)), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-}
-
-// gentleAIReplayOptions covers every value of the orchestrator policy the
-// release's render reads from its options.
-func gentleAIReplayOptions(t *testing.T) []InjectOptions {
-%s}
-
-func gentleAIReplayRender(t *testing.T, homeDir string, adapter *kimi.Adapter, opts InjectOptions) string {
-	_, _ = homeDir, opts
-%s}
-`
-
-const kimiReplayPolicyOptions = `	policy := reflect.TypeOf(OrchestratorRenderOptions{})
-	if policy.NumField() != 1 || policy.Field(0).Type.Kind() != reflect.Bool {
-		t.Fatalf("OrchestratorRenderOptions changed shape; update the generator")
-	}
-	var on InjectOptions
-	field := reflect.ValueOf(&on).Elem().FieldByName(policy.Field(0).Name)
-	if !field.IsValid() || field.Kind() != reflect.Bool {
-		t.Fatalf("InjectOptions has no %s policy option; update the generator", policy.Field(0).Name)
-	}
-	field.SetBool(true)
-	return []InjectOptions{{}, on}
-`
 
 const claudeReplayTest = `package sdd
 

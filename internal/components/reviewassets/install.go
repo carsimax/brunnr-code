@@ -86,7 +86,7 @@ func InstallNativeAgents(home string, adapter agents.Adapter, opts InstallOption
 	if err := journal.Capture(ledgerFile); err != nil {
 		return InstallResult{}, fmt.Errorf("capture ownership ledger: %w", err)
 	}
-	ledger, _, err := readOwnership(ledgerFile, names)
+	ledger, err := readOwnership(ledgerFile, names)
 	if err != nil {
 		return InstallResult{}, err
 	}

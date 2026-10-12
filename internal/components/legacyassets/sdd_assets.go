@@ -16,11 +16,10 @@ import (
 // "<kind>/<path relative to the kind's directory>", so one key covers every
 // runtime that received the file.
 const (
-	sddSkillKind    = "skills/"
-	sddCommandKind  = "commands/"
-	sddWorkflowKind = "workflows/"
-	sddProfileKind  = "profiles/"
-	sddSharedDir    = "_shared/"
+	sddSkillKind   = "skills/"
+	sddCommandKind = "commands/"
+	sddProfileKind = "profiles/"
+	sddSharedDir   = "_shared/"
 )
 
 // claudeSDDWorkflowKey is the lazy SDD workflow v1.43.3 to v3.7.0 rendered
@@ -61,13 +60,13 @@ func RetiredSDDAssetDigest(key, content string) string {
 // SDDAssetDirs are the directories where one runtime received retired SDD
 // files. An empty field means the runtime has no such directory.
 type SDDAssetDirs struct {
-	Skills, Commands, Workflows string
+	Skills, Commands string
 	// CodexHome received the sdd-{strong,mid,cheap} Codex profiles.
 	CodexHome string
 }
 
 // PresentRetiredSDDAssetPaths lists, sorted, the retired SDD skill, slash
-// command, workflow, and Codex profile paths under dirs that
+// command, and Codex profile paths under dirs that
 // exist and that retirement may touch: none behind a directory that is not a
 // real directory. Install, sync, and upgrade snapshot exactly these, and
 // retirement inspects only the same inventory.
@@ -113,8 +112,6 @@ func retiredSDDAssetItems(agent model.AgentID, dirs SDDAssetDirs) []sddAssetItem
 			add(dirs.Skills, key, key)
 		case dirs.Skills != "" && rel != key:
 			add(dirs.Skills, key, sddSkillKind+strings.SplitN(rel, "/", 2)[0])
-		case dirs.Workflows != "" && strings.HasPrefix(key, sddWorkflowKind):
-			add(dirs.Workflows, key, key)
 		case dirs.CodexHome != "" && strings.HasPrefix(key, sddProfileKind):
 			add(dirs.CodexHome, key, key)
 		}

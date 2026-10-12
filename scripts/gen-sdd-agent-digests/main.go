@@ -4,10 +4,10 @@
 // render (issues #5157, #5253). Digests use legacyassets.NormalizeSDDAgent,
 // the same function ownership checks run on installed files.
 //
-// It also writes the asset registry (see assets.go): every retired SDD skill, slash
-// command, and Windsurf workflow render, proven against the golden renders,
-// plus Codex's SDD profiles, Kimi's SDD module, and Claude Code's lazy SDD
-// workflow, proven by replaying each release's own writer (see replay.go).
+// It also writes the asset registry (see assets.go): every retired SDD skill
+// and slash command render, proven against the golden renders, plus Codex's
+// SDD profiles and Claude Code's lazy SDD workflow, proven by replaying each
+// release's own writer (see replay.go).
 //
 // SDD was retired in v4.0.0, so the release set is closed at that tag and
 // later releases never change the registry. Fetch tags first:

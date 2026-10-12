@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"gopkg.in/yaml.v3"
 )
 
 // SDDAgentFamilies maps each runtime that received native SDD sub-agents to
@@ -140,46 +139,16 @@ func OwnsRetiredSDDAgent(agent model.AgentID, name string, content []byte) bool 
 	return slices.Contains(releasedSDDAgentDigests[family+"/"+name], SDDAgentDigest(string(content)))
 }
 
-// PreserveReason says why retirement kept an inventory file.
-type PreserveReason int
-
-const (
-	// PreservedUnproven: no release wrote these bytes, or it is not a
-	// regular file, so it may hold the user's changes.
-	PreservedUnproven PreserveReason = iota + 1
-	// PreservedPairUnproven: the file is a release's bytes, but the other
-	// half of its pair is unproven, so removing it would break the pair.
-	PreservedPairUnproven
-)
-
-// PreservedSDDAgent is one inventory file retirement kept, with its reason.
-type PreservedSDDAgent struct {
-	Path   string
-	Reason PreserveReason
-}
-
-// SDDAgentReference is an agent file in the same directory that still
-// references owned retired SDD agent files, which were kept so it loads.
-type SDDAgentReference struct {
-	Parent string
-	Agents []string
-}
-
-// RetireResult lists the files a retirement removed, the inventory files it
-// preserved because ownership could not be proven, and the owned files it kept
-// because another agent still references them.
+// RetireResult lists the files a retirement removed and the inventory files
+// it preserved because ownership could not be proven.
 type RetireResult struct {
-	Removed    []string
-	Preserved  []PreservedSDDAgent
-	Referenced []SDDAgentReference
+	Removed   []string
+	Preserved []string
 }
 
 // RetireSDDAgents removes the retired SDD sub-agents in dir that Gentle AI
-// rendered. Files sharing a stem (a YAML agent and its prompt) are one agent:
-// it is removed only when every present file is owned. Symlinks, non-regular
-// files, and bytes no release rendered are preserved and reported. A file any
-// remaining YAML agent in dir still references is never removed, whoever owns
-// that agent, so retirement never leaves a dangling subagent path.
+// rendered. Symlinks, non-regular files, and bytes no release rendered are
+// preserved and reported.
 func RetireSDDAgents(agent model.AgentID, dir string) (RetireResult, error) {
 	var result RetireResult
 	// A symlinked agents directory (dotfiles) is followed like every writer
@@ -191,186 +160,41 @@ func RetireSDDAgents(agent model.AgentID, dir string) (RetireResult, error) {
 	} else if !info.IsDir() {
 		return result, nil
 	}
-	groups := map[string][]string{}
-	var stems []string
 	for _, name := range RetiredSDDAgentFiles(agent) {
-		stem := strings.TrimSuffix(name, filepath.Ext(name))
-		if _, seen := groups[stem]; !seen {
-			stems = append(stems, stem)
-		}
-		groups[stem] = append(groups[stem], name)
-	}
-	slices.Sort(stems)
-	present := map[string][]string{}
-	removable := map[string]bool{}
-	for _, stem := range stems {
-		var unproven, owned []string
-		for _, name := range groups[stem] {
-			path := filepath.Join(dir, name)
-			info, err := os.Lstat(path)
-			if os.IsNotExist(err) {
-				continue
-			}
-			if err != nil {
-				return result, fmt.Errorf("inspect retired SDD agent %s: %w", path, err)
-			}
-			present[stem] = append(present[stem], path)
-			if !info.Mode().IsRegular() {
-				unproven = append(unproven, path)
-				continue
-			}
-			data, err := os.ReadFile(path)
-			if err != nil {
-				return result, fmt.Errorf("read retired SDD agent %s: %w", path, err)
-			}
-			if OwnsRetiredSDDAgent(agent, name, data) {
-				owned = append(owned, path)
-			} else {
-				unproven = append(unproven, path)
-			}
-		}
-		if len(present[stem]) == 0 {
+		path := filepath.Join(dir, name)
+		info, err := os.Lstat(path)
+		if os.IsNotExist(err) {
 			continue
 		}
-		if len(unproven) == 0 {
-			removable[stem] = true
+		if err != nil {
+			return result, fmt.Errorf("inspect retired SDD agent %s: %w", path, err)
+		}
+		if !info.Mode().IsRegular() {
+			result.Preserved = append(result.Preserved, path)
 			continue
 		}
-		for _, path := range unproven {
-			result.Preserved = append(result.Preserved, PreservedSDDAgent{Path: path, Reason: PreservedUnproven})
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return result, fmt.Errorf("read retired SDD agent %s: %w", path, err)
 		}
-		for _, path := range owned {
-			result.Preserved = append(result.Preserved, PreservedSDDAgent{Path: path, Reason: PreservedPairUnproven})
-		}
-	}
-	referenced, err := referencedSDDAgents(dir, present, removable)
-	if err != nil {
-		return result, err
-	}
-	result.Referenced = referenced
-	for _, stem := range stems {
-		if !removable[stem] {
+		if !OwnsRetiredSDDAgent(agent, name, data) {
+			result.Preserved = append(result.Preserved, path)
 			continue
 		}
-		for _, path := range present[stem] {
-			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-				return result, fmt.Errorf("remove retired SDD agent %s: %w", path, err)
-			}
-			result.Removed = append(result.Removed, path)
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return result, fmt.Errorf("remove retired SDD agent %s: %w", path, err)
 		}
+		result.Removed = append(result.Removed, path)
 	}
-	slices.SortFunc(result.Preserved, func(a, b PreservedSDDAgent) int { return strings.Compare(a.Path, b.Path) })
+	slices.Sort(result.Preserved)
 	return result, nil
-}
-
-// referencedSDDAgents withdraws from removable every stem a YAML agent that
-// will remain in dir references, repeating until no kept agent references a
-// removable one. It returns the references grouped by parent file.
-func referencedSDDAgents(dir string, present map[string][]string, removable map[string]bool) ([]SDDAgentReference, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("list agents directory %s: %w", dir, err)
-	}
-	stemOf := map[string]string{}
-	for stem, paths := range present {
-		for _, path := range paths {
-			stemOf[path] = stem
-		}
-	}
-	held := map[string]map[string]bool{}
-	for changed := true; changed; {
-		changed = false
-		for _, entry := range entries {
-			ext := filepath.Ext(entry.Name())
-			parent := filepath.Join(dir, entry.Name())
-			if (ext != ".yaml" && ext != ".yml") || removable[stemOf[parent]] {
-				continue
-			}
-			if info, err := os.Stat(parent); err != nil || !info.Mode().IsRegular() {
-				continue
-			}
-			data, err := os.ReadFile(parent)
-			if err != nil {
-				return nil, fmt.Errorf("read agent %s: %w", parent, err)
-			}
-			for _, path := range referencedPaths(dir, data, stemOf) {
-				stem := stemOf[path]
-				if !removable[stem] || stem == stemOf[parent] {
-					continue
-				}
-				delete(removable, stem)
-				if held[parent] == nil {
-					held[parent] = map[string]bool{}
-				}
-				held[parent][stem] = true
-				changed = true
-			}
-		}
-	}
-	var references []SDDAgentReference
-	for parent, stems := range held {
-		reference := SDDAgentReference{Parent: parent}
-		for stem := range stems {
-			reference.Agents = append(reference.Agents, present[stem]...)
-		}
-		slices.Sort(reference.Agents)
-		references = append(references, reference)
-	}
-	slices.SortFunc(references, func(a, b SDDAgentReference) int { return strings.Compare(a.Parent, b.Parent) })
-	return references, nil
-}
-
-// referencedPaths returns the inventory files a YAML agent references: any
-// string value that resolves, relative to dir, to one of them. Unparseable
-// YAML references every inventory file whose name it mentions, since keeping
-// a file is the safe failure.
-func referencedPaths(dir string, data []byte, inventory map[string]string) []string {
-	var found []string
-	var doc yaml.Node
-	if err := yaml.Unmarshal(data, &doc); err != nil {
-		for path := range inventory {
-			if strings.Contains(string(data), filepath.Base(path)) {
-				found = append(found, path)
-			}
-		}
-		return found
-	}
-	var walk func(*yaml.Node)
-	walk = func(node *yaml.Node) {
-		if node.Kind == yaml.ScalarNode {
-			value := strings.TrimSpace(node.Value)
-			if value == "" {
-				return
-			}
-			path := filepath.Clean(value)
-			if !filepath.IsAbs(path) {
-				path = filepath.Join(dir, path)
-			}
-			if _, ok := inventory[path]; ok {
-				found = append(found, path)
-			}
-		}
-		for _, child := range node.Content {
-			walk(child)
-		}
-	}
-	walk(&doc)
-	return found
 }
 
 // ManualActions tells the user what to do with every file retirement kept.
 func (r RetireResult) ManualActions() []string {
-	actions := make([]string, 0, len(r.Preserved)+len(r.Referenced))
-	for _, preserved := range r.Preserved {
-		switch preserved.Reason {
-		case PreservedPairUnproven:
-			actions = append(actions, fmt.Sprintf("Retired SDD agent %s was kept because its pair is user-edited: this file is exactly what a Gentle AI release installed, but removing it alone would break the agent its edited pair defines. SDD was retired in v4.0.0; if you no longer need that agent, move or delete both files.", preserved.Path))
-		default:
-			actions = append(actions, fmt.Sprintf("Retired SDD agent %s was preserved: Gentle AI cannot prove it wrote this file (its content differs from every released version, or it is not a regular file), so it may contain your changes. SDD was retired in v4.0.0 and this agent is no longer maintained; if you no longer need it, move or delete it.", preserved.Path))
-		}
-	}
-	for _, reference := range r.Referenced {
-		actions = append(actions, fmt.Sprintf("%s still references retired SDD agent files %s, so they were kept to avoid breaking it. SDD was retired in v4.0.0: remove those subagent entries from it (or move or delete it), then rerun `gentle-ai sync` to retire them.", reference.Parent, strings.Join(reference.Agents, ", ")))
+	actions := make([]string, 0, len(r.Preserved))
+	for _, path := range r.Preserved {
+		actions = append(actions, fmt.Sprintf("Retired SDD agent %s was preserved: Gentle AI cannot prove it wrote this file (its content differs from every released version, or it is not a regular file), so it may contain your changes. SDD was retired in v4.0.0 and this agent is no longer maintained; if you no longer need it, move or delete it.", path))
 	}
 	return actions
 }

@@ -1358,31 +1358,6 @@ func (s componentApplyStep) ID() string {
 	return s.id
 }
 
-// computeSlugSlimVerdicts implements the Per-slug forwarding semantics
-// (design.md Decision 4): a slug only forwards --protocol=slim when every
-// adapter sharing it independently verifies slim (safest-wins AND
-// semantics). isSlim is injected so tests can pin the AND logic with a
-// synthetic slim+full pair sharing a slug (JD-017), independent of the real
-// IsVerifiedSlimAdapter matrix (which today only ever verifies Claude Code).
-func computeSlugSlimVerdicts(agentIDs []model.AgentID, isSlim func(model.AgentID) bool) map[string]bool {
-	verdicts := make(map[string]bool, len(agentIDs))
-	seen := make(map[string]bool, len(agentIDs))
-	for _, agent := range agentIDs {
-		slug, ok := engram.SetupAgentSlug(agent)
-		if !ok {
-			continue
-		}
-		verdict := isSlim(agent)
-		if !seen[slug] {
-			verdicts[slug] = verdict
-			seen[slug] = true
-		} else {
-			verdicts[slug] = verdicts[slug] && verdict
-		}
-	}
-	return verdicts
-}
-
 // resolveAdapters creates adapters for each agent ID, skipping unsupported ones.
 func resolveAdapters(agentIDs []model.AgentID) []agents.Adapter {
 	adapters := make([]agents.Adapter, 0, len(agentIDs))
@@ -1595,20 +1570,6 @@ func (s componentApplyStep) Run() error {
 			}
 		}
 
-		// Compute the safest-wins verdict per setup slug (Per-slug
-		// forwarding semantics, design.md): a slug only forwards
-		// --protocol=slim when every adapter sharing it independently
-		// verifies slim. Extracted into computeSlugSlimVerdicts (JD-017) so
-		// the AND semantics can be pinned with a synthetic divergent-slug
-		// case independent of the RunInstall integration path.
-		agentIDs := make([]model.AgentID, 0, len(adapters))
-		for _, adapter := range adapters {
-			agentIDs = append(agentIDs, adapter.Agent())
-		}
-		slugSlimVerdict := computeSlugSlimVerdicts(agentIDs, func(agent model.AgentID) bool {
-			return engram.IsVerifiedSlimAdapter(agent, engramVersion)
-		})
-
 		attemptedSlugs := make(map[string]struct{}, len(adapters))
 		for _, adapter := range adapters {
 			if willAttemptSetup && engram.ShouldAttemptSetup(setupMode, adapter.Agent()) {
@@ -1617,7 +1578,7 @@ func (s componentApplyStep) Run() error {
 					setupArgs := []string{"setup", slug}
 					if protocolFlagSupported {
 						mode := "full"
-						if slugSlimVerdict[slug] {
+						if engram.IsVerifiedSlimAdapter(adapter.Agent(), engramVersion) {
 							mode = "slim"
 						}
 						setupArgs = append(setupArgs, "--protocol="+mode)

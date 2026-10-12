@@ -124,7 +124,7 @@ func TestRetireSDDAgentsRemovesOnlyOwnedFilesAndIsIdempotent(t *testing.T) {
 	if !slices.Equal(result.Removed, []string{owned}) {
 		t.Errorf("removed = %v, want only %s", result.Removed, owned)
 	}
-	if want := []string{filepath.Join(dir, "sdd-explore.md"), edited}; !slices.Equal(preservedPaths(result), want) {
+	if want := []string{filepath.Join(dir, "sdd-explore.md"), edited}; !slices.Equal(result.Preserved, want) {
 		t.Errorf("preserved = %v, want %v", result.Preserved, want)
 	}
 	for _, path := range []string{edited, kept, filepath.Join(dir, "sdd-explore.md")} {
@@ -147,14 +147,6 @@ func TestRetireSDDAgentsRemovesOnlyOwnedFilesAndIsIdempotent(t *testing.T) {
 	if len(actions) != 2 || !strings.Contains(actions[1], edited) || !strings.Contains(actions[1], "move or delete it") {
 		t.Errorf("preserved actions are not actionable: %v", actions)
 	}
-}
-
-func preservedPaths(result RetireResult) []string {
-	paths := make([]string, 0, len(result.Preserved))
-	for _, preserved := range result.Preserved {
-		paths = append(paths, preserved.Path)
-	}
-	return paths
 }
 
 func TestRetireSDDAgentsFollowsSymlinkedAgentsDirectory(t *testing.T) {

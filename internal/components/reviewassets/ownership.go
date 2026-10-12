@@ -23,8 +23,9 @@ type ownershipLedger struct {
 
 func installedHash(data []byte) string { return managedownership.Hash(data) }
 
-func readOwnership(path string, names []string) (ownershipLedger, bool, error) {
-	return managedownership.Read[ownershipLedger](path, names)
+func readOwnership(path string, names []string) (ownershipLedger, error) {
+	ledger, _, err := managedownership.Read[ownershipLedger](path, names)
+	return ledger, err
 }
 
 func nativeFile(path string) ([]byte, bool, error) {
