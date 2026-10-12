@@ -107,7 +107,7 @@ func TestEngramStepUsesCallerSuppliedBinary(t *testing.T) {
 	step := componentApplyStep{
 		component: model.ComponentEngram, homeDir: home, workspaceDir: t.TempDir(), scope: ScopeGlobal,
 		agents: []model.AgentID{model.AgentClaudeCode}, selection: model.Selection{Components: []model.ComponentID{model.ComponentEngram}},
-		profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}, state: state,
+		profile: system.PlatformProfile{OS: "darwin", Supported: true}, state: state,
 	}
 	if err := step.Run(); err != nil {
 		t.Fatalf("engram step error = %v", err)
@@ -119,7 +119,7 @@ func TestEngramStepUsesCallerSuppliedBinary(t *testing.T) {
 		}
 	}
 	for _, name := range lookedUp {
-		if name == "engram" || name == "brew" || name == "go" {
+		if name == "engram" || name == "go" {
 			t.Fatalf("engram step looked up %q on PATH despite %s", name, system.EngramBinEnv)
 		}
 	}

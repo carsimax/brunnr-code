@@ -40,12 +40,12 @@ func TestPlatformDecisionFromProfileMatrix(t *testing.T) {
 		want    PlatformDecision
 	}{
 		{
-			name: "darwin profile maps to brew decision",
+			name: "darwin profile maps to a decision without a package manager",
 			profile: system.PlatformProfile{
-				OS: "darwin", PackageManager: "brew", Supported: true,
+				OS: "darwin", Supported: true,
 			},
 			want: PlatformDecision{
-				OS: "darwin", PackageManager: "brew", Supported: true,
+				OS: "darwin", Supported: true,
 			},
 		},
 		{
@@ -89,7 +89,7 @@ func TestPlatformDecisionFromProfileMatrix(t *testing.T) {
 
 func TestBuildReviewPayloadPlatformDecisionPropagatesPerProfile(t *testing.T) {
 	profiles := []PlatformDecision{
-		{OS: "darwin", PackageManager: "brew", Supported: true},
+		{OS: "darwin", Supported: true},
 		{OS: "linux", LinuxDistro: "ubuntu", PackageManager: "apt", Supported: true},
 		{OS: "linux", LinuxDistro: "arch", PackageManager: "pacman", Supported: true},
 		{OS: "linux", LinuxDistro: system.LinuxDistroFedora, PackageManager: "dnf", Supported: true},

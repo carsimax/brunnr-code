@@ -321,7 +321,7 @@ func TestLinuxDryRunPreservesSameResolverOutputAsMacOS(t *testing.T) {
 }
 
 func TestGuardFlowMacOSProfileExplicitlyPasses(t *testing.T) {
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
+	profile := system.PlatformProfile{OS: "darwin", Supported: true}
 	if err := system.EnsureSupportedPlatform(profile); err != nil {
 		t.Fatalf("macOS profile should pass guard, got %v", err)
 	}

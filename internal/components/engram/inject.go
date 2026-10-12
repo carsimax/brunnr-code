@@ -350,7 +350,7 @@ func injectClaudeUserConfig(homeDir string, adapter agents.Adapter) (InjectionRe
 	legacyManaged := false
 	if raw, err := os.ReadFile(legacyPath); err == nil {
 		if legacyCommand, ok := managedLegacyClaudeEngramCommand(raw); ok {
-			command = stableEngramCommandForExisting(legacyCommand, model.AgentClaudeCode)
+			command = legacyCommand
 			legacyManaged = true
 		}
 	} else if !os.IsNotExist(err) {
@@ -446,22 +446,11 @@ func stableEngramCommandForMergedConfig(path string, agentID model.AgentID) stri
 	raw, err := osReadFile(path)
 	if err == nil {
 		if cmd, ok := existingMergedEngramCommand(raw, agentID); ok {
-			return stableEngramCommandForExisting(cmd, agentID)
+			return cmd
 		}
 	}
 
 	return preferredStableEngramCommand()
-}
-
-func stableEngramCommandForExisting(cmd string, _ model.AgentID) string {
-	if isVersionedHomebrewCellarPath(cmd) {
-		if stable := preferredStableEngramCommand(); stable != "" {
-			return stable
-		}
-		return "engram"
-	}
-
-	return cmd
 }
 
 func preferredStableEngramCommand() string {
@@ -469,7 +458,7 @@ func preferredStableEngramCommand() string {
 		return bin
 	}
 	p, err := EngramLookPath("engram")
-	if err == nil && isStableHomebrewEngramPath(p) {
+	if err == nil && isStableEngramPath(p) {
 		return p
 	}
 	return "engram"
@@ -557,7 +546,6 @@ func buildSeparateMCPContent(mcpPath string, defaultContent []byte) []byte {
 		// No command, or not an engram command — use the default.
 		return defaultContent
 	}
-	cmd = stableEngramCommandForExisting(cmd, "")
 
 	// Rebuild with the preserved command and the canonical args (["mcp", "--tools=agent"]).
 	rebuilt := map[string]any{
@@ -675,19 +663,10 @@ func isEngramCommand(cmd string) bool {
 	return base == "engram"
 }
 
-func isVersionedHomebrewCellarPath(path string) bool {
-	clean := filepath.ToSlash(filepath.Clean(path))
-	return strings.Contains(clean, "/Cellar/engram/") && isEngramCommand(clean)
-}
-
-func isStableHomebrewEngramPath(path string) bool {
-	clean := filepath.ToSlash(filepath.Clean(path))
-	switch clean {
-	case "/opt/homebrew/bin/engram", "/usr/local/bin/engram", "/home/linuxbrew/.linuxbrew/bin/engram":
-		return isEngramCommand(clean)
-	default:
-		return false
-	}
+// isStableEngramPath reports whether path is the system-wide location the
+// Engram release download installs to on Linux and macOS.
+func isStableEngramPath(path string) bool {
+	return filepath.ToSlash(filepath.Clean(path)) == "/usr/local/bin/engram"
 }
 
 func validServiceTier(tier string) string {

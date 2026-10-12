@@ -10,7 +10,7 @@ import (
 )
 
 // CallerBinary returns the caller-supplied Engram executable named by
-// system.EngramBinEnv. When it is set, install uses it as is: no brew, no
+// system.EngramBinEnv. When it is set, install uses it as is: no
 // download, no `go install` and no PATH change. Only an absolute value
 // counts; ValidateCallerBinary rejects anything else at startup.
 func CallerBinary() (string, bool) {

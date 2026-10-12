@@ -52,8 +52,7 @@ const engramCoreTagPattern = `^v[0-9]+\.[0-9]+\.[0-9]+$`
 // unavailable, if the archive is not listed, or if
 // the digest does not match.
 //
-// This is the non-brew installation method for Linux and Windows.
-// On macOS, brew handles engram transitively and this should not be called.
+// This is the Engram installation method on every platform.
 func DownloadLatestBinary(profile system.PlatformProfile) (string, error) {
 	ctx := context.Background()
 

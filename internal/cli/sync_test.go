@@ -488,7 +488,7 @@ func TestComponentSyncStepSkipsEngramBinaryInstall(t *testing.T) {
 
 	// No binary install or engram setup commands should have been recorded.
 	for _, cmd := range commandsCalled {
-		if strings.Contains(cmd, "brew install") || strings.Contains(cmd, "go install") {
+		if strings.Contains(cmd, "go install") {
 			t.Errorf("componentSyncStep must not run binary install, got command: %s", cmd)
 		}
 		if strings.Contains(cmd, "engram setup") {
@@ -1089,7 +1089,7 @@ func TestRunSyncDoesNotInstallBinaries(t *testing.T) {
 
 	// No binary installation commands.
 	for _, cmd := range commandsCalled {
-		if strings.Contains(cmd, "brew install") || strings.Contains(cmd, "go install") ||
+		if strings.Contains(cmd, "go install") ||
 			strings.Contains(cmd, "git clone") || strings.Contains(cmd, "npm install") {
 			t.Errorf("RunSync must NOT install binaries, got command: %s", cmd)
 		}

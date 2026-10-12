@@ -11,7 +11,7 @@ func TestVerifyInstalled(t *testing.T) {
 	original := lookPath
 	t.Cleanup(func() { lookPath = original })
 
-	lookPath = func(string) (string, error) { return "/opt/homebrew/bin/engram", nil }
+	lookPath = func(string) (string, error) { return "/usr/local/bin/engram", nil }
 	if err := VerifyInstalled(); err != nil {
 		t.Fatalf("VerifyInstalled() error = %v", err)
 	}

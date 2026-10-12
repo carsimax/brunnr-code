@@ -3,7 +3,6 @@ package cli
 import (
 	"testing"
 
-	"github.com/carsimax/brunnr-code/internal/installcmd"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/system"
 )
@@ -24,17 +23,9 @@ func TestCheckDependenciesStepDoesNotRequireUVForOtherAgents(t *testing.T) {
 	// Claude Code requires npm (not uv), and Claude Code is not Pi, so this
 	// step never even reaches a preflight check for it — proving uv is not
 	// required for npm agents this step no longer preflights at all.
-	restore := installcmd.OverrideLookPath(func(file string) (string, error) {
-		if file == "npm" {
-			return "/usr/local/bin/npm", nil
-		}
-		return "", errNotFound{}
-	})
-	t.Cleanup(restore)
-
 	step := checkDependenciesStep{
 		id:      "prepare:check-dependencies",
-		profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true},
+		profile: system.PlatformProfile{OS: "darwin", Supported: true},
 		selection: model.Selection{
 			Agents: []model.AgentID{model.AgentClaudeCode},
 		},
@@ -44,10 +35,6 @@ func TestCheckDependenciesStepDoesNotRequireUVForOtherAgents(t *testing.T) {
 		t.Fatalf("checkDependenciesStep.Run() unexpected error = %v", err)
 	}
 }
-
-type errNotFound struct{}
-
-func (errNotFound) Error() string { return "not found" }
 
 // --- npm preflight tests (Bug A: node/npm missing gate) ---
 //
@@ -61,14 +48,6 @@ func (errNotFound) Error() string { return "not found" }
 // anymore, for a stronger reason than a nicer error message.
 
 func TestCheckDependenciesStepDoesNotBlockClaudeCodeOnMissingNpm(t *testing.T) {
-	restore := installcmd.OverrideLookPath(func(file string) (string, error) {
-		if file == "npm" {
-			return "", errNotFound{}
-		}
-		return "/usr/bin/" + file, nil
-	})
-	t.Cleanup(restore)
-
 	step := checkDependenciesStep{
 		id:      "prepare:check-dependencies",
 		profile: windowsProfile,
@@ -83,12 +62,6 @@ func TestCheckDependenciesStepDoesNotBlockClaudeCodeOnMissingNpm(t *testing.T) {
 }
 
 func TestCheckDependenciesStepPassesWhenNpmPresent(t *testing.T) {
-	restore := installcmd.OverrideLookPath(func(file string) (string, error) {
-		// npm is present, everything else is too
-		return "/usr/bin/" + file, nil
-	})
-	t.Cleanup(restore)
-
 	for _, agent := range []model.AgentID{
 		model.AgentClaudeCode,
 	} {

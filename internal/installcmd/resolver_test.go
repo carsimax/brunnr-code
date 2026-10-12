@@ -1,144 +1,12 @@
 package installcmd
 
 import (
-	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/system"
 )
-
-func TestValidateGoForModuleInstall(t *testing.T) {
-	tests := []struct {
-		name        string
-		profile     system.PlatformProfile
-		lookPath    func(string) (string, error)
-		goVersion   func() ([]byte, error)
-		env         map[string]string
-		wantErr     bool
-		errContains string
-	}{
-		{
-			name:    "go not in PATH returns error mentioning Go 1.24+",
-			profile: system.PlatformProfile{OS: "linux", PackageManager: "apt"},
-			lookPath: func(file string) (string, error) {
-				return "", fmt.Errorf("not found")
-			},
-			goVersion:   func() ([]byte, error) { return nil, nil },
-			env:         map[string]string{},
-			wantErr:     true,
-			errContains: "Go 1.24+",
-		},
-		{
-			name:    "go version below 1.24 returns error",
-			profile: system.PlatformProfile{OS: "linux", PackageManager: "apt"},
-			lookPath: func(file string) (string, error) {
-				return "/usr/bin/go", nil
-			},
-			goVersion:   func() ([]byte, error) { return []byte("go version go1.21.0 linux/amd64"), nil },
-			env:         map[string]string{},
-			wantErr:     true,
-			errContains: "Go 1.24+",
-		},
-		{
-			name:    "go version 1.23 returns error",
-			profile: system.PlatformProfile{OS: "linux", PackageManager: "apt"},
-			lookPath: func(file string) (string, error) {
-				return "/usr/bin/go", nil
-			},
-			goVersion:   func() ([]byte, error) { return []byte("go version go1.23.5 linux/amd64"), nil },
-			env:         map[string]string{},
-			wantErr:     true,
-			errContains: "Go 1.24+",
-		},
-		{
-			name:    "GO111MODULE=off on linux returns error with export fix",
-			profile: system.PlatformProfile{OS: "linux", PackageManager: "apt"},
-			lookPath: func(file string) (string, error) {
-				return "/usr/bin/go", nil
-			},
-			goVersion:   func() ([]byte, error) { return []byte("go version go1.24.0 linux/amd64"), nil },
-			env:         map[string]string{"GO111MODULE": "off"},
-			wantErr:     true,
-			errContains: "export GO111MODULE=on",
-		},
-		{
-			name:    "GO111MODULE=off on windows returns error with powershell fix",
-			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget"},
-			lookPath: func(file string) (string, error) {
-				return `C:\Go\bin\go.exe`, nil
-			},
-			goVersion:   func() ([]byte, error) { return []byte("go version go1.24.0 windows/amd64"), nil },
-			env:         map[string]string{"GO111MODULE": "off"},
-			wantErr:     true,
-			errContains: "$env:GO111MODULE",
-		},
-		{
-			name:    "go 1.24 without GO111MODULE=off succeeds",
-			profile: system.PlatformProfile{OS: "linux", PackageManager: "apt"},
-			lookPath: func(file string) (string, error) {
-				return "/usr/bin/go", nil
-			},
-			goVersion: func() ([]byte, error) { return []byte("go version go1.24.0 linux/amd64"), nil },
-			env:       map[string]string{},
-			wantErr:   false,
-		},
-		{
-			name:    "go 1.25 succeeds",
-			profile: system.PlatformProfile{OS: "linux", PackageManager: "apt"},
-			lookPath: func(file string) (string, error) {
-				return "/usr/bin/go", nil
-			},
-			goVersion: func() ([]byte, error) { return []byte("go version go1.25.0 linux/amd64"), nil },
-			env:       map[string]string{},
-			wantErr:   false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			origLookPath := cmdLookPath
-			origGoVersion := cmdGoVersion
-			origGetenv := osGetenv
-			cmdLookPath = tt.lookPath
-			cmdGoVersion = tt.goVersion
-			osGetenv = func(key string) string { return tt.env[key] }
-			t.Cleanup(func() {
-				cmdLookPath = origLookPath
-				cmdGoVersion = origGoVersion
-				osGetenv = origGetenv
-			})
-
-			err := validateGoForModuleInstall(tt.profile)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("validateGoForModuleInstall() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if tt.wantErr && !strings.Contains(err.Error(), tt.errContains) {
-				t.Errorf("error = %q, want it to contain %q", err.Error(), tt.errContains)
-			}
-		})
-	}
-}
-
-func TestResolveEngramBrewBypassesGoValidation(t *testing.T) {
-	// On macOS, brew manages Go — validation must be skipped entirely.
-	origLookPath := cmdLookPath
-	cmdLookPath = func(file string) (string, error) {
-		return "", fmt.Errorf("go not found")
-	}
-	t.Cleanup(func() { cmdLookPath = origLookPath })
-
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew"}
-	cmds, err := resolveEngramInstall(profile)
-	if err != nil {
-		t.Fatalf("resolveEngramInstall() unexpected error = %v", err)
-	}
-	if len(cmds) == 0 {
-		t.Fatal("resolveEngramInstall() returned empty CommandSequence")
-	}
-}
 
 func TestResolveDependencyInstall(t *testing.T) {
 	r := NewResolver()
@@ -151,10 +19,10 @@ func TestResolveDependencyInstall(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "darwin resolves brew command",
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
+			name:    "darwin without a package manager returns error",
+			profile: system.PlatformProfile{OS: "darwin"},
 			dep:     "somepkg",
-			want:    CommandSequence{{"brew", "install", "somepkg"}},
+			wantErr: true,
 		},
 		{
 			name:    "ubuntu resolves apt command",
@@ -194,7 +62,7 @@ func TestResolveDependencyInstall(t *testing.T) {
 		},
 		{
 			name:    "empty dependency returns error",
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
+			profile: system.PlatformProfile{OS: "darwin"},
 			dep:     "",
 			wantErr: true,
 		},
@@ -230,7 +98,7 @@ func TestResolveAgentInstall(t *testing.T) {
 	}{
 		{
 			name:    "claude-code on darwin uses npm without sudo",
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
+			profile: system.PlatformProfile{OS: "darwin"},
 			agent:   model.AgentClaudeCode,
 			want:    CommandSequence{{"npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
 		},
@@ -267,7 +135,7 @@ func TestResolveAgentInstall(t *testing.T) {
 
 		{
 			name:    "unsupported agent returns error",
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
+			profile: system.PlatformProfile{OS: "darwin"},
 			agent:   "unsupported",
 			wantErr: true,
 		},
@@ -292,10 +160,6 @@ func TestResolveAgentInstall(t *testing.T) {
 }
 
 func TestResolveComponentInstall(t *testing.T) {
-	// Keep the pre-trust command sequences deterministic on every host.
-	original := cmdBrewHelpTrust
-	cmdBrewHelpTrust = func(string) error { return fmt.Errorf("unknown command: trust") }
-	t.Cleanup(func() { cmdBrewHelpTrust = original })
 	r := NewResolver()
 
 	tests := []struct {
@@ -305,13 +169,13 @@ func TestResolveComponentInstall(t *testing.T) {
 		want      CommandSequence
 		wantErr   bool
 	}{
+		// Engram uses DownloadLatestBinary() on every platform — resolver returns error.
 		{
-			name:      "engram on darwin uses brew tap and install",
-			profile:   system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
+			name:      "engram on darwin returns error (uses DownloadLatestBinary instead)",
+			profile:   system.PlatformProfile{OS: "darwin"},
 			component: model.ComponentEngram,
-			want:      CommandSequence{{"brew", "tap", "Gentleman-Programming/homebrew-tap"}, {"brew", "install", "engram"}},
+			wantErr:   true,
 		},
-		// Linux and Windows engram now use DownloadLatestBinary() — resolver returns error.
 		// These cases are handled by run.go's componentApplyStep directly.
 		{
 			name:      "engram on ubuntu returns error (uses DownloadLatestBinary instead)",
@@ -339,7 +203,7 @@ func TestResolveComponentInstall(t *testing.T) {
 		},
 		{
 			name:      "unsupported component returns error",
-			profile:   system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
+			profile:   system.PlatformProfile{OS: "darwin"},
 			component: "unsupported",
 			wantErr:   true,
 		},

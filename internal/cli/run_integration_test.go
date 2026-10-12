@@ -560,60 +560,10 @@ func macOSDetectionResult() system.DetectionResult {
 			Shell:     "/bin/zsh",
 			Supported: true,
 			Profile: system.PlatformProfile{
-				OS:             "darwin",
-				PackageManager: "brew",
-				Supported:      true,
+				OS:        "darwin",
+				Supported: true,
 			},
 		},
-	}
-}
-
-func TestRunInstallMacOSStillResolvesBrewCommands(t *testing.T) {
-	home := t.TempDir()
-	restoreHome := osUserHomeDir
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	restoreStat := osStat
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-		osStat = restoreStat
-	})
-
-	osUserHomeDir = func() (string, error) { return home, nil }
-	cmdLookPath = missingBinaryLookPath
-	// Force resolveEngramInstalledPath's Homebrew-prefix fallback (#4020) to
-	// report "not found" regardless of the real machine running this test,
-	// so this test still exercises the genuinely-missing install path.
-	osStat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	recorder := &commandRecorder{}
-	runCommand = recorder.record
-
-	detection := macOSDetectionResult()
-	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
-		detection,
-	)
-	if err != nil {
-		t.Fatalf("RunInstall() error = %v", err)
-	}
-
-	if !result.Verify.Ready {
-		t.Fatalf("macOS verification ready = false")
-	}
-
-	// Verify brew install command was used, not apt or pacman.
-	commands := recorder.get()
-	foundBrew := false
-	for _, cmd := range commands {
-		if strings.Contains(cmd, "brew install engram") {
-			foundBrew = true
-			break
-		}
-	}
-	if !foundBrew {
-		t.Fatalf("expected brew install for macOS engram, got commands: %v", commands)
 	}
 }
 
@@ -627,8 +577,8 @@ func TestRunInstallMacOSDryRunPlatformDecision(t *testing.T) {
 	if result.Resolved.PlatformDecision.OS != "darwin" {
 		t.Fatalf("macOS platform decision OS = %q, want darwin", result.Resolved.PlatformDecision.OS)
 	}
-	if result.Resolved.PlatformDecision.PackageManager != "brew" {
-		t.Fatalf("macOS platform decision PM = %q, want brew", result.Resolved.PlatformDecision.PackageManager)
+	if result.Resolved.PlatformDecision.PackageManager != "" {
+		t.Fatalf("macOS platform decision PM = %q, want none", result.Resolved.PlatformDecision.PackageManager)
 	}
 	if !result.Resolved.PlatformDecision.Supported {
 		t.Fatalf("macOS platform decision Supported = false, want true")
@@ -701,9 +651,9 @@ func TestRunInstallEngramSkipsInstallWhenAlreadyOnPath(t *testing.T) {
 		t.Fatalf("verification ready = false")
 	}
 
-	// No brew/go install commands should have been recorded — only agent install.
+	// No go install commands should have been recorded — only agent install.
 	for _, cmd := range recorder.get() {
-		if strings.Contains(cmd, "brew install engram") || (strings.Contains(cmd, "go install") && strings.Contains(cmd, "engram")) {
+		if strings.Contains(cmd, "go install") && strings.Contains(cmd, "engram") {
 			t.Fatalf("expected engram install to be skipped, but got command: %s", cmd)
 		}
 	}
@@ -907,66 +857,6 @@ func TestRunInstallEngramLinuxNeverInstallsGo(t *testing.T) {
 		if strings.Contains(cmd, "apt-get install -y golang") || strings.Contains(cmd, "apt-get install -y go") {
 			t.Fatalf("Go should never be installed as engram dependency, got command: %s", cmd)
 		}
-	}
-}
-
-func TestRunInstallEngramBrewSkipsGoCheck(t *testing.T) {
-	home := t.TempDir()
-	restoreHome := osUserHomeDir
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	restoreStat := osStat
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-		osStat = restoreStat
-	})
-
-	osUserHomeDir = func() (string, error) { return home, nil }
-	// Simulate: engram missing — brew platform, no Go or download needed.
-	cmdLookPath = func(string) (string, error) {
-		return "", exec.ErrNotFound
-	}
-	// Force resolveEngramInstalledPath's Homebrew-prefix fallback (#4020) to
-	// report "not found" regardless of the real machine running this test,
-	// so this test still exercises the genuinely-missing install path.
-	osStat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	recorder := &commandRecorder{}
-	runCommand = recorder.record
-
-	detection := macOSDetectionResult()
-	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
-		detection,
-	)
-	if err != nil {
-		t.Fatalf("RunInstall() error = %v", err)
-	}
-
-	if !result.Verify.Ready {
-		t.Fatalf("verification ready = false")
-	}
-
-	// Should use brew install, NOT go install, and no Go auto-install.
-	commands := recorder.get()
-	for _, cmd := range commands {
-		if strings.Contains(cmd, "golang") || strings.Contains(cmd, "apt-get") {
-			t.Fatalf("brew platform should not install Go, got command: %s", cmd)
-		}
-		if strings.Contains(cmd, "go install") {
-			t.Fatalf("brew platform should not use go install, got command: %s", cmd)
-		}
-	}
-
-	foundBrew := false
-	for _, cmd := range commands {
-		if strings.Contains(cmd, "brew install engram") {
-			foundBrew = true
-		}
-	}
-	if !foundBrew {
-		t.Fatalf("expected brew install engram, got commands: %v", commands)
 	}
 }
 

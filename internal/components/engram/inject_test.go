@@ -41,7 +41,7 @@ func assertArgsHaveToolsAgent(t *testing.T, path string) {
 
 func TestInjectClaudeWritesUserRegistryPreservingUnrelatedData(t *testing.T) {
 	home := t.TempDir()
-	mockEngramLookPath(t, "/opt/homebrew/bin/engram", "")
+	mockEngramLookPath(t, "/usr/local/bin/engram", "")
 	registryPath := claude.UserConfigPath(home)
 	seed := []byte(`{"oauthAccount":{"emailAddress":"user@example.com"},"projects":{"/repo":{"allowedTools":[]}},"mcpServers":{"codegraph":{"command":"codegraph"}}}`)
 	if err := os.WriteFile(registryPath, seed, 0o644); err != nil {
@@ -59,7 +59,7 @@ func TestInjectClaudeWritesUserRegistryPreservingUnrelatedData(t *testing.T) {
 	registry := readJSONFile(t, registryPath)
 	assertNestedString(t, registry, "user@example.com", "oauthAccount", "emailAddress")
 	assertNestedString(t, registry, "codegraph", "mcpServers", "codegraph", "command")
-	assertNestedString(t, registry, "/opt/homebrew/bin/engram", "mcpServers", "engram", "command")
+	assertNestedString(t, registry, "/usr/local/bin/engram", "mcpServers", "engram", "command")
 	assertNestedStrings(t, registry, []string{"mcp", "--tools=agent"}, "mcpServers", "engram", "args")
 	if info, statErr := os.Stat(registryPath); statErr != nil {
 		t.Fatalf("Stat(user registry) error = %v", statErr)
@@ -155,26 +155,6 @@ func TestInjectClaudeIsIdempotent(t *testing.T) {
 }
 
 // ─── Gemini tests ─────────────────────────────────────────────────────────────
-
-func TestStableEngramCommandRecognizesLinuxbrewPath(t *testing.T) {
-	SetLookPathForTest(t, "/home/linuxbrew/.linuxbrew/bin/engram", "")
-
-	if !isStableHomebrewEngramPath("/home/linuxbrew/.linuxbrew/bin/engram") {
-		t.Fatalf("Linuxbrew stable path must be recognized as a stable Homebrew engram path")
-	}
-	if got := preferredStableEngramCommand(); got != "/home/linuxbrew/.linuxbrew/bin/engram" {
-		t.Fatalf("preferredStableEngramCommand() = %q, want the Linuxbrew stable path", got)
-	}
-
-	// Agents resolve the stable command through
-	// stableEngramCommandForMergedConfig when no prior config exists — the
-	// Linuxbrew stable path must be preserved there too.
-	home := t.TempDir()
-	got := stableEngramCommandForMergedConfig(filepath.Join(home, "missing", "mcp.json"), model.AgentClaudeCode)
-	if got != "/home/linuxbrew/.linuxbrew/bin/engram" {
-		t.Fatalf("stableEngramCommandForMergedConfig(claude-code) = %q, want the Linuxbrew stable path", got)
-	}
-}
 
 // ─── Codex tests ──────────────────────────────────────────────────────────────
 
@@ -303,13 +283,13 @@ func TestInjectClaudePreservesAbsoluteCommandFromEngramSetup(t *testing.T) {
 
 	// Simulate what `engram setup claude-code` writes on v1.10.3+:
 	// an absolute path as the command value.
-	absPath := "/opt/homebrew/bin/engram"
+	absPath := "/usr/local/bin/engram"
 	mcpPath := filepath.Join(home, ".claude", "mcp", "engram.json")
 	if err := os.MkdirAll(filepath.Dir(mcpPath), 0o755); err != nil {
 		t.Fatalf("MkdirAll error = %v", err)
 	}
 	setupContent := []byte(`{
-  "command": "/opt/homebrew/bin/engram",
+  "command": "/usr/local/bin/engram",
   "args": ["mcp", "--tools=agent"]
 }
 `)
@@ -349,7 +329,7 @@ func TestInjectClaudePreservesAbsoluteCommandFromEngramSetup(t *testing.T) {
 // plugin already exposes the same 18 tools under a different prefix.
 func TestInjectClaudeSkipsMCPServersEngramWhenPluginEnabled(t *testing.T) {
 	home := t.TempDir()
-	mockEngramLookPath(t, "/opt/homebrew/bin/engram", "")
+	mockEngramLookPath(t, "/usr/local/bin/engram", "")
 	writeClaudeEngramPluginEnabled(t, home)
 
 	registryPath := claude.UserConfigPath(home)
@@ -382,16 +362,16 @@ func TestInjectClaudeSkipsMCPServersEngramWhenPluginEnabled(t *testing.T) {
 // brunnr-code would write, so plugin detection must only suppress new writes.
 func TestInjectClaudePreservesIdenticalManualRegistrationsWhenPluginEnabled(t *testing.T) {
 	home := t.TempDir()
-	mockEngramLookPath(t, "/opt/homebrew/bin/engram", "")
+	mockEngramLookPath(t, "/usr/local/bin/engram", "")
 	writeClaudeEngramPluginEnabled(t, home)
 
 	registryPath := claude.UserConfigPath(home)
-	registrySeed := []byte(`{"mcpServers":{"example":{"command":"npx"},"engram":{"command":"/opt/homebrew/bin/engram","args":["mcp","--tools=agent"]}}}`)
+	registrySeed := []byte(`{"mcpServers":{"example":{"command":"npx"},"engram":{"command":"/usr/local/bin/engram","args":["mcp","--tools=agent"]}}}`)
 	if err := os.WriteFile(registryPath, registrySeed, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	legacyPath := filepath.Join(home, ".claude", "mcp", "engram.json")
-	legacySeed := []byte(`{"command":"/opt/homebrew/bin/engram","args":["mcp","--tools=agent"]}`)
+	legacySeed := []byte(`{"command":"/usr/local/bin/engram","args":["mcp","--tools=agent"]}`)
 	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -417,7 +397,7 @@ func TestInjectClaudePreservesIdenticalManualRegistrationsWhenPluginEnabled(t *t
 // never alters an existing customized mcpServers.engram entry.
 func TestInjectClaudePreservesUserAuthoredMCPServersEngramWhenPluginEnabled(t *testing.T) {
 	home := t.TempDir()
-	mockEngramLookPath(t, "/opt/homebrew/bin/engram", "")
+	mockEngramLookPath(t, "/usr/local/bin/engram", "")
 	writeClaudeEngramPluginEnabled(t, home)
 
 	registryPath := claude.UserConfigPath(home)
@@ -448,7 +428,7 @@ func TestInjectClaudeUsesDirectMCPWhenPluginIsNotEnabled(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			home := t.TempDir()
-			mockEngramLookPath(t, "/opt/homebrew/bin/engram", "")
+			mockEngramLookPath(t, "/usr/local/bin/engram", "")
 			settingsPath := filepath.Join(home, ".claude", "settings.json")
 			if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
 				t.Fatal(err)
@@ -461,7 +441,7 @@ func TestInjectClaudeUsesDirectMCPWhenPluginIsNotEnabled(t *testing.T) {
 				t.Fatalf("Inject() error = %v", err)
 			}
 			registry := readJSONFile(t, claude.UserConfigPath(home))
-			assertNestedString(t, registry, "/opt/homebrew/bin/engram", "mcpServers", "engram", "command")
+			assertNestedString(t, registry, "/usr/local/bin/engram", "mcpServers", "engram", "command")
 		})
 	}
 }
@@ -612,47 +592,6 @@ func TestInjectClaudePreservesUnmanagedLegacyShapes(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestInjectClaudeMigratesCellarCommandToStablePath(t *testing.T) {
-	home := t.TempDir()
-
-	mockEngramLookPath(t, "/usr/local/bin/engram", "")
-
-	mcpPath := filepath.Join(home, ".claude", "mcp", "engram.json")
-	if err := os.MkdirAll(filepath.Dir(mcpPath), 0o755); err != nil {
-		t.Fatalf("MkdirAll error = %v", err)
-	}
-	setupContent := []byte(`{
-  "command": "/usr/local/Cellar/engram/1.14.1/bin/engram",
-  "args": ["mcp", "--tools=agent"]
-}
-`)
-	if err := os.WriteFile(mcpPath, setupContent, 0o644); err != nil {
-		t.Fatalf("WriteFile(engram.json) error = %v", err)
-	}
-
-	result, err := Inject(home, claudeAdapter())
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("Inject() changed = false; expected Cellar command migration")
-	}
-
-	registryPath := claude.UserConfigPath(home)
-	content, err := os.ReadFile(registryPath)
-	if err != nil {
-		t.Fatalf("ReadFile(user registry) error = %v", err)
-	}
-	text := string(content)
-	if strings.Contains(text, "/Cellar/") {
-		t.Fatalf("engram.json still contains versioned Homebrew Cellar path; got:\n%s", text)
-	}
-	if !strings.Contains(text, "/usr/local/bin/engram") {
-		t.Fatalf("engram.json did not migrate to stable Homebrew symlink; got:\n%s", text)
-	}
-	assertArgsHaveToolsAgent(t, registryPath)
 }
 
 func TestInjectCodexIsIdempotent(t *testing.T) {

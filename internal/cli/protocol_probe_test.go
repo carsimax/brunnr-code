@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/carsimax/brunnr-code/internal/agents/claude"
+	"github.com/carsimax/brunnr-code/internal/system"
 	"github.com/carsimax/brunnr-code/internal/testenv"
 )
 
@@ -58,9 +59,6 @@ func pinGoCachesBeforeHomeIsolation() {
 // e.g. TestAgentInstallStepRefusesMissingCodexInsteadOfInstalling for that
 // opposite, deliberately-kept case.
 func TestMain(m *testing.M) {
-	if os.Getenv("BRUNNR_CODE_TEST_BREW_FIXTURE") == "1" {
-		os.Exit(runPortableBrewFixture())
-	}
 	// Neutralize ambient agent config-path overrides before anything else,
 	// including before the stand-in re-exec branch below, so a developer
 	// shell cannot redirect these tests outside the sandboxed HOME set up
@@ -115,6 +113,11 @@ func TestMain(m *testing.M) {
 	}
 	probeEngramProtocolFlag = func(context.Context) (string, error) {
 		return "", errors.New("engram setup --help not available in tests")
+	}
+	// Engram installs through the release download on every platform; keep
+	// tests that do not stub it themselves off the network.
+	engramDownloadFn = func(system.PlatformProfile) (string, error) {
+		return filepath.Join(testHome, "engram-bin", "engram"), nil
 	}
 
 	agentPresent := func(name string) (string, error) { return "/usr/local/bin/" + name, nil }

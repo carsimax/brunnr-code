@@ -547,59 +547,61 @@ func TestRunInstallWindowsFailsWhenShadowedEngramPathIsNotInUserPath(t *testing.
 	}
 }
 
-// TestRunInstallMacOSEngramStillUsesBrew verifies macOS unchanged.
-func TestRunInstallMacOSEngramStillUsesBrew(t *testing.T) {
+// TestRunInstallMacOSEngramDownloadsReleaseBinary verifies macOS installs
+// Engram from the release download and, when the install directory was not
+// on PATH before the install, names that directory in the final note.
+func TestRunInstallMacOSEngramDownloadsReleaseBinary(t *testing.T) {
 	home := t.TempDir()
+	fakeBinDir := filepath.Join(home, ".local", "bin")
+	fakeBinaryPath := filepath.Join(fakeBinDir, "engram")
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
 	restoreLookPath := cmdLookPath
-	restoreStat := osStat
+	restoreAddUserPath := addUserPath
 	t.Cleanup(func() {
 		osUserHomeDir = restoreHome
 		runCommand = restoreCommand
 		cmdLookPath = restoreLookPath
-		osStat = restoreStat
+		addUserPath = restoreAddUserPath
 	})
 
 	osUserHomeDir = func() (string, error) { return home, nil }
 	cmdLookPath = missingBinaryLookPath
-	// Force resolveEngramInstalledPath's Homebrew-prefix fallback (#4020) to
-	// report "not found" regardless of the real machine running this test,
-	// so this test still exercises the genuinely-missing install path.
-	osStat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
 	recorder := &commandRecorder{}
 	runCommand = recorder.record
+	t.Setenv("PATH", "/usr/bin")
+	t.Setenv("SHELL", "/bin/zsh")
+	addUserPath = func(dir string) error {
+		os.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+		return nil
+	}
 
-	// DownloadFn should NOT be called for macOS (brew handles it).
+	downloads := 0
 	origDownloadFn := engramDownloadFn
 	engramDownloadFn = func(profile system.PlatformProfile) (string, error) {
-		t.Error("DownloadLatestBinary should NOT be called on macOS (brew handles it)")
-		return "", nil
+		downloads++
+		return fakeBinaryPath, nil
 	}
 	t.Cleanup(func() { engramDownloadFn = origDownloadFn })
 
-	detection := macOSDetectionResult()
 	result, err := RunInstall(
 		[]string{"--agent", "claude-code", "--component", "engram"},
-		detection,
+		macOSDetectionResult(),
 	)
 	if err != nil {
 		t.Fatalf("RunInstall() error = %v", err)
 	}
-	if !result.Verify.Ready {
-		t.Fatalf("verification ready = false")
+	if downloads != 1 {
+		t.Fatalf("engram release download calls = %d, want 1", downloads)
 	}
-
-	// Must use brew install engram.
-	commands := recorder.get()
-	foundBrew := false
-	for _, cmd := range commands {
-		if strings.Contains(cmd, "brew install engram") {
-			foundBrew = true
+	for _, cmd := range recorder.get() {
+		if strings.Contains(cmd, "brew") {
+			t.Fatalf("macOS engram install must not run brew, got command: %s", cmd)
 		}
 	}
-	if !foundBrew {
-		t.Fatalf("expected brew install engram on macOS, got commands: %v", commands)
+	want := "The engram binary was installed to " + fakeBinDir + ", which is not on your PATH."
+	if !strings.Contains(result.Verify.FinalNote, want) {
+		t.Fatalf("FinalNote = %q, want it to contain %q", result.Verify.FinalNote, want)
 	}
 }
 

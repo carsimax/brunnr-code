@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"sort"
 	"strings"
@@ -65,7 +64,7 @@ var (
 	ensureUserPathFirst = system.PrioritizeUserPath
 	userPathEntries     = system.UserPathEntries
 
-	// engramDownloadFn is the function used to download the engram binary on non-brew platforms.
+	// engramDownloadFn downloads the engram release binary; tests replace it.
 	// Package-level var for testability — tests can replace this to avoid real HTTP calls.
 	engramDownloadFn = engram.DownloadLatestBinary
 
@@ -209,7 +208,7 @@ func RunPreparedInstall(prepared PreparedInstall, detection system.DetectionResu
 		Resolved:     resolved,
 		State:        runtime.state,
 	})
-	result.Verify = withPostInstallNotes(result.Verify, resolved)
+	result.Verify = withPostInstallNotes(result.Verify, resolved, runtime.state.engramOffPathDir)
 	if !result.Verify.Ready {
 		verificationErr := fmt.Errorf("post-apply verification failed:\n%s", verify.RenderReport(result.Verify))
 		rollback := orchestrator.Rollback(result.Execution)
@@ -366,10 +365,10 @@ func mergeExplicitAgentInstallState(homeDir string, newState state.InstallState,
 	return merged, nil
 }
 
-func withPostInstallNotes(report verify.Report, resolved planner.ResolvedPlan) verify.Report {
+func withPostInstallNotes(report verify.Report, resolved planner.ResolvedPlan, engramOffPathDir string) verify.Report {
 	report = withReadyAgentRunNote(report, resolved)
 	report = withFailedVerificationNote(report, resolved)
-	report = withGoInstallPathNote(report, resolved)
+	report = withEngramPathNote(report, engramOffPathDir)
 	return report
 }
 
@@ -438,42 +437,20 @@ func runnableAgentCommands(agentIDs []model.AgentID) []string {
 	return commands
 }
 
-// withGoInstallPathNote appends a PATH guidance note when engram was installed
-// on a non-brew platform (Linux/Windows). Since engram is now installed via
-// direct binary download to /usr/local/bin or ~/.local/bin, this note helps
-// users who may need to add the install directory to their PATH.
-func withGoInstallPathNote(report verify.Report, resolved planner.ResolvedPlan) verify.Report {
-	if !hasComponent(resolved.OrderedComponents, model.ComponentEngram) {
-		return report
-	}
-	if resolved.PlatformDecision.PackageManager == "brew" {
-		return report
-	}
-	binDir := goInstallBinDir()
-	if isInPATH(binDir) {
+// withEngramPathNote appends PATH guidance when the Engram release download
+// went to a directory that was not on PATH before the install (for example the
+// ~/.local/bin fallback). The install only adds it to this process's PATH, so
+// the user's shell still needs it.
+func withEngramPathNote(report verify.Report, offPathDir string) verify.Report {
+	if offPathDir == "" {
 		return report
 	}
 	report.FinalNote = report.FinalNote + fmt.Sprintf(
-		"\n\nThe engram binary was installed to %s via `go install`.\nAdd it to your PATH: %s",
-		binDir,
-		engramPathGuidance(os.Getenv("SHELL")),
+		"\n\nThe engram binary was installed to %s, which is not on your PATH.\nAdd it to your PATH: %s",
+		offPathDir,
+		engramPathGuidance(offPathDir, os.Getenv("SHELL")),
 	)
 	return report
-}
-
-// goInstallBinDir returns the directory where `go install` places binaries.
-// Resolution order: $GOBIN > $GOPATH/bin > $HOME/go/bin.
-func goInstallBinDir() string {
-	if gobin := os.Getenv("GOBIN"); gobin != "" {
-		return gobin
-	}
-	if gopath := os.Getenv("GOPATH"); gopath != "" {
-		return filepath.Join(gopath, "bin")
-	}
-	if home, err := osUserHomeDir(); err == nil {
-		return filepath.Join(home, "go", "bin")
-	}
-	return filepath.Join("~", "go", "bin")
 }
 
 // validateCallerEngramRuns proves a caller-supplied Engram binary runs before
@@ -555,6 +532,11 @@ type runtimeState struct {
 	engramVersionResolved bool
 	engramVersion         string
 	engramVersionErr      error
+
+	// engramOffPathDir is the directory the Engram release download used when
+	// that directory was not on PATH before the install (Unix only; Windows
+	// persists the user PATH itself). Empty means no PATH note is needed.
+	engramOffPathDir string
 
 	// codexServiceTier is the tier the global engram injection left in Codex's
 	// config.toml (nil = not written); state records it as the managed tier.
@@ -1116,7 +1098,7 @@ func resolveAdapters(agentIDs []model.AgentID) []agents.Adapter {
 }
 
 func shouldRefreshWindowsEngram(profile system.PlatformProfile, resolvedPath string, pathEntries []string) bool {
-	if profile.OS != "windows" || profile.PackageManager == "brew" || strings.TrimSpace(resolvedPath) == "" {
+	if profile.OS != "windows" || strings.TrimSpace(resolvedPath) == "" {
 		return false
 	}
 	return len(engramBinaryDirsOnPath(pathEntries, profile.OS)) > 1
@@ -1205,33 +1187,22 @@ func (s componentApplyStep) Run() error {
 		engramCommand := "engram"
 		var installErr error
 		if callerBinary, ok := engram.CallerBinary(); ok {
-			// A caller-supplied Engram is used as is: no brew, download, go
+			// A caller-supplied Engram is used as is: no download, go
 			// install or PATH change. RunPreparedInstall already checked it runs.
 			engramCommand = callerBinary
-		} else if installedPath, found := resolveEngramInstalledPath(s.profile); !found {
-			// Engram not on PATH — install it.
-			if s.profile.PackageManager == "brew" {
-				// macOS (or Linux with Homebrew): use brew tap + brew install.
-				commands, err := engram.InstallCommand(s.profile)
-				if err != nil {
-					return fmt.Errorf("resolve install command for component %q: %w", s.component, err)
-				}
-				commands = withResolvedBrewCommand(commands)
-				installErr = runCommandSequence(commands)
-				if installErr == nil {
-					if installedPath, found := resolveEngramInstalledPath(s.profile); found {
-						engramCommand = installedPath
-					}
-				}
-			} else if binaryPath, err := engramDownloadFn(s.profile); err != nil {
-				// Linux / Windows: download the pre-built binary from GitHub Releases.
-				// No Go required — engram ships pre-built binaries.
+		} else if installedPath, err := cmdLookPath("engram"); err != nil {
+			// Engram not on PATH: download the pre-built binary from GitHub
+			// Releases. No Go required — engram ships pre-built binaries.
+			if binaryPath, err := engramDownloadFn(s.profile); err != nil {
 				installErr = fmt.Errorf("download engram binary: %w", err)
 			} else {
 				// Add the install directory to PATH so subsequent commands
 				// (engram setup, engram.Inject → resolveEngramCommand) can find it.
 				// On Windows this also persists the change to the user registry via PowerShell.
 				binDir := filepath.Dir(binaryPath)
+				if s.profile.OS != "windows" && !isInPATH(binDir) && s.state != nil {
+					s.state.engramOffPathDir = binDir
+				}
 				if err := addUserPath(binDir); err != nil {
 					// Non-fatal: warn but continue — the binary was downloaded successfully.
 					fmt.Fprintf(os.Stderr, "WARNING: could not add %s to PATH: %v\n", binDir, err)
@@ -1483,74 +1454,6 @@ func ResolveInstallProfile(detection system.DetectionResult) system.PlatformProf
 	}
 }
 
-func isExecutableFile(path string) bool {
-	info, err := osStat(path)
-	if err != nil || !info.Mode().IsRegular() {
-		return false
-	}
-	// Windows has no POSIX executable permission bit (os.FileMode.Perm()
-	// never carries 0o111 there), so a regular file at a known binary path
-	// is treated as usable without a permission check.
-	if runtime.GOOS == "windows" {
-		return true
-	}
-	return info.Mode().Perm()&0o111 != 0
-}
-
-func standardHomebrewExecutable(name string) (string, bool) {
-	for _, binDir := range []string{
-		"/opt/homebrew/bin",
-		"/usr/local/bin",
-		"/home/linuxbrew/.linuxbrew/bin",
-	} {
-		path := filepath.Join(binDir, name)
-		if isExecutableFile(path) {
-			return path, true
-		}
-	}
-	return "", false
-}
-
-// resolveEngramInstalledPath finds an existing Engram even when the installer's
-// inherited PATH omits a standard Homebrew prefix (#4020).
-func resolveEngramInstalledPath(profile system.PlatformProfile) (string, bool) {
-	if path, err := cmdLookPath("engram"); err == nil {
-		return path, true
-	}
-	if profile.OS == "darwin" || profile.PackageManager == "brew" {
-		return standardHomebrewExecutable("engram")
-	}
-	return "", false
-}
-
-// resolveBrewCommand avoids environment-sensitive shell profile probing. The
-// inherited PATH and Homebrew's documented standard prefixes are sufficient.
-func resolveBrewCommand() string {
-	if path, err := cmdLookPath("brew"); err == nil {
-		return path
-	}
-	if path, found := standardHomebrewExecutable("brew"); found {
-		return path
-	}
-	return "brew"
-}
-
-func withResolvedBrewCommand(commands [][]string) [][]string {
-	brewPath := ""
-	rewritten := make([][]string, len(commands))
-	for i, command := range commands {
-		if len(command) > 0 && command[0] == "brew" {
-			if brewPath == "" {
-				brewPath = resolveBrewCommand()
-			}
-			rewritten[i] = append([]string{brewPath}, command[1:]...)
-			continue
-		}
-		rewritten[i] = command
-	}
-	return rewritten
-}
-
 // runCommandSequence runs each command in the sequence one at a time, stopping on first error.
 func runCommandSequence(commands [][]string) error {
 	return runCommandSequenceWithProgress(commands, nil, "")
@@ -1594,55 +1497,8 @@ func runCommandSequenceWithProgress(commands [][]string, progress pipeline.Progr
 	return nil
 }
 
-// homebrewNoSideEffectEnv are the environment variables executeCommand adds
-// to a brew invocation so brunnr-code's own tap/install/reinstall steps never
-// trigger Homebrew's slow, network-dependent auto-update or its
-// post-install cache cleanup as a side effect of an unrelated install.
-var homebrewNoSideEffectEnv = []string{
-	"HOMEBREW_NO_AUTO_UPDATE=1",
-	"HOMEBREW_NO_INSTALL_CLEANUP=1",
-}
-
-// commandEnv returns the environment executeCommand should use for name,
-// derived from base (typically os.Environ()). When name's base is "brew"
-// (matching both the literal command and resolveBrewCommand's resolved
-// absolute path) and the invocation is not the user-requested "brew
-// update"/"brew upgrade" path (see internal/update/upgrade's own
-// brewUpgrade), it adds homebrewNoSideEffectEnv, never overriding a value
-// already present in base — an explicit user override always wins.
-func commandEnv(name string, args []string, base []string) []string {
-	if filepath.Base(name) != "brew" {
-		return base
-	}
-	if len(args) > 0 && (args[0] == "update" || args[0] == "upgrade") {
-		return base
-	}
-
-	// Copy so appending never writes into the caller's backing array.
-	env := append([]string(nil), base...)
-	for _, kv := range homebrewNoSideEffectEnv {
-		key := strings.SplitN(kv, "=", 2)[0]
-		if !envHasKey(env, key) {
-			env = append(env, kv)
-		}
-	}
-	return env
-}
-
-// envHasKey reports whether env already sets key, regardless of value.
-func envHasKey(env []string, key string) bool {
-	prefix := key + "="
-	for _, kv := range env {
-		if strings.HasPrefix(kv, prefix) {
-			return true
-		}
-	}
-	return false
-}
-
 func executeCommand(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
-	cmd.Env = commandEnv(name, args, os.Environ())
 	system.EnsureCommandDir(cmd)
 
 	if streamCommandOutput {
@@ -2098,7 +1954,7 @@ func engramHealthChecks(state *runtimeState, agentIDs []model.AgentID) []verify.
 			Soft:        true,
 			Run: func(context.Context) error {
 				if err := engram.VerifyInstalled(); err != nil {
-					return fmt.Errorf("%w\nInstall it with `%s`.\nIf engram was installed via `go install`, add it to PATH:\n  %s", err, engramInstallCommand(agentIDs), engramPathGuidance(os.Getenv("SHELL")))
+					return fmt.Errorf("%w\nInstall it with `%s`.", err, engramInstallCommand(agentIDs))
 				}
 				return nil
 			},
@@ -2128,8 +1984,7 @@ func engramInstallCommand(agentIDs []model.AgentID) string {
 	return fmt.Sprintf("brunnr-code install --agent %s --components engram", joinAgentIDs(agentIDs))
 }
 
-func engramPathGuidance(shellPath string) string {
-	binDir := goInstallBinDir()
+func engramPathGuidance(binDir, shellPath string) string {
 	if strings.Contains(shellPath, "fish") {
 		return fmt.Sprintf("set -Ux fish_user_paths %s $fish_user_paths", binDir)
 	}

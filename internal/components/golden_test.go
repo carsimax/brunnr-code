@@ -88,7 +88,7 @@ func TestGoldenPersona_Claude_Neutral(t *testing.T) {
 func TestGoldenEngram_Claude(t *testing.T) {
 	home := t.TempDir()
 
-	engram.SetLookPathForTest(t, "/opt/homebrew/bin/engram", "")
+	engram.SetLookPathForTest(t, "/usr/local/bin/engram", "")
 
 	// Pin the engram binary version above the Decision 1 floor (v1.4.0) so
 	// this golden reflects the SLIM CLAUDE.md section — the MCP `instructions`
@@ -125,7 +125,7 @@ func TestGoldenEngram_Codex(t *testing.T) {
 	restore := codexagent.SetRuntimeVersionCommandForTest("codex-cli 0.144.0", nil)
 	t.Cleanup(restore)
 
-	engram.SetLookPathForTest(t, "/opt/homebrew/bin/engram", "")
+	engram.SetLookPathForTest(t, "/usr/local/bin/engram", "")
 
 	result, err := engram.Inject(home, codexAdapter())
 	if err != nil {
@@ -172,7 +172,7 @@ func TestGoldenSkills_Claude(t *testing.T) {
 func TestGoldenCombined_Claude(t *testing.T) {
 	home := t.TempDir()
 
-	engram.SetLookPathForTest(t, "/opt/homebrew/bin/engram", "")
+	engram.SetLookPathForTest(t, "/usr/local/bin/engram", "")
 
 	// Combine retained persona and Engram sections in CLAUDE.md.
 	if _, err := persona.Inject(home, claudeAdapter()); err != nil {
