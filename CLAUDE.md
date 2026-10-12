@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a single-maintainer fork of upstream `gentle-ai`. It has been reduced to two agents: **Claude Code and Codex**. The Go module path and `cmd/gentle-ai` keep the upstream name. The README, `.goreleaser.carsi.yaml` and `scripts/install-carsi.sh` ship the binary as `carsi-ai`. A rebrand to `brunnr-code` is planned. Feature history and decisions are recorded in `odd/tasks/*.md`.
+This is a single-maintainer fork of upstream `gentle-ai`. It has been reduced to two agents: **Claude Code and Codex**. It is being rebranded to `brunnr-code` (see `odd/tasks/brunnr-code-rename.md`). The README, `.goreleaser.yaml` and `scripts/install.sh` ship the binary as `brunnr-code`; the Go module path and `cmd/gentle-ai` still carry the upstream name until that rename lands. Feature history and decisions are recorded in `odd/tasks/*.md`.
 
 What the removal of other agents left behind, by design:
 
 - Removed agents leave no legacy code paths. Stale `state.json` entries for them are filtered out when selections are read.
 - `internal/assets/generic/`, the frozen text in `contracts/`, the telemetry wire values and `telemetryruntime` are kept on purpose. Do not "clean them up".
-- The upstream `.goreleaser.yaml` is a known leftover; the fork releases through `.goreleaser.carsi.yaml` and `.github/workflows/release-carsi.yml`.
+- The fork releases through `.goreleaser.yaml` and `.github/workflows/release.yml` (tag `v*`, unsigned, no Homebrew tap). The upstream signing, provenance and promotion pipeline was removed.
 
 ## Commands
 
@@ -21,7 +21,7 @@ go run ./internal/gofmtcheck                 # format gate (custom gofmt checker
 go test ./...                                # full unit suite; run it after every task
 ./scripts/deadcode-ratchet.sh                # fails only on NEW unreachable funcs vs .deadcode-baseline.txt
 ./scripts/deadcode-ratchet.sh --update       # after deliberately removing dead code
-go build -o carsi-ai ./cmd/gentle-ai         # local build; version via -ldflags "-X main.version=..."
+go build -o brunnr-code ./cmd/gentle-ai         # local build; version via -ldflags "-X main.version=..."
 ```
 
 Single test: `go test -v ./internal/<pkg> -count=1 -run '<Regex>'`
@@ -32,8 +32,6 @@ Golden and baseline files:
 - `go test ./internal/components/agentguidance -update` rewrites the orchestrator module baseline.
 
 Ratchets: `.refusal-ratchet-baseline.txt` is enforced by `internal/cli/refusal_resolution_ratchet_test.go`. Many tests in `internal/assets` pin the exact wording of the embedded markdown, so an edit to an asset usually needs a matching test or baseline update.
-
-Known failures already present on the base: `internal/update` `TestReleaseSecurityScripts…` and `TestCanonicalReleasePublicKeys…`.
 
 Other test suites:
 

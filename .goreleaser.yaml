@@ -1,17 +1,13 @@
+# Release config for brunnr-code. No minisign signing and no Homebrew tap:
+# the self-upgrade path fails closed (no embedded trust anchors) and users
+# reinstall with scripts/install.sh instead.
 version: 2
 
-project_name: gentle-ai
-
-before:
-  hooks:
-    - go run ./internal/providercontractbundlecmd generate --out .goreleaser-provider-contract
-    - rm -rf .goreleaser-provenance
-    - mkdir -p .goreleaser-provenance
-    - go run ./internal/releaseprovenancecmd --out .goreleaser-provenance/manifest.json --config .goreleaser.yaml --goreleaser-version v2.15.2
+project_name: brunnr-code
 
 builds:
   - main: ./cmd/gentle-ai
-    binary: gentle-ai
+    binary: brunnr-code
     env:
       - CGO_ENABLED=0
     goos:
@@ -23,10 +19,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - >-
-        -s -w
-        -X main.version={{ .Version }}
-        -X github.com/gentleman-programming/gentle-ai/v4/internal/update/upgrade.releaseMinisignPublicKeys={{ .Env.MINISIGN_PUBLIC_KEYS_CANONICAL }}
+      - -s -w -X main.version={{ .Version }}
 
 archives:
   - formats:
@@ -35,82 +28,10 @@ archives:
     files:
       - LICENSE
       - README.md
-      - docs/review-integration.md
-      - contracts/review-integration/v1/FREEZE.md
-      - contracts/review-integration/v1/schemas/*.schema.json
-      - contracts/review-integration/v1/fixtures/*.fixture.json
-      - contracts/review-integration/v2/schemas/*.schema.json
-      - contracts/review-integration/v2/fixtures/*.fixture.json
-  - id: review-provider-contract
-    meta: true
-    formats:
-      - tar.gz
-    name_template: "gentle-ai-review-provider-contract-{{ .Env.PROVIDER_CONTRACT_SEMVER }}"
-    files:
-      - src: .goreleaser-provider-contract/README.md
-        strip_parent: true
-        info:
-          mode: 0644
-          mtime: "1970-01-01T00:00:00Z"
-      - src: .goreleaser-provider-contract/manifest.json
-        strip_parent: true
-        info:
-          mode: 0644
-          mtime: "1970-01-01T00:00:00Z"
-      - src: .goreleaser-provider-contract/orchestration/*.md
-        dst: orchestration
-        strip_parent: true
-        info:
-          mode: 0644
-          mtime: "1970-01-01T00:00:00Z"
-      - src: .goreleaser-provider-contract/schemas/*.schema.json
-        dst: schemas
-        strip_parent: true
-        info:
-          mode: 0644
-          mtime: "1970-01-01T00:00:00Z"
-      - src: .goreleaser-provider-contract/vectors/*.json
-        dst: vectors
-        strip_parent: true
-        info:
-          mode: 0644
-          mtime: "1970-01-01T00:00:00Z"
-  - id: release-provenance
-    meta: true
-    formats:
-      - tar.gz
-    name_template: "gentle-ai-release-provenance-v1"
-    files:
-      - src: .goreleaser-provenance/manifest.json
-        strip_parent: true
-        info:
-          mode: 0644
-          mtime: "1970-01-01T00:00:00Z"
 
 checksum:
   name_template: "checksums.txt"
   algorithm: sha256
-
-# Sign only the checksum manifest. The signed trusted comment binds the exact
-# repository and tag; the updater rejects a valid signature copied from any
-# other release identity.
-signs:
-  - cmd: minisign
-    artifacts: checksum
-    signature: ${artifact}.minisig
-    args:
-      - "-S"
-      - "-s"
-      - "{{ .Env.MINISIGN_SECRET_KEY_FILE }}"
-      - "-m"
-      - "${artifact}"
-      - "-x"
-      - "${signature}"
-      - "-c"
-      - "signature from gentle-ai release"
-      - "-t"
-      - "repo=Gentleman-Programming/gentle-ai;tag={{ .Tag }}"
-    output: true
 
 changelog:
   sort: asc
@@ -119,15 +40,3 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^ci:"
-
-brews:
-  - repository:
-      owner: Gentleman-Programming
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    directory: Formula
-    name: gentle-ai
-    homepage: "https://github.com/Gentleman-Programming/gentle-ai"
-    description: "Gentle-AI — Ecosystem, Frameworks, Workflows for AI coding agents."
-    license: "MIT"
-    commit_msg_template: "chore: update gentle-ai formula to {{ .Tag }}"
