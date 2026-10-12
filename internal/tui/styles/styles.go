@@ -22,11 +22,6 @@ var (
 // Cursor is the prefix used for the currently focused item.
 const Cursor = "▸ "
 
-// Tagline returns the welcome screen tagline with the given version.
-func Tagline(version string) string {
-	return "Brunnr-Code " + version + " — Ecosystem, Frameworks, Workflows"
-}
-
 // Pre-built reusable styles.
 var (
 	TitleStyle = lipgloss.NewStyle().
