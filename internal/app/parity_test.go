@@ -56,7 +56,7 @@ func TestInstallPlannerParityWithTUISelection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Resolve() error = %v", err)
 	}
-	wantResolved.PlatformDecision = planner.PlatformDecision{OS: "darwin", PackageManager: "brew", Supported: true}
+	wantResolved.PlatformDecision = planner.PlatformDecision{OS: "darwin", Supported: true}
 
 	if !reflect.DeepEqual(result.Resolved, wantResolved) {
 		t.Fatalf("resolved mismatch\ncli=%#v\ntui=%#v", result.Resolved, wantResolved)
@@ -254,7 +254,8 @@ func TestRunArgsSyncNoAgentsIsNoOp(t *testing.T) {
 // --- Batch E: macOS parity regression and Linux cross-verification ---
 
 func TestMacOSDefaultProfileFallbackWhenDetectionEmpty(t *testing.T) {
-	// When DetectionResult is zero-value (no profile), CLI defaults to macOS/brew.
+	// When DetectionResult is zero-value (no profile), CLI defaults to macOS,
+	// which has no package manager.
 	detection := system.DetectionResult{}
 	result, err := runInstallForParity([]string{"--dry-run"}, detection)
 	if err != nil {
@@ -264,8 +265,8 @@ func TestMacOSDefaultProfileFallbackWhenDetectionEmpty(t *testing.T) {
 	if result.Resolved.PlatformDecision.OS != "darwin" {
 		t.Fatalf("default platform decision OS = %q, want darwin", result.Resolved.PlatformDecision.OS)
 	}
-	if result.Resolved.PlatformDecision.PackageManager != "brew" {
-		t.Fatalf("default platform decision PM = %q, want brew", result.Resolved.PlatformDecision.PackageManager)
+	if result.Resolved.PlatformDecision.PackageManager != "" {
+		t.Fatalf("default platform decision PM = %q, want none", result.Resolved.PlatformDecision.PackageManager)
 	}
 	if !result.Resolved.PlatformDecision.Supported {
 		t.Fatalf("default platform decision Supported = false, want true")

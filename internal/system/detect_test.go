@@ -34,8 +34,10 @@ func TestDetectFromInputsMarksSupportedMacOS(t *testing.T) {
 		t.Fatalf("expected OS darwin, got %q", result.System.OS)
 	}
 
-	if result.System.Profile.PackageManager != "brew" {
-		t.Fatalf("expected brew package manager for macOS, got %q", result.System.Profile.PackageManager)
+	// macOS has no package manager: dependencies install manually and Engram
+	// installs from its release download.
+	if result.System.Profile.PackageManager != "" {
+		t.Fatalf("expected no package manager for macOS, got %q", result.System.Profile.PackageManager)
 	}
 }
 
@@ -177,18 +179,18 @@ func TestResolvePlatformProfileMatrix(t *testing.T) {
 			name:          "darwin profile",
 			goos:          "darwin",
 			wantOS:        "darwin",
-			wantPM:        "brew",
+			wantPM:        "",
 			wantSupported: true,
 		},
 		{
-			name:          "linux with brew",
+			name:          "linux with only brew is not a supported manager",
 			goos:          "linux",
 			osRelease:     "ID=debian\n",
 			tools:         map[string]ToolStatus{"brew": {Name: "brew", Installed: true}},
 			wantOS:        "linux",
-			wantPM:        "brew",
+			wantPM:        "",
 			wantDistro:    LinuxDistroDebian,
-			wantSupported: true,
+			wantSupported: false,
 		},
 		{
 			name:          "ubuntu profile",
@@ -294,7 +296,7 @@ func TestResolvePlatformProfileMatrix(t *testing.T) {
 
 // TestGoAvailableInPlatformProfile asserts that GoAvailable in PlatformProfile
 // reflects whether `go` is present in the tools map. This is the detection signal
-// used by effectiveMethod to implement the brew → go-install → binary auto-detect order.
+// used by effectiveMethod to implement the go-install → binary auto-detect order.
 func TestGoAvailableInPlatformProfile(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -313,7 +315,7 @@ func TestGoAvailableInPlatformProfile(t *testing.T) {
 		},
 		{
 			name:        "go not in tools map → GoAvailable false",
-			tools:       map[string]ToolStatus{"brew": {Name: "brew", Installed: true}},
+			tools:       map[string]ToolStatus{"apt": {Name: "apt", Installed: true}},
 			wantGoAvail: false,
 		},
 		{

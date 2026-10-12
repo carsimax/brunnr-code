@@ -17,7 +17,7 @@ import (
 func recordProbes(t *testing.T) func() []string {
 	t.Helper()
 	bin := t.TempDir()
-	for _, name := range []string{"git", "curl", "node", "npm", "brew", "go"} {
+	for _, name := range []string{"git", "curl", "node", "npm", "go"} {
 		file := name
 		if runtime.GOOS == "windows" {
 			file += ".exe"
@@ -58,9 +58,6 @@ func TestDetectProbesToolsByDefault(t *testing.T) {
 	}
 
 	want := []string{"git --version", "curl --version", "node --version", "npm --version", "go version"}
-	if runtime.GOOS == "darwin" {
-		want = append(want, "brew --version")
-	}
 	if runtime.GOOS != "windows" {
 		want = append(want, "npm config get prefix")
 	}
@@ -86,7 +83,7 @@ func TestDetectRunsNoToolWithCallerSuppliedEngram(t *testing.T) {
 	report := DetectDependencies(context.Background(), result.System.Profile)
 
 	if got := ran(); len(got) != 0 {
-		t.Fatalf("detection ran %q; with %s set it must run no git, curl, node, npm, brew or go command", got, EngramBinEnv)
+		t.Fatalf("detection ran %q; with %s set it must run no git, curl, node, npm or go command", got, EngramBinEnv)
 	}
 	for _, r := range []DependencyReport{result.Dependencies, report} {
 		if !r.AllPresent || len(r.Dependencies) != 0 || len(r.MissingRequired) != 0 {

@@ -12,7 +12,7 @@ import (
 
 // Dependency represents a system prerequisite with detection and install metadata.
 type Dependency struct {
-	Name        string   // "node", "git", "curl", "brew", "go", "npm"
+	Name        string   // "node", "git", "curl", "go", "npm"
 	Required    bool     // true = must have, false = nice to have
 	MinVersion  string   // e.g., "18.0.0" for Node.js (empty = any version)
 	DetectCmd   []string // e.g., ["node", "--version"]
@@ -70,16 +70,6 @@ func defineDependencies(profile PlatformProfile) []Dependency {
 		},
 	}
 
-	// brew is optional and only relevant on macOS.
-	if profile.OS == "darwin" {
-		deps = append(deps, Dependency{
-			Name:        "brew",
-			Required:    false,
-			DetectCmd:   []string{"brew", "--version"},
-			InstallHint: installHintBrew(),
-		})
-	}
-
 	// go is optional (needed for Engram on Linux via go install).
 	deps = append(deps, Dependency{
 		Name:        "go",
@@ -96,7 +86,7 @@ func defineDependencies(profile PlatformProfile) []Dependency {
 //
 // A caller that supplies Engram (EngramBinEnv) gets an empty report and no
 // command runs: the report only feeds warnings and dry-run output, and the
-// go and brew probes exist for Engram acquisition, which that caller replaces.
+// go probe exists for Engram acquisition, which that caller replaces.
 func DetectDependencies(ctx context.Context, profile PlatformProfile) DependencyReport {
 	if callerSuppliesEngram() {
 		return DependencyReport{AllPresent: true}

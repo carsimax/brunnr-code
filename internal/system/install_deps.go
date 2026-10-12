@@ -6,7 +6,7 @@ import "fmt"
 func installHintGit(profile PlatformProfile) string {
 	switch {
 	case profile.OS == "darwin":
-		return "brew install git"
+		return "xcode-select --install"
 	case profile.OS == "windows":
 		return "winget install Git.Git"
 	case profile.PackageManager == "apt":
@@ -26,7 +26,7 @@ func installHintGit(profile PlatformProfile) string {
 func installHintCurl(profile PlatformProfile) string {
 	switch {
 	case profile.OS == "darwin":
-		return "brew install curl"
+		return "curl ships with macOS; reinstall it from https://curl.se/"
 	case profile.OS == "windows":
 		return "curl is pre-installed on Windows 10+"
 	case profile.PackageManager == "apt":
@@ -46,7 +46,7 @@ func installHintCurl(profile PlatformProfile) string {
 func installHintNode(profile PlatformProfile) string {
 	switch {
 	case profile.OS == "darwin":
-		return "brew install node"
+		return "install node from https://nodejs.org/"
 	case profile.OS == "windows":
 		return "winget install OpenJS.NodeJS.LTS"
 	case profile.PackageManager == "apt":
@@ -68,16 +68,11 @@ func installHintNpm(_ PlatformProfile) string {
 	return "npm is included with node — install node first"
 }
 
-// installHintBrew returns the install hint for Homebrew (macOS only).
-func installHintBrew() string {
-	return `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-}
-
 // installHintGo returns the platform-specific install hint for Go.
 func installHintGo(profile PlatformProfile) string {
 	switch {
 	case profile.OS == "darwin":
-		return "brew install go"
+		return "install go from https://go.dev/dl/"
 	case profile.OS == "windows":
 		return "winget install GoLang.Go"
 	case profile.PackageManager == "apt":
@@ -106,8 +101,6 @@ func InstallCommandsForDep(name string, profile PlatformProfile) [][]string {
 	case "npm":
 		// npm comes with node; installing node installs npm.
 		return nil
-	case "brew":
-		return installCommandsBrew(profile)
 	case "go":
 		return installCommandsGo(profile)
 	default:
@@ -118,7 +111,8 @@ func InstallCommandsForDep(name string, profile PlatformProfile) [][]string {
 func installCommandsGit(profile PlatformProfile) [][]string {
 	switch {
 	case profile.OS == "darwin":
-		return [][]string{{"brew", "install", "git"}}
+		// macOS has no package manager to drive: the hint is manual.
+		return nil
 	case profile.OS == "windows":
 		return [][]string{{"winget", "install", "--id", "Git.Git", "-e", "--accept-source-agreements", "--accept-package-agreements"}}
 	case profile.PackageManager == "apt":
@@ -137,7 +131,8 @@ func installCommandsGit(profile PlatformProfile) [][]string {
 func installCommandsCurl(profile PlatformProfile) [][]string {
 	switch {
 	case profile.OS == "darwin":
-		return [][]string{{"brew", "install", "curl"}}
+		// macOS has no package manager to drive: the hint is manual.
+		return nil
 	case profile.OS == "windows":
 		// curl is pre-installed on Windows 10+, no install command needed.
 		return nil
@@ -157,7 +152,8 @@ func installCommandsCurl(profile PlatformProfile) [][]string {
 func installCommandsNode(profile PlatformProfile) [][]string {
 	switch {
 	case profile.OS == "darwin":
-		return [][]string{{"brew", "install", "node"}}
+		// macOS has no package manager to drive: the hint is manual.
+		return nil
 	case profile.OS == "windows":
 		return [][]string{{"winget", "install", "--id", "OpenJS.NodeJS.LTS", "-e", "--accept-source-agreements", "--accept-package-agreements"}}
 	case profile.PackageManager == "apt":
@@ -183,19 +179,11 @@ func installCommandsNode(profile PlatformProfile) [][]string {
 	}
 }
 
-func installCommandsBrew(profile PlatformProfile) [][]string {
-	if profile.OS != "darwin" {
-		return nil
-	}
-	return [][]string{
-		{"bash", "-c", `$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)`},
-	}
-}
-
 func installCommandsGo(profile PlatformProfile) [][]string {
 	switch {
 	case profile.OS == "darwin":
-		return [][]string{{"brew", "install", "go"}}
+		// macOS has no package manager to drive: the hint is manual.
+		return nil
 	case profile.OS == "windows":
 		return [][]string{{"winget", "install", "--id", "GoLang.Go", "-e", "--accept-source-agreements", "--accept-package-agreements"}}
 	case profile.PackageManager == "apt":

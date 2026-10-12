@@ -20,7 +20,6 @@ func TestParseVersionNode(t *testing.T) {
 		{name: "curl 8.4.0", tool: "curl", output: "curl 8.4.0 (x86_64-apple-darwin23.0) libcurl/8.4.0\n", want: "8.4.0"},
 		{name: "go version go1.22.5 darwin/arm64", tool: "go", output: "go version go1.22.5 darwin/arm64\n", want: "1.22.5"},
 		{name: "go1.21.0", tool: "go", output: "go1.21.0\n", want: "1.21.0"},
-		{name: "brew Homebrew 4.2.0", tool: "brew", output: "Homebrew 4.2.0\n", want: "4.2.0"},
 		{name: "empty output", tool: "node", output: "", want: ""},
 		{name: "whitespace only", tool: "node", output: "   \n  ", want: ""},
 		{name: "no version pattern", tool: "node", output: "some random text", want: ""},
@@ -88,7 +87,7 @@ func TestParseVersionParts(t *testing.T) {
 }
 
 func TestDefineDependenciesDarwin(t *testing.T) {
-	profile := PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
+	profile := PlatformProfile{OS: "darwin", Supported: true}
 	deps := defineDependencies(profile)
 
 	names := map[string]bool{}
@@ -96,7 +95,6 @@ func TestDefineDependenciesDarwin(t *testing.T) {
 		names[dep.Name] = true
 	}
 
-	// Darwin should include brew as optional.
 	required := []string{"git", "curl", "node", "npm"}
 	for _, name := range required {
 		if !names[name] {
@@ -104,31 +102,13 @@ func TestDefineDependenciesDarwin(t *testing.T) {
 		}
 	}
 
-	if !names["brew"] {
-		t.Fatalf("missing brew dep for darwin")
-	}
-
-	// Check brew is optional.
-	for _, dep := range deps {
-		if dep.Name == "brew" && dep.Required {
-			t.Fatalf("brew should be optional on darwin")
-		}
-	}
-}
-
-func TestDefineDependenciesLinuxNoBrew(t *testing.T) {
-	profile := PlatformProfile{OS: "linux", LinuxDistro: "ubuntu", PackageManager: "apt", Supported: true}
-	deps := defineDependencies(profile)
-
-	for _, dep := range deps {
-		if dep.Name == "brew" {
-			t.Fatalf("brew should not be in linux dependency list")
-		}
+	if names["brew"] {
+		t.Fatalf("brew must not be a darwin dependency")
 	}
 }
 
 func TestDefineDependenciesNodeMinVersion(t *testing.T) {
-	profile := PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
+	profile := PlatformProfile{OS: "darwin", Supported: true}
 	deps := defineDependencies(profile)
 
 	for _, dep := range deps {
@@ -231,7 +211,7 @@ func TestRenderDependencyReportMissing(t *testing.T) {
 	report := DependencyReport{
 		Dependencies: []Dependency{
 			{Name: "git", Required: true, Installed: true, Version: "2.43.0"},
-			{Name: "node", Required: true, Installed: false, InstallHint: "brew install node"},
+			{Name: "node", Required: true, Installed: false, InstallHint: "install node from https://nodejs.org/"},
 		},
 		AllPresent:      false,
 		MissingRequired: []string{"node"},

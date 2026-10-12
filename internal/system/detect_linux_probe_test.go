@@ -146,12 +146,10 @@ func TestLinuxIsSupportedWheneverAPackageManagerIsOnPath(t *testing.T) {
 		{name: "nobara with dnf", osRelease: "ID=nobara\nID_LIKE=\"fedora\"\n", onPath: []string{"dnf"}, wantPM: "dnf"},
 		{name: "distro nobody has heard of, with dnf", osRelease: "ID=some-future-distro\n", onPath: []string{"dnf"}, wantPM: "dnf"},
 		{name: "no os-release at all, with pacman", osRelease: "", onPath: []string{"pacman"}, wantPM: "pacman"},
-		{name: "brew keeps winning over the native manager", osRelease: osReleaseAlpine, onPath: []string{"apk", "brew"}, wantPM: "brew"},
+		{name: "brew on PATH is ignored in favor of the native manager", osRelease: osReleaseAlpine, onPath: []string{"apk", "brew"}, wantPM: "apk"},
 		{name: "fedora silverblue with rpm-ostree alone", osRelease: osReleaseSilverblue, onPath: []string{"rpm-ostree"}, ostreeBooted: true, wantPM: "rpm-ostree"},
-		{name: "brew wins over rpm-ostree on silverblue", osRelease: osReleaseSilverblue, onPath: []string{"rpm-ostree", "brew"}, ostreeBooted: true, wantPM: "brew"},
 		{name: "ostree host with dnf and rpm-ostree selects rpm-ostree", osRelease: osReleaseSilverblue, onPath: []string{"dnf", "rpm-ostree"}, ostreeBooted: true, wantPM: "rpm-ostree"},
 		{name: "mutable fedora with dnf and rpm-ostree selects dnf", osRelease: "ID=fedora\nID_LIKE=\"rhel fedora\"\n", onPath: []string{"dnf", "rpm-ostree"}, ostreeBooted: false, wantPM: "dnf"},
-		{name: "brew wins over both dnf and rpm-ostree on ostree", osRelease: osReleaseSilverblue, onPath: []string{"rpm-ostree", "dnf", "brew"}, ostreeBooted: true, wantPM: "brew"},
 	}
 
 	for _, tc := range tests {
@@ -226,14 +224,14 @@ func TestLinuxRefusalNamesTheProbedManagersAndARunnableCheck(t *testing.T) {
 
 	// Every manager the probe looks for must be named, so the reader knows
 	// exactly which one to install.
-	for _, manager := range []string{"brew", "apt", "dnf", "rpm-ostree", "pacman", "apk", "zypper", "nix", "emerge"} {
+	for _, manager := range []string{"apt", "dnf", "rpm-ostree", "pacman", "apk", "zypper", "nix", "emerge"} {
 		if !strings.Contains(message, manager) {
 			t.Errorf("refusal does not name probed package manager %q:\n%s", manager, message)
 		}
 	}
 
 	// The exit has to be runnable, not a description of a policy.
-	if !strings.Contains(message, `for m in brew apt dnf rpm-ostree pacman apk zypper nix emerge; do command -v "$m"; done`) {
+	if !strings.Contains(message, `for m in apt dnf rpm-ostree pacman apk zypper nix emerge; do command -v "$m"; done`) {
 		t.Errorf("refusal does not print the runnable probe check:\n%s", message)
 	}
 	if !strings.Contains(message, "PATH") {

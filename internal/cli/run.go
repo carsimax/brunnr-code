@@ -1470,16 +1470,16 @@ func RenderInstallManualActions(result InstallResult) string {
 	return "\nManual actions required:\n- " + strings.Join(actions, "\n- ") + "\n"
 }
 
-// ResolveInstallProfile returns the platform profile from detection, defaulting to darwin/brew.
+// ResolveInstallProfile returns the platform profile from detection, defaulting
+// to darwin, which has no package manager.
 func ResolveInstallProfile(detection system.DetectionResult) system.PlatformProfile {
 	if detection.System.Profile.OS != "" {
 		return detection.System.Profile
 	}
 
 	return system.PlatformProfile{
-		OS:             "darwin",
-		PackageManager: "brew",
-		Supported:      true,
+		OS:        "darwin",
+		Supported: true,
 	}
 }
 

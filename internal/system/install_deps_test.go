@@ -6,11 +6,35 @@ import (
 	"testing"
 )
 
-func TestInstallHintGitDarwin(t *testing.T) {
-	profile := PlatformProfile{OS: "darwin", PackageManager: "brew"}
-	hint := installHintGit(profile)
-	if hint != "brew install git" {
-		t.Fatalf("installHintGit(darwin) = %q", hint)
+// TestDarwinDepsAreManual pins that macOS has no package manager to drive:
+// every system dependency gets a manual hint and no install command.
+func TestDarwinDepsAreManual(t *testing.T) {
+	profile := PlatformProfile{OS: "darwin", Supported: true}
+	wantHints := map[string]string{
+		"git":  "xcode-select --install",
+		"curl": "curl.se",
+		"node": "https://nodejs.org",
+		"go":   "https://go.dev/dl",
+	}
+	hints := map[string]string{
+		"git":  installHintGit(profile),
+		"curl": installHintCurl(profile),
+		"node": installHintNode(profile),
+		"go":   installHintGo(profile),
+	}
+	for dep, want := range wantHints {
+		hint := hints[dep]
+		if !strings.Contains(hint, want) || strings.Contains(strings.ToLower(hint), "brew") {
+			t.Errorf("%s darwin hint = %q, want it to contain %q and no brew", dep, hint, want)
+		}
+		if cmds := InstallCommandsForDep(dep, profile); cmds != nil {
+			t.Errorf("%s darwin commands = %v, want nil (manual install)", dep, cmds)
+		}
+	}
+	for _, dep := range defineDependencies(profile) {
+		if dep.Name == "brew" || strings.Contains(strings.ToLower(dep.InstallHint), "brew") {
+			t.Errorf("darwin dependency %+v mentions brew", dep)
+		}
 	}
 }
 
@@ -35,14 +59,6 @@ func TestInstallHintGitSilverblue(t *testing.T) {
 	hint := installHintGit(profile)
 	if hint != "rpm-ostree install -y --apply-live git" {
 		t.Fatalf("installHintGit(silverblue) = %q, want %q", hint, "rpm-ostree install -y --apply-live git")
-	}
-}
-
-func TestInstallHintNodeDarwin(t *testing.T) {
-	profile := PlatformProfile{OS: "darwin", PackageManager: "brew"}
-	hint := installHintNode(profile)
-	if hint != "brew install node" {
-		t.Fatalf("installHintNode(darwin) = %q", hint)
 	}
 }
 
@@ -78,37 +94,11 @@ func TestInstallHintNodeSilverblue(t *testing.T) {
 	}
 }
 
-func TestInstallHintBrew(t *testing.T) {
-	hint := installHintBrew()
-	if !strings.Contains(hint, "Homebrew") {
-		t.Fatalf("installHintBrew() = %q, want Homebrew URL", hint)
-	}
-}
-
-func TestInstallHintGoDarwin(t *testing.T) {
-	profile := PlatformProfile{OS: "darwin", PackageManager: "brew"}
-	hint := installHintGo(profile)
-	if hint != "brew install go" {
-		t.Fatalf("installHintGo(darwin) = %q", hint)
-	}
-}
-
 func TestInstallHintGoUbuntu(t *testing.T) {
 	profile := PlatformProfile{OS: "linux", PackageManager: "apt", LinuxDistro: "ubuntu"}
 	hint := installHintGo(profile)
 	if !strings.Contains(hint, "apt-get install") {
 		t.Fatalf("installHintGo(ubuntu) = %q", hint)
-	}
-}
-
-func TestInstallCommandsForDepGitDarwin(t *testing.T) {
-	profile := PlatformProfile{OS: "darwin", PackageManager: "brew"}
-	cmds := InstallCommandsForDep("git", profile)
-	if len(cmds) != 1 {
-		t.Fatalf("git darwin commands = %d, want 1", len(cmds))
-	}
-	if cmds[0][0] != "brew" || cmds[0][1] != "install" || cmds[0][2] != "git" {
-		t.Fatalf("git darwin command = %v", cmds[0])
 	}
 }
 
@@ -146,31 +136,15 @@ func TestInstallCommandsForDepNodeFedoraHasTwoSteps(t *testing.T) {
 }
 
 func TestInstallCommandsForDepNpmReturnsNil(t *testing.T) {
-	profile := PlatformProfile{OS: "darwin", PackageManager: "brew"}
+	profile := PlatformProfile{OS: "darwin"}
 	cmds := InstallCommandsForDep("npm", profile)
 	if cmds != nil {
 		t.Fatalf("npm commands = %v, want nil (comes with node)", cmds)
 	}
 }
 
-func TestInstallCommandsForDepBrewOnLinuxReturnsNil(t *testing.T) {
-	profile := PlatformProfile{OS: "linux", PackageManager: "apt"}
-	cmds := InstallCommandsForDep("brew", profile)
-	if cmds != nil {
-		t.Fatalf("brew on linux = %v, want nil", cmds)
-	}
-}
-
-func TestInstallCommandsForDepBrewOnDarwin(t *testing.T) {
-	profile := PlatformProfile{OS: "darwin", PackageManager: "brew"}
-	cmds := InstallCommandsForDep("brew", profile)
-	if len(cmds) != 1 {
-		t.Fatalf("brew darwin commands = %d, want 1", len(cmds))
-	}
-}
-
 func TestInstallCommandsForDepUnknownReturnsNil(t *testing.T) {
-	profile := PlatformProfile{OS: "darwin", PackageManager: "brew"}
+	profile := PlatformProfile{OS: "darwin"}
 	cmds := InstallCommandsForDep("unknown_tool", profile)
 	if cmds != nil {
 		t.Fatalf("unknown tool commands = %v, want nil", cmds)
@@ -235,14 +209,14 @@ func TestFormatMissingDepsMessageAllPresent(t *testing.T) {
 func TestFormatMissingDepsMessageWithMissing(t *testing.T) {
 	report := DependencyReport{
 		Dependencies: []Dependency{
-			{Name: "node", Required: true, Installed: false, InstallHint: "brew install node"},
+			{Name: "node", Required: true, Installed: false, InstallHint: "sudo apt-get install -y nodejs"},
 		},
 		AllPresent:      false,
 		MissingRequired: []string{"node"},
 	}
 
 	msg := FormatMissingDepsMessage(report)
-	if !strings.Contains(msg, "node") || !strings.Contains(msg, "brew install node") {
+	if !strings.Contains(msg, "node") || !strings.Contains(msg, "sudo apt-get install -y nodejs") {
 		t.Fatalf("missing deps message = %q", msg)
 	}
 }
@@ -309,17 +283,8 @@ func TestInstallCommandsForDepCurlWindowsReturnsNil(t *testing.T) {
 	}
 }
 
-func TestInstallCommandsForDepBrewOnWindowsReturnsNil(t *testing.T) {
-	profile := PlatformProfile{OS: "windows", PackageManager: "winget"}
-	cmds := InstallCommandsForDep("brew", profile)
-	if cmds != nil {
-		t.Fatalf("brew on windows = %v, want nil", cmds)
-	}
-}
-
 func TestInstallCommandsFullMatrix(t *testing.T) {
 	profiles := []PlatformProfile{
-		{OS: "darwin", PackageManager: "brew"},
 		{OS: "linux", PackageManager: "apt", LinuxDistro: "ubuntu"},
 		{OS: "linux", PackageManager: "pacman", LinuxDistro: "arch"},
 		{OS: "linux", PackageManager: "dnf", LinuxDistro: LinuxDistroFedora},

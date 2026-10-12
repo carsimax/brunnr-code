@@ -21,7 +21,7 @@ type PlatformProfile struct {
 	LinuxDistro    string
 	PackageManager string
 	NpmWritable    bool // true when npm global prefix is user-writable (nvm/fnm/volta)
-	GoAvailable    bool // true when `go` is found on PATH (used for auto-detect: brew → go-install → binary)
+	GoAvailable    bool // true when `go` is found on PATH (used for auto-detect: go-install → binary)
 	Supported      bool
 }
 
@@ -41,15 +41,12 @@ const (
 // another distribution.
 //
 // The order is preference, not correctness. The first manager found wins.
-// brew stays first because it was already the short-circuit that made any
-// Linux distribution supported, and it is the manager with the widest
-// install coverage here. The rest are ordered by how many machines run them.
+// Managers are ordered by how many machines run them.
 //
 // Adding a distribution never needs a change here. Adding a manager does,
 // and the refusal in EnsureSupportedPlatform names this exact list so a user
 // on a machine with none of them knows what to install.
 var linuxPackageManagers = []string{
-	"brew",       // any distribution, via Homebrew on Linux
 	"apt",        // Debian, Ubuntu, Mint, Pop!_OS, Deepin, UOS
 	"dnf",        // Fedora, RHEL, CentOS Stream, Rocky, AlmaLinux, Nobara
 	"rpm-ostree", // Fedora Silverblue
@@ -161,14 +158,15 @@ func osReleaseContent(goos string) (string, error) {
 func resolvePlatformProfile(goos, linuxOSRelease string, tools map[string]ToolStatus) PlatformProfile {
 	profile := PlatformProfile{OS: goos}
 
-	// Detect Go availability for the brew → go-install → binary auto-detect order.
+	// Detect Go availability for the go-install → binary auto-detect order.
 	if go_, ok := tools["go"]; ok && go_.Installed {
 		profile.GoAvailable = true
 	}
 
 	switch goos {
 	case "darwin":
-		profile.PackageManager = "brew"
+		// macOS has no managed package manager: system dependencies install
+		// manually and Engram installs from its release download.
 		profile.Supported = true
 		return profile
 	case "linux":
@@ -180,7 +178,6 @@ func resolvePlatformProfile(goos, linuxOSRelease string, tools map[string]ToolSt
 		// authoritative system package manager and must win over dnf.
 		// On mutable systems, rpm-ostree must not be selected so systems with
 		// the build tool installed are not misclassified.
-		// brew remains first because userland Homebrew never mutates the sysroot.
 		isOSTree := isOSTreeBooted()
 
 		for _, manager := range linuxPackageManagers {

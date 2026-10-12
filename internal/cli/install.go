@@ -35,8 +35,8 @@ FLAGS
 
 ISOLATED INSTALLS (absolute paths; all unset by default)
   BRUNNR_CODE_HOME=<dir>               Brunnr-Code state and backups instead of ~/.brunnr-code
-  BRUNNR_CODE_ENGRAM_BIN=<file>        Use this Engram executable: no brew, download, go install or PATH change,
-                                     and dependency detection runs no git, curl, node, npm, brew or go command
+  BRUNNR_CODE_ENGRAM_BIN=<file>        Use this Engram executable: no download, go install or PATH change,
+                                     and dependency detection runs no git, curl, node, npm or go command
 
 ORPHAN MODIFIERS
   Rerun brunnr-code install with the required consumer added to your existing
