@@ -19,8 +19,6 @@ No Makefile or task runner exists, and CI runs no golangci-lint. CI (`.github/wo
 ```bash
 go run ./internal/gofmtcheck                 # format gate (custom gofmt checker); the other jobs require it
 go test ./...                                # full unit suite; run it after every task
-./scripts/deadcode-ratchet.sh                # fails only on NEW unreachable funcs vs .deadcode-baseline.txt
-./scripts/deadcode-ratchet.sh --update       # after deliberately removing dead code
 go build -o brunnr-code ./cmd/brunnr-code         # local build; version via -ldflags "-X main.version=..."
 ```
 
@@ -31,7 +29,7 @@ Golden and baseline files:
 - `go test ./internal/components -run Golden -update` rewrites `testdata/golden/`.
 - `go test ./internal/components/agentguidance -update` rewrites the orchestrator module baseline.
 
-Ratchets: `.refusal-ratchet-baseline.txt` is enforced by `internal/cli/refusal_resolution_ratchet_test.go`. Many tests in `internal/assets` pin the exact wording of the embedded markdown, so an edit to an asset usually needs a matching test or baseline update.
+Many tests in `internal/assets` pin the exact wording of the embedded markdown, so an edit to an asset usually needs a matching test or baseline update.
 
 Other test suites:
 

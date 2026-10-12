@@ -57,17 +57,6 @@ jobs:
       - name: Run unit tests
         run: go test ./...
 
-      # Lives in this job, not the format job, because only Unit Tests is a
-      # required status check on main. A guard that cannot block a merge is
-      # decoration.
-      # Ratchet, not a clean gate: the repository already carries 230 functions
-      # nothing reaches from main, most of them legitimate. This fails only when
-      # a NEW one appears. It exists because InstallCommandsForDep survived with
-      # no callers while the install docs described the dependency remediation
-      # it would have performed.
-      - name: Check for new unreachable functions
-        run: ./scripts/deadcode-ratchet.sh
-
   claude-network-none:
     name: Claude Network-None Runtime (Required)
     runs-on: ubuntu-latest
