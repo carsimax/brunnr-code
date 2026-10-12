@@ -222,9 +222,9 @@ func TestPartialUninstallClaudeThemeRemovesOnlyThemeAssets(t *testing.T) {
 		}
 	}
 	preserved := map[string]string{
-		filepath.Join(homeDir, ".claude", "settings.json"):                   `{"theme":"active","outputStyle":"gentleman"}`,
+		filepath.Join(homeDir, ".claude", "settings.json"):                   `{"theme":"active","outputStyle":"custom"}`,
 		filepath.Join(homeDir, ".claude", "CLAUDE.md"):                       "# persona\n",
-		filepath.Join(homeDir, ".claude", "output-styles", "gentleman.md"):   "# output style\n",
+		filepath.Join(homeDir, ".claude", "output-styles", "custom.md"):      "# output style\n",
 		filepath.Join(homeDir, ".claude", "commands", "gentle-sdd-apply.md"): "# SDD asset\n",
 		filepath.Join(homeDir, ".claude", "themes", "custom.json"):           `{"theme":"custom"}`,
 	}
@@ -848,14 +848,14 @@ func TestFullAgentClaudeRemovesReviewAndPreflightHooks(t *testing.T) {
       },
       {
         "matcher": "Agent",
-        "hooks": [{"type": "command", "command": "brunnr-code sdd-preflight-hook --agent claude-code"}]
+        "hooks": [{"type": "command", "command": "my-tool preflight --agent claude-code"}]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "AskUserQuestion",
         "hooks": [
-          {"type": "command", "command": "brunnr-code sdd-preflight-hook --agent claude-code"},
+          {"type": "command", "command": "my-tool preflight --agent claude-code"},
           {"type": "command", "command": "echo post keep"}
         ]
       }
@@ -863,7 +863,7 @@ func TestFullAgentClaudeRemovesReviewAndPreflightHooks(t *testing.T) {
     "SessionEnd": [
       {
         "matcher": "",
-        "hooks": [{"type": "command", "command": "brunnr-code sdd-preflight-hook --agent claude-code"}]
+        "hooks": [{"type": "command", "command": "my-tool preflight --agent claude-code"}]
       }
     ]
   }
@@ -889,7 +889,7 @@ func TestFullAgentClaudeRemovesReviewAndPreflightHooks(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(raw)
-	if strings.Contains(text, "brunnr-code review stop-hook") || strings.Count(text, "brunnr-code sdd-preflight-hook") != 3 {
+	if strings.Contains(text, "brunnr-code review stop-hook") || strings.Count(text, "my-tool preflight") != 3 {
 		t.Fatalf("review hooks should be removed; unmarked legacy hooks preserved:\n%s", text)
 	}
 	if !strings.Contains(text, "echo keep") || !strings.Contains(text, "echo pre") || !strings.Contains(text, "echo post keep") || !strings.Contains(text, "echo custom session-start") {

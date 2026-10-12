@@ -17,12 +17,12 @@ import (
 func TestMain(m *testing.M) {
 	name := strings.ToLower(filepath.Base(os.Args[0]))
 	if logPath := os.Getenv("BRUNNR_CODE_FAKE_LOG"); logPath != "" && (name == "brunnr-code" || name == "brunnr-code.exe") {
-		os.Exit(runGentleAIFake(logPath))
+		os.Exit(runBrunnrCodeFake(logPath))
 	}
 	os.Exit(m.Run())
 }
 
-func runGentleAIFake(logPath string) int {
+func runBrunnrCodeFake(logPath string) int {
 	var log bytes.Buffer
 	for i, arg := range os.Args[1:] {
 		fmt.Fprintf(&log, "argv[%d]=%s\n", i, arg)

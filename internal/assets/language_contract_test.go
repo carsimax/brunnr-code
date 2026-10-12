@@ -209,7 +209,6 @@ func TestNeutralPersonaAssetsProvideMentorParityWithoutRegionalVoice(t *testing.
 			for _, banned := range []string{
 				"Rioplatense",
 				"voseo",
-				"Gentleman regional voice",
 				"When replying to the user in Spanish, use warm natural Rioplatense Spanish",
 			} {
 				if strings.Contains(content, banned) {
@@ -242,7 +241,7 @@ func TestNeutralOutputStyleAssetsProvideMeaningfulContract(t *testing.T) {
 					t.Fatalf("%s missing output-style contract %q", path, required)
 				}
 			}
-			for _, banned := range []string{"Rioplatense", "voseo", "Gentleman Output Style"} {
+			for _, banned := range []string{"Rioplatense", "voseo"} {
 				if strings.Contains(content, banned) {
 					t.Fatalf("%s contains banned neutral output-style wording %q", path, banned)
 				}

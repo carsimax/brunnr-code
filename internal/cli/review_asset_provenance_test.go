@@ -87,7 +87,7 @@ func TestNegotiatedReviewStartClassifiesStaleManagedAssetsBeforeAuthority(t *tes
 	}
 	malformedFailure := failure
 	malformedContinuation := *failure.Continuation
-	malformedContinuation.Command = "'/tmp/gentle\nai' sync --agent claude-code"
+	malformedContinuation.Command = "'/tmp/brunnr\ncode' sync --agent claude-code"
 	malformedFailure.Continuation = &malformedContinuation
 	if err := malformedFailure.Validate(); err == nil {
 		t.Fatal("FAILURE accepted a multiline managed-assets continuation command")
@@ -200,7 +200,7 @@ func TestManagedAssetsStopTransitionCarriesExactlyOneSignal(t *testing.T) {
 	malformedStatus := stale
 	malformedTransition := *stale.NextTransition
 	malformedContinuation := *stale.NextTransition.Continuation
-	malformedContinuation.Command = "'/tmp/gentle\rai' sync --agent claude-code"
+	malformedContinuation.Command = "'/tmp/brunnr\rcode' sync --agent claude-code"
 	malformedTransition.Continuation = &malformedContinuation
 	malformedStatus.NextTransition = &malformedTransition
 	if err := malformedStatus.Validate(); err == nil {
@@ -297,24 +297,24 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 		want       string
 	}{
 		"windows path with spaces uses double quotes": {
-			executable: func() (string, error) { return `C:\Program Files\gentle-ai\brunnr-code.exe`, nil },
+			executable: func() (string, error) { return `C:\Program Files\brunnr-code\brunnr-code.exe`, nil },
 			goos:       "windows",
-			want:       `"C:\Program Files\gentle-ai\brunnr-code.exe" sync --agent claude-code`,
+			want:       `"C:\Program Files\brunnr-code\brunnr-code.exe" sync --agent claude-code`,
 		},
 		"posix path with shell expansion uses single quotes": {
-			executable: func() (string, error) { return `/opt/$HOME/gentle-ai`, nil },
+			executable: func() (string, error) { return `/opt/$HOME/brunnr-code`, nil },
 			goos:       "linux",
-			want:       `'/opt/$HOME/gentle-ai' sync --agent claude-code`,
+			want:       `'/opt/$HOME/brunnr-code' sync --agent claude-code`,
 		},
 		"posix path with an embedded single quote escapes it": {
-			executable: func() (string, error) { return `/opt/o'brien/gentle-ai`, nil },
+			executable: func() (string, error) { return `/opt/o'brien/brunnr-code`, nil },
 			goos:       "linux",
-			want:       `'/opt/o'\''brien/gentle-ai' sync --agent claude-code`,
+			want:       `'/opt/o'\''brien/brunnr-code' sync --agent claude-code`,
 		},
 		"posix path over the safe bare class stays bare": {
-			executable: func() (string, error) { return `/opt/gentle-ai/bin/gentle-ai`, nil },
+			executable: func() (string, error) { return `/opt/brunnr-code/bin/brunnr-code`, nil },
 			goos:       "linux",
-			want:       `/opt/gentle-ai/bin/gentle-ai sync --agent claude-code`,
+			want:       `/opt/brunnr-code/bin/brunnr-code sync --agent claude-code`,
 		},
 		"unresolvable executable keeps the bare fallback": {
 			executable: func() (string, error) { return "", errors.New("unresolvable") },
@@ -347,9 +347,9 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 	}
 
 	// The published contract itself must refuse a shell-significant bare
-	// executable token: `/opt/$HOME/gentle-ai sync` unquoted is exactly the
+	// executable token: `/opt/$HOME/brunnr-code sync` unquoted is exactly the
 	// shape a POSIX shell would expand into the wrong binary.
-	if validManagedAssetsContinuationCommand(`/opt/$HOME/gentle-ai sync --agent pi`) {
+	if validManagedAssetsContinuationCommand(`/opt/$HOME/brunnr-code sync --agent pi`) {
 		t.Fatal("published pattern accepted a shell-significant bare executable token")
 	}
 
@@ -362,12 +362,12 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 		path string
 		goos string
 	}{
-		"posix safe path":                {`/opt/gentle-ai/bin/gentle-ai`, "linux"},
-		"posix path with expansion":      {`/opt/$HOME/gentle-ai`, "linux"},
-		"posix path with apostrophe":     {`/opt/o'brien/gentle-ai`, "linux"},
+		"posix safe path":                {`/opt/brunnr-code/bin/brunnr-code`, "linux"},
+		"posix path with expansion":      {`/opt/$HOME/brunnr-code`, "linux"},
+		"posix path with apostrophe":     {`/opt/o'brien/brunnr-code`, "linux"},
 		"posix path with backslashes":    {`/opt/we ird\x\brunnr-code`, "linux"},
-		"windows path with spaces":       {`C:\Program Files\gentle-ai\brunnr-code.exe`, "windows"},
-		"quoted UNC path with spaces":    {`\\server\gentle tools\brunnr-code.exe`, "windows"},
+		"windows path with spaces":       {`C:\Program Files\brunnr-code\brunnr-code.exe`, "windows"},
+		"quoted UNC path with spaces":    {`\\server\brunnr tools\brunnr-code.exe`, "windows"},
 		"quoted UNC path without spaces": {`\\server\share\brunnr-code.exe`, "windows"},
 	} {
 		t.Run("round-trip "+name, func(t *testing.T) {
@@ -467,14 +467,14 @@ func TestManagedAssetsContinuationRejectsUnsafeExecutableIdentities(t *testing.T
 		},
 		{
 			name:       "multiline resolver falls through to absolute argv zero",
-			executable: filepath.Join(t.TempDir(), "gentle\nai"),
+			executable: filepath.Join(t.TempDir(), "brunnr\ncode"),
 			argvZero:   absoluteArgvZero,
 			want:       managedAssetsExecutableToken(absoluteArgvZero) + " sync --agent claude-code",
 		},
 		{
 			name:       "multiline argv zero falls through to canonical fallback",
 			resolveErr: errors.New("executable unavailable"),
-			argvZero:   filepath.Join(t.TempDir(), "gentle\rai"),
+			argvZero:   filepath.Join(t.TempDir(), "brunnr\rcode"),
 			want:       "brunnr-code sync --agent claude-code",
 		},
 		{

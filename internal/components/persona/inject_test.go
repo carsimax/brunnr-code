@@ -75,7 +75,7 @@ func TestInjectClaudeNeutralWritesResidualPersonaWithoutRegionalLanguage(t *test
 	if !strings.Contains(text, "## Rules") {
 		t.Fatal("Neutral persona residual section missing '## Rules'")
 	}
-	// Should NOT have gentleman-specific regional language.
+	// Should NOT have regional language.
 	if strings.Contains(text, "Rioplatense") {
 		t.Fatal("Neutral persona should not contain Rioplatense language")
 	}
@@ -210,7 +210,7 @@ func TestInjectClaudeHealDoesNotTouchNonPersonaContent(t *testing.T) {
 func TestInjectClaude_NeutralSelectsManagedOutputStyleAndPreservesOtherSettings(t *testing.T) {
 	home := t.TempDir()
 
-	// Pre-create settings.json with a user-defined outputStyle that is NOT "Gentleman".
+	// Pre-create settings.json with a user-defined outputStyle that is NOT "Custom".
 	settingsDir := filepath.Join(home, ".claude")
 	if err := os.MkdirAll(settingsDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll() error = %v", err)
@@ -251,7 +251,7 @@ func TestInjectClaude_MalformedJSON_DoesNotPanic(t *testing.T) {
 	if err := os.MkdirAll(settingsDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll() error = %v", err)
 	}
-	malformed := `{ "outputStyle": "Gentleman", invalid`
+	malformed := `{ "outputStyle": "Custom", invalid`
 	if err := os.WriteFile(filepath.Join(settingsDir, "settings.json"), []byte(malformed), 0o644); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
@@ -371,7 +371,7 @@ var neutralMovedRules = []movedPersonaRule{
 	{frozen: "- The persona styles HOW YOU TALK, not WHAT YOU BUILD.", checkAgainst: "- The persona styles HOW YOU TALK, not WHAT YOU BUILD."},
 	{frozen: "Senior Architect, 15+ years experience, GDE & MVP. Passionate teacher who genuinely wants people to learn and grow. Gets frustrated when someone can do better but isn't — not out of anger, but because you CARE about their growth.",
 		checkAgainst: "senior mentor",
-		mergedNote:   "Neutral's output style deliberately does not restate Gentleman-flavor bio details ('Senior Architect', 'GDE & MVP'); the mentor identity itself survives via the Core Principle's 'You are a senior mentor' framing"},
+		mergedNote:   "Neutral's output style deliberately does not restate persona bio details ('Senior Architect', 'GDE & MVP'); the mentor identity itself survives via the Core Principle's 'You are a senior mentor' framing"},
 	{frozen: "The persona's Language, Tone, Speech Patterns, and Personality rules govern ONLY your reply text addressed to the user — what you SAY in chat.",
 		checkAgainst: "This output style governs direct replies to the user only.",
 		mergedNote:   "style's own Persona Scope section restates the scope-limiting rule as one declarative sentence"},
@@ -386,7 +386,7 @@ var neutralMovedRules = []movedPersonaRule{
 	{frozen: "- Public/contextual comments follow the target context language by default; Spanish comments default to neutral/professional Spanish unless the user or context clearly calls for regional tone.", checkAgainst: "- Public/contextual comments follow the target context language by default; Spanish comments default to neutral/professional Spanish unless the user or context clearly calls for regional tone."},
 	{frozen: "- Match the user's current language in your REPLY ONLY (see Persona Scope above).",
 		checkAgainst: "Match the user's current language in direct replies.",
-		mergedNote:   "the neutral style's own Language and Tone opener carries the same rule without the Gentleman-specific 'REPLY ONLY' cross-reference"},
+		mergedNote:   "the neutral style's own Language and Tone opener carries the same rule without a persona-specific 'REPLY ONLY' cross-reference"},
 	{frozen: "- Do not switch languages unless the user does, asks you to, or you are quoting/translating content.", checkAgainst: "- Do not switch languages unless the user does, asks you to, or you are quoting/translating content."},
 	{frozen: "- Use warm, natural, professional language without regional slang or dialect-specific grammar.",
 		checkAgainst: "Use warm, natural, professional wording without regional slang or dialect-specific grammar.",
@@ -466,7 +466,7 @@ func TestMergeJSONFileToleratingMalformed(t *testing.T) {
 
 	t.Run("ignores malformed overlay to avoid data loss", func(t *testing.T) {
 		path := filepath.Join(home, "malformed-overlay.json")
-		original := `{"outputStyle":"Gentleman"}`
+		original := `{"outputStyle":"Custom"}`
 		if err := os.WriteFile(path, []byte(original), 0o644); err != nil {
 			t.Fatalf("WriteFile(malformed overlay): %v", err)
 		}

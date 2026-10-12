@@ -60,7 +60,7 @@ type reviewDefectReport struct {
 	Generated time.Time
 }
 
-// reviewGentleAIVersionAndCommit resolves the build's own version/commit the
+// reviewBrunnrCodeVersionAndCommit resolves the build's own version/commit the
 // same way internal/app.ResolveVersion does, without importing internal/app
 // (this package must not depend on the top-level command dispatcher).
 // AppVersion is the build's stamped version, handed to this package by
@@ -72,7 +72,7 @@ type reviewDefectReport struct {
 // 2.2.0-rc.1. Doctor exists precisely to say which build is running, and the
 // defect report carries this value to whoever has to reproduce the fault, so
 // two answers for one binary is a defect in both.
-func reviewGentleAIVersionAndCommit() (string, string) {
+func reviewBrunnrCodeVersionAndCommit() (string, string) {
 	version, commit := "dev", "unknown"
 	if stamped := strings.TrimSpace(AppVersion); stamped != "" && stamped != "dev" {
 		version = stamped
@@ -96,7 +96,7 @@ func reviewGentleAIVersionAndCommit() (string, string) {
 // This is the one privacy boundary every tool-fault site must cross before
 // any caller-supplied string reaches a rendered report.
 func newReviewDefectReport(input reviewDefectReportInput) reviewDefectReport {
-	version, commit := reviewGentleAIVersionAndCommit()
+	version, commit := reviewBrunnrCodeVersionAndCommit()
 	return reviewDefectReport{
 		Version: version, Commit: commit, OS: runtime.GOOS, Arch: runtime.GOARCH,
 		Input:     reviewScrubDefectReportInput(input),

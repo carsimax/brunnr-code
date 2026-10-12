@@ -11,17 +11,17 @@ import (
 // WHICH build is running, and the defect report carries the same value to
 // whoever has to reproduce it. AppVersion is already handed to this package by
 // internal/app; it was simply never consulted.
-func TestGentleAIVersionMatchesTheStampedAppVersion(t *testing.T) {
+func TestBrunnrCodeVersionMatchesTheStampedAppVersion(t *testing.T) {
 	original := AppVersion
 	t.Cleanup(func() { AppVersion = original })
 
 	AppVersion = "2.2.0-rc.1"
-	version, _ := reviewGentleAIVersionAndCommit()
+	version, _ := reviewBrunnrCodeVersionAndCommit()
 	if version != "2.2.0-rc.1" {
 		t.Fatalf("resolved version = %q, want the stamped %q", version, "2.2.0-rc.1")
 	}
 
-	clause := doctorInvokedGentleAIClause("")
+	clause := doctorInvokedBrunnrCodeClause("")
 	if clause != "" && !strings.Contains(clause, "2.2.0-rc.1") {
 		t.Fatalf("doctor names a different version than --version: %s", clause)
 	}
@@ -29,13 +29,13 @@ func TestGentleAIVersionMatchesTheStampedAppVersion(t *testing.T) {
 
 // An unstamped build must still fall back to build info rather than reporting
 // a literal "dev" that hides which commit is running.
-func TestGentleAIVersionFallsBackWhenNotStamped(t *testing.T) {
+func TestBrunnrCodeVersionFallsBackWhenNotStamped(t *testing.T) {
 	original := AppVersion
 	t.Cleanup(func() { AppVersion = original })
 
 	for _, unstamped := range []string{"", "dev"} {
 		AppVersion = unstamped
-		if version, _ := reviewGentleAIVersionAndCommit(); version == "" {
+		if version, _ := reviewBrunnrCodeVersionAndCommit(); version == "" {
 			t.Fatalf("AppVersion %q resolved to an empty version", unstamped)
 		}
 	}

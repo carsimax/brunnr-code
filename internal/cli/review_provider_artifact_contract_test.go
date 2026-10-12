@@ -16,7 +16,7 @@ import (
 func TestReviewProviderArtifactV1ContractsArePinned(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v1")
 	want := map[string]string{
-		"fixtures/capabilities-v1.4.fixture.json": "38b1a341405cb8630a586ee8fcd71849baecdf87d352de1d1fe9b2447239aab1",
+		"fixtures/capabilities-v1.4.fixture.json": "c05c864dfdf3bc88dc43c53a59f8fca84bcd03b43495f56b9388f34997a98d23",
 		"fixtures/consent.fixture.json":           "094ecda6f49497d55ff04c858a005c42f341ab064318db5519464054671bac3f",
 		"fixtures/start.fixture.json":             "1491559938db09e6fea965edcc09a7b1a9a0f89c3650dace2c91ebfcab172d2d",
 		// issue #2659: start-v2/status-v2 embed a freshly minted target_identity,
@@ -62,7 +62,7 @@ func TestReviewProviderArtifactV1ContractsArePinned(t *testing.T) {
 func TestReviewProviderArtifactV20ContractsArePinned(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v2")
 	want := map[string]string{
-		"fixtures/capabilities.fixture.json": "31ed51a8367b903a090ff57f0931e42485a8985501d65c6134e88addda15422f",
+		"fixtures/capabilities.fixture.json": "e7ad03059d85f4fc80365ac894bae05c919dbceb1962f31231aa4476bcb1eb0a",
 		"fixtures/consent.fixture.json":      "d03b4f2cb41a06965fff0d452bedafee3a878f721380edbe646a7ed4853c7586",
 		// issue #3922 / #4199: the native-git reviewer_result
 		// collect input no longer inlines changed_path_manifest -- it is
@@ -89,7 +89,7 @@ func TestReviewProviderArtifactV20ContractsArePinned(t *testing.T) {
 func TestReviewProviderArtifactV21ContractsArePinned(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v2")
 	want := map[string]string{
-		"fixtures/capabilities-v2.1.fixture.json": "15522bd7ee3121df465558129a707c57fcdcb2202a6fc6cd3873aa228aff1874",
+		"fixtures/capabilities-v2.1.fixture.json": "c53be1906a17b9ead9ef8999ec2a1add1f7370ec258d1ad85953e9c3f53de247",
 		// issue #2659: consent-v3 embeds a freshly minted target_identity;
 		// the purified identity domain legitimately changed that hash.
 		// Deliberate, not drift.

@@ -783,7 +783,7 @@ args = ["-y", "context7-mcp"]
 }
 
 // TestMergeJSONFilePreservesExistingModeOnRewrite is the representative
-// end-to-end regression test for gentle-ai#5006(F5): mergeJSONFile is the
+// end-to-end regression test for upstream #5006(F5): mergeJSONFile is the
 // settings-merge codepath shared by every JSON MCP
 // injection, and rewriting a pre-seeded private settings file must never
 // widen it.

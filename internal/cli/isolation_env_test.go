@@ -13,7 +13,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/system"
 )
 
-func TestBackupRootsHonorGentleAIHome(t *testing.T) {
+func TestBackupRootsHonorBrunnrCodeHome(t *testing.T) {
 	for _, tt := range []struct {
 		name     string
 		override bool

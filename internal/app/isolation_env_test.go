@@ -40,7 +40,7 @@ func TestRunArgsRejectsInvalidIsolationVariablesBeforeDetection(t *testing.T) {
 	}
 }
 
-func TestBackupRootFollowsGentleAIHome(t *testing.T) {
+func TestBackupRootFollowsBrunnrCodeHome(t *testing.T) {
 	home := t.TempDir()
 	setupMockHome(t, home)
 	restore := backup.BackupRootFn

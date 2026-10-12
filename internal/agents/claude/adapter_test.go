@@ -13,7 +13,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/system"
 )
 
-// TestMergeUserConfigForcesOAuthFileTo0600OnContentChange pins gentle-ai#5006(F5):
+// TestMergeUserConfigForcesOAuthFileTo0600OnContentChange pins upstream #5006(F5):
 // the OAuth-bearing ~/.claude.json must always end at 0600, tightening it if the
 // file was created insecurely, even though rewriting an existing file otherwise
 // preserves its current mode by default.

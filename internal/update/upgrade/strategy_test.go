@@ -113,8 +113,6 @@ func TestRunStrategy_BrewUpgradeFailure(t *testing.T) {
 
 // --- TestRunStrategy_GoInstallFailure ---
 
-// --- TestEffectiveMethod_NonGentleAIToolsOnWindowsUseBinary ---
-
 // TestEffectiveMethod_ToolsOnWindowsUseDeclaredMethod verifies that tools on
 // Windows use their declared install method.
 func TestEffectiveMethod_ToolsOnWindowsUseDeclaredMethod(t *testing.T) {
@@ -389,22 +387,22 @@ func TestBrewUpgrade_FormulaToolUsesFormulaTrust(t *testing.T) {
 		return mockCmd("echo", "ok")
 	}
 
-	if err := brewUpgrade(context.Background(), update.UpdateResult{Tool: update.ToolInfo{Name: "brunnr-code"}}, update.HomebrewFormula); err != nil {
+	if err := brewUpgrade(context.Background(), update.UpdateResult{Tool: update.ToolInfo{Name: "engram"}}, update.HomebrewFormula); err != nil {
 		t.Fatalf("brewUpgrade: unexpected error: %v", err)
 	}
 
-	if len(trustArgs) != 2 || trustArgs[0] != "--formula" || trustArgs[1] != "gentleman-programming/tap/brunnr-code" {
-		t.Fatalf("brew trust args = %v, want [--formula gentleman-programming/tap/brunnr-code]", trustArgs)
+	if len(trustArgs) != 2 || trustArgs[0] != "--formula" || trustArgs[1] != "gentleman-programming/tap/engram" {
+		t.Fatalf("brew trust args = %v, want [--formula gentleman-programming/tap/engram]", trustArgs)
 	}
 }
 
 func TestHomebrewFailureAdviceTapTrust(t *testing.T) {
-	output := `Error: Refusing to load formula gentleman-programming/tap/brunnr-code from untrusted tap.
-Run brew trust --formula gentleman-programming/tap/brunnr-code to trust it.`
-	advice := homebrewFailureAdvice("brunnr-code", output)
+	output := `Error: Refusing to load formula gentleman-programming/tap/engram from untrusted tap.
+Run brew trust --formula gentleman-programming/tap/engram to trust it.`
+	advice := homebrewFailureAdvice("engram", output)
 	for _, want := range []string{
-		"brew trust --formula gentleman-programming/tap/brunnr-code",
-		"brew upgrade --formula brunnr-code",
+		"brew trust --formula gentleman-programming/tap/engram",
+		"brew upgrade --formula engram",
 	} {
 		if !strings.Contains(advice, want) {
 			t.Fatalf("tap trust advice missing %q:\n%s", want, advice)

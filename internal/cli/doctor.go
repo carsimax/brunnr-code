@@ -145,13 +145,13 @@ func checkOneToolContext(ctx context.Context, tool string, pathDirs []string) Ch
 		// resolved is "" here: there is no PATH-resolved copy to name or to
 		// compare against, but the executable running THIS check is still
 		// independently derivable (osExecutableDoctor does not depend on
-		// PATH lookup succeeding). doctorInvokedGentleAIClause("") names it
+		// PATH lookup succeeding). doctorInvokedBrunnrCodeClause("") names it
 		// without fabricating a comparison that has nothing to compare
 		// against (organic-dx recovery: the clause must render on every
 		// derivable brunnr-code branch, not only the healthy one).
 		detail := tool + " not found in PATH"
 		if tool == "brunnr-code" {
-			detail += doctorInvokedGentleAIClause(resolved)
+			detail += doctorInvokedBrunnrCodeClause(resolved)
 		}
 		return CheckResult{
 			Name:   doctor.ToolCheckID(tool),
@@ -168,7 +168,7 @@ func checkOneToolContext(ctx context.Context, tool string, pathDirs []string) Ch
 		// the invoked-executable clause -- it must not be dropped here.
 		detail := fmt.Sprintf("%s resolved to %s but %d copies found in PATH: %s", tool, resolved, len(copies), strings.Join(copies, ", "))
 		if tool == "brunnr-code" {
-			detail += doctorInvokedGentleAIClause(resolved)
+			detail += doctorInvokedBrunnrCodeClause(resolved)
 		}
 		return CheckResult{
 			Name:   doctor.ToolCheckID(tool),
@@ -183,7 +183,7 @@ func checkOneToolContext(ctx context.Context, tool string, pathDirs []string) Ch
 		detail += " (" + shim + ")"
 	}
 	if tool == "brunnr-code" {
-		detail += doctorInvokedGentleAIClause(resolved)
+		detail += doctorInvokedBrunnrCodeClause(resolved)
 	}
 	if err := doctorToolProbeFn(ctx, tool, resolved); err != nil {
 		return CheckResult{
@@ -200,7 +200,7 @@ func checkOneToolContext(ctx context.Context, tool string, pathDirs []string) Ch
 	}
 }
 
-// doctorInvokedGentleAIClause names the exact executable and version that is
+// doctorInvokedBrunnrCodeClause names the exact executable and version that is
 // running THIS doctor check, alongside the PATH-resolved brunnr-code reported
 // above. An RC tester who invokes brunnr-code by an absolute path may have a
 // different brunnr-code earlier on PATH; without this, doctor would report only
@@ -214,12 +214,12 @@ func checkOneToolContext(ctx context.Context, tool string, pathDirs []string) Ch
 // itself is not found on PATH); in that case the clause still names the
 // invoked executable but skips the comparison, since there is honestly
 // nothing to compare it against.
-func doctorInvokedGentleAIClause(pathResolved string) string {
+func doctorInvokedBrunnrCodeClause(pathResolved string) string {
 	invoked, err := osExecutableDoctor()
 	if err != nil {
 		return ""
 	}
-	version, _ := reviewGentleAIVersionAndCommit()
+	version, _ := reviewBrunnrCodeVersionAndCommit()
 	clause := fmt.Sprintf("; invoked executable: %s (version %s)", invoked, version)
 	if pathResolved != "" && !doctorSameExecutable(invoked, pathResolved) {
 		clause += " -- this differs from the PATH-resolved copy above; the PATH copy's health does not describe the build actually running"

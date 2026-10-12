@@ -86,7 +86,7 @@ func TestWriteFileAtomicCreatesAndIsIdempotent(t *testing.T) {
 	}
 }
 
-// TestWriteFileAtomicPreservesExistingModeByDefault pins gentle-ai#5006(F5):
+// TestWriteFileAtomicPreservesExistingModeByDefault pins upstream #5006(F5):
 // rewriting an existing file must never widen its permissions, even when the
 // caller passes a wider perm literal — the common case across ~76 call sites
 // that pass a literal 0o644.
@@ -186,7 +186,7 @@ func TestWriteFileAtomicModeForcesRequestedPermOnExistingFile(t *testing.T) {
 }
 
 // TestWriteFileAtomicModeEnforcesPermOnIdenticalContent pins the gga runtime
-// case named in gentle-ai#5006(F5): an existing script whose content already
+// case named in upstream #5006(F5): an existing script whose content already
 // matches the embedded asset but whose mode drifted (e.g. 0644) must still be
 // forced to the intended mode (0755) by the forced API. That mode-only repair
 // mutates the file, so it reports Changed=true (#5022).

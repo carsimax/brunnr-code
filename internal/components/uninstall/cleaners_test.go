@@ -205,7 +205,7 @@ func TestUnmarshalJSONObject_RejectsTrailingJSONPayload(t *testing.T) {
 }
 
 func TestRemoveJSONPaths_PreservesCRLF(t *testing.T) {
-	input := []byte("{\r\n  \"outputStyle\": \"Gentleman\",\r\n  \"userSetting\": true\r\n}\r\n")
+	input := []byte("{\r\n  \"outputStyle\": \"Custom\",\r\n  \"userSetting\": true\r\n}\r\n")
 
 	updated, changed, err := removeJSONPaths(input, jsonPath{"outputStyle"})
 	if err != nil {
@@ -371,7 +371,7 @@ func TestJSONCleanup_OnRealFileWithTempDir(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "settings.json")
 	input := []byte(`{
-  "outputStyle": "Gentleman",
+  "outputStyle": "Custom",
   "mcpServers": {
     "engram": {
       "command": "engram"

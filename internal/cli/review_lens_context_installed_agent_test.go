@@ -13,10 +13,10 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
 )
 
-// gentleAIMarkerToken matches every envelope marker either half of the
+// brunnrCodeMarkerToken matches every envelope marker either half of the
 // reviewer transport can name, so the guard below compares the two halves by
 // what they actually contain rather than by a name restated in the test.
-var gentleAIMarkerToken = regexp.MustCompile(`BRUNNR_CODE_[A-Z_]+`)
+var brunnrCodeMarkerToken = regexp.MustCompile(`BRUNNR_CODE_[A-Z_]+`)
 
 // TestLensContextBlockCarriesEveryMarkerInstalledClaudeLensAgentsRequire is the
 // regression guard for issue #2777: the renderer a Claude parent relays and the
@@ -42,7 +42,7 @@ func TestLensContextBlockCarriesEveryMarkerInstalledClaudeLensAgentsRequire(t *t
 		t.Fatalf("read installed %s definition: %v", lens, err)
 	}
 
-	required := gentleAIMarkerToken.FindAllString(string(definition), -1)
+	required := brunnrCodeMarkerToken.FindAllString(string(definition), -1)
 	if len(required) == 0 {
 		t.Fatalf("installed %s definition names no envelope marker at all:\n%s", lens, definition)
 	}
@@ -57,6 +57,6 @@ func TestLensContextBlockCarriesEveryMarkerInstalledClaudeLensAgentsRequire(t *t
 	}
 	if len(missing) != 0 {
 		t.Fatalf("installed %s definition requires markers the rendered lens context never emits: %v\nemitted: %v",
-			lens, missing, slices.Compact(gentleAIMarkerToken.FindAllString(block, -1)))
+			lens, missing, slices.Compact(brunnrCodeMarkerToken.FindAllString(block, -1)))
 	}
 }

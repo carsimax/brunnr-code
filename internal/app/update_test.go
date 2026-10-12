@@ -235,10 +235,10 @@ func TestRunUpgrade_ForwardsParsedArgsOnceWithoutReparsing(t *testing.T) {
 	}
 }
 
-// TestRunUpgrade_NonGentleAIUpgradeDoesNotPrintDoctorAdvisory verifies that
+// TestRunUpgrade_NonBrunnrCodeUpgradeDoesNotPrintDoctorAdvisory verifies that
 // upgrading a tool other than brunnr-code (e.g. engram, gga) does NOT trigger
 // the doctor advisory. The advisory is gated on brunnr-code specifically.
-func TestRunUpgrade_NonGentleAIUpgradeDoesNotPrintDoctorAdvisory(t *testing.T) {
+func TestRunUpgrade_NonBrunnrCodeUpgradeDoesNotPrintDoctorAdvisory(t *testing.T) {
 	origCheckFiltered := updateCheckFiltered
 	origUpgradeExecuteWithOptions := upgradeExecuteWithOptions
 	t.Cleanup(func() {
@@ -269,6 +269,6 @@ func TestRunUpgrade_NonGentleAIUpgradeDoesNotPrintDoctorAdvisory(t *testing.T) {
 		t.Fatalf("runUpgrade() error = %v", err)
 	}
 	if strings.Contains(buf.String(), "ecosystem health after upgrade") {
-		t.Fatalf("non-gentle-ai upgrade must NOT print post-upgrade doctor advisory:\n%s", buf.String())
+		t.Fatalf("non-brunnr-code upgrade must NOT print post-upgrade doctor advisory:\n%s", buf.String())
 	}
 }

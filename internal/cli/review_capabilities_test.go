@@ -16,7 +16,7 @@ import (
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
-const capabilityFixtureExecutable = "gentle-ai capability fixture\n"
+const capabilityFixtureExecutable = "brunnr-code capability fixture\n"
 
 func TestReviewCapabilitiesMatchesConformanceFixtureOutsideRepository(t *testing.T) {
 	fixturePath, err := filepath.Abs(filepath.Join("..", "..", "contracts", "review-integration", "v1", "fixtures", "capabilities-v1.5.fixture.json"))
@@ -27,7 +27,7 @@ func TestReviewCapabilitiesMatchesConformanceFixtureOutsideRepository(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	executable := filepath.Join(t.TempDir(), "gentle-ai-fixture")
+	executable := filepath.Join(t.TempDir(), "brunnr-code-fixture")
 	if err := os.WriteFile(executable, []byte(capabilityFixtureExecutable), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +251,7 @@ func TestReviewCapabilitiesContractValidationIsExactAndReadOnly(t *testing.T) {
 }
 
 func TestReviewCapabilitiesAdvertisesOnlyNativeSurface(t *testing.T) {
-	executable := filepath.Join(t.TempDir(), "gentle-ai-fixture")
+	executable := filepath.Join(t.TempDir(), "brunnr-code-fixture")
 	if err := os.WriteFile(executable, []byte(capabilityFixtureExecutable), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -284,7 +284,7 @@ func TestReviewCapabilitiesAdvertisesOnlyNativeSurface(t *testing.T) {
 	if slices.Contains(result.Operations, "review.capture_result") {
 		t.Fatal("headless capture-result was advertised as a negotiated repository operation")
 	}
-	if result.Executable.Evidence != "self-reported" || result.Executable.Verification != "compare-with-published-manifest" || result.Executable.SHA256 != "sha256:dcc846103b16d365eaeeb9d7f289c23fc4f2897f23def1cb3fe7f05557b64705" {
+	if result.Executable.Evidence != "self-reported" || result.Executable.Verification != "compare-with-published-manifest" || result.Executable.SHA256 != "sha256:0fe0ce5cdd881d7446c03d16f308d2646a7eafde1a51db97a58b689d112bb248" {
 		t.Fatalf("executable identity = %#v", result.Executable)
 	}
 	var document any
@@ -580,7 +580,7 @@ func stubReviewCapabilityIdentity(t *testing.T, executable string) func() {
 	reviewCapabilitiesBuildInfoReader = func() (*debug.BuildInfo, bool) {
 		return &debug.BuildInfo{
 			GoVersion: "go1.25.10",
-			Main:      debug.Module{Path: "github.com/gentleman-programming/gentle-ai/v3", Version: "v2.1.7"},
+			Main:      debug.Module{Path: "github.com/carsimax/brunnr-code", Version: "v2.1.7"},
 			Settings: []debug.BuildSetting{
 				{Key: "vcs", Value: "git"},
 				{Key: "vcs.revision", Value: "0123456789abcdef0123456789abcdef01234567"},
@@ -618,7 +618,7 @@ func findCapabilityForbiddenField(value any, forbidden map[string]struct{}) stri
 }
 
 func TestReviewCapabilitiesFeatureRequirementsAreExplicit(t *testing.T) {
-	executable := filepath.Join(t.TempDir(), "gentle-ai-fixture")
+	executable := filepath.Join(t.TempDir(), "brunnr-code-fixture")
 	if err := os.WriteFile(executable, []byte(capabilityFixtureExecutable), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -669,7 +669,7 @@ func TestReviewCapabilitiesFeatureRequirementsAreExplicit(t *testing.T) {
 }
 
 func TestReviewCapabilitiesBootstrapIsOptionalForExistingV1Consumers(t *testing.T) {
-	executable := filepath.Join(t.TempDir(), "gentle-ai-fixture")
+	executable := filepath.Join(t.TempDir(), "brunnr-code-fixture")
 	if err := os.WriteFile(executable, []byte(capabilityFixtureExecutable), 0o755); err != nil {
 		t.Fatal(err)
 	}

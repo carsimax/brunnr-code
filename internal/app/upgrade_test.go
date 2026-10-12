@@ -242,7 +242,7 @@ func TestRenderUpgradeReport_PerToolSemantics_Deterministic(t *testing.T) {
 					OldVersion: "1.0.0",
 					NewVersion: "2.0.0",
 					Status:     upgrade.UpgradeSkipped,
-					ManualHint: "Download from https://github.com/Gentleman-Programming/gga/releases",
+					ManualHint: "Download from https://example.com/tool/releases",
 				},
 			},
 			wantContains:   []string{"engram", "[ok]", "brunnr-code", "[--]", "gga", "1 succeeded", "2 skipped"},

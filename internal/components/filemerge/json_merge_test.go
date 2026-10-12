@@ -25,7 +25,7 @@ func TestPermissionOverlayCannotReplaceRestrictionsWithScalarAllow(t *testing.T)
 
 func TestMergeJSONObjectsRecursively(t *testing.T) {
 	base := []byte(`{"plugins":["a"],"settings":{"theme":"default","flags":{"x":true}}}`)
-	overlay := []byte(`{"settings":{"theme":"gentleman","flags":{"y":true}},"extra":1}`)
+	overlay := []byte(`{"settings":{"theme":"custom","flags":{"y":true}},"extra":1}`)
 
 	merged, err := MergeJSONObjects(base, overlay)
 	if err != nil {
@@ -40,7 +40,7 @@ func TestMergeJSONObjectsRecursively(t *testing.T) {
 	settings := got["settings"].(map[string]any)
 	flags := settings["flags"].(map[string]any)
 
-	if settings["theme"] != "gentleman" {
+	if settings["theme"] != "custom" {
 		t.Fatalf("theme = %v", settings["theme"])
 	}
 
@@ -344,7 +344,7 @@ func TestMergeJSONObjects_Issue278_ReplaceSentinelFixesWildcard(t *testing.T) {
 
 // exactNumberSettings holds number tokens that float64 decoding would round,
 // reformat or reject (#1672); every rewrite must keep them verbatim.
-const exactNumberSettings = `{"agent":{"gentleman":{"tools":{},"__managed_by":"brunnr-code/sdd"}},` +
+const exactNumberSettings = `{"agent":{"custom":{"tools":{},"__managed_by":"brunnr-code/sdd"}},` +
 	`"big":9007199254740993,"neg":-9007199254740995,"max":9223372036854775807,` +
 	`"nested":{"list":[1.10,6.02214076e23,1E+2,{"min":-9223372036854775808}]},"huge":1e999}`
 

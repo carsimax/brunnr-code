@@ -184,7 +184,7 @@ func TestNativeBlockingPromptRulesRetainInteractiveUIWithFailClosedFallback(t *t
 	}
 }
 
-func TestCoordinatorOrchestratorsCarryGentleAIProviderDefectHandoff(t *testing.T) {
+func TestCoordinatorOrchestratorsCarryBrunnrCodeProviderDefectHandoff(t *testing.T) {
 	requirements := []struct {
 		name string
 		text string

@@ -11,7 +11,7 @@ func TestReviewScrubDefectReportFieldKeepsPublicIdentifiersAndRedactsTheRest(t *
 		{"contract id survives", "run brunnr-code review status --contract brunnr-code.review-integration/v2 --agent codex", "run brunnr-code review status --contract brunnr-code.review-integration/v2 --agent codex"},
 		{"schema id survives", "schema brunnr-code.review-integration.status/v7 required", "schema brunnr-code.review-integration.status/v7 required"},
 		{"other assignments still redact", "export SOME_RELAY_CONTRACT=brunnr-code.review-relay/v9 and GITHUB_TOKEN=abc", "export <redacted> and <redacted>"},
-		{"absolute path still redacts", "repo at /Users/alan/work/gentle-ai failed", "repo at <redacted> failed"},
+		{"absolute path still redacts", "repo at /Users/alan/work/brunnr-code failed", "repo at <redacted> failed"},
 		{"home-rooted path still redacts", "read ~/.codex/config.toml first", "read ~<redacted> first"},
 		{"file url still redacts", "see file:///Users/alan/x", "see fil<redacted>"},
 		{"windows path still redacts", `path C:\Users\alan\repo\x.go missing`, "path <redacted> missing"},

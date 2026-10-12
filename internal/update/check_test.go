@@ -1107,8 +1107,6 @@ func TestNoUpdatesPath(t *testing.T) {
 		switch {
 		case contains(path, "engram"):
 			release = githubRelease{TagName: "v0.3.2"}
-		case contains(path, "gentleman-guardian-angel"):
-			release = githubRelease{TagName: "v1.0.0"}
 		default:
 			release = githubRelease{TagName: "v1.0.0"}
 		}
@@ -1391,7 +1389,7 @@ func (tt *testTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		}
 		module := tt.module
 		if module == "" {
-			module = "github.com/gentleman-programming/gentle-ai/v3"
+			module = "github.com/carsimax/brunnr-code"
 		}
 		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("module " + module + "\n")), Header: make(http.Header), Request: req}, nil
 	}

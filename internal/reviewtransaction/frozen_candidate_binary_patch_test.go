@@ -28,7 +28,7 @@ func TestPatchInspectionNeverEmitsBinaryContentBytes(t *testing.T) {
 
 	// A PNG header plus a NUL is what Git's own heuristic classifies as binary,
 	// and the marker is content no legitimate patch summary would ever repeat.
-	const marker = "GENTLE-AI-3193-BLOB-MARKER"
+	const marker = "BRUNNR-CODE-3193-BLOB-MARKER"
 	base := append([]byte("\x89PNG\r\n\x1a\n\x00"), []byte("base "+marker+"\n")...)
 	candidate := append([]byte("\x89PNG\r\n\x1a\n\x00"), []byte("candidate "+marker+"\x01\n")...)
 

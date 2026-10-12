@@ -13,7 +13,7 @@
     "vcs_modified": "false"
   },
   "executable": {
-    "sha256": "sha256:dcc846103b16d365eaeeb9d7f289c23fc4f2897f23def1cb3fe7f05557b64705",
+    "sha256": "sha256:0fe0ce5cdd881d7446c03d16f308d2646a7eafde1a51db97a58b689d112bb248",
     "evidence": "self-reported",
     "verification": "compare-with-published-manifest"
   },

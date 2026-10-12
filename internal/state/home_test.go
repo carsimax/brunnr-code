@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestDirDefaultsToDotGentleAIUnderHome(t *testing.T) {
+func TestDirDefaultsToDotBrunnrCodeUnderHome(t *testing.T) {
 	t.Setenv(HomeEnv, "")
 	home := t.TempDir()
 
@@ -54,7 +54,7 @@ func TestHomeEnvRoutesStateAndManifestFiles(t *testing.T) {
 }
 
 func TestValidateHomeEnvRejectsRelativePath(t *testing.T) {
-	t.Setenv(HomeEnv, "relative/gentle-ai")
+	t.Setenv(HomeEnv, "relative/brunnr-code")
 
 	err := ValidateHomeEnv()
 	if err == nil {

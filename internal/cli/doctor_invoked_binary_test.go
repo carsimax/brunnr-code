@@ -10,14 +10,14 @@ import (
 	"github.com/carsimax/brunnr-code/internal/doctor"
 )
 
-// TestCheckOneTool_GentleAINamesTheInvokedExecutable closes fisidj finding 5
+// TestCheckOneTool_BrunnrCodeNamesTheInvokedExecutable closes fisidj finding 5
 // (organic-dx Phase 3f task 3f.5): an RC tester who invokes brunnr-code by an
 // absolute path may have a DIFFERENT brunnr-code on PATH -- doctor previously
 // reported only the PATH-resolved copy as healthy, so a report could describe
 // a build the tester never actually ran. The brunnr-code tool check must also
 // name the invoked executable's own path (and version) so RC reports are
 // unambiguous about which build was under test.
-func TestCheckOneTool_GentleAINamesTheInvokedExecutable(t *testing.T) {
+func TestCheckOneTool_BrunnrCodeNamesTheInvokedExecutable(t *testing.T) {
 	stubDoctorToolProbe(t)
 	origLook := lookPathFn
 	origExec := osExecutableDoctor
@@ -42,11 +42,11 @@ func TestCheckOneTool_GentleAINamesTheInvokedExecutable(t *testing.T) {
 	}
 }
 
-// TestCheckOneTool_GentleAIFlagsWhenInvokedDiffersFromPath proves the exact
+// TestCheckOneTool_BrunnrCodeFlagsWhenInvokedDiffersFromPath proves the exact
 // ambiguity this task closes: when the invoked binary and the PATH-resolved
 // binary are different files, the report says so explicitly instead of
 // silently reporting only the PATH copy as healthy.
-func TestCheckOneTool_GentleAIFlagsWhenInvokedDiffersFromPath(t *testing.T) {
+func TestCheckOneTool_BrunnrCodeFlagsWhenInvokedDiffersFromPath(t *testing.T) {
 	stubDoctorToolProbe(t)
 	origLook := lookPathFn
 	origExec := osExecutableDoctor
@@ -66,10 +66,10 @@ func TestCheckOneTool_GentleAIFlagsWhenInvokedDiffersFromPath(t *testing.T) {
 	}
 }
 
-// TestCheckOneTool_GentleAISameExecutableAsPathIsNotFlagged proves the common
+// TestCheckOneTool_BrunnrCodeSameExecutableAsPathIsNotFlagged proves the common
 // case (invoked == PATH-resolved) stays unambiguous and does not spuriously
 // claim a mismatch.
-func TestCheckOneTool_GentleAISameExecutableAsPathIsNotFlagged(t *testing.T) {
+func TestCheckOneTool_BrunnrCodeSameExecutableAsPathIsNotFlagged(t *testing.T) {
 	stubDoctorToolProbe(t)
 	origLook := lookPathFn
 	origExec := osExecutableDoctor
@@ -113,15 +113,15 @@ func TestCheckOneTool_OtherToolsUnaffected(t *testing.T) {
 	}
 }
 
-// TestCheckOneTool_GentleAIDuplicatesStillNameInvokedExecutable reproduces
+// TestCheckOneTool_BrunnrCodeDuplicatesStillNameInvokedExecutable reproduces
 // the reported regression: when 2+ copies of brunnr-code are found in PATH the
 // check moves to the Warn/duplicate branch, which never called
-// doctorInvokedGentleAIClause, so the one piece of information that
+// doctorInvokedBrunnrCodeClause, so the one piece of information that
 // disambiguates which build is actually running disappeared exactly when
 // ambiguity is guaranteed. The invoked-executable clause must survive the
 // duplicate branch without changing the duplicate detection, its severity,
 // or the remedy.
-func TestCheckOneTool_GentleAIDuplicatesStillNameInvokedExecutable(t *testing.T) {
+func TestCheckOneTool_BrunnrCodeDuplicatesStillNameInvokedExecutable(t *testing.T) {
 	stubDoctorToolProbe(t)
 	origLook := lookPathFn
 	origExec := osExecutableDoctor
@@ -162,14 +162,14 @@ func TestCheckOneTool_GentleAIDuplicatesStillNameInvokedExecutable(t *testing.T)
 	}
 }
 
-// TestCheckOneTool_GentleAINotFoundNamesInvokedExecutableWithoutComparison
+// TestCheckOneTool_BrunnrCodeNotFoundNamesInvokedExecutableWithoutComparison
 // covers the Fail branch: when brunnr-code cannot be resolved via PATH at all,
 // there is no PATH-resolved copy to compare against, but the executable
 // currently running THIS doctor check is still independently derivable via
 // osExecutableDoctor. The clause must name it honestly, without fabricating
 // a "differs from the PATH-resolved copy" comparison that has nothing to
 // compare against.
-func TestCheckOneTool_GentleAINotFoundNamesInvokedExecutableWithoutComparison(t *testing.T) {
+func TestCheckOneTool_BrunnrCodeNotFoundNamesInvokedExecutableWithoutComparison(t *testing.T) {
 	stubDoctorToolProbe(t)
 	origLook := lookPathFn
 	origExec := osExecutableDoctor
@@ -195,12 +195,12 @@ func TestCheckOneTool_GentleAINotFoundNamesInvokedExecutableWithoutComparison(t 
 	}
 }
 
-// TestCheckOneTool_GentleAIExecutableUnresolvable proves the honesty
+// TestCheckOneTool_BrunnrCodeExecutableUnresolvable proves the honesty
 // contract: when osExecutableDoctor itself cannot resolve the invoked
 // executable, the clause stays empty on every branch rather than fabricating
 // a version — this covers the duplicate branch, which previously had no
 // clause call at all to exercise this path.
-func TestCheckOneTool_GentleAIExecutableUnresolvable(t *testing.T) {
+func TestCheckOneTool_BrunnrCodeExecutableUnresolvable(t *testing.T) {
 	stubDoctorToolProbe(t)
 	origLook := lookPathFn
 	origExec := osExecutableDoctor

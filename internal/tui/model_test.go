@@ -2002,7 +2002,7 @@ func TestStartUninstall_FullRemoveHomebrewManagedBinaryAddsManualAction(t *testi
 		return componentuninstall.Result{}, nil
 	}
 
-	restoreExec := setOSExecutableForTest("/opt/homebrew/bin/gentle-ai", nil)
+	restoreExec := setOSExecutableForTest("/opt/homebrew/bin/brunnr-code", nil)
 	defer restoreExec()
 
 	removeCalled := false
@@ -2036,7 +2036,7 @@ func TestStartUninstall_FullRemoveNonBrewRemovesBinary(t *testing.T) {
 		return componentuninstall.Result{}, nil
 	}
 
-	restoreExec := setOSExecutableForTest("/tmp/gentle-ai", nil)
+	restoreExec := setOSExecutableForTest("/tmp/brunnr-code", nil)
 	defer restoreExec()
 
 	removedPath := ""
@@ -2050,8 +2050,8 @@ func TestStartUninstall_FullRemoveNonBrewRemovesBinary(t *testing.T) {
 	if msg.Err != nil {
 		t.Fatalf("UninstallDoneMsg.Err = %v, want nil", msg.Err)
 	}
-	if removedPath != "/tmp/gentle-ai" {
-		t.Fatalf("os.Remove path = %q, want %q", removedPath, "/tmp/gentle-ai")
+	if removedPath != "/tmp/brunnr-code" {
+		t.Fatalf("os.Remove path = %q, want %q", removedPath, "/tmp/brunnr-code")
 	}
 }
 

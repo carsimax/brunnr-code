@@ -1,5 +1,5 @@
 # Binaries
-/gentle-ai
+/brunnr-code
 *.exe
 *.dll
 *.so
@@ -24,8 +24,8 @@ Thumbs.db
 
 # Docker
 *.tar
-cmd/gentle-ai/main
-cmd/gentle-ai/gentle-ai
+cmd/brunnr-code/main
+cmd/brunnr-code/brunnr-code
 dist/
 .goreleaser-provider-contract/
 .goreleaser-provenance/

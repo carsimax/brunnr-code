@@ -27,7 +27,7 @@ import (
 // that has to be right, it is not our work to triage, and it reintroduces the
 // prompt noise this exists to remove. Out of scope means silent.
 
-func TestDefectHandoffAdmitsOnlyFailuresGentleAIProduced(t *testing.T) {
+func TestDefectHandoffAdmitsOnlyFailuresBrunnrCodeProduced(t *testing.T) {
 	for _, path := range allSDDOrchestratorAssetPaths(t) {
 		t.Run(path, func(t *testing.T) {
 			content := MustRead(path)

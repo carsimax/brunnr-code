@@ -1047,7 +1047,7 @@ func TestSnapshotTempIndexesAreRemovedAfterGitAddErrors(t *testing.T) {
 			writeSnapshotFile(t, repo, ".gitattributes", "unsupported.txt filter=snapshotfail\n")
 			gitSnapshot(t, repo, "add", ".gitattributes")
 			gitSnapshot(t, repo, "commit", "-m", "failing filter fixture")
-			gitSnapshot(t, repo, "config", "filter.snapshotfail.clean", "git rev-parse --verify refs/heads/gentle-ai-filter-must-fail")
+			gitSnapshot(t, repo, "config", "filter.snapshotfail.clean", "git rev-parse --verify refs/heads/brunnr-code-filter-must-fail")
 			gitSnapshot(t, repo, "config", "filter.snapshotfail.required", "true")
 			writeSnapshotFile(t, repo, "unsupported.txt", "cannot clean\n")
 			target := Target{Kind: kind, IntendedUntracked: []string{"unsupported.txt"}}
