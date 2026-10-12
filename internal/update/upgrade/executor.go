@@ -208,7 +208,10 @@ func managedAgentBackupPaths(homeDir string, adapter agents.Adapter, diagnostics
 	}
 
 	if adapter.SupportsOutputStyles() {
-		add(persona.OutputStylePath(adapter.OutputStyleDir(homeDir)))
+		styleDir := adapter.OutputStyleDir(homeDir)
+		add(persona.OutputStylePath(styleDir))
+		// The post-upgrade persona sync removes retired managed styles.
+		add(persona.LegacyOutputStylePaths(styleDir)...)
 	}
 
 	if adapter.SupportsSubAgents() {

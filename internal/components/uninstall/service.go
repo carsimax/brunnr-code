@@ -607,9 +607,11 @@ func (s *Service) componentOperations(adapter agents.Adapter, componentID model.
 			}))
 		}
 		if adapter.SupportsOutputStyles() {
-			path := persona.OutputStylePath(adapter.OutputStyleDir(homeDir))
-			targets = append(targets, path)
-			ops = append(ops, removeFile(path))
+			styleDir := adapter.OutputStyleDir(homeDir)
+			for _, path := range append([]string{persona.OutputStylePath(styleDir)}, persona.LegacyOutputStylePaths(styleDir)...) {
+				targets = append(targets, path)
+				ops = append(ops, removeFile(path))
+			}
 			ops = append(ops, removeDirIfEmpty(adapter.OutputStyleDir(homeDir)))
 		}
 		for _, path := range settingsTargets(homeDir, adapter) {

@@ -22,8 +22,8 @@ func outputStyleOverlayJSON(name string) []byte {
 	return []byte(fmt.Sprintf("{\n  \"outputStyle\": %q\n}\n", name))
 }
 
-// Inject performs a full Neutral persona injection: the marker-bound markdown
-// block and the Claude Code output-style overlay. Used by `brunnr-code install`.
+// Inject performs a full persona injection: the marker-bound markdown block
+// and the Claude Code output-style overlay. Used by `brunnr-code install`.
 func Inject(homeDir string, adapter agents.Adapter) (InjectionResult, error) {
 	return injectInternal(homeDir, adapter)
 }
@@ -31,8 +31,9 @@ func Inject(homeDir string, adapter agents.Adapter) (InjectionResult, error) {
 // InjectForSync regenerates the persona assets that `brunnr-code sync` is
 // allowed to touch. It writes:
 //   - The marker-bound persona block in the agent's prompt file (markdown).
-//   - The Neutral output-style file + outputStyle settings overlay (Claude
-//     Code only — no conflict with other components).
+//   - The Principal Engineer output-style file + outputStyle settings overlay
+//     (Claude Code only — no conflict with other components), removing any
+//     retired managed output style.
 func InjectForSync(homeDir string, adapter agents.Adapter) (InjectionResult, error) {
 	return injectInternal(homeDir, adapter)
 }
@@ -122,8 +123,13 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 
 	// 2. Write the managed output style and enable it in settings.
 	if adapter.SupportsOutputStyles() {
+		removed, err := removeLegacyOutputStyles(adapter.OutputStyleDir(homeDir))
+		if err != nil {
+			return InjectionResult{}, err
+		}
+		changed = changed || removed
 		if stylePath := OutputStylePath(adapter.OutputStyleDir(homeDir)); stylePath != "" {
-			styleResult, err := filemerge.WriteFileAtomic(stylePath, []byte(assets.MustRead(neutralOutputStyle.AssetPath)), 0o644)
+			styleResult, err := filemerge.WriteFileAtomic(stylePath, []byte(assets.MustRead(managedOutputStyle.AssetPath)), 0o644)
 			if err != nil {
 				return InjectionResult{}, err
 			}
@@ -131,7 +137,7 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 			files = append(files, stylePath)
 
 			if settingsPath := adapter.SettingsPath(homeDir); settingsPath != "" {
-				settingsResult, err := mergeJSONFileToleratingMalformed(settingsPath, outputStyleOverlayJSON(neutralOutputStyle.Name))
+				settingsResult, err := mergeJSONFileToleratingMalformed(settingsPath, outputStyleOverlayJSON(managedOutputStyle.Name))
 				if err != nil {
 					return InjectionResult{}, err
 				}
@@ -142,6 +148,25 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 	}
 
 	return InjectionResult{Changed: changed, Files: files}, nil
+}
+
+// removeLegacyOutputStyles deletes retired managed output-style files in dir.
+// The removed paths are not reported in InjectionResult.Files, which lists
+// files that exist after the step; callers back them up through
+// LegacyOutputStylePaths instead.
+func removeLegacyOutputStyles(dir string) (bool, error) {
+	removed := false
+	for _, path := range LegacyOutputStylePaths(dir) {
+		err := os.Remove(path)
+		if err == nil {
+			removed = true
+			continue
+		}
+		if !os.IsNotExist(err) {
+			return false, fmt.Errorf("remove legacy output style %q: %w", path, err)
+		}
+	}
+	return removed, nil
 }
 
 func injectPersonaBeforeManagedSections(existing, content string) string {

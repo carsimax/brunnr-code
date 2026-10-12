@@ -81,7 +81,7 @@ func TestInjectClaudeNeutralWritesResidualPersonaWithoutRegionalLanguage(t *test
 	}
 }
 
-func TestInjectClaudeNeutralWritesNeutralOutputStyleAndSettings(t *testing.T) {
+func TestInjectClaudeWritesPrincipalEngineerOutputStyleAndSettings(t *testing.T) {
 	home := t.TempDir()
 	settingsDir := filepath.Join(home, ".claude")
 	if err := os.MkdirAll(filepath.Join(settingsDir, "output-styles"), 0o755); err != nil {
@@ -97,7 +97,7 @@ func TestInjectClaudeNeutralWritesNeutralOutputStyleAndSettings(t *testing.T) {
 		t.Fatalf("Inject() error = %v", err)
 	}
 
-	for _, suffix := range []string{"CLAUDE.md", "neutral.md", "settings.json"} {
+	for _, suffix := range []string{"CLAUDE.md", "principal-engineer.md", "settings.json"} {
 		found := false
 		for _, file := range result.Files {
 			if strings.HasSuffix(file, suffix) {
@@ -106,24 +106,24 @@ func TestInjectClaudeNeutralWritesNeutralOutputStyleAndSettings(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Fatalf("Neutral persona result missing %q in files %v", suffix, result.Files)
+			t.Fatalf("persona result missing %q in files %v", suffix, result.Files)
 		}
 	}
 
-	neutralStylePath := filepath.Join(home, ".claude", "output-styles", "neutral.md")
-	styleContent, err := os.ReadFile(neutralStylePath)
+	stylePath := filepath.Join(home, ".claude", "output-styles", "principal-engineer.md")
+	styleContent, err := os.ReadFile(stylePath)
 	if err != nil {
-		t.Fatalf("ReadFile(%q) error = %v", neutralStylePath, err)
+		t.Fatalf("ReadFile(%q) error = %v", stylePath, err)
 	}
 	styleText := string(styleContent)
-	for _, want := range []string{"name: Neutral", "Neutral Output Style", "minimum useful response", "Generated technical artifacts default to English"} {
+	for _, want := range []string{"name: Principal Engineer", "Principal Engineer Output Style", "minimum useful response", "Generated technical artifacts default to English"} {
 		if !strings.Contains(styleText, want) {
-			t.Fatalf("neutral output style missing %q; got:\n%s", want, styleText)
+			t.Fatalf("principal engineer output style missing %q; got:\n%s", want, styleText)
 		}
 	}
 	assertLanguageGuardrails(t, styleText, claudeOutputStyleLanguageGuardrails, nil)
 	if strings.Contains(styleText, "Rioplatense") || strings.Contains(styleText, "voseo") {
-		t.Fatalf("neutral output style contains regional wording:\n%s", styleText)
+		t.Fatalf("principal engineer output style contains regional wording:\n%s", styleText)
 	}
 
 	settingsContent, err := os.ReadFile(filepath.Join(settingsDir, "settings.json"))
@@ -134,7 +134,7 @@ func TestInjectClaudeNeutralWritesNeutralOutputStyleAndSettings(t *testing.T) {
 	if err := json.Unmarshal(settingsContent, &settings); err != nil {
 		t.Fatalf("Unmarshal settings error = %v", err)
 	}
-	if got, want := settings["outputStyle"], "Neutral"; got != want {
+	if got, want := settings["outputStyle"], "Principal Engineer"; got != want {
 		t.Fatalf("settings outputStyle = %q, want %q", got, want)
 	}
 	if _, ok := settings["permissions"]; !ok {
@@ -146,7 +146,7 @@ func TestInjectClaudeNeutralWritesNeutralOutputStyleAndSettings(t *testing.T) {
 		t.Fatalf("Inject() second error = %v", err)
 	}
 	if second.Changed {
-		t.Fatalf("second neutral Claude inject changed = true, want idempotent false")
+		t.Fatalf("second Claude persona inject changed = true, want idempotent false")
 	}
 }
 
@@ -207,7 +207,7 @@ func TestInjectClaudeHealDoesNotTouchNonPersonaContent(t *testing.T) {
 	}
 }
 
-func TestInjectClaude_NeutralSelectsManagedOutputStyleAndPreservesOtherSettings(t *testing.T) {
+func TestInjectClaude_SelectsManagedOutputStyleAndPreservesOtherSettings(t *testing.T) {
 	home := t.TempDir()
 
 	// Pre-create settings.json with a user-defined outputStyle that is NOT "Custom".
@@ -223,7 +223,7 @@ func TestInjectClaude_NeutralSelectsManagedOutputStyleAndPreservesOtherSettings(
 
 	_, err := Inject(home, claudeAdapter())
 	if err != nil {
-		t.Fatalf("Inject(neutral) error = %v", err)
+		t.Fatalf("Inject() error = %v", err)
 	}
 
 	settingsRaw, err := os.ReadFile(settingsPath)
@@ -235,7 +235,7 @@ func TestInjectClaude_NeutralSelectsManagedOutputStyleAndPreservesOtherSettings(
 		t.Fatalf("Unmarshal settings.json error = %v", err)
 	}
 
-	if got, want := settings["outputStyle"], "Neutral"; got != want {
+	if got, want := settings["outputStyle"], "Principal Engineer"; got != want {
 		t.Fatalf("outputStyle = %v, want %q", got, want)
 	}
 	// Other user keys must also survive.
@@ -258,7 +258,7 @@ func TestInjectClaude_MalformedJSON_DoesNotPanic(t *testing.T) {
 
 	_, err := Inject(home, claudeAdapter())
 	if err != nil {
-		t.Fatalf("Inject(neutral) with malformed settings.json must not error, got: %v", err)
+		t.Fatalf("Inject() with malformed settings.json must not error, got: %v", err)
 	}
 }
 
@@ -331,109 +331,6 @@ func TestResidualChannelAllAgents(t *testing.T) {
 	}
 }
 
-// movedPersonaRule pairs a frozen (verbatim, HEAD-captured) line from a
-// MOVE-tagged persona section with the substring actually asserted against
-// the reconciled output style. checkAgainst equals frozen for the common
-// case (the line survived untouched). When the output style legitimately
-// pre-existed with its own equivalent wording for that rule (not a JD-016/017
-// content-loss bug), checkAgainst is a documented merged/reworded substring
-// instead, with mergedNote explaining the mapping.
-type movedPersonaRule struct {
-	frozen       string
-	checkAgainst string
-	mergedNote   string
-}
-
-func assertMovedPersonaRules(t *testing.T, styleAsset string, rules []movedPersonaRule) {
-	t.Helper()
-	reconciled := assets.MustRead(styleAsset)
-	for _, r := range rules {
-		if !strings.Contains(reconciled, r.checkAgainst) {
-			if r.mergedNote != "" {
-				t.Fatalf("%s: merged form %q (for frozen HEAD rule %q; %s) not found in reconciled style", styleAsset, r.checkAgainst, r.frozen, r.mergedNote)
-			}
-			t.Fatalf("%s: lost MOVE-tagged persona rule %q (frozen verbatim from HEAD)", styleAsset, r.frozen)
-		}
-	}
-}
-
-// neutralMovedRules freezes every normative line from HEAD
-// generic/persona-neutral.md's MOVE-tagged sections. Persona Scope's four
-// itemized artifact-type bullets ("Code, identifiers...", "UI copy...",
-// "Documentation...", "Any string literal...") and the
-// "Never inject regional slang...into generated code" bullet are
-// intentionally NOT included here: they were already condensed into two
-// prose paragraphs in output-style-neutral.md before this change (not part
-// of the JD-016 Behavior/Tone gap this test targets), and forcing a strict
-// per-bullet mapping for a pre-existing, unflagged restructuring would
-// falsely fail this test on content outside JD-016/017's scope.
-var neutralMovedRules = []movedPersonaRule{
-	{frozen: "- The persona styles HOW YOU TALK, not WHAT YOU BUILD.", checkAgainst: "- The persona styles HOW YOU TALK, not WHAT YOU BUILD."},
-	{frozen: "Senior Architect, 15+ years experience, GDE & MVP. Passionate teacher who genuinely wants people to learn and grow. Gets frustrated when someone can do better but isn't — not out of anger, but because you CARE about their growth.",
-		checkAgainst: "senior mentor",
-		mergedNote:   "Neutral's output style deliberately does not restate persona bio details ('Senior Architect', 'GDE & MVP'); the mentor identity itself survives via the Core Principle's 'You are a senior mentor' framing"},
-	{frozen: "The persona's Language, Tone, Speech Patterns, and Personality rules govern ONLY your reply text addressed to the user — what you SAY in chat.",
-		checkAgainst: "This output style governs direct replies to the user only.",
-		mergedNote:   "style's own Persona Scope section restates the scope-limiting rule as one declarative sentence"},
-	{frozen: "They do NOT govern artifacts you produce for the task:",
-		checkAgainst: "It does not define the language, tone, or style of generated artifacts.",
-		mergedNote:   "same paragraph, condensed opener establishing the same replies-only/not-artifacts boundary"},
-	{frozen: "- Default to English. UI labels, comments, identifiers, and copy are in English unless the user explicitly requests another language for that artifact, OR the existing project clearly uses another language and you are extending it.",
-		checkAgainst: "Generated technical artifacts default to English and neutral professional wording unless the user explicitly requests another artifact language or the existing project convention requires it.",
-		mergedNote:   "condensed restatement of the same default-to-English artifact rule"},
-	{frozen: "- Generated technical artifacts default to English regardless of the active persona or conversation language.", checkAgainst: "- Generated technical artifacts default to English regardless of the active persona or conversation language."},
-	{frozen: "- If Spanish technical artifacts are explicitly requested, use neutral/professional Spanish unless the user explicitly asks for a regional variant.", checkAgainst: "- If Spanish technical artifacts are explicitly requested, use neutral/professional Spanish unless the user explicitly asks for a regional variant."},
-	{frozen: "- Public/contextual comments follow the target context language by default; Spanish comments default to neutral/professional Spanish unless the user or context clearly calls for regional tone.", checkAgainst: "- Public/contextual comments follow the target context language by default; Spanish comments default to neutral/professional Spanish unless the user or context clearly calls for regional tone."},
-	{frozen: "- Match the user's current language in your REPLY ONLY (see Persona Scope above).",
-		checkAgainst: "Match the user's current language in direct replies.",
-		mergedNote:   "the neutral style's own Language and Tone opener carries the same rule without a persona-specific 'REPLY ONLY' cross-reference"},
-	{frozen: "- Do not switch languages unless the user does, asks you to, or you are quoting/translating content.", checkAgainst: "- Do not switch languages unless the user does, asks you to, or you are quoting/translating content."},
-	{frozen: "- Use warm, natural, professional language without regional slang or dialect-specific grammar.",
-		checkAgainst: "Use warm, natural, professional wording without regional slang or dialect-specific grammar.",
-		mergedNote:   "'language' -> 'wording' rewording, otherwise verbatim"},
-	{frozen: "- When replying to the user in English, keep the full reply in natural English with the same warm energy.",
-		checkAgainst: "When replying to the user in English, keep the full",
-		mergedNote:   "style's own bullet continues differently ('...response in English unless...') but shares this opening normative clause"},
-	{frozen: "- If the selected reply language is English, every part of the direct reply must be English: greetings, interjections, acknowledgements, transition phrases, and the first sentence. Do not use Hola, dale, listo, Spanish punctuation, or other Spanish fragments.", checkAgainst: "- If the selected reply language is English, every part of the direct reply must be English: greetings, interjections, acknowledgements, transition phrases, and the first sentence. Do not use Hola, dale, listo, Spanish punctuation, or other Spanish fragments."},
-	{frozen: "- Prompts starting with or dominated by hi, hello, hey, or similar English greetings are English prompts unless the user explicitly asks for another language.", checkAgainst: "- Prompts starting with or dominated by hi, hello, hey, or similar English greetings are English prompts unless the user explicitly asks for another language."},
-	// JD-016: this entire paragraph was marked MOVE in Table C but never
-	// added to output-style-neutral.md — verbatim check, no merged form.
-	{frozen: "Passionate and direct, but from a place of CARING. When someone is wrong: (1) validate the question makes sense, (2) explain WHY it's wrong with technical reasoning, (3) show the correct way with examples. Frustration comes from caring they can do better. Use CAPS for emphasis.",
-		checkAgainst: "Passionate and direct, but from a place of CARING. When someone is wrong: (1) validate the question makes sense, (2) explain WHY it's wrong with technical reasoning, (3) show the correct way with examples. Frustration comes from caring they can do better. Use CAPS for emphasis."},
-	{frozen: "- CONCEPTS > CODE: call out people who code without understanding fundamentals",
-		checkAgainst: "CONCEPTS > CODE:",
-		mergedNote:   "style's own ## Teaching Behavior restates this pillar with different verbs under the same label"},
-	{frozen: "- AI IS A TOOL: we direct, AI executes; the human always leads",
-		checkAgainst: "AI IS A TOOL:",
-		mergedNote:   "style's own ## Teaching Behavior restates this pillar with different verbs under the same label"},
-	{frozen: "- SOLID FOUNDATIONS: design patterns, architecture, bundlers before frameworks",
-		checkAgainst: "SOLID FOUNDATIONS:",
-		mergedNote:   "style's own ## Teaching Behavior restates this pillar with different verbs under the same label"},
-	{frozen: "- AGAINST IMMEDIACY: no shortcuts; real learning takes effort and time",
-		checkAgainst: "AGAINST IMMEDIACY:",
-		mergedNote:   "style's own ## Teaching Behavior restates this pillar with different verbs under the same label"},
-	// JD-016: the entire ## Behavior section (4 rules) was marked MOVE in
-	// Table C but never added to output-style-neutral.md — verbatim checks,
-	// no merged form.
-	{frozen: "- Push back when user asks for code without context or understanding", checkAgainst: "- Push back when user asks for code without context or understanding"},
-	{frozen: "- Use construction/architecture analogies when they clarify the point, not by default", checkAgainst: "- Use construction/architecture analogies when they clarify the point, not by default"},
-	{frozen: "- Correct errors ruthlessly but explain WHY technically", checkAgainst: "- Correct errors ruthlessly but explain WHY technically"},
-	{frozen: "- For concepts: (1) explain problem, (2) propose solution, (3) mention examples or tools only when they materially help", checkAgainst: "- For concepts: (1) explain problem, (2) propose solution, (3) mention examples or tools only when they materially help"},
-}
-
-// TestReconciledStylesCarryAllMovedPersonaRules guards content that was
-// supposed to MOVE from a persona.md section into the output style but never
-// arrived — exactly the JD-016/017 class of bug, where the union completion
-// silently dropped rules. This test freezes every normative rule from the HEAD (pre-apply)
-// MOVE-tagged persona sections and asserts each is still discoverable
-// (verbatim or via a documented merged form) in the corresponding
-// reconciled output style.
-func TestReconciledStylesCarryAllMovedPersonaRules(t *testing.T) {
-	t.Run("claude-neutral", func(t *testing.T) {
-		assertMovedPersonaRules(t, "claude/output-style-neutral.md", neutralMovedRules)
-	})
-}
-
 func TestMergeJSONFileToleratingMalformed(t *testing.T) {
 	home := t.TempDir()
 
@@ -443,7 +340,7 @@ func TestMergeJSONFileToleratingMalformed(t *testing.T) {
 			t.Fatalf("WriteFile(valid): %v", err)
 		}
 
-		result, err := mergeJSONFileToleratingMalformed(path, []byte(`{"outputStyle":"Neutral"}`))
+		result, err := mergeJSONFileToleratingMalformed(path, []byte(`{"outputStyle":"Principal Engineer"}`))
 		if err != nil {
 			t.Fatalf("mergeJSONFileToleratingMalformed(valid) error = %v", err)
 		}
@@ -456,7 +353,7 @@ func TestMergeJSONFileToleratingMalformed(t *testing.T) {
 			t.Fatalf("ReadFile(valid): %v", err)
 		}
 		text := string(raw)
-		if !strings.Contains(text, `"outputStyle": "Neutral"`) {
+		if !strings.Contains(text, `"outputStyle": "Principal Engineer"`) {
 			t.Fatalf("merged JSON missing outputStyle; got:\n%s", text)
 		}
 		if !strings.Contains(text, `"permissions"`) {
@@ -471,7 +368,7 @@ func TestMergeJSONFileToleratingMalformed(t *testing.T) {
 			t.Fatalf("WriteFile(malformed overlay): %v", err)
 		}
 
-		result, err := mergeJSONFileToleratingMalformed(path, []byte(`{"outputStyle":"Neutral"`))
+		result, err := mergeJSONFileToleratingMalformed(path, []byte(`{"outputStyle":"Principal Engineer"`))
 		if err != nil {
 			t.Fatalf("mergeJSONFileToleratingMalformed(malformed overlay) error = %v", err)
 		}
@@ -632,5 +529,52 @@ func TestInjectCodexNeutralFreshInstallWrapsPersonaInMarkers(t *testing.T) {
 	}
 	if !strings.Contains(text, assets.MustRead("generic/persona-neutral.md")) {
 		t.Fatal("neutral persona content missing from managed section")
+	}
+}
+
+// TestInjectClaudeRemovesLegacyNeutralOutputStyle covers installs made before
+// Principal Engineer replaced the managed Neutral style: install and sync must
+// delete the retired neutral.md so Claude Code no longer offers it.
+func TestInjectClaudeRemovesLegacyNeutralOutputStyle(t *testing.T) {
+	home := t.TempDir()
+	styleDir := filepath.Join(home, ".claude", "output-styles")
+	if err := os.MkdirAll(styleDir, 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	legacy := filepath.Join(styleDir, "neutral.md")
+
+	for _, inject := range []struct {
+		name string
+		run  func(string, agents.Adapter) (InjectionResult, error)
+	}{
+		{name: "install", run: Inject},
+		{name: "sync", run: InjectForSync},
+	} {
+		t.Run(inject.name, func(t *testing.T) {
+			if err := os.WriteFile(legacy, []byte("---\nname: Neutral\n---\n"), 0o644); err != nil {
+				t.Fatalf("WriteFile(legacy) error = %v", err)
+			}
+			result, err := inject.run(home, claudeAdapter())
+			if err != nil {
+				t.Fatalf("%s error = %v", inject.name, err)
+			}
+			if !result.Changed {
+				t.Fatalf("%s changed = false after removing the legacy style", inject.name)
+			}
+			if _, err := os.Stat(legacy); !os.IsNotExist(err) {
+				t.Fatalf("legacy %s still present after %s (err=%v)", legacy, inject.name, err)
+			}
+			if _, err := os.Stat(filepath.Join(styleDir, "principal-engineer.md")); err != nil {
+				t.Fatalf("principal-engineer.md missing after %s: %v", inject.name, err)
+			}
+
+			again, err := inject.run(home, claudeAdapter())
+			if err != nil {
+				t.Fatalf("second %s error = %v", inject.name, err)
+			}
+			if again.Changed {
+				t.Fatalf("second %s changed = true, want idempotent false", inject.name)
+			}
+		})
 	}
 }

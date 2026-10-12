@@ -828,3 +828,45 @@ func TestUninstallSkillsRemovesLegacySharedMarkerAfterUpgrade(t *testing.T) {
 		})
 	}
 }
+
+// TestPersonaUninstallRemovesLegacyNeutralOutputStyle covers installs made
+// before the Principal Engineer style replaced Neutral: the retired managed
+// neutral.md must be removed and backed up alongside the current style.
+func TestPersonaUninstallRemovesLegacyNeutralOutputStyle(t *testing.T) {
+	svc, err := NewService(t.TempDir(), t.TempDir(), "dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	adapter, _ := svc.registry.Get(model.AgentClaudeCode)
+	styleDir := adapter.OutputStyleDir(svc.homeDir)
+	if err := os.MkdirAll(styleDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	legacy := filepath.Join(styleDir, "neutral.md")
+	current := filepath.Join(styleDir, "principal-engineer.md")
+	for _, path := range []string{legacy, current} {
+		if err := os.WriteFile(path, []byte("---\nname: managed\n---\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	p, err := svc.buildPlan([]model.AgentID{model.AgentClaudeCode}, []model.ComponentID{model.ComponentPersona})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(p.backupTargets, legacy) {
+		t.Fatalf("uninstall plan does not back up legacy %s; targets %v", legacy, p.backupTargets)
+	}
+
+	if _, err := svc.PartialUninstall([]model.AgentID{model.AgentClaudeCode}, []model.ComponentID{model.ComponentPersona}); err != nil {
+		t.Fatalf("PartialUninstall: %v", err)
+	}
+	for _, path := range []string{legacy, current} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("%s still present after persona uninstall (err=%v)", path, err)
+		}
+	}
+	if _, err := os.Stat(styleDir); !os.IsNotExist(err) {
+		t.Fatalf("empty output-styles dir should be removed (err=%v)", err)
+	}
+}

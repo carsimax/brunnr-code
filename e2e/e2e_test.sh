@@ -364,7 +364,7 @@ test_cc_engram_injection() {
 
 
 test_cc_persona() {
-    log_test "Claude Code: persona injection (neutral)"
+    log_test "Claude Code: persona injection (Principal Engineer output style)"
     cleanup_test_env
 
     if $BINARY install --agent claude-code --component persona 2>&1; then
@@ -375,11 +375,12 @@ test_cc_persona() {
         # style (design.md Decision 1).
         assert_file_contains "$HOME/.claude/CLAUDE.md" "Persona Voice" "CLAUDE.md persona residual points to the output style"
         assert_file_not_contains "$HOME/.claude/CLAUDE.md" "Senior Architect" "CLAUDE.md persona residual carries no tone content"
-        assert_file_exists "$HOME/.claude/output-styles/neutral.md" "Neutral output-style file exists"
-        assert_file_contains "$HOME/.claude/output-styles/neutral.md" "Push back when user asks for code without context or understanding" "Neutral output-style carries the mentor tone content"
-        assert_file_not_contains "$HOME/.claude/output-styles/neutral.md" "Rioplatense\|voseo\|loco\|ponete las pilas" "Neutral output-style excludes regional language"
+        assert_file_exists "$HOME/.claude/output-styles/principal-engineer.md" "Principal Engineer output-style file exists"
+        assert_file_contains "$HOME/.claude/output-styles/principal-engineer.md" "Weakening the verifier is the one unforgivable move" "Principal Engineer output-style carries the verification-first content"
+        assert_file_not_contains "$HOME/.claude/output-styles/principal-engineer.md" "Rioplatense\|voseo\|loco\|ponete las pilas" "Principal Engineer output-style excludes regional language"
+        assert_file_not_exists "$HOME/.claude/output-styles/neutral.md" "Retired Neutral output-style file is absent"
     else
-        log_fail "persona (neutral) install command failed"
+        log_fail "persona install command failed"
     fi
 }
 

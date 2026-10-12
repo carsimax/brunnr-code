@@ -75,10 +75,10 @@ func TestGoldenPersona_Claude_Neutral(t *testing.T) {
 	claudeMD := readTestFile(t, filepath.Join(home, ".claude", "CLAUDE.md"))
 	assertGolden(t, "persona-claude-neutral.golden", claudeMD)
 
-	// Locks the reconciled Neutral output style (Decision 4) — no golden
-	// existed for this file before the canonical-channel change.
-	outputStyle := readTestFile(t, filepath.Join(home, ".claude", "output-styles", "neutral.md"))
-	assertGolden(t, "persona-claude-neutral-outputstyle.golden", outputStyle)
+	// Locks the managed Principal Engineer output style written next to the
+	// residual CLAUDE.md persona block.
+	outputStyle := readTestFile(t, filepath.Join(home, ".claude", "output-styles", "principal-engineer.md"))
+	assertGolden(t, "persona-claude-principal-engineer-outputstyle.golden", outputStyle)
 }
 
 // ---------------------------------------------------------------------------

@@ -495,9 +495,9 @@ func (r *syncRuntime) stagePlan() pipeline.StagePlan {
 // before sync executes. Uses syncComponentPaths so that the backup/verify
 // contract matches the actual files sync touches (which differ from install
 // for ComponentPersona, see syncComponentPaths). One deliberate exception:
-// persona backup also captures the non-selected managed output-style file so a
-// failed persona switch can be rolled back (verification still declares only
-// the selected file).
+// persona backup also captures the retired managed output-style files that
+// sync removes, so a failed sync can restore them (verification still
+// declares only the current file).
 // syncBackupTargetsScoped returns the file paths that need to be backed up
 // before a scoped sync executes. ScopeWorkspace declares only workspace-scoped
 // targets: global-only components, plugins, routing guidance, compatibility
@@ -532,7 +532,12 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 					continue
 				}
 				targetDir := componentInjectionDirScoped(homeDir, workspaceDir, scope, adapter)
-				if path := persona.OutputStylePath(adapter.OutputStyleDir(targetDir)); path != "" {
+				styleDir := adapter.OutputStyleDir(targetDir)
+				if path := persona.OutputStylePath(styleDir); path != "" {
+					paths[path] = struct{}{}
+				}
+				// Persona sync removes retired managed styles; snapshot them first.
+				for _, path := range persona.LegacyOutputStylePaths(styleDir) {
 					paths[path] = struct{}{}
 				}
 			}

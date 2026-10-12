@@ -22,6 +22,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/pipeline"
+	"github.com/carsimax/brunnr-code/internal/planner"
 	"github.com/carsimax/brunnr-code/internal/state"
 	"github.com/carsimax/brunnr-code/internal/verify"
 )
@@ -1933,12 +1934,38 @@ func TestSyncPersonaPathsDeclareManagedClaudeOutputStyle(t *testing.T) {
 
 	paths := syncPersonaPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, []agents.Adapter{a})
 	for _, want := range []string{
-		filepath.Join(home, ".claude", "output-styles", "neutral.md"),
+		filepath.Join(home, ".claude", "output-styles", "principal-engineer.md"),
 		filepath.Join(home, ".claude", "settings.json"),
 	} {
 		if !containsPath(paths, want) {
 			t.Fatalf("syncPersonaPaths missing %q; got %v", want, paths)
 		}
+	}
+}
+
+// TestPersonaBackupTargetsIncludeLegacyNeutralOutputStyle keeps the retired
+// neutral.md output style restorable: persona install and sync remove it, so
+// both must snapshot it first.
+func TestPersonaBackupTargetsIncludeLegacyNeutralOutputStyle(t *testing.T) {
+	home := t.TempDir()
+	legacy := filepath.Join(home, ".claude", "output-styles", "neutral.md")
+	selection := model.Selection{
+		Agents:     []model.AgentID{model.AgentClaudeCode},
+		Components: []model.ComponentID{model.ComponentPersona},
+	}
+	install, err := backupTargets(home, "", ScopeGlobal, selection, planner.ResolvedPlan{
+		Agents:            selection.Agents,
+		OrderedComponents: selection.Components,
+	})
+	if err != nil {
+		t.Fatalf("backupTargets() error = %v", err)
+	}
+	sync, err := syncBackupTargetsScoped(home, "", ScopeGlobal, selection, resolveAdapters(selection.Agents))
+	if err != nil {
+		t.Fatalf("syncBackupTargetsScoped() error = %v", err)
+	}
+	if !containsPath(install, legacy) || !containsPath(sync, legacy) {
+		t.Fatalf("legacy output style %q missing from backup targets\ninstall = %v\nsync = %v", legacy, install, sync)
 	}
 }
 

@@ -1472,3 +1472,27 @@ func TestClaudePilotSnapshotRestoreRemovesModulePilot(t *testing.T) {
 		t.Errorf("unknown file outside the known paths = %q, %v; want it preserved", got, err)
 	}
 }
+
+// TestManagedAgentBackupPathsIncludeLegacyNeutralOutputStyle keeps the
+// retired neutral.md output style in the upgrade snapshot, because the
+// post-upgrade persona sync removes it.
+func TestManagedAgentBackupPathsIncludeLegacyNeutralOutputStyle(t *testing.T) {
+	homeDir := t.TempDir()
+	reg, err := agents.NewDefaultRegistry()
+	if err != nil {
+		t.Fatalf("agents.NewDefaultRegistry: %v", err)
+	}
+	claudeAdapter, ok := reg.Get(model.AgentClaudeCode)
+	if !ok {
+		t.Fatal("default registry does not contain Claude Code")
+	}
+	got := managedAgentBackupPaths(homeDir, claudeAdapter, &bytes.Buffer{})
+	for _, want := range []string{
+		filepath.Join(homeDir, ".claude", "output-styles", "principal-engineer.md"),
+		filepath.Join(homeDir, ".claude", "output-styles", "neutral.md"),
+	} {
+		if !slices.Contains(got, want) {
+			t.Errorf("managedAgentBackupPaths missing %s; got %v", want, got)
+		}
+	}
+}

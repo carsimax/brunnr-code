@@ -1537,7 +1537,12 @@ func installBackupTargets(homeDir, workspaceDir string, scope InstallScope, sele
 				if !adapter.SupportsOutputStyles() {
 					continue
 				}
-				if path := persona.OutputStylePath(adapter.OutputStyleDir(componentPathDirScoped(homeDir, workspaceDir, scope, adapter, model.ComponentPersona))); path != "" {
+				styleDir := adapter.OutputStyleDir(componentPathDirScoped(homeDir, workspaceDir, scope, adapter, model.ComponentPersona))
+				if path := persona.OutputStylePath(styleDir); path != "" {
+					paths[path] = struct{}{}
+				}
+				// Persona install removes retired managed styles; snapshot them first.
+				for _, path := range persona.LegacyOutputStylePaths(styleDir) {
 					paths[path] = struct{}{}
 				}
 			}

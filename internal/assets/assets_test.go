@@ -476,7 +476,7 @@ func TestClaudeManagedOutputStylesAnchorReplyLanguageToLatestUserRequest(t *test
 		artifactContracts []string
 	}{
 		{
-			path: "claude/output-style-neutral.md",
+			path: "claude/output-style-principal-engineer.md",
 			artifactContracts: []string{
 				"This output style governs direct replies to the user only.",
 				"Generated technical artifacts default to English",

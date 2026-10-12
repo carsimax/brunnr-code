@@ -42,7 +42,7 @@ func TestManagedDirectReplyAssetsEnforceEnglishNoCodeSwitching(t *testing.T) {
 		path        string
 		combineWith string // "" when the asset alone still carries the contract
 	}{
-		{name: "claude neutral output style", path: "claude/output-style-neutral.md"},
+		{name: "claude principal engineer output style", path: "claude/output-style-principal-engineer.md"},
 		{name: "generic neutral persona", path: "generic/persona-neutral.md"},
 	}
 
@@ -219,9 +219,9 @@ func TestNeutralPersonaAssetsProvideMentorParityWithoutRegionalVoice(t *testing.
 	}
 }
 
-func TestNeutralOutputStyleAssetsProvideMeaningfulContract(t *testing.T) {
+func TestPrincipalEngineerOutputStyleAssetsProvideMeaningfulContract(t *testing.T) {
 	for _, path := range []string{
-		"claude/output-style-neutral.md",
+		"claude/output-style-principal-engineer.md",
 	} {
 		t.Run(path, func(t *testing.T) {
 			content := MustRead(path)
@@ -229,7 +229,7 @@ func TestNeutralOutputStyleAssetsProvideMeaningfulContract(t *testing.T) {
 				t.Fatalf("%s is empty", path)
 			}
 			for _, required := range []string{
-				"Neutral Output Style",
+				"Principal Engineer Output Style",
 				"minimum useful response",
 				"Ask at most one question at a time",
 				"STOP",
@@ -243,7 +243,7 @@ func TestNeutralOutputStyleAssetsProvideMeaningfulContract(t *testing.T) {
 			}
 			for _, banned := range []string{"Rioplatense", "voseo"} {
 				if strings.Contains(content, banned) {
-					t.Fatalf("%s contains banned neutral output-style wording %q", path, banned)
+					t.Fatalf("%s contains banned output-style wording %q", path, banned)
 				}
 			}
 		})
@@ -300,7 +300,7 @@ func readRepoRootFile(t *testing.T, rel string) string {
 // This is a structural contract check, not a behavioral model evaluation.
 func TestOutputStylesKeepHumanReplyLanguageAcrossHarnessTurns(t *testing.T) {
 	paths := []string{
-		"claude/output-style-neutral.md",
+		"claude/output-style-principal-engineer.md",
 	}
 	required := []string{
 		"Only a message written by the human can change the conversation language",
@@ -330,7 +330,7 @@ const neutralToneDialectAntiDriftRequired = "The same rule applies to tone and d
 
 func TestPersonaChannelsCarryPreWriteArtifactSelfCheck(t *testing.T) {
 	paths := []string{
-		"claude/output-style-neutral.md",
+		"claude/output-style-principal-engineer.md",
 		"generic/persona-neutral.md",
 	}
 	for _, path := range paths {
@@ -345,7 +345,7 @@ func TestPersonaChannelsCarryPreWriteArtifactSelfCheck(t *testing.T) {
 
 func TestNeutralChannelsExtendAntiDriftToToneAndDialect(t *testing.T) {
 	paths := []string{
-		"claude/output-style-neutral.md",
+		"claude/output-style-principal-engineer.md",
 		"generic/persona-neutral.md",
 	}
 	for _, path := range paths {
