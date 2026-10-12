@@ -52,12 +52,6 @@ func NormalizeInstallFlags(flags InstallFlags, detection system.DetectionResult)
 	}
 	selection.Skills = skills
 
-	sddMode, err := normalizeSDDMode(flags.SDDMode)
-	if err != nil {
-		return InstallInput{}, err
-	}
-	selection.SDDMode = sddMode
-
 	scope, err := ResolveInstallScope(flags.Scope)
 	if err != nil {
 		return InstallInput{}, err
@@ -169,19 +163,6 @@ func normalizeSkills(values []string) ([]model.SkillID, error) {
 	}
 
 	return unique(skills), nil
-}
-
-func normalizeSDDMode(value string) (model.SDDModeID, error) {
-	if strings.TrimSpace(value) == "" {
-		return "", nil
-	}
-
-	switch model.SDDModeID(value) {
-	case model.SDDModeSingle, model.SDDModeMulti:
-		return model.SDDModeID(value), nil
-	default:
-		return "", fmt.Errorf("unsupported sdd-mode %q (valid: single, multi)", value)
-	}
 }
 
 func componentsForPreset(preset model.PresetID) []model.ComponentID {

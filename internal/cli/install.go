@@ -12,7 +12,6 @@ type InstallFlags struct {
 	Components []string
 	Skills     []string
 	Preset     string
-	SDDMode    string
 	Scope      string
 	DryRun     bool
 

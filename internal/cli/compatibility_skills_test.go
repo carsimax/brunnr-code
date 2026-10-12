@@ -47,7 +47,7 @@ func TestCompatibilitySkillsRefreshRetainsOrdinarySkillsWithoutSDD(t *testing.T)
 	legacy := filepath.Join(skillsDir, "sdd-apply", "SKILL.md")
 	writeStale(t, ordinary)
 	writeStale(t, legacy)
-	selection := model.Selection{Components: []model.ComponentID{model.ComponentSkills, model.ComponentSDD}, Skills: []model.SkillID{model.SkillGoTesting}}
+	selection := model.Selection{Components: []model.ComponentID{model.ComponentSkills}, Skills: []model.SkillID{model.SkillGoTesting}}
 	step := compatibilitySkillsRefreshStep{homeDir: home, components: selection.Components, selection: selection}
 	if err := step.Run(); err != nil {
 		t.Fatal(err)
@@ -72,8 +72,8 @@ func TestCompatibilitySkillsRefreshRetainsOrdinarySkillsWithoutSDD(t *testing.T)
 	if want := filepath.Join(skillsDir, "_shared", "skill-resolver.md"); !slices.Contains(paths, want) {
 		t.Errorf("compatibility paths missing shared reference %s", want)
 	}
-	if needsCompatibilitySkillsRefresh([]model.ComponentID{model.ComponentSDD}) {
-		t.Fatal("SDD alone schedules compatibility refresh")
+	if needsCompatibilitySkillsRefresh([]model.ComponentID{model.ComponentEngram}) {
+		t.Fatal("Engram alone schedules compatibility refresh")
 	}
 }
 
@@ -87,7 +87,7 @@ func TestCompatibilitySkillsRefreshRemovesLegacySharedSkillMarker(t *testing.T) 
 	writeStale(t, legacy)
 	writeStale(t, userNote)
 	var changed []string
-	step := compatibilitySkillsRefreshStep{homeDir: home, components: []model.ComponentID{model.ComponentSkills, model.ComponentSDD}, selection: model.Selection{Skills: []model.SkillID{model.SkillGoTesting}}, changedFiles: &changed}
+	step := compatibilitySkillsRefreshStep{homeDir: home, components: []model.ComponentID{model.ComponentSkills}, selection: model.Selection{Skills: []model.SkillID{model.SkillGoTesting}}, changedFiles: &changed}
 	if err := step.Run(); err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestCompatibilitySkillsRefreshRequiresPhysicalDirectory(t *testing.T) {
 	selection := model.Selection{Skills: []model.SkillID{model.SkillGoTesting}}
 	t.Run("absent", func(t *testing.T) {
 		home := t.TempDir()
-		step := compatibilitySkillsRefreshStep{homeDir: home, components: []model.ComponentID{model.ComponentSkills, model.ComponentSDD}, selection: selection}
+		step := compatibilitySkillsRefreshStep{homeDir: home, components: []model.ComponentID{model.ComponentSkills}, selection: selection}
 		if err := step.Run(); err != nil {
 			t.Fatal(err)
 		}
@@ -537,7 +537,7 @@ func TestAdapterSkillFilesAreBackupTargets(t *testing.T) {
 	home := t.TempDir()
 	selection := model.Selection{
 		Agents:     []model.AgentID{model.AgentClaudeCode},
-		Components: []model.ComponentID{model.ComponentSkills, model.ComponentSDD},
+		Components: []model.ComponentID{model.ComponentSkills},
 		Skills:     []model.SkillID{model.SkillGoTesting},
 	}
 	resolved := planner.ResolvedPlan{Agents: selection.Agents, OrderedComponents: selection.Components}
@@ -659,7 +659,7 @@ func (failingCompatibilityStep) ID() string { return "test:fail-after-refresh" }
 func (failingCompatibilityStep) Run() error { return errors.New("injected failure") }
 
 func TestStagePlansRefreshCompatibilitySkillsOncePerOperation(t *testing.T) {
-	selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode, model.AgentCodex}, Components: []model.ComponentID{model.ComponentSkills, model.ComponentSDD}, Skills: []model.SkillID{model.SkillGoTesting}}
+	selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode, model.AgentCodex}, Components: []model.ComponentID{model.ComponentSkills}, Skills: []model.SkillID{model.SkillGoTesting}}
 	resolved := planner.ResolvedPlan{Agents: selection.Agents, OrderedComponents: selection.Components}
 	plans := []pipeline.StagePlan{
 		(&installRuntime{selection: selection, resolved: resolved, state: &runtimeState{}}).stagePlan(),

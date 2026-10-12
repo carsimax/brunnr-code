@@ -2,8 +2,6 @@ package uninstall
 
 import (
 	"encoding/json"
-	"io/fs"
-	"maps"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -50,71 +48,6 @@ func TestRetiredSDDDefaultUninstallSkipsLegacyCleanup(t *testing.T) {
 			}
 			if body, err := os.ReadFile(legacy); err != nil || string(body) != "user customized" {
 				t.Fatalf("custom legacy file changed: %q, %v", body, err)
-			}
-		})
-	}
-}
-
-func TestRetiredSDDExplicitUninstallFailsWithoutWrites(t *testing.T) {
-	for _, kind := range []string{"partial", "profile selection"} {
-		t.Run(kind, func(t *testing.T) {
-			home := t.TempDir()
-			t.Setenv("HOME", home)
-			legacy := filepath.Join(home, ".claude", "commands", "sdd-custom.md")
-			if err := os.MkdirAll(filepath.Dir(legacy), 0700); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(legacy, []byte("user customized"), 0600); err != nil {
-				t.Fatal(err)
-			}
-			svc, err := NewService(home, t.TempDir(), "dev")
-			if err != nil {
-				t.Fatal(err)
-			}
-			before := map[string]string{}
-			err = filepath.WalkDir(home, func(path string, entry fs.DirEntry, walkErr error) error {
-				if walkErr != nil {
-					return walkErr
-				}
-				if !entry.IsDir() {
-					data, readErr := os.ReadFile(path)
-					if readErr != nil {
-						return readErr
-					}
-					before[path] = string(data)
-				}
-				return nil
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if kind == "partial" {
-				_, err = svc.PartialUninstall([]model.AgentID{model.AgentClaudeCode}, []model.ComponentID{model.ComponentSDD})
-			} else {
-				_, err = svc.PartialUninstallWithEngramScope([]model.AgentID{model.AgentClaudeCode}, []model.ComponentID{model.ComponentSDD}, model.EngramUninstallScopeGlobal)
-			}
-			if err == nil || !strings.Contains(err.Error(), "retired") {
-				t.Fatalf("expected retired component rejection, got %v", err)
-			}
-			after := map[string]string{}
-			err = filepath.WalkDir(home, func(path string, entry fs.DirEntry, walkErr error) error {
-				if walkErr != nil {
-					return walkErr
-				}
-				if !entry.IsDir() {
-					data, readErr := os.ReadFile(path)
-					if readErr != nil {
-						return readErr
-					}
-					after[path] = string(data)
-				}
-				return nil
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !maps.Equal(before, after) {
-				t.Fatalf("filesystem files changed: before=%v after=%v", before, after)
 			}
 		})
 	}
@@ -780,7 +713,7 @@ func TestFullAgentClaudeRemovesSkillRegistryHook(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	built, err := svc.buildPlan([]model.AgentID{adapter.Agent()}, withoutComponent(fullAgentRemovalComponents, model.ComponentSDD))
+	built, err := svc.buildPlan([]model.AgentID{adapter.Agent()}, fullAgentRemovalComponents)
 	ops := built.operations
 	if err != nil {
 		t.Fatalf("componentOperations() error = %v", err)
@@ -872,7 +805,7 @@ func TestFullAgentClaudeRemovesReviewAndPreflightHooks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	built, err := svc.buildPlan([]model.AgentID{adapter.Agent()}, withoutComponent(fullAgentRemovalComponents, model.ComponentSDD))
+	built, err := svc.buildPlan([]model.AgentID{adapter.Agent()}, fullAgentRemovalComponents)
 	ops := built.operations
 	if err != nil {
 		t.Fatalf("componentOperations() error = %v", err)
@@ -936,7 +869,7 @@ func TestFullAgentCodexRemovesSkillRegistryHook(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	built, err := svc.buildPlan([]model.AgentID{adapter.Agent()}, withoutComponent(fullAgentRemovalComponents, model.ComponentSDD))
+	built, err := svc.buildPlan([]model.AgentID{adapter.Agent()}, fullAgentRemovalComponents)
 	ops := built.operations
 	if err != nil {
 		t.Fatalf("componentOperations() error = %v", err)
@@ -984,7 +917,7 @@ func TestRetainedHooksOutsideFullAgentRemoval(t *testing.T) {
 					}
 				}
 			}
-			p, err := svc.buildPlan([]model.AgentID{agentID}, withoutComponent(fullAgentRemovalComponents, model.ComponentSDD))
+			p, err := svc.buildPlan([]model.AgentID{agentID}, fullAgentRemovalComponents)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1113,16 +1046,4 @@ func TestUninstallSkillsRemovesLegacySharedMarkerAfterUpgrade(t *testing.T) {
 			}
 		})
 	}
-}
-
-// withoutComponent returns componentIDs with every occurrence of excluded
-// removed, preserving order.
-func withoutComponent(componentIDs []model.ComponentID, excluded model.ComponentID) []model.ComponentID {
-	kept := make([]model.ComponentID, 0, len(componentIDs))
-	for _, componentID := range componentIDs {
-		if componentID != excluded {
-			kept = append(kept, componentID)
-		}
-	}
-	return kept
 }

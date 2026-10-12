@@ -5,7 +5,6 @@ type Selection struct {
 	Components                       []ComponentID
 	Skills                           []SkillID
 	Preset                           PresetID
-	SDDMode                          SDDModeID
 	StrictTDD                        bool
 	CodexMultiAgent                  bool                             // deprecated: Codex now always writes features.multi_agent = true; retained for state/back-compat
 	ClaudeModelAssignments           map[string]ClaudeModelAlias      // key = phase name; value = fable|opus|sonnet|haiku
@@ -79,6 +78,5 @@ type SyncOverrides struct {
 	CodexServiceTier                 *string                          // nil = no override; "" = standard; otherwise the selected service tier
 	CodexCarrilModelAssignments      map[string]string                // nil = no override; empty map = reset to defaults
 	CodexPhaseModelAssignments       map[string]string                // nil = no override (partial sync); non-nil empty = clear (preset selected); non-nil non-empty = custom per-phase assignments
-	SDDMode                          SDDModeID                        // "" = no override; when non-empty, overrides the sync's default SDD mode
 	StrictTDD                        *bool                            // nil = no override; non-nil = override strict TDD mode
 }

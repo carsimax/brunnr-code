@@ -55,10 +55,9 @@ func fullyPopulatedInstallState() InstallState {
 		InstalledBinaryVersion:   "1.2.3",
 		ManagedAssetDigest:       "sha256:managed-assets",
 		SelectionConfigured:      true,
-		Components:               []model.ComponentID{model.ComponentEngram, model.ComponentSDD},
+		Components:               []model.ComponentID{model.ComponentEngram, model.ComponentSkills},
 		Skills:                   []model.SkillID{model.SkillGoTesting, model.SkillWorkUnitCommits},
 		Preset:                   model.PresetCustom,
-		SDDMode:                  model.SDDModeMulti,
 		StrictTDD:                true,
 		CommunityTools:           []string{"codegraph"},
 		CommunityToolsConfigured: true,
@@ -212,29 +211,9 @@ func TestCommunityToolsRoundTrip(t *testing.T) {
 	}
 }
 
-func TestLegacySDDDecodesButNeverRestoresActiveSelection(t *testing.T) {
-	var legacy InstallState
-	if err := json.Unmarshal([]byte(`{"selection_configured":true,"components":["sdd","engram"],"sdd_mode":"multi","strict_tdd":true}`), &legacy); err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Contains(legacy.Components, model.ComponentSDD) || legacy.SDDMode != model.SDDModeMulti {
-		t.Fatalf("legacy state decode lost: %+v", legacy)
-	}
-	selection := model.Selection{}
-	legacy.RestoreSelection(&selection)
-	if selection.HasComponent(model.ComponentSDD) || selection.SDDMode != "" || !selection.HasComponent(model.ComponentEngram) || selection.StrictTDD {
-		t.Fatalf("active selection restored retired mode: %+v", selection)
-	}
-	var next InstallState
-	next.SetSelection(model.Selection{Components: []model.ComponentID{model.ComponentEngram, model.ComponentSDD}, SDDMode: model.SDDModeMulti, StrictTDD: true})
-	if slices.Contains(next.Components, model.ComponentSDD) || next.SDDMode != "" || next.StrictTDD {
-		t.Fatalf("new state persisted retired mode: %+v", next)
-	}
-}
-
 func TestSelectionRoundTripPreservesPresenceAndExplicitEmpty(t *testing.T) {
 	tests := []InstallState{
-		{SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSDD}, Skills: []model.SkillID{model.SkillGoTesting}, Preset: model.PresetCustom, SDDMode: model.SDDModeMulti, StrictTDD: true},
+		{SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSkills}, Skills: []model.SkillID{model.SkillGoTesting}, Preset: model.PresetCustom, StrictTDD: true},
 		{SelectionConfigured: true, Components: []model.ComponentID{}, Skills: []model.SkillID{}, Preset: model.PresetCustom},
 		{InstalledAgents: []string{"example-agent"}},
 	}
@@ -244,7 +223,7 @@ func TestSelectionRoundTripPreservesPresenceAndExplicitEmpty(t *testing.T) {
 			t.Fatal(err)
 		}
 		got, err := Read(home)
-		if err != nil || got.SelectionConfigured != want.SelectionConfigured || !slices.Equal(got.Components, want.Components) || !slices.Equal(got.Skills, want.Skills) || got.Preset != want.Preset || got.SDDMode != want.SDDMode || got.StrictTDD {
+		if err != nil || got.SelectionConfigured != want.SelectionConfigured || !slices.Equal(got.Components, want.Components) || !slices.Equal(got.Skills, want.Skills) || got.Preset != want.Preset || got.StrictTDD {
 			t.Errorf("case %d selection = %#v, want %#v", i, got, want)
 		}
 	}

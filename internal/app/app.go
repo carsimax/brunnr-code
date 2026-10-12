@@ -745,9 +745,6 @@ func applyOverrides(selection *model.Selection, overrides *model.SyncOverrides) 
 	if overrides.CodexPhaseModelAssignments != nil {
 		selection.CodexPhaseModelAssignments = overrides.CodexPhaseModelAssignments
 	}
-	if overrides.SDDMode != "" {
-		selection.SDDMode = overrides.SDDMode
-	}
 	if overrides.StrictTDD != nil {
 		selection.StrictTDD = *overrides.StrictTDD
 	}

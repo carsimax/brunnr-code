@@ -76,10 +76,10 @@ func TestMergeExplicitAgentInstallStateDropsUnsupportedAgents(t *testing.T) {
 }
 
 func TestMergeExplicitAgentInstallStateMergesOnlyExplicitSelectionField(t *testing.T) {
-	original := state.InstallState{InstalledAgents: []string{"claude-code"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentEngram}, Skills: []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom, SDDMode: model.SDDModeSingle}
-	fresh := state.InstallState{InstalledAgents: []string{"codex"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSDD}, Skills: []model.SkillID{model.SkillGoTesting}, Preset: model.PresetFull, SDDMode: model.SDDModeMulti}
-	cases := []InstallFlags{{Components: []string{"sdd"}}, {Skills: []string{"go-testing"}}, {Preset: "full"}, {SDDMode: "multi"}}
-	wants := []string{"[sdd]|[comment-writer]|custom|single", "[engram]|[go-testing]|custom|single", "[engram]|[comment-writer]|full|single", "[engram]|[comment-writer]|custom|multi"}
+	original := state.InstallState{InstalledAgents: []string{"claude-code"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentEngram}, Skills: []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom}
+	fresh := state.InstallState{InstalledAgents: []string{"codex"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentPersona}, Skills: []model.SkillID{model.SkillGoTesting}, Preset: model.PresetFull}
+	cases := []InstallFlags{{Components: []string{"persona"}}, {Skills: []string{"go-testing"}}, {Preset: "full"}}
+	wants := []string{"[persona]|[comment-writer]|custom", "[engram]|[go-testing]|custom", "[engram]|[comment-writer]|full"}
 	for i, flags := range cases {
 		home := t.TempDir()
 		if err := state.Write(home, original); err != nil {
@@ -97,7 +97,7 @@ func TestMergeExplicitAgentInstallStateMergesOnlyExplicitSelectionField(t *testi
 		if err != nil {
 			t.Fatalf("flags %#v merge error: %v", flags, err)
 		}
-		key := fmt.Sprintf("%v|%v|%s|%s", got.Components, got.Skills, got.Preset, got.SDDMode)
+		key := fmt.Sprintf("%v|%v|%s", got.Components, got.Skills, got.Preset)
 		if key != wants[i] || got.StrictTDD || !got.SelectionConfigured || len(got.InstalledAgents) != 2 || got.InstalledAgents[0] != "claude-code" || got.InstalledAgents[1] != "codex" {
 			t.Errorf("flags %#v merged state %#v, selection %s, want %s with legacy StrictTDD ignored and agents preserved", flags, got, key, wants[i])
 		}
@@ -113,7 +113,7 @@ func TestRunInstallPersistsConfiguredSelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := state.Read(home)
-	if err != nil || !got.SelectionConfigured || got.Preset != model.PresetCustom || got.SDDMode != "" || len(got.Components) != 0 || len(got.InstalledAgents) != 1 || got.InstalledAgents[0] != "claude-code" {
+	if err != nil || !got.SelectionConfigured || got.Preset != model.PresetCustom || len(got.Components) != 0 || len(got.InstalledAgents) != 1 || got.InstalledAgents[0] != "claude-code" {
 		t.Fatalf("persisted selection = %#v, err = %v", got, err)
 	}
 	wantDigest, err := managedAssetDigest()

@@ -209,9 +209,6 @@ func (s *Service) PartialUninstallWithEngramScope(agentIDs []model.AgentID, comp
 // PartialUninstallWithEngramScope. It resolves the requested components and
 // executes the resulting plan.
 func (s *Service) partialUninstall(agentIDs []model.AgentID, componentIDs []model.ComponentID) (Result, error) {
-	if slices.Contains(componentIDs, model.ComponentSDD) {
-		return Result{}, fmt.Errorf("component %q is retired and cannot be uninstalled; existing files and settings were preserved", model.ComponentSDD)
-	}
 	if len(agentIDs) == 0 {
 		return Result{}, fmt.Errorf("partial uninstall requires at least one agent")
 	}
@@ -284,9 +281,6 @@ type plan struct {
 }
 
 func (s *Service) buildPlan(agentIDs []model.AgentID, componentIDs []model.ComponentID) (plan, error) {
-	if slices.Contains(componentIDs, model.ComponentSDD) {
-		return plan{}, fmt.Errorf("component %q is retired and cannot be uninstalled; existing files and settings were preserved", model.ComponentSDD)
-	}
 	backupTargets := map[string]struct{}{}
 	operationsByKey := map[string]operation{}
 
@@ -1366,9 +1360,6 @@ func stateAgentsToRemove(agentIDs []model.AgentID, componentIDs []model.Componen
 		selected[componentID] = struct{}{}
 	}
 	for _, required := range fullAgentRemovalComponents {
-		if required == model.ComponentSDD {
-			continue
-		}
 		if _, ok := selected[required]; !ok {
 			return nil
 		}

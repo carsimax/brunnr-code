@@ -40,7 +40,6 @@ type ComponentID string
 
 const (
 	ComponentEngram      ComponentID = "engram"
-	ComponentSDD         ComponentID = "sdd"
 	ComponentSkills      ComponentID = "skills"
 	ComponentContext7    ComponentID = "context7"
 	ComponentPersona     ComponentID = "persona"
@@ -112,13 +111,6 @@ const (
 	PresetEcosystemOnly PresetID = "ecosystem-only"
 	PresetMinimal       PresetID = "minimal"
 	PresetCustom        PresetID = "custom"
-)
-
-type SDDModeID string
-
-const (
-	SDDModeSingle SDDModeID = "single"
-	SDDModeMulti  SDDModeID = "multi"
 )
 
 type CommunityToolID string

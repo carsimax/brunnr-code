@@ -17,7 +17,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/agents"
 	"github.com/carsimax/brunnr-code/internal/agents/claude"
 	codexagent "github.com/carsimax/brunnr-code/internal/agents/codex"
-	"github.com/carsimax/brunnr-code/internal/assets"
 	"github.com/carsimax/brunnr-code/internal/backup"
 	"github.com/carsimax/brunnr-code/internal/components/agentguidance"
 	"github.com/carsimax/brunnr-code/internal/components/agenthooks"
@@ -298,7 +297,7 @@ func mergeFullInstallState(existing, fresh state.InstallState) state.InstallStat
 	merged := existing
 	merged.InstalledAgents = fresh.InstalledAgents
 	merged.SelectionConfigured, merged.Components, merged.Skills = fresh.SelectionConfigured, fresh.Components, fresh.Skills
-	merged.Preset, merged.SDDMode, merged.StrictTDD = fresh.Preset, fresh.SDDMode, false
+	merged.Preset, merged.StrictTDD = fresh.Preset, false
 	merged.CommunityTools, merged.CommunityToolsConfigured = fresh.CommunityTools, fresh.CommunityToolsConfigured
 	merged.ClaudeModelAssignments, merged.ClaudePhaseAssignments = fresh.ClaudeModelAssignments, fresh.ClaudePhaseAssignments
 	merged.CodexModelAssignments = fresh.CodexModelAssignments
@@ -354,7 +353,7 @@ func mergeExplicitAgentInstallState(homeDir string, newState state.InstallState,
 		// A metadata-only or legacy state has no selection to preserve.
 		merged.SelectionConfigured = true
 		merged.Components, merged.Skills = newState.Components, newState.Skills
-		merged.Preset, merged.SDDMode = newState.Preset, newState.SDDMode
+		merged.Preset = newState.Preset
 	} else if merged.SelectionConfigured {
 		if len(flags.Components) > 0 {
 			merged.Components = newState.Components
@@ -364,9 +363,6 @@ func mergeExplicitAgentInstallState(homeDir string, newState state.InstallState,
 		}
 		if flags.Preset != "" {
 			merged.Preset = newState.Preset
-		}
-		if flags.SDDMode != "" {
-			merged.SDDMode = newState.SDDMode
 		}
 	}
 	return merged, nil
@@ -655,9 +651,6 @@ func (r *installRuntime) stagePlan() pipeline.StagePlan {
 	}
 
 	for _, component := range r.resolved.OrderedComponents {
-		if component == model.ComponentSDD {
-			continue
-		}
 		step := componentApplyStep{
 			id:           "component:" + string(component),
 			component:    component,
@@ -686,7 +679,6 @@ func (r *installRuntime) stagePlan() pipeline.StagePlan {
 			codexPhaseModels: r.selection.CodexPhaseModelAssignments,
 			codexEfforts:     r.selection.CodexModelAssignments,
 			codexCarrils:     r.selection.CodexCarrilModelAssignments,
-			legacySDD:        false,
 			id:               "agent-guidance:" + string(agent),
 			agent:            agent,
 			homeDir:          r.homeDir,
@@ -775,13 +767,11 @@ var routingReviewContract agentguidance.ReviewContractSource = reviewassets.Revi
 //
 // It is deliberately not a component step. Routing guidance is what lets an
 // agent choose between direct, delegated, and proposed work at all, so every
-// configured agent receives it whether or not the optional SDD component was
-// selected (issue #1794).
+// configured agent receives it whatever components were selected (issue #1794).
 type agentRoutingGuidanceStep struct {
 	codexPhaseModels map[string]string
 	codexEfforts     map[string]model.CodexEffort
 	codexCarrils     map[string]string
-	legacySDD        bool
 	id               string
 	agent            model.AgentID
 	homeDir          string
@@ -1386,9 +1376,6 @@ func (s componentApplyStep) Run() error {
 			}
 		}
 		return nil
-	case model.ComponentSDD:
-		// Legacy persisted selections are readable, but their retired assets are not reinstalled.
-		return nil
 	case model.ComponentSkills:
 		skillIDs := selectedSkillIDs(s.selection)
 		if len(skillIDs) == 0 {
@@ -1703,9 +1690,6 @@ func installBackupTargets(homeDir, workspaceDir string, scope InstallScope, sele
 	adapters := resolveAdapters(resolved.Agents)
 
 	for _, component := range resolved.OrderedComponents {
-		if component == model.ComponentSDD {
-			continue
-		}
 		for _, path := range componentPathsWithWorkspaceScoped(homeDir, workspaceDir, scope, selection, adapters, component) {
 			paths[path] = struct{}{}
 		}
@@ -1928,16 +1912,6 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 			if adapter.SystemPromptStrategy() == model.StrategyMarkdownSections {
 				paths = append(paths, adapter.SystemPromptFile(targetDir))
 			}
-		case model.ComponentSDD:
-			if adapter.SupportsSystemPrompt() {
-				paths = append(paths, adapter.SystemPromptFile(targetDir))
-			}
-			paths = append(paths, sddSubAgentPaths(targetDir, adapter)...)
-			if adapter.Agent() == model.AgentCodex {
-				// SDD installs the Codex skill-registry hook outside the skills
-				// directory, so it must share the component's backup contract.
-				paths = append(paths, filepath.Join(adapter.GlobalConfigDir(homeDir), "hooks.json"))
-			}
 		case model.ComponentSkills:
 			for _, skillID := range selectedSkillIDs(selection) {
 				path := skills.SkillPathForAgent(targetDir, adapter, skillID)
@@ -2085,32 +2059,11 @@ func componentPathDir(homeDir, workspaceDir string, adapter agents.Adapter, comp
 
 func componentPathDirScoped(homeDir, workspaceDir string, scope InstallScope, adapter agents.Adapter, component model.ComponentID) string {
 	switch component {
-	case model.ComponentEngram, model.ComponentSDD, model.ComponentPersona, model.ComponentSkills, model.ComponentContext7:
+	case model.ComponentEngram, model.ComponentPersona, model.ComponentSkills, model.ComponentContext7:
 		return componentInjectionDirScoped(homeDir, workspaceDir, scope, adapter)
 	default:
 		return homeDir
 	}
-}
-
-func sddSubAgentPaths(homeDir string, adapter agents.Adapter) []string {
-	if !adapter.SupportsSubAgents() {
-		return nil
-	}
-
-	entries, err := assets.FS.ReadDir(adapter.EmbeddedSubAgentsDir())
-	if err != nil {
-		return nil
-	}
-
-	paths := make([]string, 0, len(entries))
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		paths = append(paths, filepath.Join(adapter.SubAgentsDir(homeDir), entry.Name()))
-	}
-
-	return paths
 }
 
 // verificationComponentPaths excludes retired Codex SDD profiles from active

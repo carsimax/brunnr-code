@@ -113,7 +113,7 @@ func TestInstallNavigationRoundTrips(t *testing.T) {
 	}{
 		{"minimal Codex", model.AgentCodex, model.PresetMinimal, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
 		{"full Codex", model.AgentCodex, model.PresetFull, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
-		{"custom Codex Skills", model.AgentCodex, model.PresetCustom, []model.ComponentID{model.ComponentSDD, model.ComponentSkills}, []Screen{ScreenSkillPicker}, []Screen{ScreenDependencyTree}},
+		{"custom Codex Skills", model.AgentCodex, model.PresetCustom, []model.ComponentID{model.ComponentEngram, model.ComponentSkills}, []Screen{ScreenSkillPicker}, []Screen{ScreenDependencyTree}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			m := NewModel(system.DetectionResult{}, "dev")

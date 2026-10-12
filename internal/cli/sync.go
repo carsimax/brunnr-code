@@ -39,7 +39,6 @@ import (
 type SyncFlags struct {
 	Agents             []string
 	Skills             []string
-	SDDMode            string
 	StrictTDD          bool
 	IncludePermissions bool
 	IncludeTheme       bool
@@ -47,7 +46,6 @@ type SyncFlags struct {
 	DryRun             bool
 
 	skillsSet      bool
-	sddModeSet     bool
 	strictTDDSet   bool
 	permissionsSet bool
 	themeSet       bool
@@ -234,8 +232,6 @@ func BuildSyncSelection(flags SyncFlags, agentIDs []model.AgentID) model.Selecti
 		components = append(components, model.ComponentTheme)
 	}
 
-	sddMode := model.SDDModeID(flags.SDDMode)
-
 	var skillIDs []model.SkillID
 	for _, raw := range flags.Skills {
 		skillIDs = append(skillIDs, model.SkillID(raw))
@@ -244,7 +240,6 @@ func BuildSyncSelection(flags SyncFlags, agentIDs []model.AgentID) model.Selecti
 	return model.Selection{
 		Agents:     agentIDs,
 		Components: components,
-		SDDMode:    sddMode,
 		Skills:     skillIDs,
 		// Preset is set to full so selectedSkillIDs() returns the
 		// correct default skill set when no explicit skills are provided.
@@ -486,7 +481,6 @@ func (r *syncRuntime) stagePlan() pipeline.StagePlan {
 			codexPhaseModels: r.selection.CodexPhaseModelAssignments,
 			codexEfforts:     r.selection.CodexModelAssignments,
 			codexCarrils:     r.selection.CodexCarrilModelAssignments,
-			legacySDD:        false,
 			id:               "sync:agent-guidance:" + string(agent),
 			agent:            agent,
 			homeDir:          r.homeDir,
@@ -525,9 +519,6 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 	workspace := scope == ScopeWorkspace
 	paths := map[string]struct{}{}
 	for _, component := range selection.Components {
-		if component == model.ComponentSDD {
-			continue
-		}
 		if workspace && workspaceGlobalOnlyComponent(component) {
 			continue
 		}
@@ -994,10 +985,6 @@ func (s componentSyncStep) Run() error {
 			}
 			s.countChanged(boolToInt(res.Changed), res.Files...)
 		}
-		return nil
-
-	case model.ComponentSDD:
-		// Preserve legacy state parsing without resurrecting retired SDD assets.
 		return nil
 
 	case model.ComponentSkills:
@@ -1773,10 +1760,6 @@ func runPostSyncVerificationScoped(homeDir, workspaceDir string, scope InstallSc
 	adapters := resolveAdapters(selection.Agents)
 
 	for _, component := range selection.Components {
-		if component == model.ComponentSDD {
-			// Legacy state remains readable, but retired assets are not installed.
-			continue
-		}
 		if workspace && workspaceGlobalOnlyComponent(component) {
 			continue
 		}

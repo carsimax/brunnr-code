@@ -992,7 +992,7 @@ func TestCompletionViewShowsExecutionErrorWhenStepsSucceeded(t *testing.T) {
 func TestBuildProgressLabelsFromResolvedPlan(t *testing.T) {
 	resolved := planner.ResolvedPlan{
 		Agents:            []model.AgentID{model.AgentClaudeCode},
-		OrderedComponents: []model.ComponentID{model.ComponentEngram, model.ComponentSDD},
+		OrderedComponents: []model.ComponentID{model.ComponentEngram, model.ComponentPersona},
 	}
 
 	labels := buildProgressLabels(resolved, []model.CommunityToolID{model.CommunityToolCodeGraph})
@@ -1004,7 +1004,7 @@ func TestBuildProgressLabelsFromResolvedPlan(t *testing.T) {
 		"agent:claude-code",
 		"community-tool:codegraph",
 		"component:engram",
-		"component:sdd",
+		"component:persona",
 	}
 
 	if !reflect.DeepEqual(labels, want) {
@@ -1068,13 +1068,7 @@ func TestShouldShowClaudeModelPickerScreen(t *testing.T) {
 		want       bool
 	}{
 		{
-			name:       "Claude + SDD installer = false",
-			agents:     []model.AgentID{model.AgentClaudeCode},
-			components: []model.ComponentID{model.ComponentEngram, model.ComponentSDD},
-			want:       false,
-		},
-		{
-			name:       "Claude + no SDD = false",
+			name:       "Claude installer = false",
 			agents:     []model.AgentID{model.AgentClaudeCode},
 			components: []model.ComponentID{model.ComponentEngram},
 			want:       false,
@@ -1098,7 +1092,7 @@ func TestPresetFlowShowsClaudeModelPickerBeforeDependencyTree(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenPreset
 	m.Selection.Agents = []model.AgentID{model.AgentClaudeCode}
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSDD}
+	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 	m.Cursor = 0
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -1116,7 +1110,7 @@ func TestClaudeModelPickerBalancedSelectionStoresAssignments(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenClaudeModelPicker
 	m.Selection.Agents = []model.AgentID{model.AgentClaudeCode}
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSDD}
+	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 	m.ClaudeModelPicker = screens.NewClaudeModelPickerState()
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -1821,7 +1815,7 @@ func TestUninstallComponents_ContinueNavigatesToConfirm(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenUninstallComponents
 	m.UninstallMode = model.UninstallModePartial
-	m.UninstallComponents = []model.ComponentID{model.ComponentSDD}
+	m.UninstallComponents = []model.ComponentID{model.ComponentEngram}
 	m.Cursor = len(screens.UninstallComponentOptions())
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -1837,7 +1831,7 @@ func TestUninstallComponents_ContinueWithoutEngramSkipsScopeSelection(t *testing
 	m.Screen = ScreenUninstallComponents
 	m.UninstallMode = model.UninstallModePartial
 	m.UninstallAgents = []model.AgentID{model.AgentCodex}
-	m.UninstallComponents = []model.ComponentID{model.ComponentSDD}
+	m.UninstallComponents = []model.ComponentID{model.ComponentEngram}
 	m.Cursor = len(screens.UninstallComponentOptions())
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -1869,14 +1863,14 @@ func TestUninstallConfirm_EnterExecutesAndNavigatesToResult(t *testing.T) {
 	m.Screen = ScreenUninstallConfirm
 	m.UninstallMode = model.UninstallModePartial
 	m.UninstallAgents = []model.AgentID{model.AgentCodex}
-	m.UninstallComponents = []model.ComponentID{model.ComponentSDD, model.ComponentPersona}
+	m.UninstallComponents = []model.ComponentID{model.ComponentEngram, model.ComponentPersona}
 	m.Cursor = 0
 	m.UninstallFn = func(agentIDs []model.AgentID, componentIDs []model.ComponentID) (componentuninstall.Result, error) {
 		if len(agentIDs) != 1 || agentIDs[0] != model.AgentCodex {
 			t.Fatalf("agentIDs = %v, want [%s]", agentIDs, model.AgentCodex)
 		}
-		if len(componentIDs) != 2 || componentIDs[0] != model.ComponentSDD || componentIDs[1] != model.ComponentPersona {
-			t.Fatalf("componentIDs = %v, want [%s %s]", componentIDs, model.ComponentSDD, model.ComponentPersona)
+		if len(componentIDs) != 2 || componentIDs[0] != model.ComponentEngram || componentIDs[1] != model.ComponentPersona {
+			t.Fatalf("componentIDs = %v, want [%s %s]", componentIDs, model.ComponentEngram, model.ComponentPersona)
 		}
 		return componentuninstall.Result{RemovedFiles: []string{"/tmp/file"}}, nil
 	}
@@ -1936,7 +1930,7 @@ func TestUninstallConfirm_CleanInstallRunsSyncAfterUninstall(t *testing.T) {
 	m.Screen = ScreenUninstallConfirm
 	m.UninstallMode = model.UninstallModeCleanInstall
 	m.UninstallAgents = []model.AgentID{model.AgentCodex}
-	m.UninstallComponents = []model.ComponentID{model.ComponentSDD}
+	m.UninstallComponents = []model.ComponentID{model.ComponentEngram}
 	m.Cursor = 0
 
 	uninstallCalled := false
@@ -1997,7 +1991,7 @@ func TestStartUninstall_FullRemoveHomebrewManagedBinaryAddsManualAction(t *testi
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.UninstallMode = model.UninstallModeFullRemove
 	m.UninstallAgents = []model.AgentID{model.AgentCodex}
-	m.UninstallComponents = []model.ComponentID{model.ComponentSDD}
+	m.UninstallComponents = []model.ComponentID{model.ComponentEngram}
 	m.UninstallFn = func(agentIDs []model.AgentID, componentIDs []model.ComponentID) (componentuninstall.Result, error) {
 		return componentuninstall.Result{}, nil
 	}
@@ -2031,7 +2025,7 @@ func TestStartUninstall_FullRemoveNonBrewRemovesBinary(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.UninstallMode = model.UninstallModeFullRemove
 	m.UninstallAgents = []model.AgentID{model.AgentCodex}
-	m.UninstallComponents = []model.ComponentID{model.ComponentSDD}
+	m.UninstallComponents = []model.ComponentID{model.ComponentEngram}
 	m.UninstallFn = func(agentIDs []model.AgentID, componentIDs []model.ComponentID) (componentuninstall.Result, error) {
 		return componentuninstall.Result{}, nil
 	}
@@ -3046,8 +3040,7 @@ func TestDependencyTreeEnterBackNavigatesToPreset(t *testing.T) {
 	m.Screen = ScreenDependencyTree
 	m.Selection.Preset = model.PresetFull // non-custom
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSDD}
-	m.Selection.SDDMode = model.SDDModeSingle
+	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 	// cursor == 1 → the "Back" option in DependencyTreeOptions() = ["Continue", "Back"]
 	m.Cursor = 1
 
@@ -3086,10 +3079,10 @@ func TestCustomPresetSkillsAfterComponentSelection(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenDependencyTree
 	m.Selection.Preset = model.PresetCustom
-	// Codex agent: no SDDMode, no ClaudeModelPicker.
+	// Codex agent: no ClaudeModelPicker.
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
 	// Skills is selected, so Continue opens its picker.
-	m.Selection.Components = []model.ComponentID{model.ComponentSDD, model.ComponentSkills}
+	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSkills}
 	// cursor == len(allComps) → "Continue"
 	allComps := screens.AllComponents()
 	m.Cursor = len(allComps)
@@ -3106,7 +3099,7 @@ func TestCustomPresetClaudeSkipsInstallerPhasePicker(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen, m.Selection.Preset = ScreenDependencyTree, model.PresetCustom
 	m.Selection.Agents = []model.AgentID{model.AgentClaudeCode}
-	m.Selection.Components = []model.ComponentID{model.ComponentSDD}
+	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 	m.Cursor = len(screens.AllComponents())
 	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if got := updated.(Model).Screen; got != ScreenInstallReviewMode || cmd == nil {
@@ -3121,7 +3114,7 @@ func TestCustomPresetContinueGoesToSkillPickerOrReview(t *testing.T) {
 	m.Screen = ScreenDependencyTree
 	m.Selection.Preset = model.PresetCustom
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = []model.ComponentID{model.ComponentSDD, model.ComponentSkills}
+	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSkills}
 	m.Cursor = len(screens.AllComponents())
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -3136,7 +3129,7 @@ func TestCustomPresetContinueGoesToSkillPickerOrReview(t *testing.T) {
 	m2.Screen = ScreenDependencyTree
 	m2.Selection.Preset = model.PresetCustom
 	m2.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m2.Selection.Components = []model.ComponentID{model.ComponentSDD} // no Skills
+	m2.Selection.Components = []model.ComponentID{model.ComponentEngram} // no Skills
 	m2.Cursor = len(screens.AllComponents())
 
 	updated2, load := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -3168,9 +3161,9 @@ func TestCustomPresetSkillPickerBackGoesToComponents(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenSkillPicker
 	m.Selection.Preset = model.PresetCustom
-	// Codex agent: no SDDMode, no ClaudeModelPicker.
+	// Codex agent: no ClaudeModelPicker.
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = []model.ComponentID{model.ComponentSDD, model.ComponentSkills}
+	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSkills}
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	state := updated.(Model)
@@ -3196,50 +3189,10 @@ func TestCustomPresetReviewBackGoesToComponents(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenReview
 	m.Selection.Preset = model.PresetCustom
-	// Codex agent: no SDDMode, no ClaudeModelPicker.
+	// Codex agent: no ClaudeModelPicker.
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
 	// No Skills component → shouldShowSkillPickerScreen() = false.
-	m.Selection.Components = []model.ComponentID{model.ComponentSDD}
-	// cursor == 1 → "Back" option on ScreenReview.
-	m.Cursor = 1
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("screen = %v, want DependencyTree after Back on Review", state.Screen)
-	}
-}
-
-// Even legacy SDD mode settings do not change the Review Back destination.
-func TestCustomReviewBackWithLegacySingleMode(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenReview
-	m.Selection.Preset = model.PresetCustom
-	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	// No Skills → shouldShowSkillPickerScreen() = false.
-	m.Selection.Components = []model.ComponentID{model.ComponentSDD}
-	m.Selection.SDDMode = model.SDDModeSingle
-	// cursor == 1 → "Back" option on ScreenReview.
-	m.Cursor = 1
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("screen = %v, want DependencyTree after Back on Review", state.Screen)
-	}
-}
-
-// Legacy multi mode does not restore an installer phase picker.
-func TestCustomReviewBackWithLegacyMultiMode(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenReview
-	m.Selection.Preset = model.PresetCustom
-	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	// No Skills → shouldShowSkillPickerScreen() = false.
-	m.Selection.Components = []model.ComponentID{model.ComponentSDD}
-	m.Selection.SDDMode = model.SDDModeMulti
+	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 	// cursor == 1 → "Back" option on ScreenReview.
 	m.Cursor = 1
 
@@ -3419,14 +3372,13 @@ func TestNoWrapAroundUpOnBackupScreen(t *testing.T) {
 
 // ─── Issue #130: ModelConfig pre-populate model assignments ────────────────
 
-// Enter on Back from custom Skills returns to components, even with legacy SDD mode.
+// Enter on Back from custom Skills returns to components.
 func TestCustomSkillPickerBackGoesToComponents(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenSkillPicker
 	m.Selection.Preset = model.PresetCustom
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = []model.ComponentID{model.ComponentSDD, model.ComponentSkills}
-	m.Selection.SDDMode = model.SDDModeSingle
+	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSkills}
 	// cursor > len(allSkills)+1 → the "Back" option (default case in switch).
 	allSkills := screens.AllSkillsOrdered()
 	m.Cursor = len(allSkills) + 1
@@ -3653,7 +3605,7 @@ func TestCustomPresetCanSelectEngramWithoutPersonaOrPolish(t *testing.T) {
 func TestShouldShowCodexModelPickerScreen_FalseForInstaller(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSDD}
+	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 	if m.shouldShowCodexModelPickerScreen() {
 		t.Fatal("installer must not show Codex phase picker")
 	}
@@ -3662,18 +3614,9 @@ func TestShouldShowCodexModelPickerScreen_FalseForInstaller(t *testing.T) {
 func TestShouldShowCodexModelPickerScreen_FalseWhenNoCodex(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Selection.Agents = []model.AgentID{model.AgentClaudeCode}
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSDD}
-	if m.shouldShowCodexModelPickerScreen() {
-		t.Fatal("shouldShowCodexModelPickerScreen() = true, want false when Codex not in agents")
-	}
-}
-
-func TestShouldShowCodexModelPickerScreen_FalseWhenNoSDD(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Selection.Agents = []model.AgentID{model.AgentCodex}
 	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 	if m.shouldShowCodexModelPickerScreen() {
-		t.Fatal("shouldShowCodexModelPickerScreen() = true, want false when SDD not in components")
+		t.Fatal("shouldShowCodexModelPickerScreen() = true, want false when Codex not in agents")
 	}
 }
 
@@ -3684,7 +3627,7 @@ func TestCodexOnly_InstallFlowReachesCodexPicker(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenPreset
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Cursor = 0 // PresetFull (includes SDD)
+	m.Cursor = 0 // PresetFull
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
@@ -3825,7 +3768,7 @@ func TestCodexPresetSelection_PopulatesPendingSyncOverrides(t *testing.T) {
 			m.Screen = ScreenCodexModelPicker
 			m.ModelConfigMode = true
 			m.Selection.Agents = []model.AgentID{model.AgentCodex}
-			m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSDD}
+			m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 			m.CodexModelPicker = screens.NewCodexModelPickerState()
 			m.Cursor = tt.cursor
 
@@ -4859,7 +4802,6 @@ func TestPickerFlowSlice(t *testing.T) {
 				m := NewModel(system.DetectionResult{}, "dev")
 				m.Selection.Preset = model.PresetFull
 				m.Selection.Agents = allPickerAgents
-				m.Selection.SDDMode = model.SDDModeMulti
 				return m
 			},
 			wantSlice: []Screen{ScreenPreset, ScreenDependencyTree},
@@ -4963,7 +4905,7 @@ func TestPickerNextScreen(t *testing.T) {
 				m := NewModel(system.DetectionResult{}, "dev")
 				m.Selection.Preset = model.PresetCustom
 				m.Selection.Agents = []model.AgentID{model.AgentClaudeCode}
-				m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSDD}
+				m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 				return m
 			},
 			screen:     ScreenDependencyTree,
@@ -5101,7 +5043,7 @@ func TestPickerPreviousScreen(t *testing.T) {
 // ─── Unit 3: applyPickerEntry ─────────────────────────────────────────────
 
 func TestApplyPickerEntry(t *testing.T) {
-	sddComponents := []model.ComponentID{model.ComponentEngram, model.ComponentSDD}
+	engramComponents := []model.ComponentID{model.ComponentEngram}
 
 	tests := []struct {
 		name     string
@@ -5114,7 +5056,7 @@ func TestApplyPickerEntry(t *testing.T) {
 			setup: func(t *testing.T) Model {
 				m := NewModel(system.DetectionResult{}, "dev")
 				m.Selection.Agents = []model.AgentID{model.AgentClaudeCode}
-				m.Selection.Components = sddComponents
+				m.Selection.Components = engramComponents
 				return m
 			},
 			target: ScreenClaudeModelPicker,
@@ -5134,7 +5076,7 @@ func TestApplyPickerEntry(t *testing.T) {
 			setup: func(t *testing.T) Model {
 				m := NewModel(system.DetectionResult{}, "dev")
 				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				m.Selection.Components = sddComponents
+				m.Selection.Components = engramComponents
 				return m
 			},
 			target: ScreenCodexModelPicker,
@@ -5167,7 +5109,7 @@ func TestApplyPickerEntry(t *testing.T) {
 				m := NewModel(system.DetectionResult{}, "dev")
 				m.Selection.Preset = model.PresetCustom
 				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				m.Selection.Components = sddComponents
+				m.Selection.Components = engramComponents
 				m.Screen = ScreenDependencyTree
 				return m
 			},
@@ -5283,9 +5225,9 @@ func TestPickerBackRowRegression(t *testing.T) {
 
 func TestGoBackCustomSkipsRetiredModelPicker(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen, m.Selection.Preset, m.Selection.SDDMode = ScreenInstallReviewMode, model.PresetCustom, model.SDDModeMulti
+	m.Screen, m.Selection.Preset = ScreenInstallReviewMode, model.PresetCustom
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSDD}
+	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	if got := updated.(Model); got.Screen != ScreenDependencyTree || cmd != nil {
 		t.Fatalf("screen/cmd = %v/%v", got.Screen, cmd)
@@ -5307,7 +5249,7 @@ func TestDependencyTreeForward(t *testing.T) {
 				m.Screen = ScreenPreset
 				m.Selection.Preset = model.PresetFull
 				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				m.Selection.Components = []model.ComponentID{model.ComponentSDD}
+				m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 				m.Cursor = presetCursor(t, model.PresetFull)
 				return m
 			},
@@ -5320,7 +5262,7 @@ func TestDependencyTreeForward(t *testing.T) {
 				m.Screen = ScreenDependencyTree
 				m.Selection.Preset = model.PresetCustom
 				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				m.Selection.Components = []model.ComponentID{model.ComponentSDD} // no Skills
+				m.Selection.Components = []model.ComponentID{model.ComponentEngram} // no Skills
 				m.Cursor = len(screens.AllComponents())
 				return m
 			},
@@ -5334,7 +5276,7 @@ func TestDependencyTreeForward(t *testing.T) {
 				m.Screen = ScreenDependencyTree
 				m.Selection.Preset = model.PresetCustom
 				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				m.Selection.Components = []model.ComponentID{model.ComponentSDD, model.ComponentSkills}
+				m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSkills}
 				m.Cursor = len(screens.AllComponents())
 				return m
 			},

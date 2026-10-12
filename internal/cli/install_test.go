@@ -2,33 +2,11 @@ package cli
 
 import (
 	"reflect"
-	"strings"
 	"testing"
 
-	"github.com/carsimax/brunnr-code/internal/catalog"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/system"
 )
-
-func TestInstallFlagsRetiredModeRejectedAndHelpOmitted(t *testing.T) {
-	for _, args := range [][]string{{"--sdd-mode", "single"}, {"--sdd-mode=multi"}} {
-		if _, err := ParseInstallFlags(args); err == nil || !strings.Contains(err.Error(), "sdd-mode") {
-			t.Errorf("ParseInstallFlags(%q) = %v, want unknown flag", args, err)
-		}
-	}
-	var help strings.Builder
-	PrintInstallHelp(&help)
-	if strings.Contains(strings.ToLower(help.String()), "sdd") {
-		t.Fatalf("install help advertises SDD: %s", help.String())
-	}
-}
-
-func TestExplicitRetiredSDDComponentIsRejected(t *testing.T) {
-	_, err := RunInstall([]string{"--agent", "claude-code", "--component", "sdd"}, system.DetectionResult{})
-	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "sdd") {
-		t.Fatalf("explicit retired SDD selection must be rejected before installation, got %v", err)
-	}
-}
 
 func TestParseInstallFlagsSupportsCSVAndRepeated(t *testing.T) {
 	flags, err := ParseInstallFlags([]string{
@@ -81,21 +59,6 @@ func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 	}
 }
 
-func TestDefaultInstallPresetsAndPickerExcludeLegacySDD(t *testing.T) {
-	for _, preset := range []model.PresetID{model.PresetFull, model.PresetEcosystemOnly, model.PresetMinimal} {
-		for _, component := range model.ComponentsForPreset(preset) {
-			if component == model.ComponentSDD {
-				t.Errorf("preset %s selected legacy SDD", preset)
-			}
-		}
-	}
-	for _, component := range catalog.MVPComponents() {
-		if component.ID == model.ComponentSDD {
-			t.Fatal("install picker advertises legacy SDD")
-		}
-	}
-}
-
 func TestNormalizeInstallFlagsAcceptsBundledSkills(t *testing.T) {
 	input, err := NormalizeInstallFlags(InstallFlags{Skills: []string{
 		string(model.SkillSystemicIssueTriage),
@@ -123,97 +86,6 @@ func TestNormalizeInstallFlagsCustomAcceptsOptionalInstallables(t *testing.T) {
 	want := []model.ComponentID{model.ComponentClaudeTheme}
 	if !reflect.DeepEqual(input.Selection.Components, want) {
 		t.Fatalf("components = %#v, want %#v", input.Selection.Components, want)
-	}
-}
-
-func TestNormalizeSDDMode(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    model.SDDModeID
-		wantErr bool
-	}{
-		{name: "empty returns zero value", input: "", want: ""},
-		{name: "whitespace returns zero value", input: "   ", want: ""},
-		{name: "single is valid", input: "single", want: model.SDDModeSingle},
-		{name: "multi is valid", input: "multi", want: model.SDDModeMulti},
-		{name: "invalid rejected", input: "turbo", wantErr: true},
-		{name: "partial invalid", input: "mult", wantErr: true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := normalizeSDDMode(tt.input)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("normalizeSDDMode(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
-			}
-			if got != tt.want {
-				t.Fatalf("normalizeSDDMode(%q) = %q, want %q", tt.input, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestParseInstallFlagsSDDMode(t *testing.T) {
-	tests := []struct {
-		name    string
-		args    []string
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "flag absent defaults to empty",
-			args: []string{"--agent", "claude-code"},
-			want: "",
-		},
-		{
-			name:    "flag set to multi",
-			args:    []string{"--agent", "claude-code", "--sdd-mode", "multi"},
-			wantErr: true,
-		},
-		{
-			name:    "flag set to single",
-			args:    []string{"--agent", "claude-code", "--sdd-mode", "single"},
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			flags, err := ParseInstallFlags(tt.args)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("ParseInstallFlags() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if tt.wantErr && !strings.Contains(err.Error(), "sdd-mode") {
-				t.Fatalf("error = %q, want retired flag named", err)
-			}
-			if !tt.wantErr && flags.SDDMode != tt.want {
-				t.Fatalf("flags.SDDMode = %q, want %q", flags.SDDMode, tt.want)
-			}
-		})
-	}
-}
-
-func TestNormalizeInstallFlagsSDDModeMulti(t *testing.T) {
-	input, err := NormalizeInstallFlags(
-		InstallFlags{SDDMode: "multi"},
-		system.DetectionResult{},
-	)
-	if err != nil {
-		t.Fatalf("NormalizeInstallFlags() error = %v", err)
-	}
-	if input.Selection.SDDMode != model.SDDModeMulti {
-		t.Fatalf("SDDMode = %q, want %q", input.Selection.SDDMode, model.SDDModeMulti)
-	}
-}
-
-func TestNormalizeInstallFlagsSDDModeInvalid(t *testing.T) {
-	_, err := NormalizeInstallFlags(
-		InstallFlags{SDDMode: "turbo"},
-		system.DetectionResult{},
-	)
-	if err == nil {
-		t.Fatal("expected error for invalid sdd-mode")
 	}
 }
 

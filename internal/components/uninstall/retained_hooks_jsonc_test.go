@@ -31,7 +31,7 @@ func applyClaudeSettingsRewrite(t *testing.T, seed string) (string, error) {
 	if err := os.WriteFile(path, []byte(seed), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	built, err := svc.buildPlan([]model.AgentID{adapter.Agent()}, withoutComponent(fullAgentRemovalComponents, model.ComponentSDD))
+	built, err := svc.buildPlan([]model.AgentID{adapter.Agent()}, fullAgentRemovalComponents)
 	if err != nil {
 		t.Fatal(err)
 	}

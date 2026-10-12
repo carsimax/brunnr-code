@@ -91,22 +91,6 @@ func TestNativeReviewPreservedAction(t *testing.T) {
 	}
 }
 
-func TestComponentPathsSDDIncludesSystemPromptForPromptFileAdapters(t *testing.T) {
-	home := t.TempDir()
-	adapters := resolveAdapters([]model.AgentID{
-		model.AgentClaudeCode,
-	})
-
-	paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, adapters, model.ComponentSDD)
-
-	for _, adapter := range adapters {
-		p := adapter.SystemPromptFile(home)
-		if !containsPath(paths, p) {
-			t.Fatalf("componentPaths(sdd) missing system prompt path %q\npaths=%v", p, paths)
-		}
-	}
-}
-
 func TestComponentPathsClaudeRetainsReviewAndRouting(t *testing.T) {
 	home := t.TempDir()
 	selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}}
@@ -121,7 +105,7 @@ func TestComponentPathsClaudeRetainsReviewAndRouting(t *testing.T) {
 	}
 }
 
-func TestComponentPathsSDDIncludesSkillsAndSharedConventions(t *testing.T) {
+func TestComponentPathsSkillsIncludesSelectedSkills(t *testing.T) {
 	home := t.TempDir()
 	selection := model.Selection{Skills: []model.SkillID{model.SkillGoTesting, model.SkillJudgmentDay}}
 	paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, selection, resolveAdapters([]model.AgentID{model.AgentClaudeCode}), model.ComponentSkills)
@@ -286,21 +270,6 @@ func TestComponentPathsEngramCodexIncludesConfigTOML(t *testing.T) {
 	want := filepath.Join(home, ".codex", "config.toml")
 	if !containsPath(paths, want) {
 		t.Fatalf("componentPaths(engram,codex) missing %q\npaths=%v", want, paths)
-	}
-}
-
-func TestComponentPathsSDDCodexIncludesHooksJSONOnlyForCodex(t *testing.T) {
-	home := t.TempDir()
-	adapters := resolveAdapters([]model.AgentID{model.AgentCodex, model.AgentClaudeCode})
-
-	paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, adapters, model.ComponentSDD)
-	codexHooks := filepath.Join(home, ".codex", "hooks.json")
-	if !containsPath(paths, codexHooks) {
-		t.Fatalf("componentPaths(sdd,codex) missing skill-registry hook %q\npaths=%v", codexHooks, paths)
-	}
-	claudeHooks := filepath.Join(home, ".claude", "hooks.json")
-	if containsPath(paths, claudeHooks) {
-		t.Fatalf("componentPaths(sdd,claude) declared unsupported hooks path %q\npaths=%v", claudeHooks, paths)
 	}
 }
 
@@ -734,8 +703,7 @@ func TestBackupTargetsContainNoDuplicatePaths(t *testing.T) {
 	agentIDs := []model.AgentID{model.AgentClaudeCode}
 	selection := model.Selection{
 		Agents:     agentIDs,
-		Components: []model.ComponentID{model.ComponentSDD, model.ComponentEngram, model.ComponentPersona},
-		SDDMode:    model.SDDModeSingle,
+		Components: []model.ComponentID{model.ComponentEngram, model.ComponentPersona},
 	}
 	resolved := planner.ResolvedPlan{Agents: agentIDs, OrderedComponents: selection.Components}
 

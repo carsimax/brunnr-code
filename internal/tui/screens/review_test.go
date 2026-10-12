@@ -58,8 +58,8 @@ func TestRenderReviewOmitsLegacyStrictTDDChoice(t *testing.T) {
 	for _, strict := range []bool{false, true} {
 		t.Run(map[bool]string{false: "disabled", true: "enabled"}[strict], func(t *testing.T) {
 			payload := planner.ReviewPayload{
-				Components: []planner.ComponentAction{{ID: model.ComponentSDD, Action: "selected"}},
-				HasSDD:     true, StrictTDD: strict,
+				Components: []planner.ComponentAction{{ID: model.ComponentEngram, Action: "selected"}},
+				StrictTDD:  strict,
 			}
 			if out := RenderReview(payload, 0, ""); strings.Contains(out, "Strict TDD") {
 				t.Fatalf("legacy choice appears in review:\n%s", out)
