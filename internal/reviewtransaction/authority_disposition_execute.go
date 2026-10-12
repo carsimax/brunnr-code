@@ -17,7 +17,7 @@ import (
 )
 
 // AuthorityDispositionProofSchema identifies AuthorityDispositionProof's shape.
-const AuthorityDispositionProofSchema = "gentle-ai.review-authority-disposition-proof/v1"
+const AuthorityDispositionProofSchema = "brunnr-code.review-authority-disposition-proof/v1"
 
 // errAuthorityDispositionShape is returned whenever a plan's closure does
 // not have the one shape this executor admits: exactly one seed, at least

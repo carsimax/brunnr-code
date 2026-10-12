@@ -549,7 +549,7 @@ internal/reviewtransaction/ledger.go	"canonical ledger must contain exactly one 
 internal/reviewtransaction/ledger.go	"ledger bytes are not the canonical compact JSON representation"
 internal/reviewtransaction/ledger.go	"ledger findings do not exactly match the native findings input"
 internal/reviewtransaction/ledger.go	"ledger requires an explicit findings array"
-internal/reviewtransaction/ledger.go	"ledger requires gentle-ai.review-ledger/v1 and an explicit findings array"
+internal/reviewtransaction/ledger.go	"ledger requires brunnr-code.review-ledger/v1 and an explicit findings array"
 internal/reviewtransaction/ledger.go	"supplied ledger_hash does not match canonical ledger bytes"
 internal/reviewtransaction/legacy_alias_repair.go	"read back authority inventory still contains repaired lineage %q"
 internal/reviewtransaction/legacy_alias_repair.go	"review repair-legacy-alias did not commit an auditable quarantine record"

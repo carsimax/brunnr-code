@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	inspectAuthorityTestSchema    = "gentle-ai.review-authority-inspection/v1"
+	inspectAuthorityTestSchema    = "brunnr-code.review-authority-inspection/v1"
 	inspectAuthorityTestOperation = "review/inspect-authority"
 )
 
@@ -254,7 +254,7 @@ func writeInspectCLIRecoveryPair(t *testing.T, repo, prefix string, unchanged bo
 		RecoveredAt: time.Date(2026, 7, 21, 12, 0, 0, 0, time.UTC), MaintainerAuthorization: authorization,
 	}
 	if authorization == "" {
-		successor.Recovery.MaintainerAuthorization = "gentle-ai.review-recovery-authorization/v1\npredecessor_lineage=" + predecessor.LineageID +
+		successor.Recovery.MaintainerAuthorization = "brunnr-code.review-recovery-authorization/v1\npredecessor_lineage=" + predecessor.LineageID +
 			"\npredecessor_revision=" + predecessorRevision + "\ntarget_identity=" + successor.InitialSnapshot.Identity +
 			"\nactor=maintainer@example.com\nreason=retry"
 	}

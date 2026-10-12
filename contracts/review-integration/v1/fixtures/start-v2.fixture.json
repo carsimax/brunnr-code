@@ -1,6 +1,6 @@
 {
-  "schema": "gentle-ai.review-integration.start/v2",
-  "contract": "gentle-ai.review-integration/v1",
+  "schema": "brunnr-code.review-integration.start/v2",
+  "contract": "brunnr-code.review-integration/v1",
   "operation": "review.start",
   "action": "created",
   "lenses_required": true,
@@ -26,46 +26,46 @@
   ],
   "artifact_subjects": [
     {
-      "schema": "gentle-ai.review-artifact-subject/v1",
-      "subject_hash": "sha256:462591bc0cfab672cdf741536c5f1d8122a1f31b1773b9f1d12c5f2b72c76d23",
+      "schema": "brunnr-code.review-artifact-subject/v1",
+      "subject_hash": "sha256:59baa2e6eb8ee7df848e1a5b54cff4b5e7c259becccab866a6050aa23484552e",
       "lineage_id": "review-start-fixture",
-      "authority_revision": "sha256:e10bced7198e3c817c5ff6d1172d6aa8ce3321d45ec4d68834e0b5f03a4246d9",
-      "target_identity": "sha256:04c970c2b0f7c128751ed2b0f7e672a2fe26dc267f018bf10e612096d19cfa04",
+      "authority_revision": "sha256:27c0e5f48998fe513a5591cfb271ae0a4c6bdca5098a7b29dd2fe02f87cb36c6",
+      "target_identity": "sha256:29f4fd5a86f08b4a2b8ecb556d1bea4851824fdaa4a95e6efbe70bc1738bbd0d",
       "candidate_diff_sha256": "sha256:c18ffcaf6f41a8cd5f3399a10355eb8de3e5eb561cb65cb551ea93bdf4df921b",
-      "changed_path_manifest_sha256": "sha256:dc754e73f2d661e2f914fdc5dd8d2a399be18567481137f43ae9d8d45aae3397",
+      "changed_path_manifest_sha256": "sha256:c085922f404b3579fafb0247dcb157216a6edf81c5347772bf09d8e386f6c436",
       "lens": "review-risk",
       "selected_order": 0
     },
     {
-      "schema": "gentle-ai.review-artifact-subject/v1",
-      "subject_hash": "sha256:6374e313d6524b832afa399bdd205d4e852e1a19ea8d87000804789df6117e3b",
+      "schema": "brunnr-code.review-artifact-subject/v1",
+      "subject_hash": "sha256:679b0ecbfc5e483c92e67d28f58b3185ef93c6d6ba3cd89931ddfc9c7cffa097",
       "lineage_id": "review-start-fixture",
-      "authority_revision": "sha256:e10bced7198e3c817c5ff6d1172d6aa8ce3321d45ec4d68834e0b5f03a4246d9",
-      "target_identity": "sha256:04c970c2b0f7c128751ed2b0f7e672a2fe26dc267f018bf10e612096d19cfa04",
+      "authority_revision": "sha256:27c0e5f48998fe513a5591cfb271ae0a4c6bdca5098a7b29dd2fe02f87cb36c6",
+      "target_identity": "sha256:29f4fd5a86f08b4a2b8ecb556d1bea4851824fdaa4a95e6efbe70bc1738bbd0d",
       "candidate_diff_sha256": "sha256:c18ffcaf6f41a8cd5f3399a10355eb8de3e5eb561cb65cb551ea93bdf4df921b",
-      "changed_path_manifest_sha256": "sha256:dc754e73f2d661e2f914fdc5dd8d2a399be18567481137f43ae9d8d45aae3397",
+      "changed_path_manifest_sha256": "sha256:c085922f404b3579fafb0247dcb157216a6edf81c5347772bf09d8e386f6c436",
       "lens": "review-resilience",
       "selected_order": 1
     },
     {
-      "schema": "gentle-ai.review-artifact-subject/v1",
-      "subject_hash": "sha256:56924c7ad539c596fd584905c9be7a82765e551154375a8022fb1e820bc2f61a",
+      "schema": "brunnr-code.review-artifact-subject/v1",
+      "subject_hash": "sha256:fd89a33dc66997e778b86c120bb5033b29c775a48977111ea381ff6f2c2e360c",
       "lineage_id": "review-start-fixture",
-      "authority_revision": "sha256:e10bced7198e3c817c5ff6d1172d6aa8ce3321d45ec4d68834e0b5f03a4246d9",
-      "target_identity": "sha256:04c970c2b0f7c128751ed2b0f7e672a2fe26dc267f018bf10e612096d19cfa04",
+      "authority_revision": "sha256:27c0e5f48998fe513a5591cfb271ae0a4c6bdca5098a7b29dd2fe02f87cb36c6",
+      "target_identity": "sha256:29f4fd5a86f08b4a2b8ecb556d1bea4851824fdaa4a95e6efbe70bc1738bbd0d",
       "candidate_diff_sha256": "sha256:c18ffcaf6f41a8cd5f3399a10355eb8de3e5eb561cb65cb551ea93bdf4df921b",
-      "changed_path_manifest_sha256": "sha256:dc754e73f2d661e2f914fdc5dd8d2a399be18567481137f43ae9d8d45aae3397",
+      "changed_path_manifest_sha256": "sha256:c085922f404b3579fafb0247dcb157216a6edf81c5347772bf09d8e386f6c436",
       "lens": "review-readability",
       "selected_order": 2
     },
     {
-      "schema": "gentle-ai.review-artifact-subject/v1",
-      "subject_hash": "sha256:0e15bc61702fd815c7140592e02d752143a0ac10a5fd59b4f8e8a8c0e8ea103b",
+      "schema": "brunnr-code.review-artifact-subject/v1",
+      "subject_hash": "sha256:fc234119525b3d81f605c8c90ae5bb153a419e774f3ec82082a31f3b3d60ecf4",
       "lineage_id": "review-start-fixture",
-      "authority_revision": "sha256:e10bced7198e3c817c5ff6d1172d6aa8ce3321d45ec4d68834e0b5f03a4246d9",
-      "target_identity": "sha256:04c970c2b0f7c128751ed2b0f7e672a2fe26dc267f018bf10e612096d19cfa04",
+      "authority_revision": "sha256:27c0e5f48998fe513a5591cfb271ae0a4c6bdca5098a7b29dd2fe02f87cb36c6",
+      "target_identity": "sha256:29f4fd5a86f08b4a2b8ecb556d1bea4851824fdaa4a95e6efbe70bc1738bbd0d",
       "candidate_diff_sha256": "sha256:c18ffcaf6f41a8cd5f3399a10355eb8de3e5eb561cb65cb551ea93bdf4df921b",
-      "changed_path_manifest_sha256": "sha256:dc754e73f2d661e2f914fdc5dd8d2a399be18567481137f43ae9d8d45aae3397",
+      "changed_path_manifest_sha256": "sha256:c085922f404b3579fafb0247dcb157216a6edf81c5347772bf09d8e386f6c436",
       "lens": "review-reliability",
       "selected_order": 3
     }
@@ -82,7 +82,7 @@
   "repository_context": {
     "capability": "review.opaque_repository_context",
     "handle": "rctx1_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "revision": "sha256:e10bced7198e3c817c5ff6d1172d6aa8ce3321d45ec4d68834e0b5f03a4246d9",
-    "target_identity": "sha256:04c970c2b0f7c128751ed2b0f7e672a2fe26dc267f018bf10e612096d19cfa04"
+    "revision": "sha256:27c0e5f48998fe513a5591cfb271ae0a4c6bdca5098a7b29dd2fe02f87cb36c6",
+    "target_identity": "sha256:29f4fd5a86f08b4a2b8ecb556d1bea4851824fdaa4a95e6efbe70bc1738bbd0d"
   }
 }

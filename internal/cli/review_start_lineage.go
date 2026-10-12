@@ -59,7 +59,7 @@ func reviewAtomicStartLineage(ctx context.Context, root, targetIdentity string) 
 	if err != nil {
 		return "", err
 	}
-	sum := sha256.Sum256(append([]byte("gentle-ai.review-start-lineage/v3\x00"), payload...))
+	sum := sha256.Sum256(append([]byte("brunnr-code.review-start-lineage/v3\x00"), payload...))
 	return "review-" + hex.EncodeToString(sum[:])[:reviewDerivedStartLineageDigits], nil
 }
 

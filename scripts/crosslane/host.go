@@ -153,7 +153,7 @@ func (b *battery) hostNegotiatedStart(lane, repo, agent string, env []string, ri
 		return false
 	}
 	consent, stderr, _ := b.runCommandLineEnv("consent", repo, env, command)
-	if getString(consent, "schema") != "gentle-ai.review-integration.consent/v3" || getString(consent, "action") != "consent_required" {
+	if getString(consent, "schema") != "brunnr-code.review-integration.consent/v3" || getString(consent, "action") != "consent_required" {
 		b.fail(lane, "consent envelope surfaced", fmt.Sprintf("schema=%q action=%q %s", getString(consent, "schema"), getString(consent, "action"), firstLine(stderr)))
 		return false
 	}

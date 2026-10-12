@@ -1,6 +1,6 @@
 {
-  "schema": "gentle-ai.review-integration.consent/v2",
-  "contract": "gentle-ai.review-integration/v2",
+  "schema": "brunnr-code.review-integration.consent/v2",
+  "contract": "brunnr-code.review-integration/v2",
   "operation": "review.start",
   "action": "consent_required",
   "blocking": true,
@@ -20,13 +20,13 @@
       "answer": "granted",
       "label": "Review this change",
       "effect": "Reviews only this change; later medium- or high-risk changes ask again, and delivery needs separate approval.",
-      "invocation": "brunnr-code review start --contract gentle-ai.review-integration/v2 --cwd /repo --target sha256:136dc6556e3bac8c2e7f7af7cc5ec361f449e383a997638128729059fefa06a5 --projection workspace --lineage review-consent-fixture --consent granted"
+      "invocation": "brunnr-code review start --contract brunnr-code.review-integration/v2 --cwd /repo --target sha256:136dc6556e3bac8c2e7f7af7cc5ec361f449e383a997638128729059fefa06a5 --projection workspace --lineage review-consent-fixture --consent granted"
     },
     {
       "answer": "declined",
       "label": "Skip this time",
       "effect": "Skips only this change; no review record is created, and future reviews stay enabled.",
-      "invocation": "brunnr-code review start --contract gentle-ai.review-integration/v2 --cwd /repo --target sha256:136dc6556e3bac8c2e7f7af7cc5ec361f449e383a997638128729059fefa06a5 --projection workspace --lineage review-consent-fixture --consent declined"
+      "invocation": "brunnr-code review start --contract brunnr-code.review-integration/v2 --cwd /repo --target sha256:136dc6556e3bac8c2e7f7af7cc5ec361f449e383a997638128729059fefa06a5 --projection workspace --lineage review-consent-fixture --consent declined"
     }
   ],
   "off_path": {

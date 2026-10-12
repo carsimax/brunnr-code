@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v2/schemas/transition-execution.schema.json",
-  "title": "Gentle AI Review Integration v2 Transition Execution",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/transition-execution.schema.json",
+  "title": "Brunnr-Code Review Integration v2 Transition Execution",
   "oneOf": [
     {"$ref": "#/$defs/standard_execution"},
     {"$ref": "#/$defs/approved_acknowledgement_execution"}
@@ -27,7 +27,7 @@
       "additionalProperties": false,
       "required": ["schema", "capability", "sha256", "lineage_id", "target_identity", "lens", "selected_order", "subject_hash", "admission_decision"],
       "properties": {
-        "schema": {"const": "gentle-ai.review-result-artifact/v2"},
+        "schema": {"const": "brunnr-code.review-result-artifact/v2"},
         "capability": {"const": "review.native_result_artifact"},
         "sha256": {"$ref": "transition-binding.schema.json#/$defs/sha256"},
         "lineage_id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
@@ -74,7 +74,7 @@
           },
           "allOf": [
             {"contains": {"type": "object", "required": ["name", "value", "token"], "properties": {"name": {"const": "cwd"}}}, "minContains": 1, "maxContains": 1},
-            {"contains": {"type": "object", "required": ["name", "value", "token"], "properties": {"name": {"const": "contract"}, "value": {"const": "gentle-ai.review-integration/v2"}}}, "minContains": 1, "maxContains": 1},
+            {"contains": {"type": "object", "required": ["name", "value", "token"], "properties": {"name": {"const": "contract"}, "value": {"const": "brunnr-code.review-integration/v2"}}}, "minContains": 1, "maxContains": 1},
             {"contains": {"type": "object", "required": ["name", "value", "token"], "properties": {"name": {"const": "next-transition"}, "value": {"const": "true"}}}, "minContains": 1, "maxContains": 1},
             {"contains": {"type": "object", "required": ["name", "value", "token"], "properties": {"name": {"const": "lineage"}, "value": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}}}, "minContains": 1, "maxContains": 1}
           ]
@@ -116,7 +116,7 @@
           },
           "allOf": [
             {"contains": {"type": "object", "required": ["name", "value", "token"], "properties": {"name": {"const": "repository-context"}, "value": {"type": "string", "pattern": "^(?:rctx[12]_[0-9a-f]{64}|rctx3_[A-Za-z0-9_-]{82,})$", "maxLength": 5548}}}, "minContains": 1, "maxContains": 1},
-            {"contains": {"type": "object", "required": ["name", "value", "token"], "properties": {"name": {"const": "contract"}, "value": {"const": "gentle-ai.review-integration/v2"}}}, "minContains": 1, "maxContains": 1},
+            {"contains": {"type": "object", "required": ["name", "value", "token"], "properties": {"name": {"const": "contract"}, "value": {"const": "brunnr-code.review-integration/v2"}}}, "minContains": 1, "maxContains": 1},
             {"contains": {"type": "object", "required": ["name", "value", "token"], "properties": {"name": {"const": "next-transition"}, "value": {"const": "true"}}}, "minContains": 1, "maxContains": 1},
             {"contains": {"type": "object", "required": ["name", "value", "token"], "properties": {"name": {"const": "lineage"}, "value": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}}}, "minContains": 1, "maxContains": 1}
           ]

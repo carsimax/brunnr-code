@@ -288,7 +288,7 @@ func recoverFacadeReview(t *testing.T, repo, predecessor, successorLineage strin
 	if err != nil {
 		t.Fatal(err)
 	}
-	authorization := "gentle-ai.review-recovery-authorization/v1\npredecessor_lineage=" + predecessor +
+	authorization := "brunnr-code.review-recovery-authorization/v1\npredecessor_lineage=" + predecessor +
 		"\npredecessor_revision=" + record.Revision + "\ntarget_identity=" + target.Identity +
 		"\nactor=maintainer\nreason=candidate changed while reviews were off"
 	var output bytes.Buffer

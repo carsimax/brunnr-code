@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v1/schemas/consent.schema.json",
-  "title": "Gentle AI negotiated review consent question",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/consent.schema.json",
+  "title": "Brunnr-Code negotiated review consent question",
   "description": "The typed per-candidate blocking consent question a negotiated START answers with instead of proceeding, emitted only when the caller declared --consent relay. It carries why input is required, the complete choice set, and the exact runnable follow-up invocations scoped to the one frozen candidate. A decline is scoped to that candidate and is deliberately not the kill switch; the permanent disable stays a documented off path outside the choice set.",
   "type": "object",
   "additionalProperties": false,
@@ -24,8 +24,8 @@
     "off_path"
   ],
   "properties": {
-    "schema": {"const": "gentle-ai.review-integration.consent/v1"},
-    "contract": {"const": "gentle-ai.review-integration/v1"},
+    "schema": {"const": "brunnr-code.review-integration.consent/v1"},
+    "contract": {"const": "brunnr-code.review-integration/v1"},
     "operation": {"const": "review.start"},
     "action": {"const": "consent_required"},
     "blocking": {"const": true},

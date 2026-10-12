@@ -18,12 +18,12 @@ import (
 )
 
 const (
-	VerificationApplicabilitySchema = "gentle-ai.verification-applicability/v1"
-	VerificationPlanRegistrySchema  = "gentle-ai.verification-plan-registry/v1"
-	VerificationPlanSchema          = "gentle-ai.verification-plan/v1"
-	VerificationResultRefSchema     = "gentle-ai.verification-result-ref/v1"
-	CorrectionImpactClosureSchema   = "gentle-ai.correction-impact-closure/v1"
-	VerificationClassifierVersion   = "gentle-ai.verification-classifier/v1"
+	VerificationApplicabilitySchema = "brunnr-code.verification-applicability/v1"
+	VerificationPlanRegistrySchema  = "brunnr-code.verification-plan-registry/v1"
+	VerificationPlanSchema          = "brunnr-code.verification-plan/v1"
+	VerificationResultRefSchema     = "brunnr-code.verification-result-ref/v1"
+	CorrectionImpactClosureSchema   = "brunnr-code.correction-impact-closure/v1"
+	VerificationClassifierVersion   = "brunnr-code.verification-classifier/v1"
 )
 
 type VerificationApplicabilityValue string
@@ -1443,22 +1443,22 @@ func sortedUnion(left, right []string) []string {
 
 func verificationApplicabilityDigest(value VerificationApplicability) (string, error) {
 	value.Digest = ""
-	return verificationContractDigest("gentle-ai.verification-applicability-digest/v1", value)
+	return verificationContractDigest("brunnr-code.verification-applicability-digest/v1", value)
 }
 
 func verificationRegistryDigest(value VerificationPlanRegistry) (string, error) {
 	value.Digest = ""
-	return verificationContractDigest("gentle-ai.verification-plan-registry-digest/v1", value)
+	return verificationContractDigest("brunnr-code.verification-plan-registry-digest/v1", value)
 }
 
 func verificationPlanDigest(value VerificationPlan) (string, error) {
 	value.Digest = ""
-	return verificationContractDigest("gentle-ai.verification-plan-digest/v1", value)
+	return verificationContractDigest("brunnr-code.verification-plan-digest/v1", value)
 }
 
 func correctionImpactClosureDigest(value CorrectionImpactClosure) (string, error) {
 	value.Digest = ""
-	return verificationContractDigest("gentle-ai.correction-impact-closure-digest/v1", value)
+	return verificationContractDigest("brunnr-code.correction-impact-closure-digest/v1", value)
 }
 
 func verificationContractDigest(domain string, value any) (string, error) {

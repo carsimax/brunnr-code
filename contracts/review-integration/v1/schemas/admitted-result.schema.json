@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v1/schemas/admitted-result.schema.json",
-  "title": "Gentle AI provider-admitted reviewer result v1",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/admitted-result.schema.json",
+  "title": "Brunnr-Code provider-admitted reviewer result v1",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "subject", "admission", "result"],
   "properties": {
-    "schema": {"const": "gentle-ai.review-admitted-result/v1"},
+    "schema": {"const": "brunnr-code.review-admitted-result/v1"},
     "subject": {"$ref": "artifact-subject.schema.json"},
     "admission": {"$ref": "#/$defs/admission"},
     "result": {"type": "object"}
@@ -18,7 +18,7 @@
       "additionalProperties": false,
       "required": ["schema", "decision", "subject_hash", "raw_sha256", "canonical_sha256", "result_hash", "candidate_causal_finding_ids"],
       "properties": {
-        "schema": {"const": "gentle-ai.review-artifact-admission/v1"},
+        "schema": {"const": "brunnr-code.review-artifact-admission/v1"},
         "decision": {"const": "completed"},
         "subject_hash": {"$ref": "#/$defs/sha256"},
         "raw_sha256": {"$ref": "#/$defs/sha256"},

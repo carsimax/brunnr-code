@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	reviewCapturePreflightSchema     = "gentle-ai.review-capture-preflight/v1"
+	reviewCapturePreflightSchema     = "brunnr-code.review-capture-preflight/v1"
 	reviewCapturePreflightCapability = "review.native_capture_preflight"
 )
 

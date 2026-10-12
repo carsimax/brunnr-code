@@ -102,7 +102,7 @@ func TestCollectCaptureOperationKindsAreClassifiedFromSource(t *testing.T) {
 	native, external := 0, 0
 	for _, operation := range operations {
 		transition := reviewCollectTransition("capture_operation_kind_probe", ReviewTransitionInput{
-			Name: "probe", Schema: "gentle-ai.review-capture-operation-probe/v1", CaptureOperation: operation,
+			Name: "probe", Schema: "brunnr-code.review-capture-operation-probe/v1", CaptureOperation: operation,
 			Arguments: []ReviewTransitionArgument{{Name: "lineage", Value: "review-probe"}},
 		})
 		got := transition.Collect.Inputs[0].Arguments[0].Token

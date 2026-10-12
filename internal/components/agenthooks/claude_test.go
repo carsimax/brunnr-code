@@ -110,7 +110,7 @@ func TestClaudeUserPromptSubmitHookExecutesPowerShellCommandWithSpecialChars(t *
 	}
 	fakeName := "brunnr-code"
 	if runtime.GOOS == "windows" {
-		fakeName = "gentle-ai.exe"
+		fakeName = "brunnr-code.exe"
 	}
 	testBinary, err := os.Executable()
 	if err != nil {
@@ -179,7 +179,7 @@ func TestClaudeUserPromptSubmitHookExecutesPowerShellCommandWithSpecialChars(t *
 		t.Skipf("%s is not on PATH; cannot execute the hook command on this host", execName)
 	}
 
-	fakeLogPath := filepath.Join(root, "fake-gentle-ai.log")
+	fakeLogPath := filepath.Join(root, "fake-brunnr-code.log")
 	childEnv := make([]string, 0, len(os.Environ())+4)
 	for _, kv := range os.Environ() {
 		if strings.HasPrefix(kv, "PATH=") ||

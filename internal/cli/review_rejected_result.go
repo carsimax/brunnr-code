@@ -21,7 +21,7 @@ import (
 // tree and outside the review-transactions authority store: it is evidence,
 // never authority, and nothing reads it back into a lineage.
 const (
-	reviewRejectedResultSchema  = "gentle-ai.review-rejected-result/v1"
+	reviewRejectedResultSchema  = "brunnr-code.review-rejected-result/v1"
 	reviewRejectedResultDirName = "rejected-results"
 )
 

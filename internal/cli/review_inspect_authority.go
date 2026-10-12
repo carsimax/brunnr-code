@@ -8,7 +8,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
-const ReviewInspectAuthoritySchema = "gentle-ai.review-authority-inspection/v1"
+const ReviewInspectAuthoritySchema = "brunnr-code.review-authority-inspection/v1"
 
 type ReviewInspectAuthorityResult struct {
 	Schema           string                                             `json:"schema"`

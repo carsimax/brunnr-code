@@ -12,28 +12,28 @@ import (
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
-const ReviewIntegrationStatusSchemaV1 = "gentle-ai.review-integration.status/v1"
-const ReviewIntegrationStatusSchemaIDV1 = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/status.schema.json"
-const ReviewIntegrationStatusSchemaV2 = "gentle-ai.review-integration.status/v2"
-const ReviewIntegrationStatusSchemaIDV2 = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/status-v2.schema.json"
-const ReviewIntegrationStatusSchemaV3 = "gentle-ai.review-integration.status/v3"
-const ReviewIntegrationStatusSchemaIDV3 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/status.schema.json"
-const ReviewIntegrationStatusSchemaV4 = "gentle-ai.review-integration.status/v4"
-const ReviewIntegrationStatusSchemaIDV4 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/status-v4.schema.json"
-const ReviewIntegrationStatusSchemaV5 = "gentle-ai.review-integration.status/v5"
-const ReviewIntegrationStatusSchemaIDV5 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/status-v5.schema.json"
-const ReviewIntegrationStatusSchemaV6 = "gentle-ai.review-integration.status/v6"
-const ReviewIntegrationStatusSchemaIDV6 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/status-v6.schema.json"
-const ReviewIntegrationStatusSchemaV7 = "gentle-ai.review-integration.status/v7"
-const ReviewIntegrationStatusSchemaIDV7 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/status-v7.schema.json"
-const ReviewIntegrationStatusSchemaV8 = "gentle-ai.review-integration.status/v8"
-const ReviewIntegrationStatusSchemaIDV8 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/status-v8.schema.json"
-const ReviewIntegrationStatusSchemaV9 = "gentle-ai.review-integration.status/v9"
-const ReviewIntegrationStatusSchemaIDV9 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/status-v9.schema.json"
+const ReviewIntegrationStatusSchemaV1 = "brunnr-code.review-integration.status/v1"
+const ReviewIntegrationStatusSchemaIDV1 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/status.schema.json"
+const ReviewIntegrationStatusSchemaV2 = "brunnr-code.review-integration.status/v2"
+const ReviewIntegrationStatusSchemaIDV2 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/status-v2.schema.json"
+const ReviewIntegrationStatusSchemaV3 = "brunnr-code.review-integration.status/v3"
+const ReviewIntegrationStatusSchemaIDV3 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/status.schema.json"
+const ReviewIntegrationStatusSchemaV4 = "brunnr-code.review-integration.status/v4"
+const ReviewIntegrationStatusSchemaIDV4 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/status-v4.schema.json"
+const ReviewIntegrationStatusSchemaV5 = "brunnr-code.review-integration.status/v5"
+const ReviewIntegrationStatusSchemaIDV5 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/status-v5.schema.json"
+const ReviewIntegrationStatusSchemaV6 = "brunnr-code.review-integration.status/v6"
+const ReviewIntegrationStatusSchemaIDV6 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/status-v6.schema.json"
+const ReviewIntegrationStatusSchemaV7 = "brunnr-code.review-integration.status/v7"
+const ReviewIntegrationStatusSchemaIDV7 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/status-v7.schema.json"
+const ReviewIntegrationStatusSchemaV8 = "brunnr-code.review-integration.status/v8"
+const ReviewIntegrationStatusSchemaIDV8 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/status-v8.schema.json"
+const ReviewIntegrationStatusSchemaV9 = "brunnr-code.review-integration.status/v9"
+const ReviewIntegrationStatusSchemaIDV9 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/status-v9.schema.json"
 const ReviewIntegrationStatusSchema = ReviewIntegrationStatusSchemaV9
 const ReviewIntegrationStatusSchemaID = ReviewIntegrationStatusSchemaIDV9
-const ReviewIntegrationProjectionSchema = "gentle-ai.review-integration.projection/v1"
-const ReviewIntegrationProjectionSchemaID = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/projection.schema.json"
+const ReviewIntegrationProjectionSchema = "brunnr-code.review-integration.projection/v1"
+const ReviewIntegrationProjectionSchemaID = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/projection.schema.json"
 
 type ReviewForecastHorizon string
 
@@ -743,7 +743,7 @@ func (result ReviewTargetStatusResult) validateNextTransitionTargets() error {
 				return errors.New("fresh empty workspace target lacks a base-ref collection transition") // refusal:by-design world-action: only a provider code fix can emit the base-ref collection this classification requires
 			}
 			input := result.NextTransition.Collect.Inputs[0]
-			if input.Name != "base_ref" || input.Schema != "gentle-ai.review-base-ref-selection/v1" ||
+			if input.Name != "base_ref" || input.Schema != "brunnr-code.review-base-ref-selection/v1" ||
 				input.CaptureOperation != "external.select_base_ref" || input.Submission != nil ||
 				!reflect.DeepEqual(input.Arguments, reviewTargetArguments(result)) {
 				return errors.New("fresh empty workspace target lacks a base-ref collection transition") // refusal:by-design world-action: only a provider code fix can emit the base-ref collection this classification requires
@@ -1230,7 +1230,7 @@ func (transition ReviewNextTransition) Validate() error {
 				}
 			}
 			if input.CaptureOperation == reviewCaptureCorrectionPlanOperation &&
-				(input.Schema != "gentle-ai.review-correction-plan/v1" || len(arguments) != 5 ||
+				(input.Schema != "brunnr-code.review-correction-plan/v1" || len(arguments) != 5 ||
 					strings.TrimSpace(arguments["lineage"]) == "" || !validReviewCapabilitySHA256(arguments["expected-revision"]) ||
 					!validReviewCapabilitySHA256(arguments["target"]) || !validReviewCapabilitySHA256(arguments["request-hash"]) ||
 					reviewtransaction.ValidateReviewRepositoryContextHandle(arguments["repository-context"]) != nil) {

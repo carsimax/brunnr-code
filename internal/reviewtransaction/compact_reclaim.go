@@ -14,10 +14,10 @@ import (
 	"github.com/carsimax/brunnr-code/internal/pathquote"
 )
 
-const CompactReclaimRecordSchema = "gentle-ai.review-reclaim-record/v1"
+const CompactReclaimRecordSchema = "brunnr-code.review-reclaim-record/v1"
 
 const (
-	ClassifiedAuthorityRepairAuditSchema = "gentle-ai.review-classified-authority-repair-audit/v1"
+	ClassifiedAuthorityRepairAuditSchema = "brunnr-code.review-classified-authority-repair-audit/v1"
 	ClassifiedAuthorityRepairRoute       = "classified_authority_repair"
 )
 
@@ -336,7 +336,7 @@ func persistCompactReclaimRecord(record CompactReclaimRecord) error {
 
 // AuthorityDispositionClosureManifestSchema identifies
 // AuthorityDispositionClosureManifest's shape.
-const AuthorityDispositionClosureManifestSchema = "gentle-ai.review-authority-disposition-closure-manifest/v1"
+const AuthorityDispositionClosureManifestSchema = "brunnr-code.review-authority-disposition-closure-manifest/v1"
 
 // AuthorityDispositionClosureManifest is Wave 6's forensic-only record of an
 // N-node closure disposition (design decision D5): written once, inside the

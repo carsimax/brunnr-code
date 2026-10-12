@@ -45,7 +45,7 @@ import (
 
 // reviewIntegrationDocSchemaIDRegexp extracts every backtick-quoted
 // brunnr-code.*/vN (or /vN.M) schema identity literal from the doc's prose.
-var reviewIntegrationDocSchemaIDRegexp = regexp.MustCompile("`(gentle-ai\\.[a-z0-9.\\-]+/v[0-9]+(?:\\.[0-9]+)?)`")
+var reviewIntegrationDocSchemaIDRegexp = regexp.MustCompile("`(brunnr-code\\.[a-z0-9.\\-]+/v[0-9]+(?:\\.[0-9]+)?)`")
 
 // reviewIntegrationDocCommandVerbRegexp extracts every `brunnr-code review
 // <verb>` command name the doc names, from both fenced code blocks and

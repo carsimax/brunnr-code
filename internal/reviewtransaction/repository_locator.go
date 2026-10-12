@@ -19,12 +19,12 @@ import (
 
 const (
 	ReviewRepositoryContextCapability = "review.opaque_repository_context"
-	ReviewRepositoryContextSchema     = "gentle-ai.review-repository-context/v1"
+	ReviewRepositoryContextSchema     = "brunnr-code.review-repository-context/v1"
 
 	reviewRepositoryContextHandlePrefix = "rctx1_"
 	reviewRepositoryLocatorMaxBytes     = 64 << 10
 
-	reviewRepositoryContextV2Schema          = "gentle-ai.review-repository-context/v2"
+	reviewRepositoryContextV2Schema          = "brunnr-code.review-repository-context/v2"
 	reviewRepositoryContextV2HandlePrefix    = "rctx2_"
 	reviewRepositoryContextV2MaxDecodedBytes = 64 << 10
 	// The v2 handle is a fixed-width digest, not a transported payload. Its

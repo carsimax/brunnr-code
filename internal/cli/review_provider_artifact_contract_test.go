@@ -16,24 +16,24 @@ import (
 func TestReviewProviderArtifactV1ContractsArePinned(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v1")
 	want := map[string]string{
-		"fixtures/capabilities-v1.4.fixture.json": "30c6fe57534a03e5915eb438f65c9347a4e0311a3a9bd516c8c265fd607f870a",
-		"fixtures/consent.fixture.json":           "f3d61cafa5bf3d67f5126bd81590b16a4b81554fc6e8a09618508dc91108a3af",
-		"fixtures/start.fixture.json":             "3b963b221cd1560eb8872cbabbb5407096f593ced2f13eb9cb06eb61e4cca4d1",
+		"fixtures/capabilities-v1.4.fixture.json": "38b1a341405cb8630a586ee8fcd71849baecdf87d352de1d1fe9b2447239aab1",
+		"fixtures/consent.fixture.json":           "094ecda6f49497d55ff04c858a005c42f341ab064318db5519464054671bac3f",
+		"fixtures/start.fixture.json":             "1491559938db09e6fea965edcc09a7b1a9a0f89c3650dace2c91ebfcab172d2d",
 		// issue #2659: start-v2/status-v2 embed a freshly minted target_identity,
 		// and the purified identity domain legitimately changed that hash for
 		// every new snapshot. Deliberate, not drift.
-		"fixtures/start-v2.fixture.json":         "2699660832c0d944184d5d314f08774ab9a02f5b8a7a4c2a07983440e0e346ad",
-		"fixtures/status.fixture.json":           "a1f28b7d5351e000aca5238ed6348a0838fe2c0e64ce894ebcd8b43851063ff6",
-		"fixtures/status-v2.fixture.json":        "ff3690a9e716c9fa48e3c26a67047f9b4ce4c3cce8391a240dbe9834bd4e13ee",
-		"fixtures/status-ambiguous.fixture.json": "ee695fd58ba72adfb3b51dfd16432a177498173a45bfcb594d6bdc53bfa32e6e",
-		"fixtures/status-corrupted.fixture.json": "4cfc0048c28a39cec8a32fecfaad66e56e5c1248263ceb4ce66b6717981880b2",
-		"fixtures/status-recover.fixture.json":   "ad814f34f438583fdf699cd5ce95ab7cd0700de9b21a4d1ed79207de9c463dfc",
-		"fixtures/status-unrelated.fixture.json": "deab36c877ced3c9b480ca33724c10d88f75c761d6426fa14be850345122891d",
-		"schemas/admitted-result.schema.json":    "7796e8dbba331434594108c902dfab7ec46f691fa447a9259a78f2448111b0de",
-		"schemas/artifact-subject.schema.json":   "f7dcd934e27e8f3735a37f3d0ec8048dd8ccc1811b9df61124a1dcbf8a03f40e",
-		"schemas/capabilities-v1.4.schema.json":  "dc60681567665b0b83a1abb7d1a85fafa21d8bba40cdf9e18126705385278543",
-		"schemas/result-artifact.schema.json":    "91296bd2c261fd2fe03bffd63efe58badd4927e0d0d8480cd4213f651ecacdf6",
-		"schemas/start.schema.json":              "4296aebbd4128ce51945a2f6d3228aa77ac7215c802978d559bff5279ec56229",
+		"fixtures/start-v2.fixture.json":         "d7380b3eade27f1907445186425fd397ffbfe19f112b2d9763da6a9e639729b4",
+		"fixtures/status.fixture.json":           "2a6219f318398c4d97475237109e5d7a316ddda8b2ba881fa7a627cdfbf3edf8",
+		"fixtures/status-v2.fixture.json":        "542652c2d4fb505f7017b4ba0c3002374994abd6e3fb0784cf99baef9f0bb80d",
+		"fixtures/status-ambiguous.fixture.json": "9d43127b38c2be9b74cf10c714b757f18726f5f79593392a512bd7d93f2a6651",
+		"fixtures/status-corrupted.fixture.json": "9446ac3c793e8f35819018c63d9a30c086a1a77130f5e772e75179416ba43a87",
+		"fixtures/status-recover.fixture.json":   "9baaf10eccb9753c4abd9482a663caba9a24fafb39c7a557df4aa60126726262",
+		"fixtures/status-unrelated.fixture.json": "66612e4b28eb3187a8e8763e9b506c847143adf666702ac4fde92a96f204850e",
+		"schemas/admitted-result.schema.json":    "e3b67652232e76ba354daf5dd41867bfdadda568c9142440a95545b132ed9cf0",
+		"schemas/artifact-subject.schema.json":   "0d63e18511d589b0d61756d294c043a031b55a8afb7b8ea60e9b894f978ea8d6",
+		"schemas/capabilities-v1.4.schema.json":  "2a5dee5f8400745256f88c029a12ceaf60faba225dce843412ea579b00c3a308",
+		"schemas/result-artifact.schema.json":    "ce1f22d7be28c9af3395e845168589940d75d3804d52a02fc19f06cb1b92c8f8",
+		"schemas/start.schema.json":              "756dce3af947ad5136c4000e0ce5ff990f262b009adbe0afc74985f69b31cb1e",
 		// Frozen v1 START artifacts do not project the v3 replay or retired
 		// stale-burn fields.
 		//
@@ -42,10 +42,10 @@ func TestReviewProviderArtifactV1ContractsArePinned(t *testing.T) {
 		//
 		// rdd-risk-gated S14: the risk reason enums admit the agent_escalation
 		// code and signal START publishes for --escalate-item. Deliberate, not drift.
-		"schemas/start-v2.schema.json":             "efde388bc82be38c947bfab8de5c94b27f0a1cbb9983a16239abef9ac3342a36",
-		"schemas/status.schema.json":               "a7bacd364d47f0a3b0754be604901994c2ff7a1c2defe86d9a5eef1d11dca158",
-		"schemas/status-v2.schema.json":            "7c51627d133592839ba4afa860b358b68109afd5f70ee998cd421f563201b23e",
-		"schemas/transition-execution.schema.json": "f2647f29ebb442793a5f5e926765865f017ded84653b7172831b67f1dd2a3d3b",
+		"schemas/start-v2.schema.json":             "4c5109ef12b1eff1fa03fbe08a4848116c259590326a83aee1dcb231ffb47e7d",
+		"schemas/status.schema.json":               "468bb5b4271a3df90dc44b2a1ddf1d43e042f9b7cb23ee77d81747a019eaa74a",
+		"schemas/status-v2.schema.json":            "1b5befd9232a1ba3cc2af7312f149136e038e98a55bd1c814d6db226e9fc16f3",
+		"schemas/transition-execution.schema.json": "882c0914d4694084e53cf705db8ca17156cd7ae4fca6b434b1888beff66183e3",
 	}
 	for name, expected := range want {
 		payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
@@ -62,17 +62,17 @@ func TestReviewProviderArtifactV1ContractsArePinned(t *testing.T) {
 func TestReviewProviderArtifactV20ContractsArePinned(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v2")
 	want := map[string]string{
-		"fixtures/capabilities.fixture.json": "be67999bd36c860745b4890f351e4a04d8f5947e52a96de3cc46c53be566c289",
-		"fixtures/consent.fixture.json":      "5a92c47d0c7a95e8b07be7bf796f21bd7fac22db36fd9a9e45000eeee836e84b",
+		"fixtures/capabilities.fixture.json": "31ed51a8367b903a090ff57f0931e42485a8985501d65c6134e88addda15422f",
+		"fixtures/consent.fixture.json":      "d03b4f2cb41a06965fff0d452bedafee3a878f721380edbe646a7ed4853c7586",
 		// issue #3922 / #4199: the native-git reviewer_result
 		// collect input no longer inlines changed_path_manifest -- it is
 		// already committed to by artifact_subject.changed_path_manifest_sha256
 		// -- so this fixture legitimately dropped that array. Deliberate, not
 		// drift.
-		"fixtures/status.fixture.json":     "3fc2539d5bcaa8dc3ed650ba7f5e8915856a3d9f8caf1cfcb1b0354ecacbe0f8",
-		"schemas/capabilities.schema.json": "a9021ffb1a638f5bca3b66be1f63bb4fa74d2f0e58ef20b70043874ed09add02",
-		"schemas/consent.schema.json":      "ac4ca43cb12fff6c62b6b69397042335bddfddbc8390adfc2c2688b124a89ccb",
-		"schemas/status.schema.json":       "3b257b417270744061dc943a97537e253e36e34de4591b0400e3c38ea3efde80",
+		"fixtures/status.fixture.json":     "33693704daf97aeb68fce3cc4adea635f4f2bdca6151b2898f923c557e639ff9",
+		"schemas/capabilities.schema.json": "bcfd7ebacdc01f0bc56da9b5a9a9124110c2a88667bb8cd8c279fd4e2c144f81",
+		"schemas/consent.schema.json":      "22161f77fdd6aac1fde700b1219f138e0e4e8974f12d8723a75d4b06b8e860d7",
+		"schemas/status.schema.json":       "2636edf15fa10757a2bc01d0d09bdd143fc9686e0b2391c1f053cdc216041b38",
 	}
 	for name, expected := range want {
 		payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
@@ -89,12 +89,12 @@ func TestReviewProviderArtifactV20ContractsArePinned(t *testing.T) {
 func TestReviewProviderArtifactV21ContractsArePinned(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v2")
 	want := map[string]string{
-		"fixtures/capabilities-v2.1.fixture.json": "95a0cbc120475608d7c2af002dddfd231d4f29b1675d9d3e8abe9251ff9cca95",
+		"fixtures/capabilities-v2.1.fixture.json": "15522bd7ee3121df465558129a707c57fcdcb2202a6fc6cd3873aa228aff1874",
 		// issue #2659: consent-v3 embeds a freshly minted target_identity;
 		// the purified identity domain legitimately changed that hash.
 		// Deliberate, not drift.
-		"fixtures/consent-v3.fixture.json":      "204968ad6a0e1b7cd1dc13afa1039d776ca226c4826011a520bf85a312eeda85",
-		"schemas/capabilities-v2.1.schema.json": "0bee8048ba8c31511925ea8d00cd46f61b710b2c3c4ffacf6aba41b798f807fa",
+		"fixtures/consent-v3.fixture.json":      "a4d904f4532b67547cba465c01e9aaaf753f60ccf22af65b494df62dccd29c31",
+		"schemas/capabilities-v2.1.schema.json": "46a9b0acd62bc81e94575cdc3c245ec33c236614510f0425b3417875f9258fb4",
 		// Cross-lane battery conformance fix: the schema pinned the choice
 		// invocations to `--agent claude-code`, but the live emitter omits the
 		// agent token when the caller declared no runtime (the pinned fixture
@@ -104,8 +104,8 @@ func TestReviewProviderArtifactV21ContractsArePinned(t *testing.T) {
 		// relay drives consent with its own declared runtime identity, which
 		// the emitter legitimately publishes once the relay handshake is
 		// declared. Deliberate, not drift.
-		"schemas/consent-v3.schema.json": "38290368683bc0203030c1f3c832cf332808ce468e0e7f2bd5a1705129b354a1",
-		"schemas/status.schema.json":     "3b257b417270744061dc943a97537e253e36e34de4591b0400e3c38ea3efde80",
+		"schemas/consent-v3.schema.json": "bc27e6e89a7686830cb38d57cb86c5d83ca398d5f88e19e811ea96a889136512",
+		"schemas/status.schema.json":     "2636edf15fa10757a2bc01d0d09bdd143fc9686e0b2391c1f053cdc216041b38",
 	}
 	for name, expected := range want {
 		payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
@@ -122,7 +122,7 @@ func TestReviewProviderArtifactV21ContractsArePinned(t *testing.T) {
 func TestReviewProviderArtifactV25StatusContractsArePinned(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v2")
 	want := map[string]string{
-		"fixtures/status-v5.fixture.json": "da401836833192a400493787b256b5f19b3a5ec5fd325ad45d8dcaeadfeea81e",
+		"fixtures/status-v5.fixture.json": "cc3257f7aaa36f7765558963325969e9885dde7384f2cd40c002ec5bcdd26b14",
 		// Cross-lane battery conformance fix: live negotiated STATUS publishes
 		// the top-level repository_context reference (review_status_contract.go's
 		// ReviewTargetStatusResult, populated since the recovered-units merges),
@@ -148,8 +148,8 @@ func TestReviewProviderArtifactV25StatusContractsArePinned(t *testing.T) {
 		//
 		// rdd-risk-gated S14: the risk reason enums admit the agent_escalation
 		// code and signal START publishes for --escalate-item. Deliberate, not drift.
-		"schemas/start.schema.json":     "05271848b0619c73f4a9a66b5a1ad1d04d2bf975c9c91ffcd63749981a56c300",
-		"schemas/status-v5.schema.json": "8f6d05bd4ed64abc765bd7ce9ae8bed0470448cd260fc0a94dc5929b88f42a18",
+		"schemas/start.schema.json":     "56fb4fa02418cf080f47dcc4219171af1a40ceddc70f17e92363d56f1473f327",
+		"schemas/status-v5.schema.json": "d076b806b085929b9872d8e73d0732ca0c40ff89f78734c206bbaa64f5699d67",
 	}
 	for name, expected := range want {
 		payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
@@ -166,11 +166,11 @@ func TestReviewProviderArtifactV25StatusContractsArePinned(t *testing.T) {
 func TestReviewProviderArtifactV24IntendedUntrackedContractsArePinned(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v2")
 	want := map[string]string{
-		"schemas/capabilities-v2.4.schema.json": "fc4d55dbad6b19cc4c289e8ed94bd1839800ca2892e449640459b668e0c7b0b5",
+		"schemas/capabilities-v2.4.schema.json": "5bf7ddc9159e1a9cfad9a6d9691607da223a0d1db057510cbf91094f326cfe3b",
 		// Issue #4821: an absolute document ID restores sibling $ref resolution;
 		// the wire envelope identity remains unchanged. Deliberate, not drift.
-		"schemas/intended-untracked-selection.schema.json": "2379d4b748ffd9719058aa5b10ed6640f0dec9a525198cf8e14cd827408a348e",
-		"schemas/status-v6.schema.json":                    "0aa731e4d3961d678b4e51a6be0af93f2de82a4a326c3366e2fbe6a3e687236c",
+		"schemas/intended-untracked-selection.schema.json": "f01038e08bca0c9ea280091751c1dac39adfc899a3387840fa9e5de2bf2eafae",
+		"schemas/status-v6.schema.json":                    "958f59b3ce0e846a027ad838dce382d52333ff06c5a1d8ffcad6523a7d7f8a3a",
 	}
 	for name, expected := range want {
 		payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
@@ -210,8 +210,8 @@ func TestReviewProviderArtifactStatusV7ContractsArePinned(t *testing.T) {
 		//
 		// issue #4226: status/v7 documents the CompactEscalationEvidence contract
 		// on terminal escalation. Deliberate, not drift.
-		"schemas/status-v7.schema.json":         "5d33920a198a5aacd6ffccbd235589bc379bf96c1618677b77e5fdd914876097",
-		"schemas/capabilities-v2.5.schema.json": "9fcdb1717a54bcd4f73d4dee1283d9ec2f27cccbb5d54804ee8b40a6ed2db553",
+		"schemas/status-v7.schema.json":         "c06a75193efb7f14c7c3ab50956f442190ed4579c01f2dec1341d4157ba22a99",
+		"schemas/capabilities-v2.5.schema.json": "eca86e85fede1db7327edbe052bc13c6eb23318bbdd3a7858e0b90934cbe31ef",
 	}
 	for name, expected := range want {
 		payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
@@ -359,13 +359,13 @@ func TestReviewProviderArtifactSchemasAreStrictAndBound(t *testing.T) {
 		name string
 		id   string
 	}{
-		{name: "artifact-subject.schema.json", id: "https://gentle-ai.dev/contracts/review-integration/v1/schemas/artifact-subject.schema.json"},
-		{name: "admitted-result.schema.json", id: "https://gentle-ai.dev/contracts/review-integration/v1/schemas/admitted-result.schema.json"},
+		{name: "artifact-subject.schema.json", id: "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/artifact-subject.schema.json"},
+		{name: "admitted-result.schema.json", id: "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/admitted-result.schema.json"},
 		{name: "correction-plan-request.schema.json", id: reviewtransaction.CorrectionPlanRequestSchemaID},
-		{name: "result-artifact-v2.schema.json", id: "https://gentle-ai.dev/contracts/review-integration/v1/schemas/result-artifact-v2.schema.json"},
+		{name: "result-artifact-v2.schema.json", id: "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/result-artifact-v2.schema.json"},
 		{name: "start-v2.schema.json", id: ReviewIntegrationStartSchemaIDV2},
 		{name: "status-v2.schema.json", id: ReviewIntegrationStatusSchemaIDV2},
-		{name: "transition-execution.schema.json", id: "https://gentle-ai.dev/contracts/review-integration/v1/schemas/transition-execution.schema.json"},
+		{name: "transition-execution.schema.json", id: "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/transition-execution.schema.json"},
 		{name: "authority-repair-assessment.schema.json", id: reviewtransaction.AuthorityRepairAssessmentSchemaID},
 		{name: "repair.schema.json", id: ReviewIntegrationRepairSchemaID},
 	}
@@ -449,8 +449,8 @@ func TestReviewProviderArtifactSchemasAreStrictAndBound(t *testing.T) {
 		name string
 		id   string
 	}{
-		{name: "artifact-subject.schema.json", id: "https://gentle-ai.dev/contracts/review-integration/v2/schemas/artifact-subject.schema.json"},
-		{name: "admitted-result.schema.json", id: "https://gentle-ai.dev/contracts/review-integration/v2/schemas/admitted-result.schema.json"},
+		{name: "artifact-subject.schema.json", id: "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/artifact-subject.schema.json"},
+		{name: "admitted-result.schema.json", id: "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/admitted-result.schema.json"},
 		{name: "start.schema.json", id: ReviewIntegrationStartSchemaIDV3},
 		{name: "start-v4.schema.json", id: ReviewIntegrationStartSchemaIDV4},
 		{name: "status.schema.json", id: ReviewIntegrationStatusSchemaIDV3},
@@ -467,15 +467,15 @@ func TestReviewProviderArtifactSchemasAreStrictAndBound(t *testing.T) {
 		{name: "capabilities-v2.4.schema.json", id: ReviewIntegrationCapabilitiesSchemaIDV24},
 		{name: "capabilities-v2.5.schema.json", id: ReviewIntegrationCapabilitiesSchemaIDV25},
 		{name: "capabilities-v2.6.schema.json", id: ReviewIntegrationCapabilitiesSchemaIDV26},
-		{name: "intended-untracked-selection.schema.json", id: "https://gentle-ai.dev/contracts/review-integration/v2/schemas/intended-untracked-selection.schema.json"},
+		{name: "intended-untracked-selection.schema.json", id: "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/intended-untracked-selection.schema.json"},
 		{name: "consent.schema.json", id: ReviewIntegrationConsentSchemaIDV2},
 		{name: "consent-v3.schema.json", id: ReviewIntegrationConsentSchemaIDV3},
 		{name: "failure.schema.json", id: ReviewIntegrationFailureSchemaIDV2},
 		{name: "operation.schema.json", id: ReviewIntegrationOperationSchemaIDV2},
 		{name: "repair.schema.json", id: ReviewIntegrationRepairSchemaIDV2},
-		{name: "gate-result.schema.json", id: "https://gentle-ai.dev/contracts/review-integration/v2/schemas/gate-result.schema.json"},
-		{name: "last-event-closure.schema.json", id: "https://gentle-ai.dev/contracts/review-integration/v2/schemas/last-event-closure.schema.json"},
-		{name: "opencode-provider-role.schema.json", id: "https://gentle-ai.dev/contracts/review-integration/v2/schemas/opencode-provider-role.schema.json"},
+		{name: "gate-result.schema.json", id: "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/gate-result.schema.json"},
+		{name: "last-event-closure.schema.json", id: "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/last-event-closure.schema.json"},
+		{name: "opencode-provider-role.schema.json", id: "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/opencode-provider-role.schema.json"},
 	}
 	v2Documents := make(map[string]map[string]any, len(v2Schemas))
 	for _, tt := range v2Schemas {

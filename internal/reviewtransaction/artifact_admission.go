@@ -14,7 +14,7 @@ import (
 	"unicode/utf8"
 )
 
-const ArtifactAdmissionSchema = "gentle-ai.review-artifact-admission/v1"
+const ArtifactAdmissionSchema = "brunnr-code.review-artifact-admission/v1"
 
 type ArtifactAdmissionDecision string
 

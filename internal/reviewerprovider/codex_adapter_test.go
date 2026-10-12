@@ -136,8 +136,8 @@ func TestCodexAdapterConfiguresApprovedLoopbackProvider(t *testing.T) {
 	wantArguments := []string{
 		"exec", "--skip-git-repo-check", "--ignore-user-config", "--sandbox", "read-only", "-C", commandArguments[6],
 		"--output-last-message", commandArguments[8],
-		"--config", `model_provider="gentle_ai_reviewer_loopback"`,
-		"--config", `model_providers.gentle_ai_reviewer_loopback={name="Brunnr-Code reviewer loopback",base_url="http://127.0.0.1:43123/v1",wire_api="responses"}`,
+		"--config", `model_provider="brunnr_code_reviewer_loopback"`,
+		"--config", `model_providers.brunnr_code_reviewer_loopback={name="Brunnr-Code reviewer loopback",base_url="http://127.0.0.1:43123/v1",wire_api="responses"}`,
 	}
 	if !slices.Equal(commandArguments, wantArguments) {
 		t.Fatalf("loopback Codex arguments = %q, want %q", commandArguments, wantArguments)

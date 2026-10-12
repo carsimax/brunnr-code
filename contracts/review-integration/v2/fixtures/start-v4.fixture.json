@@ -1,6 +1,6 @@
 {
-  "schema": "gentle-ai.review-integration.start/v4",
-  "contract": "gentle-ai.review-integration/v2",
+  "schema": "brunnr-code.review-integration.start/v4",
+  "contract": "brunnr-code.review-integration/v2",
   "operation": "review.start",
   "action": "created",
   "lenses_required": true,
@@ -28,50 +28,50 @@
   ],
   "artifact_subjects": [
     {
-      "schema": "gentle-ai.review-artifact-subject/v2",
-      "subject_hash": "sha256:2ec775b2a519da488fd76212470e9e42160179e394cfae2819f1f8ac3c7842e0",
+      "schema": "brunnr-code.review-artifact-subject/v2",
+      "subject_hash": "sha256:8f92d84ab9ef3053d4626e8939f13b89a425e1281e21786d35e46a1dfd3ddcd6",
       "lineage_id": "review-start-fixture",
       "authority_revision": "sha256:3411d049f39e891b50adfc76473199b473927d10245a227a3bc967eae0caf68c",
       "target_identity": "sha256:136dc6556e3bac8c2e7f7af7cc5ec361f449e383a997638128729059fefa06a5",
       "base_tree": "3e21a205dd9b55021aeae87965092623807e455f",
       "candidate_tree": "556e838994d4e5669ffafda7b72226598bc38297",
-      "changed_path_manifest_sha256": "sha256:049219ea30e21c409608ea8527e65bcc6774d764363031a6cf0cb05e35c734ef",
+      "changed_path_manifest_sha256": "sha256:67f627a29f11ab14899768a856518303f30aca57f6563d20ee010a02335625db",
       "lens": "review-risk",
       "selected_order": 0
     },
     {
-      "schema": "gentle-ai.review-artifact-subject/v2",
-      "subject_hash": "sha256:1800117ac48276e0039e3791287aed7af08ee65112476f9f0cbe5d11ca1044fe",
+      "schema": "brunnr-code.review-artifact-subject/v2",
+      "subject_hash": "sha256:eb4c3d0853ece6f3d2c1aad49e4d3645a8dfeb3e97e27ae71c3cfc8ddec086fa",
       "lineage_id": "review-start-fixture",
       "authority_revision": "sha256:3411d049f39e891b50adfc76473199b473927d10245a227a3bc967eae0caf68c",
       "target_identity": "sha256:136dc6556e3bac8c2e7f7af7cc5ec361f449e383a997638128729059fefa06a5",
       "base_tree": "3e21a205dd9b55021aeae87965092623807e455f",
       "candidate_tree": "556e838994d4e5669ffafda7b72226598bc38297",
-      "changed_path_manifest_sha256": "sha256:049219ea30e21c409608ea8527e65bcc6774d764363031a6cf0cb05e35c734ef",
+      "changed_path_manifest_sha256": "sha256:67f627a29f11ab14899768a856518303f30aca57f6563d20ee010a02335625db",
       "lens": "review-resilience",
       "selected_order": 1
     },
     {
-      "schema": "gentle-ai.review-artifact-subject/v2",
-      "subject_hash": "sha256:b426bc54f5f4f3ea446a84b7957e14492c803e8748f07425cd2e0652b485d7a5",
+      "schema": "brunnr-code.review-artifact-subject/v2",
+      "subject_hash": "sha256:7fb9c3de813b77cd48131bcb50996bd3ab5fb8504a45b5270feaaf8d178addc5",
       "lineage_id": "review-start-fixture",
       "authority_revision": "sha256:3411d049f39e891b50adfc76473199b473927d10245a227a3bc967eae0caf68c",
       "target_identity": "sha256:136dc6556e3bac8c2e7f7af7cc5ec361f449e383a997638128729059fefa06a5",
       "base_tree": "3e21a205dd9b55021aeae87965092623807e455f",
       "candidate_tree": "556e838994d4e5669ffafda7b72226598bc38297",
-      "changed_path_manifest_sha256": "sha256:049219ea30e21c409608ea8527e65bcc6774d764363031a6cf0cb05e35c734ef",
+      "changed_path_manifest_sha256": "sha256:67f627a29f11ab14899768a856518303f30aca57f6563d20ee010a02335625db",
       "lens": "review-readability",
       "selected_order": 2
     },
     {
-      "schema": "gentle-ai.review-artifact-subject/v2",
-      "subject_hash": "sha256:1b43f90a9391e996e28d478c0aef85b1fd26229c1ccb2ef8bc56b418ab0b4a7f",
+      "schema": "brunnr-code.review-artifact-subject/v2",
+      "subject_hash": "sha256:e589b8649a9e87a2f6e9ee1407317610e281664610655c0355b42151bca12c09",
       "lineage_id": "review-start-fixture",
       "authority_revision": "sha256:3411d049f39e891b50adfc76473199b473927d10245a227a3bc967eae0caf68c",
       "target_identity": "sha256:136dc6556e3bac8c2e7f7af7cc5ec361f449e383a997638128729059fefa06a5",
       "base_tree": "3e21a205dd9b55021aeae87965092623807e455f",
       "candidate_tree": "556e838994d4e5669ffafda7b72226598bc38297",
-      "changed_path_manifest_sha256": "sha256:049219ea30e21c409608ea8527e65bcc6774d764363031a6cf0cb05e35c734ef",
+      "changed_path_manifest_sha256": "sha256:67f627a29f11ab14899768a856518303f30aca57f6563d20ee010a02335625db",
       "lens": "review-reliability",
       "selected_order": 3
     }
@@ -99,12 +99,12 @@
     "reason_code": "review_status_required",
     "execute": {
       "operation": "review.status",
-      "command": "brunnr-code review status --contract=gentle-ai.review-integration/v2 --next-transition=true --lineage=review-start-fixture --repository-context=rctx1_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --projection=workspace",
+      "command": "brunnr-code review status --contract=brunnr-code.review-integration/v2 --next-transition=true --lineage=review-start-fixture --repository-context=rctx1_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --projection=workspace",
       "arguments": [
         {
           "name": "contract",
-          "value": "gentle-ai.review-integration/v2",
-          "token": "--contract=gentle-ai.review-integration/v2"
+          "value": "brunnr-code.review-integration/v2",
+          "token": "--contract=brunnr-code.review-integration/v2"
         },
         {
           "name": "next-transition",

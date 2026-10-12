@@ -40,12 +40,12 @@ func TestReviewCapabilitiesV13AdvertisesProviderAdmissionAndRecovery(t *testing.
 func TestReviewCapabilitiesV10ThroughV12ArtifactsRemainByteIdentical(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v1")
 	want := map[string]string{
-		"fixtures/capabilities.fixture.json":      "b3ca822189a236f2d891628c665ca23e308bf5185a1701e1f07231bd970461bb",
-		"fixtures/capabilities-v1.1.fixture.json": "f81797013153089dda7c40fdfab359b6db6f62611ec0cfe9daee8804a76c6f6d",
-		"fixtures/capabilities-v1.2.fixture.json": "4d39e7bcc96cdf5aa7fb2202fc8fedcc5afde5d96e98cc10f6f8acaf13b77ab9",
-		"schemas/capabilities.schema.json":        "ad333177494a251beac153f74bd751fa77126a9968aad69e64fc2abf15cff0f7",
-		"schemas/capabilities-v1.1.schema.json":   "7ddcace2a7b724c92a0ad07be44bbd22428a8d4c5272f23be643c9838ac418c7",
-		"schemas/capabilities-v1.2.schema.json":   "73ca4ef714e093644cc04a8229b6246775c881fd221a2121ea33f4691ba271a7",
+		"fixtures/capabilities.fixture.json":      "ea44227b5a1425123832133e9153a581c3cedb23a37b50696c2255667b82cec9",
+		"fixtures/capabilities-v1.1.fixture.json": "d902ce46c70dcbd8ddead36d7d9021b35df496f5f6f54c8db7ac340930cb2b97",
+		"fixtures/capabilities-v1.2.fixture.json": "41726b17f0915f87c86bb06cab4048db709a5137d2ad21437aed7c92d1d37af1",
+		"schemas/capabilities.schema.json":        "53e430124a4097fcff50774e609eb152588cc3f2e54a8b4f6c0234e53ea8f103",
+		"schemas/capabilities-v1.1.schema.json":   "1771bb9fd6f1999ded63e6aa24e7b27bacf0289261dd71d109bbc755e9174b8b",
+		"schemas/capabilities-v1.2.schema.json":   "9b62f627070114af1ad21c66b24f1ad440a7fe4560420268de0120c4c9931a99",
 	}
 	for name, expected := range want {
 		payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))

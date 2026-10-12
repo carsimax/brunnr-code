@@ -19,14 +19,14 @@ import (
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
-const ReviewIntegrationOperationSchema = "gentle-ai.review-integration.operation/v1"
-const ReviewIntegrationOperationSchemaID = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/operation.schema.json"
-const ReviewIntegrationOperationSchemaV2 = "gentle-ai.review-integration.operation/v2"
-const ReviewIntegrationOperationSchemaIDV2 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/operation.schema.json"
-const ReviewIntegrationFailureSchema = "gentle-ai.review-integration.failure/v1"
-const ReviewIntegrationFailureSchemaID = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/failure.schema.json"
-const ReviewIntegrationFailureSchemaV2 = "gentle-ai.review-integration.failure/v2"
-const ReviewIntegrationFailureSchemaIDV2 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/failure.schema.json"
+const ReviewIntegrationOperationSchema = "brunnr-code.review-integration.operation/v1"
+const ReviewIntegrationOperationSchemaID = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/operation.schema.json"
+const ReviewIntegrationOperationSchemaV2 = "brunnr-code.review-integration.operation/v2"
+const ReviewIntegrationOperationSchemaIDV2 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/operation.schema.json"
+const ReviewIntegrationFailureSchema = "brunnr-code.review-integration.failure/v1"
+const ReviewIntegrationFailureSchemaID = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/failure.schema.json"
+const ReviewIntegrationFailureSchemaV2 = "brunnr-code.review-integration.failure/v2"
+const ReviewIntegrationFailureSchemaIDV2 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/failure.schema.json"
 
 const ReviewIntegrationOperationValidate = "review.validate"
 

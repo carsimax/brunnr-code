@@ -149,7 +149,7 @@ func TestOrdinaryBoundedLensStateRoundTripsAndLegacyJSONRemainsAdditive(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	const baselineRevision = "sha256:4ec2a97038f0ab2e833edeb158c7de2673fa6113c5479a9007fd7bcc642fee1b"
+	const baselineRevision = "sha256:0bb2f396ead1c3f5d22328154824ad14c7dc4dc7f030e62160c702526055ab7c"
 	if legacyRevision != baselineRevision {
 		t.Fatalf("legacy ordinary_4r genesis revision = %q, want baseline %q", legacyRevision, baselineRevision)
 	}

@@ -1,10 +1,10 @@
 {
-  "schema": "gentle-ai.review-integration.repair/v1",
-  "contract": "gentle-ai.review-integration/v1",
+  "schema": "brunnr-code.review-integration.repair/v1",
+  "contract": "brunnr-code.review-integration/v1",
   "operation": "review.repair",
   "mode": "preflight",
   "assessment": {
-    "schema": "gentle-ai.review-authority-repair-assessment/v1",
+    "schema": "brunnr-code.review-authority-repair-assessment/v1",
     "status": "eligible",
     "class": "legacy_v1_historical_alias",
     "cause": "unsupported_historical_v1_operation_alias",
@@ -35,7 +35,7 @@
       "review/complete-fix",
       "review/validate-fix"
     ],
-    "authorization_schema": "gentle-ai.review-repair-authorization/v1"
+    "authorization_schema": "brunnr-code.review-repair-authorization/v1"
   },
   "provider_inputs": {
     "class": "legacy_v1_historical_alias",
@@ -44,7 +44,7 @@
     "cause": "unsupported_historical_v1_operation_alias",
     "disposition": "quarantine-approved-historical-alias",
     "repository_binding": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
-    "authorization_schema": "gentle-ai.review-repair-authorization/v1"
+    "authorization_schema": "brunnr-code.review-repair-authorization/v1"
   },
   "required_inputs": [
     "actor",

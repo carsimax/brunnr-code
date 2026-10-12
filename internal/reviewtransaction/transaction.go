@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const TransactionSchema = "gentle-ai.review-transaction/v1"
+const TransactionSchema = "brunnr-code.review-transaction/v1"
 
 type Mode string
 
@@ -377,7 +377,7 @@ func LensResultHash(result LensResult) string {
 		Findings []Finding `json:"findings"`
 		Evidence []string  `json:"evidence"`
 	}{Lens: result.Lens, Findings: result.Findings, Evidence: result.Evidence})
-	sum := sha256.Sum256(append([]byte("gentle-ai.lens-result/v1\x00"), payload...))
+	sum := sha256.Sum256(append([]byte("brunnr-code.lens-result/v1\x00"), payload...))
 	return "sha256:" + hex.EncodeToString(sum[:])
 }
 
@@ -758,7 +758,7 @@ func (transaction *Transaction) CompleteFix(snapshot Snapshot, fixDeltaHash stri
 // not evidence of the correction that changed the candidate tree.
 func FixDeltaHashForSnapshot(snapshot Snapshot) string {
 	hash := sha256.New()
-	hash.Write([]byte("gentle-ai.fix-delta/v1\x00"))
+	hash.Write([]byte("brunnr-code.fix-delta/v1\x00"))
 	for _, value := range []string{snapshot.BaseTree, snapshot.CandidateTree, snapshot.PathsDigest, snapshot.IntendedUntrackedProof} {
 		writeLengthPrefixed(hash, []byte(value))
 	}
@@ -1501,7 +1501,7 @@ func (transaction *Transaction) validateFindingRouting() error {
 
 func findingsHash(findings []Finding) string {
 	payload, _ := json.Marshal(ledgerProjection(findings))
-	sum := sha256.Sum256(append([]byte("gentle-ai.review-ledger-findings/v1\x00"), payload...))
+	sum := sha256.Sum256(append([]byte("brunnr-code.review-ledger-findings/v1\x00"), payload...))
 	return "sha256:" + hex.EncodeToString(sum[:])
 }
 

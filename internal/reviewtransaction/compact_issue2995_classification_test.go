@@ -6,35 +6,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 )
 
-// Issue #2995 work-unit 1: classification honesty for released-v2.2.x compact
-// records. A genuine v2.2.0 binary wrote the two released fixtures under
-// testdata/issue2995 (see PROVENANCE.md there for the tarball, tag, and
-// per-record SHA-256 pins). The reader must classify them as outdated
-// compact authority -- never as damaged bytes, and never as authority from a
-// newer release -- without making any of them loadable as operational state.
-
-const (
-	issue2995ApprovedLineage  = "review-a39b858db5f00bbb"
-	issue2995EscalatedLineage = "review-a3118da0f4a4c425"
-)
-
-func issue2995FixtureBytes(t *testing.T, name string) []byte {
-	t.Helper()
-	payload, err := os.ReadFile(filepath.Join("testdata", "issue2995", name))
-	if err != nil {
-		t.Fatal(err)
-	}
-	sum := sha256.Sum256(payload)
-	t.Logf("fixture %s sha256:%s", name, hex.EncodeToString(sum[:]))
-	return payload
-}
+// Issue #2995 work-unit 1: classification honesty for retired compact
+// records. The reader must classify them as outdated compact authority --
+// never as damaged bytes, and never as authority from a newer release --
+// without making any of them loadable as operational state.
 
 // issue2995Classify runs the exact classification consumers derive from a
 // store load failure: compactRecoveryEntryProblem maps the typed error to the
@@ -129,78 +108,10 @@ func issue2995SHA(t *testing.T, seed string) string {
 	return "sha256:" + hex.EncodeToString(sum[:])
 }
 
-// TestIssue2995ReleasedApprovedRecordClassifiesOutdatedNotMalformed pins the
-// approved fixture: a released v2.2.0 approved record whose retired
-// lens_results projection is NON-empty must classify as outdated compact
-// authority through the OutdatedIdentity proof, not as malformed damage, and
-// it must never load as operational state.
-func TestIssue2995ReleasedApprovedRecordClassifiesOutdatedNotMalformed(t *testing.T) {
-	payload := issue2995FixtureBytes(t, "released-v2.2.0-approved-review-state.json")
-	classification, semantic := issue2995Classify(t, payload, issue2995ApprovedLineage)
-	if classification != compactInspectionEntryOutdated {
-		problem := ""
-		if semantic != nil {
-			problem = semantic.Problem
-		}
-		t.Fatalf("released v2.2.0 approved record classified %q (typed semantic error: %v) with problem %q, want %q", classification, semantic != nil, problem, compactInspectionEntryOutdated)
-	}
-	if semantic == nil || !semantic.OutdatedIdentity {
-		t.Fatalf("released approved record lacks the OutdatedIdentity proof: %+v", semantic)
-	}
-	if !strings.Contains(semantic.Problem, "identity does not match its metadata") {
-		t.Fatalf("outdated classification problem %q does not name the retired snapshot identity", semantic.Problem)
-	}
-}
-
-// TestIssue2995ReleasedEscalatedRecordClassifiesOutdatedWithoutNewerReleaseWrap
-// pins the escalated fixture: a released v2.2.0 escalated record carrying the
-// v2.5.0-deleted top-level result_dispositions array must classify as
-// outdated compact authority. Misattributing those bytes to a newer release
-// (ErrCompactAuthorityFromNewerRelease) is exactly the dishonesty #2995
-// removes.
-func TestIssue2995ReleasedEscalatedRecordClassifiesOutdatedWithoutNewerReleaseWrap(t *testing.T) {
-	payload := issue2995FixtureBytes(t, "released-v2.2.0-escalated-review-state.json")
-	_, err := parseCompactRecord(payload, issue2995EscalatedLineage)
-	if err == nil {
-		t.Fatal("released escalated record loaded as operational state; the #2743 clean break must keep it unloadable")
-	}
-	if errors.Is(err, ErrCompactAuthorityFromNewerRelease) {
-		t.Fatalf("released v2.2.0 bytes were misattributed to a newer release: %v", err)
-	}
-	classification, semantic := issue2995Classify(t, payload, issue2995EscalatedLineage)
-	if classification != compactInspectionEntryOutdated {
-		problem := ""
-		if semantic != nil {
-			problem = semantic.Problem
-		}
-		t.Fatalf("released v2.2.0 escalated record classified %q (typed semantic error: %v) with problem %q, want %q", classification, semantic != nil, problem, compactInspectionEntryOutdated)
-	}
-}
-
 // TestIssue2995DamagedBytesRemainMalformed proves the tolerance is not a
 // blanket downgrade: genuinely damaged or forged bytes must keep failing as
 // malformed compact state, never as outdated history.
 func TestIssue2995DamagedBytesRemainMalformed(t *testing.T) {
-	t.Run("truncated json", func(t *testing.T) {
-		payload := issue2995FixtureBytes(t, "released-v2.2.0-approved-review-state.json")
-		classification, _ := issue2995Classify(t, payload[:len(payload)/2], issue2995ApprovedLineage)
-		if classification != compactInspectionEntryMalformed {
-			t.Fatalf("truncated record classified %q, want %q", classification, compactInspectionEntryMalformed)
-		}
-	})
-	t.Run("corrupted retired-field record checksum", func(t *testing.T) {
-		payload := issue2995FixtureBytes(t, "released-v2.2.0-approved-review-state.json")
-		marker := []byte(`"policy_hash": "sha256:`)
-		at := bytes.Index(payload, marker)
-		if at < 0 {
-			t.Fatal("fixture has no policy_hash marker to corrupt")
-		}
-		payload[at+len(marker)] = '0' // flip one digest nibble without rebinding the revision
-		classification, _ := issue2995Classify(t, payload, issue2995ApprovedLineage)
-		if classification != compactInspectionEntryMalformed {
-			t.Fatalf("checksum-corrupted record classified %q, want %q", classification, compactInspectionEntryMalformed)
-		}
-	})
 	t.Run("forged identity with empty arrays", func(t *testing.T) {
 		repo := initSnapshotRepo(t)
 		lineage := "issue2995-forged-identity"

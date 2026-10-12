@@ -10,12 +10,12 @@ import (
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
-const ReviewIntegrationConsentSchema = "gentle-ai.review-integration.consent/v1"
-const ReviewIntegrationConsentSchemaID = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/consent.schema.json"
-const ReviewIntegrationConsentSchemaV2 = "gentle-ai.review-integration.consent/v2"
-const ReviewIntegrationConsentSchemaIDV2 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/consent.schema.json"
-const ReviewIntegrationConsentSchemaV3 = "gentle-ai.review-integration.consent/v3"
-const ReviewIntegrationConsentSchemaIDV3 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/consent-v3.schema.json"
+const ReviewIntegrationConsentSchema = "brunnr-code.review-integration.consent/v1"
+const ReviewIntegrationConsentSchemaID = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/consent.schema.json"
+const ReviewIntegrationConsentSchemaV2 = "brunnr-code.review-integration.consent/v2"
+const ReviewIntegrationConsentSchemaIDV2 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/consent.schema.json"
+const ReviewIntegrationConsentSchemaV3 = "brunnr-code.review-integration.consent/v3"
+const ReviewIntegrationConsentSchemaIDV3 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/consent-v3.schema.json"
 
 // ReviewIntegrationConsentResult is the typed per-candidate consent question a
 // relay-declared negotiated START answers with instead of proceeding. It is a

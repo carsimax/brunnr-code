@@ -1023,7 +1023,7 @@ func TestReviewModeCloneScopeEnableInheritsDefaultOnWhileGlobalUnset(t *testing.
 		switch key {
 		case "schema", "global", "clone_local", "effective", "source", "revision", "reach":
 		default:
-			t.Fatalf("status envelope grew a field %q; hosts decode gentle-ai.rdd-mode-status/v1 as an exact object", key)
+			t.Fatalf("status envelope grew a field %q; hosts decode brunnr-code.rdd-mode-status/v1 as an exact object", key)
 		}
 	}
 	if strings.Contains(output.String(), "--scope global") {

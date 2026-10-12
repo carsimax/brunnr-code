@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v2/schemas/gate-result.schema.json",
-  "title": "Gentle AI review delivery gate result",
-  "description": "The gentle-ai.review-gate-result/v1 envelope every delivery gate (post-apply, pre-commit, pre-push, pre-pr, release) emits from review validate, including the negotiated review.validate transition. Derived from internal/cli/review.go's ReviewValidateResult and internal/reviewtransaction/receipt.go's GateContext.",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/gate-result.schema.json",
+  "title": "Brunnr-Code review delivery gate result",
+  "description": "The brunnr-code.review-gate-result/v1 envelope every delivery gate (post-apply, pre-commit, pre-push, pre-pr, release) emits from review validate, including the negotiated review.validate transition. Derived from internal/cli/review.go's ReviewValidateResult and internal/reviewtransaction/receipt.go's GateContext.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "result", "allowed", "action", "reason", "context"],
   "properties": {
-    "schema": {"const": "gentle-ai.review-gate-result/v1"},
+    "schema": {"const": "brunnr-code.review-gate-result/v1"},
     "result": {"enum": ["allow", "scope-changed", "invalidated", "escalated"]},
     "allowed": {"type": "boolean"},
     "action": {"enum": ["continue", "explicit-maintainer-action", "review.status", "repository-policy"]},

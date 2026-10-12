@@ -8,8 +8,8 @@ import (
 	"reflect"
 )
 
-const ArtifactSubjectSchemaV1 = "gentle-ai.review-artifact-subject/v1"
-const ArtifactSubjectSchema = "gentle-ai.review-artifact-subject/v2"
+const ArtifactSubjectSchemaV1 = "brunnr-code.review-artifact-subject/v1"
+const ArtifactSubjectSchema = "brunnr-code.review-artifact-subject/v2"
 
 // ArtifactSubject is the provider-owned identity of one reviewer execution.
 // It binds the exact authority revision, immutable Git trees and path manifest,
@@ -59,7 +59,7 @@ func ChangedPathManifestDigest(entries []ChangedPathManifestEntry) (string, erro
 	if err != nil {
 		return "", err
 	}
-	sum := sha256.Sum256(append([]byte("gentle-ai.review-changed-path-manifest/v1\x00"), payload...))
+	sum := sha256.Sum256(append([]byte("brunnr-code.review-changed-path-manifest/v1\x00"), payload...))
 	return "sha256:" + hex.EncodeToString(sum[:]), nil
 }
 
@@ -157,7 +157,7 @@ func artifactSubjectHashV1(subject ArtifactSubject) string {
 		SelectedOrder: subject.SelectedOrder, CorrectionTargetIdentity: subject.CorrectionTargetIdentity,
 	}
 	payload, _ := json.Marshal(preimage)
-	sum := sha256.Sum256(append([]byte("gentle-ai.review-artifact-subject/v1\x00"), payload...))
+	sum := sha256.Sum256(append([]byte("brunnr-code.review-artifact-subject/v1\x00"), payload...))
 	return "sha256:" + hex.EncodeToString(sum[:])
 }
 
@@ -180,6 +180,6 @@ func artifactSubjectHash(subject ArtifactSubject) string {
 		SelectedOrder: subject.SelectedOrder, CorrectionTargetIdentity: subject.CorrectionTargetIdentity,
 	}
 	payload, _ := json.Marshal(preimage)
-	sum := sha256.Sum256(append([]byte("gentle-ai.review-artifact-subject/v2\x00"), payload...))
+	sum := sha256.Sum256(append([]byte("brunnr-code.review-artifact-subject/v2\x00"), payload...))
 	return "sha256:" + hex.EncodeToString(sum[:])
 }

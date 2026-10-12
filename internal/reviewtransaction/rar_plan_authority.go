@@ -13,14 +13,14 @@ import (
 )
 
 const (
-	RARPlanAuthoritySchema = "gentle-ai.rar-plan-authority/v1"
+	RARPlanAuthoritySchema = "brunnr-code.rar-plan-authority/v1"
 
-	VerificationFrozenPlanConsentSchema   = "gentle-ai.verification-frozen-plan-consent/v1"
-	VerificationEffectAuthorizationSchema = "gentle-ai.verification-effect-authorization/v1"
+	VerificationFrozenPlanConsentSchema   = "brunnr-code.verification-frozen-plan-consent/v1"
+	VerificationEffectAuthorizationSchema = "brunnr-code.verification-effect-authorization/v1"
 
-	rarPlanAuthorityDigestDomain              = "gentle-ai.rar-plan-authority-digest/v1"
-	verificationFrozenPlanConsentDigestDomain = "gentle-ai.verification-frozen-plan-consent-digest/v1"
-	verificationEffectAuthorizationDomain     = "gentle-ai.verification-effect-authorization-digest/v1"
+	rarPlanAuthorityDigestDomain              = "brunnr-code.rar-plan-authority-digest/v1"
+	verificationFrozenPlanConsentDigestDomain = "brunnr-code.verification-frozen-plan-consent-digest/v1"
+	verificationEffectAuthorizationDomain     = "brunnr-code.verification-effect-authorization-digest/v1"
 )
 
 // RARPlanAuthority is the complete RAR-owned pre-execution plan preimage.

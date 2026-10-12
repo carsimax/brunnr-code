@@ -19,13 +19,13 @@ import (
 
 // reviewStopHookSchema identifies the reminder envelope this hook prints to
 // stdout. Claude Code reads "decision" and "reason" as top-level keys.
-const reviewStopHookSchema = "gentle-ai.review-stop-hook/v1"
+const reviewStopHookSchema = "brunnr-code.review-stop-hook/v1"
 
 // reviewStopHookReminderSchema identifies the small per-session record kept
 // under ~/.brunnr-code/review-stop-hook/v1. The schema name is unchanged from
 // its first shape; it now optionally carries baseline_target_identity
 // alongside target_identity (see reviewStopHookReminderRecord).
-const reviewStopHookReminderSchema = "gentle-ai.review-stop-hook-reminder/v1"
+const reviewStopHookReminderSchema = "brunnr-code.review-stop-hook-reminder/v1"
 
 // maxReviewStopHookPayloadBytes bounds the hook stdin payload, mirroring the
 // sdd-task-result precedent (internal/cli/sdd_task_result.go): a hook reports

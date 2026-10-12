@@ -238,7 +238,7 @@ func resolveReviewNextTransition(status ReviewTargetStatusResult, selectedLenses
 				// Unambiguous committed ranges were already resolved before
 				// classification. Only the genuinely unresolved case remains.
 				return reviewCollectTransition("empty_candidate_base_ref_required", ReviewTransitionInput{
-					Name: "base_ref", Schema: "gentle-ai.review-base-ref-selection/v1", CaptureOperation: "external.select_base_ref",
+					Name: "base_ref", Schema: "brunnr-code.review-base-ref-selection/v1", CaptureOperation: "external.select_base_ref",
 					Arguments: reviewTargetArguments(status),
 				})
 			}
@@ -254,7 +254,7 @@ func resolveReviewNextTransition(status ReviewTargetStatusResult, selectedLenses
 			return reviewExecuteTransition("fresh_target_ready", "review.start", reviewStartArguments(status, input.StartLineage, input.RuntimeAgent, input.IntendedUntracked), []ReviewTransitionArgument{{Name: "target_identity", Value: status.TargetIdentity}}, ReviewTransitionBinding{LineageID: input.StartLineage, TargetIdentity: status.TargetIdentity}, nil)
 		case reviewtransaction.TargetApplicabilityAmbiguous:
 			return reviewCollectTransition("lineage_selection_required", ReviewTransitionInput{
-				Name: "lineage_selection", Schema: "gentle-ai.review-lineage-selection/v1", CaptureOperation: "external.select_lineage",
+				Name: "lineage_selection", Schema: "brunnr-code.review-lineage-selection/v1", CaptureOperation: "external.select_lineage",
 				Arguments: append(reviewTargetArguments(status), ReviewTransitionArgument{Name: "candidates", Value: strings.Join(status.Candidates, ",")}),
 			})
 		case reviewtransaction.TargetApplicabilityCorrupted:
@@ -382,7 +382,7 @@ func resolveReviewNextTransition(status ReviewTargetStatusResult, selectedLenses
 			return reviewStopTransition("corrupted_or_unverifiable_authority")
 		}
 		transition := reviewCollectTransition("correction_plan_required", ReviewTransitionInput{
-			Name: "correction_lines", Schema: "gentle-ai.review-correction-plan/v1", CaptureOperation: reviewCaptureCorrectionPlanOperation,
+			Name: "correction_lines", Schema: "brunnr-code.review-correction-plan/v1", CaptureOperation: reviewCaptureCorrectionPlanOperation,
 			Arguments:  append(append(reviewBindingArguments(captureBinding), reviewRepositoryContextArguments(captureBinding)...), ReviewTransitionArgument{Name: "request-hash", Value: input.CorrectionRequest.RequestHash}),
 			Submission: reviewCorrectionPlanSubmission(input.Contract, captureBinding, *input.CorrectionRequest),
 		})
@@ -981,7 +981,7 @@ func reviewRecoveryCollection(status ReviewTargetStatusResult, binding ReviewTra
 	if input.Selector != nil && !input.Selector.SelectorFreeAccountingOnlyRecovery {
 		if input.Selector.Recovery == nil {
 			return reviewCollectTransition("recovery_target_unrepresentable", ReviewTransitionInput{
-				Name: "recovery_target_selector", Schema: "gentle-ai.review-recovery-target-selection/v1",
+				Name: "recovery_target_selector", Schema: "brunnr-code.review-recovery-target-selection/v1",
 				CaptureOperation: "external.select_recovery_target", Arguments: reviewTargetArguments(status),
 			})
 		}
@@ -996,7 +996,7 @@ func reviewRecoveryCollection(status ReviewTargetStatusResult, binding ReviewTra
 			// represented as a recovery target, so the missing thing is a
 			// different selector they choose, not a dead end.
 			return reviewCollectTransition("recovery_target_unrepresentable", ReviewTransitionInput{
-				Name: "recovery_target_selector", Schema: "gentle-ai.review-recovery-target-selection/v1",
+				Name: "recovery_target_selector", Schema: "brunnr-code.review-recovery-target-selection/v1",
 				CaptureOperation: "external.select_recovery_target", Arguments: reviewTargetArguments(status),
 			})
 		}
@@ -1016,7 +1016,7 @@ func reviewRecoveryCollection(status ReviewTargetStatusResult, binding ReviewTra
 		return transition
 	}
 	return reviewCollectTransition("recovery_authorization_required", ReviewTransitionInput{
-		Name: "recovery_authorization", Schema: "gentle-ai.review-recovery-authorization/v1", CaptureOperation: "external.authorize_recovery",
+		Name: "recovery_authorization", Schema: "brunnr-code.review-recovery-authorization/v1", CaptureOperation: "external.authorize_recovery",
 		Arguments: append(reviewBindingArguments(binding), ReviewTransitionArgument{Name: "disposition", Value: string(disposition)}),
 	})
 }
@@ -1088,7 +1088,7 @@ func (input reviewNextTransitionInput) recoveryAuthorized(binding ReviewTransiti
 }
 
 func reviewTransitionRecoveryAuthorization(binding ReviewTransitionBinding, successor, actor, reason string) string {
-	value := "gentle-ai.review-recovery-authorization/v1\npredecessor_lineage=" + binding.LineageID + "\npredecessor_revision=" + binding.Revision + "\ntarget_identity=" + binding.TargetIdentity
+	value := "brunnr-code.review-recovery-authorization/v1\npredecessor_lineage=" + binding.LineageID + "\npredecessor_revision=" + binding.Revision + "\ntarget_identity=" + binding.TargetIdentity
 	if successor != "" {
 		value += "\nsuccessor_lineage=" + successor
 	}

@@ -18,7 +18,7 @@ import (
 // operations declared beside it.
 const reviewCaptureUnachievableCaptureOperation = "review.capture-unachievable"
 
-const reviewUnachievableLensCaptureSchema = "gentle-ai.review-capture-unachievable/v1"
+const reviewUnachievableLensCaptureSchema = "brunnr-code.review-capture-unachievable/v1"
 
 // reviewUnachievableLensDetailLimit bounds the free-text evidence a host may
 // attach. It is diagnostic context, not a place to smuggle arbitrary payload
@@ -35,7 +35,7 @@ type reviewUnachievableLensCaptureArtifact struct {
 	Recorded       bool   `json:"recorded"`
 }
 
-const reviewUnachievableLensWithdrawalSchema = "gentle-ai.review-capture-unachievable-withdrawal/v1"
+const reviewUnachievableLensWithdrawalSchema = "brunnr-code.review-capture-unachievable-withdrawal/v1"
 
 type reviewUnachievableLensWithdrawalArtifact struct {
 	Schema         string `json:"schema"`

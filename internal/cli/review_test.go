@@ -311,7 +311,7 @@ func writeReconcileCLIRecord(t *testing.T, repo string, state reviewtransaction.
 	if err != nil {
 		t.Fatal(err)
 	}
-	record := reviewtransaction.CompactRecord{Schema: "gentle-ai.review-state-record/v2", Revision: revision, State: state}
+	record := reviewtransaction.CompactRecord{Schema: "brunnr-code.review-state-record/v2", Revision: revision, State: state}
 	payload, err := json.MarshalIndent(record, "", "  ")
 	if err != nil {
 		t.Fatal(err)

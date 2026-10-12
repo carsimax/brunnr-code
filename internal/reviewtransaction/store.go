@@ -18,7 +18,7 @@ import (
 	"syscall"
 )
 
-const RecordSchema = "gentle-ai.review-record/v1"
+const RecordSchema = "brunnr-code.review-record/v1"
 
 // GitCommonDirName names the directory under <git-common-dir> that holds
 // every piece of Brunnr-Code review authority for one clone.
@@ -827,7 +827,7 @@ func validInitialStoreRecord(record Record) bool {
 
 func chainIdentity(revisions []string) string {
 	hash := sha256.New()
-	_, _ = hash.Write([]byte("gentle-ai.review-chain/v1\x00"))
+	_, _ = hash.Write([]byte("brunnr-code.review-chain/v1\x00"))
 	for _, revision := range revisions {
 		writeLengthPrefixed(hash, []byte(revision))
 	}

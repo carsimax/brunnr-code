@@ -238,7 +238,7 @@ func TestReviewAssessUnbuildableCandidateNamesResolution(t *testing.T) {
 
 // TestReviewAssessJSONEnvelopeValidatesAgainstPublishedSchema proves the
 // --json envelope validates against the published
-// gentle-ai.review-assessment/v1 schema for a representative candidate of
+// brunnr-code.review-assessment/v1 schema for a representative candidate of
 // each public risk word.
 func TestReviewAssessJSONEnvelopeValidatesAgainstPublishedSchema(t *testing.T) {
 	schema := compileWholePublishedReviewSchema(t, "v2", "assess.schema.json")

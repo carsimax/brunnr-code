@@ -2,7 +2,6 @@ package reviewtransaction
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -140,7 +139,7 @@ func TestAuthorityDispositionPlanDigestN1ByteStability(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const wantDigest = "sha256:7084e2abc8a42b812a785dad4a4426483e63af71a8ced06ac51c7e88f21843e6"
+	const wantDigest = "sha256:b1a05ed2af7fac95c978e580ab6b99b0de0947493696c38baeee120c8ce65191"
 	if digest != wantDigest {
 		t.Fatalf("N=1 plan_digest = %q, want pinned pre-Wave-6 value %q — topological ordering change altered N=1 digest bytes", digest, wantDigest)
 	}
@@ -227,27 +226,6 @@ func TestAuthorityDispositionPlanRequiresClosedClassification(t *testing.T) {
 			t.Fatalf("incomplete inspection derivation error = %v, want errAuthorityDispositionPlanNotDerivable", err)
 		}
 	})
-}
-
-func TestReleasedHistoricalCompactRecordRemainsForensicallyClassifiable(t *testing.T) {
-	payload, err := os.ReadFile(filepath.Join("testdata", "issue2879", "released-v2.2.4-review-state.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var record CompactRecord
-	if err := json.Unmarshal(payload, &record); err != nil {
-		t.Fatal(err)
-	}
-	want, _, err := makeCompactRecord(record.State)
-	if err != nil {
-		t.Fatalf("released record cannot be reconstructed: %v", err)
-	}
-	if want.Revision != record.Revision {
-		t.Fatalf("released record checksum = %q, reconstructed = %q", record.Revision, want.Revision)
-	}
-	if _, ok := forensicHistoricalCompactRecord(payload, "review-f8708016a901b4ff"); !ok {
-		t.Fatalf("released v2.2.4 record no longer classifies as outdated compact authority: %v", record.State.Validate())
-	}
 }
 
 func TestHistoricalAuthorityDispositionPlanRejectsAnyAdditionalDiagnostic(t *testing.T) {

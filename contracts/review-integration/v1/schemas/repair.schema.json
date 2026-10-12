@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v1/schemas/repair.schema.json",
-  "title": "Gentle AI classified authority repair operation",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/repair.schema.json",
+  "title": "Brunnr-Code classified authority repair operation",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,10 +14,10 @@
   ],
   "properties": {
     "schema": {
-      "const": "gentle-ai.review-integration.repair/v1"
+      "const": "brunnr-code.review-integration.repair/v1"
     },
     "contract": {
-      "const": "gentle-ai.review-integration/v1"
+      "const": "brunnr-code.review-integration/v1"
     },
     "operation": {
       "const": "review.repair"
@@ -233,7 +233,7 @@
           "$ref": "#/$defs/sha256"
         },
         "authorization_schema": {
-          "const": "gentle-ai.review-repair-authorization/v1"
+          "const": "brunnr-code.review-repair-authorization/v1"
         }
       }
     },

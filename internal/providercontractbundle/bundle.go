@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	bundleSchema             = "gentle-ai.review-provider-contract-bundle/v1"
+	bundleSchema             = "brunnr-code.review-provider-contract-bundle/v1"
 	contractSemverFile       = "contracts/review-provider-contract/CONTRACT_SEMVER"
 	maxArchiveBytes    int64 = 8 << 20
 	maxFileBytes       int64 = 4 << 20

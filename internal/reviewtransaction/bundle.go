@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-const ChainBundleSchema = "gentle-ai.review-chain-bundle/v1"
+const ChainBundleSchema = "brunnr-code.review-chain-bundle/v1"
 
 type ChainBundleEvent struct {
 	Revision string `json:"revision"`
@@ -344,7 +344,7 @@ func parseRecordPayload(payload []byte) (Record, error) {
 
 func bundleDigest(bundle ChainBundle) string {
 	hash := sha256.New()
-	_, _ = hash.Write([]byte("gentle-ai.review-chain-bundle/v1\x00"))
+	_, _ = hash.Write([]byte("brunnr-code.review-chain-bundle/v1\x00"))
 	for _, value := range []string{
 		bundle.Schema, bundle.LineageID, strconv.Itoa(bundle.Generation), bundle.InitialSnapshotIdentity,
 		bundle.FinalSnapshotIdentity, bundle.PolicyHash, bundle.LedgerHash, bundle.EvidenceHash,

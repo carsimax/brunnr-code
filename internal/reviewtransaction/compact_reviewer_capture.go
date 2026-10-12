@@ -195,7 +195,7 @@ func decodeCompactAdmittedTargetedValidatorValue(value []byte) (compactAdmittedT
 
 func compactTargetedValidatorEvidenceHashForDomain(domain string, check CompactTargetedValidatorCheckEvidence) string {
 	payload, _ := json.Marshal(check)
-	sum := sha256.Sum256(append([]byte("gentle-ai.facade-"+domain+"/v1\x00"), payload...))
+	sum := sha256.Sum256(append([]byte("brunnr-code.facade-"+domain+"/v1\x00"), payload...))
 	return "sha256:" + hex.EncodeToString(sum[:])
 }
 

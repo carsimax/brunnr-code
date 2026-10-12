@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v1/schemas/transition-execution.schema.json",
-  "title": "Gentle AI Review Transition Execution",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/transition-execution.schema.json",
+  "title": "Brunnr-Code Review Transition Execution",
   "type": "object",
   "additionalProperties": false,
   "required": ["operation", "arguments", "preconditions", "binding"],
@@ -33,7 +33,7 @@
     "transition_artifact": {
       "type": "object", "additionalProperties": false, "required": ["schema", "capability", "sha256", "lineage_id", "target_identity", "lens", "selected_order", "subject_hash", "admission_decision"],
       "properties": {
-        "schema": { "const": "gentle-ai.review-result-artifact/v2" }, "capability": { "const": "review.native_result_artifact" }, "sha256": { "$ref": "#/$defs/sha256" },
+        "schema": { "const": "brunnr-code.review-result-artifact/v2" }, "capability": { "const": "review.native_result_artifact" }, "sha256": { "$ref": "#/$defs/sha256" },
         "lineage_id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }, "target_identity": { "$ref": "#/$defs/sha256" }, "lens": { "type": "string", "minLength": 1 }, "selected_order": { "type": "integer", "minimum": 0 },
         "subject_hash": { "$ref": "#/$defs/sha256" }, "admission_decision": { "const": "completed" }
       }

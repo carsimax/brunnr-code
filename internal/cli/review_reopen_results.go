@@ -10,7 +10,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
-const ReviewResultReopenSchema = "gentle-ai.review-result-reopen-result/v1"
+const ReviewResultReopenSchema = "brunnr-code.review-result-reopen-result/v1"
 
 type ReviewResultReopenResult struct {
 	Schema    string                                       `json:"schema"`

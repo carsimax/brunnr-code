@@ -213,7 +213,7 @@ func stdioHandshake(ctx context.Context, timeout time.Duration, name string, arg
 		}
 	}()
 
-	request := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"gentle-ai-doctor","version":"0"}}}` + "\n"
+	request := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"brunnr-code-doctor","version":"0"}}}` + "\n"
 	_, writeErr := writeStdioInitializeRequest(stdin, request)
 	// An exited child can leave diagnostic stdout even though stdin is already
 	// closed. Validate that output before reporting a failed initialize write;

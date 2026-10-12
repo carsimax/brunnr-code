@@ -14,11 +14,11 @@ import (
 
 type SchemaVersion string
 
-const SchemaV1 SchemaVersion = "gentle-ai.agent-capability-manifest/v1"
+const SchemaV1 SchemaVersion = "brunnr-code.agent-capability-manifest/v1"
 
 type ContractID string
 
-const ContractWorkRoutingV1 ContractID = "gentle-ai.work-routing/v1"
+const ContractWorkRoutingV1 ContractID = "brunnr-code.work-routing/v1"
 
 // ContractReviewTransportV1 is Wave 4 S4's transport capability claim
 // (design.md decision 5): the adapter self-declares whether it can carry
@@ -26,12 +26,12 @@ const ContractWorkRoutingV1 ContractID = "gentle-ai.work-routing/v1"
 // review authority, tier, lens, budget, or collection slot exists. The
 // provider never probes a live runtime for this — an absent or unrecognised
 // claim fails closed.
-const ContractReviewTransportV1 ContractID = "gentle-ai.review-transport/v1"
+const ContractReviewTransportV1 ContractID = "brunnr-code.review-transport/v1"
 
 // ContractImmutableReviewExecutorV1 is independent of host/orchestrator
 // support. It is advertised only when a provider can launch a fresh,
 // constrained reviewer and prove that boundary before review START.
-const ContractImmutableReviewExecutorV1 ContractID = "gentle-ai.immutable-review-executor/v1"
+const ContractImmutableReviewExecutorV1 ContractID = "brunnr-code.immutable-review-executor/v1"
 
 type ContractExposure string
 
@@ -273,7 +273,7 @@ func (m AgentCapabilityManifest) Digest() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return digest("gentle-ai.agent-capability-manifest/v1", payload), nil
+	return digest("brunnr-code.agent-capability-manifest/v1", payload), nil
 }
 
 func (m AgentCapabilityManifest) RoutingDigest() (string, error) {
@@ -284,7 +284,7 @@ func (m AgentCapabilityManifest) RoutingDigest() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("marshal implementation routing facts: %w", err)
 	}
-	return digest("gentle-ai.implementation-routing/v1", payload), nil
+	return digest("brunnr-code.implementation-routing/v1", payload), nil
 }
 
 func digest(domain string, payload []byte) string {

@@ -123,7 +123,7 @@ func reviewTargetEvidenceDifferences(expected, actual reviewTargetEvidence) []st
 
 // reviewConsentStaleMarkerSchema identifies the small per-repository record
 // written when a relayed consent answer is spent on a moved candidate.
-const reviewConsentStaleMarkerSchema = "gentle-ai.review-consent-stale-marker/v1"
+const reviewConsentStaleMarkerSchema = "brunnr-code.review-consent-stale-marker/v1"
 
 // reviewConsentStaleMarkerWindow bounds how long the stop hook stays quiet
 // after a consent answer was refused as stale because the candidate moved.

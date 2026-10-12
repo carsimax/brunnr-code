@@ -66,7 +66,7 @@ func cloneAuthorityRepairAssessment(assessment AuthorityRepairAssessment) Author
 }
 
 func classifiedAuthorityRepairAssessmentDigest(assessment AuthorityRepairAssessment) (string, error) {
-	return classifiedAuthorityRepairDigest("gentle-ai.review-classified-assessment-digest/v1", assessment)
+	return classifiedAuthorityRepairDigest("brunnr-code.review-classified-assessment-digest/v1", assessment)
 }
 
 func classifiedAuthorityRepairRequestDigest(request ClassifiedAuthorityRepairRequest) (string, error) {
@@ -84,7 +84,7 @@ func classifiedAuthorityRepairRequestDigest(request ClassifiedAuthorityRepairReq
 		Cause: request.Cause, Disposition: request.Disposition, RepositoryBinding: request.RepositoryBinding,
 		Actor: request.Actor, Reason: request.Reason,
 	}
-	return classifiedAuthorityRepairDigest("gentle-ai.review-classified-request-digest/v1", canonical)
+	return classifiedAuthorityRepairDigest("brunnr-code.review-classified-request-digest/v1", canonical)
 }
 
 func classifiedAuthorityRepairDigest(domain string, value any) (string, error) {
@@ -133,7 +133,7 @@ func classifiedAuthorityRepairRecordIdentity(record CompactReclaimRecord) (strin
 		Residue:     append([]string(nil), record.Residue...), LegacyAliasRepair: record.LegacyAliasRepair,
 		ClassifiedAuthorityRepair: record.ClassifiedAuthorityRepair,
 	}
-	return classifiedAuthorityRepairDigest("gentle-ai.review-classified-record-identity/v1", canonical)
+	return classifiedAuthorityRepairDigest("brunnr-code.review-classified-record-identity/v1", canonical)
 }
 
 func discoverClassifiedAuthorityRepairRecord(ctx context.Context, base string, request ClassifiedAuthorityRepairRequest) (classifiedAuthorityRepairRecordMatch, bool, error) {

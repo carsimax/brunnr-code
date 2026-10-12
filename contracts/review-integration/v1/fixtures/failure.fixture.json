@@ -1,6 +1,6 @@
 {
-  "schema": "gentle-ai.review-integration.failure/v1",
-  "contract": "gentle-ai.review-integration/v1",
+  "schema": "brunnr-code.review-integration.failure/v1",
+  "contract": "brunnr-code.review-integration/v1",
   "operation": "review.validate",
   "phase": "preflight",
   "code": "gate_scope_changed",

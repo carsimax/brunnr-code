@@ -79,7 +79,7 @@ func TestNegotiatedRecoverTransitionRunsVerbatimForStagedPredecessorAfterRebase(
 	}
 	bound := map[string]string{"lineage": transition.Execute.Binding.LineageID, "expected-revision": transition.Execute.Binding.Revision, "target": transition.Execute.Binding.TargetIdentity}
 	authorization := strings.Join([]string{
-		"gentle-ai.review-recovery-authorization/v1",
+		"brunnr-code.review-recovery-authorization/v1",
 		"predecessor_lineage=" + bound["lineage"],
 		"predecessor_revision=" + bound["expected-revision"],
 		"target_identity=" + bound["target"],

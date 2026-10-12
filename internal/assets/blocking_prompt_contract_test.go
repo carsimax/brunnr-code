@@ -223,7 +223,7 @@ func TestCoordinatorOrchestratorsCarryGentleAIProviderDefectHandoff(t *testing.T
 		{name: "comment exact canonical", text: "on that exact canonical/equivalent issue"},
 		{name: "unconfirmed creation continuation", text: "If creation fails, is ambiguous, incomplete, times out, lacks permission, or has an unknown outcome, preserve all consumer state; do not search, comment, update, or retry creation until the exact created issue identity is resolved, then use the uncertainty continuation below."},
 		{name: "report outcome continuation", text: "After a definitive successful report outcome, or any report-side uncertainty after stopping further GitHub mutation, execute the shared candidate-scoped continuation below."},
-		{name: "captured provider decline", text: "exact captured provider-owned `choices[answer=\"declined\"].invocation` from the `gentle-ai.review-integration.consent/v3` envelope"},
+		{name: "captured provider decline", text: "exact captured provider-owned `choices[answer=\"declined\"].invocation` from the `brunnr-code.review-integration.consent/v3` envelope"},
 		{name: "captured decline only", text: "Never synthesize the decline command, target, token, or consumer continuation from prose."},
 		{name: "missing decline context fails closed", text: "If the captured exact v3 decline invocation, exact target identity, or consumer continuation context is unavailable or ambiguous, fail closed with all consumer state preserved and do not run a substitute command."},
 		{name: "decline result validation", text: "validate `action: \"declined\"`, `consent: \"declined_this_candidate\"`, and the exact target identity match"},

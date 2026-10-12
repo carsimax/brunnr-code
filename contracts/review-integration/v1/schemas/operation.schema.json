@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v1/schemas/operation.schema.json",
-  "title": "Gentle AI negotiated review operation result",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/operation.schema.json",
+  "title": "Brunnr-Code negotiated review operation result",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "contract", "operation", "result"],
   "properties": {
-    "schema": {"const": "gentle-ai.review-integration.operation/v1"},
-    "contract": {"const": "gentle-ai.review-integration/v1"},
+    "schema": {"const": "brunnr-code.review-integration.operation/v1"},
+    "contract": {"const": "brunnr-code.review-integration/v1"},
     "operation": {"const": "review.validate"},
     "result": {"$ref": "#/$defs/validate"}
   },
@@ -18,7 +18,7 @@
       "additionalProperties": false,
       "required": ["schema", "result", "allowed", "action", "reason", "context"],
       "properties": {
-        "schema": {"const": "gentle-ai.review-gate-result/v1"},
+        "schema": {"const": "brunnr-code.review-gate-result/v1"},
         "result": {"enum": ["allow", "scope-changed", "invalidated", "escalated"]},
         "allowed": {"type": "boolean"},
         "action": {"type": "string", "minLength": 1},

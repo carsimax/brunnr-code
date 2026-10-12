@@ -21,7 +21,7 @@ import (
 // cap and one byte over it.
 func runtimeBudgetRolePromptRequest(content string) reviewProviderRefuterRequest {
 	return reviewProviderRefuterRequest{
-		Schema: "gentle-ai.review-provider-refuter-request/v1", LineageID: "lineage",
+		Schema: "brunnr-code.review-provider-refuter-request/v1", LineageID: "lineage",
 		AuthorityVersion: "revision", TargetIdentity: "target", SnapshotIdentity: "target",
 		Claims:   []reviewtransaction.RefuterClaim{},
 		Evidence: []reviewProviderEvidence{{Path: "path.txt", Content: content}},

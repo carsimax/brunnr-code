@@ -11,10 +11,10 @@ import (
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
-const ReviewIntegrationRepairSchema = "gentle-ai.review-integration.repair/v1"
-const ReviewIntegrationRepairSchemaID = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/repair.schema.json"
-const ReviewIntegrationRepairSchemaV2 = "gentle-ai.review-integration.repair/v2"
-const ReviewIntegrationRepairSchemaIDV2 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/repair.schema.json"
+const ReviewIntegrationRepairSchema = "brunnr-code.review-integration.repair/v1"
+const ReviewIntegrationRepairSchemaID = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/repair.schema.json"
+const ReviewIntegrationRepairSchemaV2 = "brunnr-code.review-integration.repair/v2"
+const ReviewIntegrationRepairSchemaIDV2 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/repair.schema.json"
 
 type ReviewRepairMode string
 
@@ -257,7 +257,7 @@ func (err *reviewRepairOperationError) Error() string {
 func (err *reviewRepairOperationError) Unwrap() error { return err.cause }
 
 func runReviewRepair(ctx context.Context, args []string, stdout io.Writer) error {
-	flags := newReviewFlagSet("review repair", stdout, "Assess the complete review authority inventory and execute only one provider-owned classified repair. Run --preflight first. It emits bounded path-free provider inputs, never an authorization template. A maintainer supplies actor, reason, and an exact gentle-ai.review-repair-authorization/v1 binding. When multiple content-mismatched leaves or multiple historical (outdated) authority entries exist, --preflight enumerates exact selectors; re-run it with one selector before executing its plan.")
+	flags := newReviewFlagSet("review repair", stdout, "Assess the complete review authority inventory and execute only one provider-owned classified repair. Run --preflight first. It emits bounded path-free provider inputs, never an authorization template. A maintainer supplies actor, reason, and an exact brunnr-code.review-repair-authorization/v1 binding. When multiple content-mismatched leaves or multiple historical (outdated) authority entries exist, --preflight enumerates exact selectors; re-run it with one selector before executing its plan.")
 	cwd := flags.String("cwd", ".", "repository path")
 	contract := flags.String("contract", ReviewIntegrationContractV1, "review integration contract")
 	preflight := flags.Bool("preflight", false, "perform deterministic read-only classification without authority mutation")

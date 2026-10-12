@@ -59,7 +59,7 @@ func TestChangedPathManifestGeneratedFieldPreservesLegacyJSONAndDigest(t *testin
 	if err != nil {
 		t.Fatalf("legacy manifest digest: %v", err)
 	}
-	if digest != "sha256:64d028ff676fb4ef10f2d4a3488d568854b364b4cc4399578b5932d144d2347b" {
+	if digest != "sha256:f15f971a681a354ae13b145f1ccf3827dc9c8cf027c411f8de68a8da63bd0d3c" {
 		t.Fatalf("legacy manifest digest = %q, want the published digest", digest)
 	}
 

@@ -26,7 +26,7 @@ done
 # Deterministic severe claims are routed through the provider refuter, which
 # spawns this same binary: corroborate every supplied claim without touching
 # the reviewer boundary logs the lane asserts on.
-if printf '%s' "$prompt" | grep -q 'gentle-ai.review-provider-refuter-request/v1'; then
+if printf '%s' "$prompt" | grep -q 'brunnr-code.review-provider-refuter-request/v1'; then
   printf '%s\n' "$prompt" > "$log/refuter-stdin"
   request_hash=$(printf '%s' "$prompt" | grep -o '"request_hash":"sha256:[0-9a-f]*"' | head -n 1 | sed 's/.*"\(sha256:[0-9a-f]*\)"/\1/')
   results=$(printf '%s' "$prompt" | grep -o '"finding_id":"[^"]*"' | sort -u | sed 's/"finding_id":"\([^"]*\)"/{"finding_id":"\1","outcome":"corroborated","proof_refs":["src\/add.js:4-6"]}/' | paste -sd, -)

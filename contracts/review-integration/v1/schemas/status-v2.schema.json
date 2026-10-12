@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v1/schemas/status-v2.schema.json",
-  "title": "Gentle AI Review Integration Target Status v2",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/status-v2.schema.json",
+  "title": "Brunnr-Code Review Integration Target Status v2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -18,8 +18,8 @@
     "candidates"
   ],
   "properties": {
-    "schema": { "const": "gentle-ai.review-integration.status/v2" },
-    "contract": { "const": "gentle-ai.review-integration/v1" },
+    "schema": { "const": "brunnr-code.review-integration.status/v2" },
+    "contract": { "const": "brunnr-code.review-integration/v1" },
     "operation": { "const": "review.status" },
     "applicability": { "enum": ["current_target", "unrelated", "ambiguous", "corrupted"] },
     "authority": {
@@ -117,12 +117,12 @@
       "allOf": [
         {
           "if": { "properties": { "capture_operation": { "const": "external.run_targeted_validation" } }, "required": ["capture_operation"] },
-          "then": { "required": ["validation_request"], "properties": { "schema": { "const": "gentle-ai.review-targeted-validation-request/v1" } } },
+          "then": { "required": ["validation_request"], "properties": { "schema": { "const": "brunnr-code.review-targeted-validation-request/v1" } } },
           "else": { "not": { "required": ["validation_request"] } }
         },
         {
           "if": { "properties": { "capture_operation": { "const": "review.capture-result" } }, "required": ["capture_operation"] },
-          "then": { "required": ["artifact_subject", "candidate_diff", "changed_path_manifest"], "properties": { "schema": { "const": "https://gentle-ai.dev/schema/review/reviewer/v1" } } },
+          "then": { "required": ["artifact_subject", "candidate_diff", "changed_path_manifest"], "properties": { "schema": { "const": "https://github.com/carsimax/brunnr-code/schema/review/reviewer/v1" } } },
           "else": {
             "allOf": [
               { "not": { "required": ["artifact_subject"] } },

@@ -84,12 +84,12 @@ func (store CompactStore) RecordUnachievableLensAttempt(ctx context.Context, req
 	if state.State != StateReviewing || state.CapturePhaseRevision != request.ExpectedRevision ||
 		state.InitialSnapshot.Identity != request.TargetIdentity ||
 		request.SelectedOrder >= len(state.SelectedLenses) || state.SelectedLenses[request.SelectedOrder] != request.Lens {
-		return false, errors.New("unachievable lens attempt does not match the current reviewing authority; refresh the binding with brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition")
+		return false, errors.New("unachievable lens attempt does not match the current reviewing authority; refresh the binding with brunnr-code review status --cwd <repo> --contract brunnr-code.review-integration/v2 --next-transition")
 	}
 	if _, found, activeErr := state.ActiveAdmittedLensResult(request.SelectedOrder); activeErr != nil {
 		return false, activeErr
 	} else if found {
-		return false, errors.New("this lens slot already holds a captured reviewer result; run brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition to see its admitted artifact")
+		return false, errors.New("this lens slot already holds a captured reviewer result; run brunnr-code review status --cwd <repo> --contract brunnr-code.review-integration/v2 --next-transition to see its admitted artifact")
 	}
 	for _, existing := range state.UnachievableLensAttempts {
 		if existing.SelectedOrder != request.SelectedOrder {
@@ -99,7 +99,7 @@ func (store CompactStore) RecordUnachievableLensAttempt(ctx context.Context, req
 			// Exact replay: already recorded, nothing to mutate.
 			return false, nil
 		}
-		return false, errors.New("a different unachievable declaration already exists for this lens slot; refresh the negotiated collection with brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition")
+		return false, errors.New("a different unachievable declaration already exists for this lens slot; refresh the negotiated collection with brunnr-code review status --cwd <repo> --contract brunnr-code.review-integration/v2 --next-transition")
 	}
 	next := cloneCompactStateInitialAtomicStart(state)
 	next.UnachievableLensAttempts = append(next.UnachievableLensAttempts, CompactUnachievableLensAttempt{
@@ -195,7 +195,7 @@ func (store CompactStore) WithdrawUnachievableLensAttempt(ctx context.Context, r
 	}
 	state := record.State
 	if state.State != StateReviewing || state.CapturePhaseRevision != request.ExpectedRevision || state.InitialSnapshot.Identity != request.TargetIdentity {
-		return false, errors.New("unachievable lens withdrawal does not match the current reviewing authority; refresh the binding with brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition")
+		return false, errors.New("unachievable lens withdrawal does not match the current reviewing authority; refresh the binding with brunnr-code review status --cwd <repo> --contract brunnr-code.review-integration/v2 --next-transition")
 	}
 	index := -1
 	for candidate, existing := range state.UnachievableLensAttempts {
@@ -215,7 +215,7 @@ func (store CompactStore) WithdrawUnachievableLensAttempt(ctx context.Context, r
 	if _, found, activeErr := state.ActiveAdmittedLensResult(order); activeErr != nil {
 		return false, activeErr
 	} else if found {
-		return false, errors.New("this lens slot now holds a captured reviewer result; run brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition to see its admitted artifact and continue")
+		return false, errors.New("this lens slot now holds a captured reviewer result; run brunnr-code review status --cwd <repo> --contract brunnr-code.review-integration/v2 --next-transition to see its admitted artifact and continue")
 	}
 	next := cloneCompactStateInitialAtomicStart(state)
 	next.UnachievableLensAttempts = append(append([]CompactUnachievableLensAttempt{}, state.UnachievableLensAttempts[:index]...), state.UnachievableLensAttempts[index+1:]...)

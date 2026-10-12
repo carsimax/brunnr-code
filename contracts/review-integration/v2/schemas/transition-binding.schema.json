@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v2/schemas/transition-binding.schema.json",
-  "title": "Gentle AI Review Integration v2 Transition Binding",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/transition-binding.schema.json",
+  "title": "Brunnr-Code Review Integration v2 Transition Binding",
   "type": "object",
   "additionalProperties": false,
   "required": ["target_identity"],

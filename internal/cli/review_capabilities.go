@@ -16,39 +16,39 @@ import (
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
-const ReviewIntegrationContractV1 = "gentle-ai.review-integration/v1"
-const ReviewIntegrationContractV2 = "gentle-ai.review-integration/v2"
-const ReviewIntegrationCapabilitiesSchemaV1 = "gentle-ai.review-integration.capabilities/v1"
-const ReviewIntegrationCapabilitiesSchemaIDV1 = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/capabilities.schema.json"
-const ReviewIntegrationCapabilitiesSchemaV11 = "gentle-ai.review-integration.capabilities/v1.1"
-const ReviewIntegrationCapabilitiesSchemaIDV11 = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/capabilities-v1.1.schema.json"
-const ReviewIntegrationCapabilitiesSchemaV12 = "gentle-ai.review-integration.capabilities/v1.2"
-const ReviewIntegrationCapabilitiesSchemaIDV12 = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/capabilities-v1.2.schema.json"
-const ReviewIntegrationCapabilitiesSchemaV13 = "gentle-ai.review-integration.capabilities/v1.3"
-const ReviewIntegrationCapabilitiesSchemaIDV13 = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/capabilities-v1.3.schema.json"
-const ReviewIntegrationCapabilitiesSchemaV14 = "gentle-ai.review-integration.capabilities/v1.4"
-const ReviewIntegrationCapabilitiesSchemaIDV14 = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/capabilities-v1.4.schema.json"
-const ReviewIntegrationCapabilitiesSchema = "gentle-ai.review-integration.capabilities/v1.5"
-const ReviewIntegrationCapabilitiesSchemaID = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/capabilities-v1.5.schema.json"
-const ReviewIntegrationCapabilitiesSchemaV2 = "gentle-ai.review-integration.capabilities/v2"
-const ReviewIntegrationCapabilitiesSchemaIDV2 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/capabilities.schema.json"
-const ReviewIntegrationCapabilitiesSchemaV21 = "gentle-ai.review-integration.capabilities/v2.1"
-const ReviewIntegrationCapabilitiesSchemaIDV21 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/capabilities-v2.1.schema.json"
-const ReviewIntegrationCapabilitiesSchemaV22 = "gentle-ai.review-integration.capabilities/v2.2"
-const ReviewIntegrationCapabilitiesSchemaIDV22 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/capabilities-v2.2.schema.json"
-const ReviewIntegrationCapabilitiesSchemaV23 = "gentle-ai.review-integration.capabilities/v2.3"
-const ReviewIntegrationCapabilitiesSchemaIDV23 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/capabilities-v2.3.schema.json"
-const ReviewIntegrationCapabilitiesSchemaV24 = "gentle-ai.review-integration.capabilities/v2.4"
-const ReviewIntegrationCapabilitiesSchemaIDV24 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/capabilities-v2.4.schema.json"
-const ReviewIntegrationCapabilitiesSchemaV25 = "gentle-ai.review-integration.capabilities/v2.5"
-const ReviewIntegrationCapabilitiesSchemaIDV25 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/capabilities-v2.5.schema.json"
-const ReviewIntegrationCapabilitiesSchemaV26 = "gentle-ai.review-integration.capabilities/v2.6"
-const ReviewIntegrationCapabilitiesSchemaIDV26 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/capabilities-v2.6.schema.json"
+const ReviewIntegrationContractV1 = "brunnr-code.review-integration/v1"
+const ReviewIntegrationContractV2 = "brunnr-code.review-integration/v2"
+const ReviewIntegrationCapabilitiesSchemaV1 = "brunnr-code.review-integration.capabilities/v1"
+const ReviewIntegrationCapabilitiesSchemaIDV1 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/capabilities.schema.json"
+const ReviewIntegrationCapabilitiesSchemaV11 = "brunnr-code.review-integration.capabilities/v1.1"
+const ReviewIntegrationCapabilitiesSchemaIDV11 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/capabilities-v1.1.schema.json"
+const ReviewIntegrationCapabilitiesSchemaV12 = "brunnr-code.review-integration.capabilities/v1.2"
+const ReviewIntegrationCapabilitiesSchemaIDV12 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/capabilities-v1.2.schema.json"
+const ReviewIntegrationCapabilitiesSchemaV13 = "brunnr-code.review-integration.capabilities/v1.3"
+const ReviewIntegrationCapabilitiesSchemaIDV13 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/capabilities-v1.3.schema.json"
+const ReviewIntegrationCapabilitiesSchemaV14 = "brunnr-code.review-integration.capabilities/v1.4"
+const ReviewIntegrationCapabilitiesSchemaIDV14 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/capabilities-v1.4.schema.json"
+const ReviewIntegrationCapabilitiesSchema = "brunnr-code.review-integration.capabilities/v1.5"
+const ReviewIntegrationCapabilitiesSchemaID = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/capabilities-v1.5.schema.json"
+const ReviewIntegrationCapabilitiesSchemaV2 = "brunnr-code.review-integration.capabilities/v2"
+const ReviewIntegrationCapabilitiesSchemaIDV2 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/capabilities.schema.json"
+const ReviewIntegrationCapabilitiesSchemaV21 = "brunnr-code.review-integration.capabilities/v2.1"
+const ReviewIntegrationCapabilitiesSchemaIDV21 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/capabilities-v2.1.schema.json"
+const ReviewIntegrationCapabilitiesSchemaV22 = "brunnr-code.review-integration.capabilities/v2.2"
+const ReviewIntegrationCapabilitiesSchemaIDV22 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/capabilities-v2.2.schema.json"
+const ReviewIntegrationCapabilitiesSchemaV23 = "brunnr-code.review-integration.capabilities/v2.3"
+const ReviewIntegrationCapabilitiesSchemaIDV23 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/capabilities-v2.3.schema.json"
+const ReviewIntegrationCapabilitiesSchemaV24 = "brunnr-code.review-integration.capabilities/v2.4"
+const ReviewIntegrationCapabilitiesSchemaIDV24 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/capabilities-v2.4.schema.json"
+const ReviewIntegrationCapabilitiesSchemaV25 = "brunnr-code.review-integration.capabilities/v2.5"
+const ReviewIntegrationCapabilitiesSchemaIDV25 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/capabilities-v2.5.schema.json"
+const ReviewIntegrationCapabilitiesSchemaV26 = "brunnr-code.review-integration.capabilities/v2.6"
+const ReviewIntegrationCapabilitiesSchemaIDV26 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/capabilities-v2.6.schema.json"
 
 const (
-	reviewRefuterSchemaID   = "https://gentle-ai.dev/schema/review/refuter/v1"
-	reviewReviewerSchemaID  = "https://gentle-ai.dev/schema/review/reviewer/v1"
-	reviewValidatorSchemaID = "https://gentle-ai.dev/schema/review/validator/v1"
+	reviewRefuterSchemaID   = "https://github.com/carsimax/brunnr-code/schema/review/refuter/v1"
+	reviewReviewerSchemaID  = "https://github.com/carsimax/brunnr-code/schema/review/reviewer/v1"
+	reviewValidatorSchemaID = "https://github.com/carsimax/brunnr-code/schema/review/validator/v1"
 )
 
 // reviewNextTransitionRefreshCommand is the single wording source for the
@@ -198,7 +198,7 @@ func buildReviewCapabilities(contracts ...string) (ReviewCapabilitiesResult, err
 		return ReviewCapabilitiesResult{}, err
 	}
 	result := reviewCapabilitiesStaticSurface(contract)
-	result.Package = ReviewCapabilitiesPackage{Name: "gentle-ai", Version: version, ReleaseChannel: reviewReleaseChannel(version)}
+	result.Package = ReviewCapabilitiesPackage{Name: "brunnr-code", Version: version, ReleaseChannel: reviewReleaseChannel(version)}
 	result.Build = build
 	result.Executable = ReviewCapabilitiesExecutable{
 		SHA256: executableDigest, Evidence: "self-reported", Verification: "compare-with-published-manifest",
@@ -391,7 +391,7 @@ func reviewCapabilitiesBuildDigest(packageVersion string, build ReviewCapabiliti
 		VCS: build.VCS, VCSRevision: build.VCSRevision, VCSTime: build.VCSTime, VCSModified: build.VCSModified,
 	}
 	payload, _ := json.Marshal(preimage)
-	sum := sha256.Sum256(append([]byte("gentle-ai.review-build-identity/v1\x00"), payload...))
+	sum := sha256.Sum256(append([]byte("brunnr-code.review-build-identity/v1\x00"), payload...))
 	return "sha256:" + hex.EncodeToString(sum[:])
 }
 
@@ -433,7 +433,7 @@ func (result ReviewCapabilitiesResult) Validate() error {
 	if result.Bootstrap != nil && !reflect.DeepEqual(result.Bootstrap, static.Bootstrap) {
 		return errors.New("capability bootstrap does not match the negotiated contract") // refusal:by-design world-action: provider-generated bootstrap requires a code fix, not an operator command
 	}
-	if result.Package.Name != "gentle-ai" || strings.TrimSpace(result.Package.Version) == "" || result.Package.ReleaseChannel != reviewReleaseChannel(result.Package.Version) {
+	if result.Package.Name != "brunnr-code" || strings.TrimSpace(result.Package.Version) == "" || result.Package.ReleaseChannel != reviewReleaseChannel(result.Package.Version) {
 		return errors.New("capability package identity is invalid")
 	}
 	if strings.TrimSpace(result.Build.GoVersion) == "" || (result.Build.VCSModified != "true" && result.Build.VCSModified != "false" && result.Build.VCSModified != "unknown") ||

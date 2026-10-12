@@ -68,7 +68,7 @@ func recoveryCollectBindingFixture(t *testing.T, lineage string) (string, []stri
 	binding := status.NextTransition.Execute.Binding
 	bound := map[string]string{"lineage": binding.LineageID, "expected-revision": binding.Revision, "target": binding.TargetIdentity, "disposition": string(status.ActionDisposition)}
 	return repo, selectors, bound, strings.Join([]string{
-		"gentle-ai.review-recovery-authorization/v1",
+		"brunnr-code.review-recovery-authorization/v1",
 		"predecessor_lineage=" + bound["lineage"],
 		"predecessor_revision=" + bound["expected-revision"],
 		"target_identity=" + bound["target"],

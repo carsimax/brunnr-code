@@ -17,7 +17,7 @@ import (
 
 const codexReviewerLoopbackBaseURLEnvironment = "BRUNNR_CODE_CODEX_REVIEWER_LOOPBACK_BASE_URL"
 
-const codexReviewerLoopbackProviderID = "gentle_ai_reviewer_loopback"
+const codexReviewerLoopbackProviderID = "brunnr_code_reviewer_loopback"
 
 // CodexAdapter invokes Codex with an opaque provider invocation and returns
 // the CLI's raw final-message bytes without interpreting them.

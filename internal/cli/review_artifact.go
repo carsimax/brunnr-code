@@ -18,9 +18,9 @@ import (
 )
 
 const (
-	reviewResultArtifactSchema     = "gentle-ai.review-result-artifact/v2"
+	reviewResultArtifactSchema     = "brunnr-code.review-result-artifact/v2"
 	reviewResultArtifactCapability = "review.native_result_artifact"
-	reviewResultDryRunSchema       = "gentle-ai.review-capture-result-dry-run/v1"
+	reviewResultDryRunSchema       = "brunnr-code.review-capture-result-dry-run/v1"
 	reviewAdmittedResultSchema     = reviewtransaction.AdmittedReviewerResultSchema
 	reviewResultReferencePrefix    = "rart1_"
 	reviewResultArtifactLimit      = 4 << 20
@@ -165,7 +165,7 @@ func RunReviewCaptureResult(args []string, stdout io.Writer) error {
 	providerExecution := providerRuntimeSupplied && !rawInputSupplied
 	if flags.NArg() != 0 || strings.TrimSpace(*lineage) == "" || strings.TrimSpace(*target) == "" ||
 		strings.TrimSpace(*lens) == "" || *order < 0 || (!*preflight && !rawInputSupplied && !providerExecution) {
-		return reviewPreflightError(errors.New("review capture-result requires an exact repository context, --lineage, --target, --lens, --order, and either --input or --agent (or --preflight); `brunnr-code review status --contract gentle-ai.review-integration/v1 --next-transition` prints the exact bindings and `brunnr-code review schema reviewer` emits the result schema with a working example"))
+		return reviewPreflightError(errors.New("review capture-result requires an exact repository context, --lineage, --target, --lens, --order, and either --input or --agent (or --preflight); `brunnr-code review status --contract brunnr-code.review-integration/v1 --next-transition` prints the exact bindings and `brunnr-code review schema reviewer` emits the result schema with a working example"))
 	}
 	if providerRuntimeSupplied && *preflight {
 		return reviewPreflightError(errors.New("review capture-result --agent cannot be combined with --preflight")) // refusal:by-design world-action: a provider runtime identity belongs only to a real in-process capture

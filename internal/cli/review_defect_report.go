@@ -122,11 +122,11 @@ var (
 	reviewDefectReportEnvAssignmentRegexp = regexp.MustCompile(`\b[A-Z][A-Z0-9_]{2,}=\S+`)
 	// reviewDefectReportPublicIdentifierRegexp matches the product's own
 	// public identifiers: contract and schema ids such as
-	// gentle-ai.review-integration/v2 or gentle-ai.review-integration.status/v7.
+	// brunnr-code.review-integration/v2 or brunnr-code.review-integration.status/v7.
 	// None of them describe a filesystem or a secret, and a report that hides
 	// them tells the reader to run a command that does not exist (#3443).
 	// Every KEY=VALUE token and every path still redact.
-	reviewDefectReportPublicIdentifierRegexp = regexp.MustCompile(`gentle-ai\.[A-Za-z0-9.-]+/v[0-9]+`)
+	reviewDefectReportPublicIdentifierRegexp = regexp.MustCompile(`brunnr-code\.[A-Za-z0-9.-]+/v[0-9]+`)
 )
 
 // reviewDefectReportPlaceholder is the shape a protected public identifier

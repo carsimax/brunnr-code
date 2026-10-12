@@ -20,7 +20,7 @@ import (
 )
 
 // ReviewModeSchema identifies the user-facing kill-switch projection.
-const ReviewModeSchema = "gentle-ai.review-mode/v1"
+const ReviewModeSchema = "brunnr-code.review-mode/v1"
 
 const (
 	reviewModeScopeGlobal = "global"

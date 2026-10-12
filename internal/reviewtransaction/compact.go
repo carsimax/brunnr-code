@@ -13,9 +13,9 @@ import (
 	"time"
 )
 
-const CompactStateSchema = "gentle-ai.review-state/v2"
-const NativeLowRiskVerificationDomain = "gentle-ai.native-low-risk-verification/v1"
-const CompactRecoveredEvidenceSchema = "gentle-ai.review-recovered-evidence/v1"
+const CompactStateSchema = "brunnr-code.review-state/v2"
+const NativeLowRiskVerificationDomain = "brunnr-code.native-low-risk-verification/v1"
+const CompactRecoveredEvidenceSchema = "brunnr-code.review-recovered-evidence/v1"
 
 const (
 	StateCorrectionRequired             State = "correction_required"
@@ -615,7 +615,7 @@ func deriveCompactCapturePhaseRevision(state CompactState) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	sum := sha256.Sum256(append([]byte("gentle-ai.review-capture-phase/v1\x00"), payload...))
+	sum := sha256.Sum256(append([]byte("brunnr-code.review-capture-phase/v1\x00"), payload...))
 	return "sha256:" + hex.EncodeToString(sum[:]), nil
 }
 

@@ -27,13 +27,13 @@ func TestCanonicalLedgerValidation(t *testing.T) {
 		wantErr  string
 	}{
 		{name: "malformed", payload: `{`, findings: []Finding{finding}, wantErr: "parse canonical ledger"},
-		{name: "missing schema", payload: `{"findings":[]}`, findings: []Finding{}, wantErr: "requires gentle-ai.review-ledger/v1"},
-		{name: "wrong schema", payload: `{"schema":"gentle-ai.review-ledger/v2","findings":[]}`, findings: []Finding{}, wantErr: "requires gentle-ai.review-ledger/v1"},
-		{name: "missing findings", payload: `{"schema":"gentle-ai.review-ledger/v1"}`, findings: []Finding{}, wantErr: "explicit findings array"},
-		{name: "unknown field", payload: `{"schema":"gentle-ai.review-ledger/v1","findings":[],"extra":true}`, findings: []Finding{}, wantErr: "unknown field"},
-		{name: "orchestration metadata is not native", payload: `{"schema":"gentle-ai.review-ledger/v1","findings":[{"id":"R1-001","severity":"CRITICAL","evidence_class":"deterministic","status":"open"}]}`, findings: []Finding{{ID: "R1-001", Severity: "CRITICAL"}}, wantErr: "unknown field"},
+		{name: "missing schema", payload: `{"findings":[]}`, findings: []Finding{}, wantErr: "requires brunnr-code.review-ledger/v1"},
+		{name: "wrong schema", payload: `{"schema":"brunnr-code.review-ledger/v2","findings":[]}`, findings: []Finding{}, wantErr: "requires brunnr-code.review-ledger/v1"},
+		{name: "missing findings", payload: `{"schema":"brunnr-code.review-ledger/v1"}`, findings: []Finding{}, wantErr: "explicit findings array"},
+		{name: "unknown field", payload: `{"schema":"brunnr-code.review-ledger/v1","findings":[],"extra":true}`, findings: []Finding{}, wantErr: "unknown field"},
+		{name: "orchestration metadata is not native", payload: `{"schema":"brunnr-code.review-ledger/v1","findings":[{"id":"R1-001","severity":"CRITICAL","evidence_class":"deterministic","status":"open"}]}`, findings: []Finding{{ID: "R1-001", Severity: "CRITICAL"}}, wantErr: "unknown field"},
 		{name: "trailing newline", payload: CanonicalEmptyLedger + "\n", findings: []Finding{}, wantErr: "not the canonical compact JSON"},
-		{name: "alternate field order", payload: `{"findings":[],"schema":"gentle-ai.review-ledger/v1"}`, findings: []Finding{}, wantErr: "not the canonical compact JSON"},
+		{name: "alternate field order", payload: `{"findings":[],"schema":"brunnr-code.review-ledger/v1"}`, findings: []Finding{}, wantErr: "not the canonical compact JSON"},
 		{name: "semantic mismatch", payload: string(canonical), findings: []Finding{}, wantErr: "do not exactly match"},
 		{name: "supplied hash mismatch", payload: string(canonical), findings: []Finding{finding}, supplied: hash("f"), wantErr: "does not match canonical ledger bytes"},
 	}

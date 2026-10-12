@@ -52,7 +52,7 @@ func reviewStartTransitionForCommand(t *testing.T, lineage string, kind reviewtr
 func TestReviewNextTransitionExecuteEmitsRunnableCommand(t *testing.T) {
 	got := reviewStartTransitionForCommand(t, "review-start-command", reviewtransaction.TargetCurrentChanges)
 	want := "brunnr-code review start" +
-		" --contract=gentle-ai.review-integration/v1" +
+		" --contract=brunnr-code.review-integration/v1" +
 		" --target=sha256:" + strings.Repeat("b", 64) +
 		" --projection=workspace" +
 		" --lineage=review-start-command"
@@ -74,7 +74,7 @@ func TestReviewNextTransitionV2StartCommandCarriesConsentRelay(t *testing.T) {
 	}
 	got := newReviewNextTransition(status, nil, nil, nil, reviewNextTransitionInput{StartLineage: "review-v2-consent-command"})
 	want := "brunnr-code review start" +
-		" --contract=gentle-ai.review-integration/v2" +
+		" --contract=brunnr-code.review-integration/v2" +
 		" --target=sha256:" + strings.Repeat("b", 64) +
 		" --projection=workspace" +
 		" --lineage=review-v2-consent-command" +
@@ -564,7 +564,7 @@ func TestReviewRecoverTransitionEmitsACommandThatRuns(t *testing.T) {
 		t.Fatalf("recovery probe = action %q authority %#v", probe.Action, probe.Authority)
 	}
 	const successor, actor, reason = "recover-command-successor", "maintainer", "authorized recovery"
-	authorization := "gentle-ai.review-recovery-authorization/v1\npredecessor_lineage=" + started.LineageID +
+	authorization := "brunnr-code.review-recovery-authorization/v1\npredecessor_lineage=" + started.LineageID +
 		"\npredecessor_revision=" + probe.Authority.Revision + "\ntarget_identity=" + probe.TargetIdentity +
 		"\nsuccessor_lineage=" + successor + "\nactor=" + actor + "\nreason=" + reason
 	status := selectorTransitionStatus(t, repo,

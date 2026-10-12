@@ -12,7 +12,7 @@ import (
 // never be empty and derivation must never fail the operation: refusing
 // self-recovery because Git identity is unset or unsafe would reintroduce
 // the exact deadlock class self-derived recovery exists to remove.
-const reviewSelfRecoveryFallbackActor = "gentle-ai-self-recovery@localhost"
+const reviewSelfRecoveryFallbackActor = "brunnr-code-self-recovery@localhost"
 
 // reviewAuditActor derives the actor recorded for a self-derived recovery
 // binding from the repository's Git identity. It never fails and never

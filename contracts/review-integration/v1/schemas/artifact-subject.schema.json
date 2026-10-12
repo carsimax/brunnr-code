@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v1/schemas/artifact-subject.schema.json",
-  "title": "Gentle AI provider-owned reviewer artifact subject v1",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/artifact-subject.schema.json",
+  "title": "Brunnr-Code provider-owned reviewer artifact subject v1",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -16,7 +16,7 @@
     "selected_order"
   ],
   "properties": {
-    "schema": {"const": "gentle-ai.review-artifact-subject/v1"},
+    "schema": {"const": "brunnr-code.review-artifact-subject/v1"},
     "subject_hash": {"$ref": "#/$defs/sha256"},
     "lineage_id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
     "authority_revision": {"$ref": "#/$defs/sha256"},

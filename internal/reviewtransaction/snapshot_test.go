@@ -589,11 +589,11 @@ func TestLegacyFrozenSnapshotIdentityFailsValidationClosed(t *testing.T) {
 func legacyPreCutSnapshotIdentityForTest(kind TargetKind, projection Projection, baseTree, candidateTree, pathsDigest, proof string, intended, ledgerIDs []string) string {
 	hash := sha256.New()
 	if kind == TargetBaseWorkspaceOverlay {
-		hash.Write([]byte("gentle-ai.review-snapshot/base-workspace-overlay/v1\x00"))
+		hash.Write([]byte("brunnr-code.review-snapshot/base-workspace-overlay/v1\x00"))
 	} else if projection == ProjectionStaged {
-		hash.Write([]byte("gentle-ai.review-snapshot/v2\x00"))
+		hash.Write([]byte("brunnr-code.review-snapshot/v2\x00"))
 	} else {
-		hash.Write([]byte("gentle-ai.review-snapshot/v1\x00"))
+		hash.Write([]byte("brunnr-code.review-snapshot/v1\x00"))
 	}
 	values := []string{string(kind), baseTree, candidateTree, pathsDigest, proof}
 	if projection == ProjectionStaged {
@@ -1947,7 +1947,7 @@ func TestUntrackedProofBatchedListingMatchesPerPathReference(t *testing.T) {
 		t.Fatal(err)
 	}
 	hash := sha256.New()
-	hash.Write([]byte("gentle-ai.intended-untracked/v1\x00"))
+	hash.Write([]byte("brunnr-code.intended-untracked/v1\x00"))
 	for _, logicalPath := range snapshot.IntendedUntracked {
 		entry, err := runGit(context.Background(), repo, nil, nil, "ls-tree", "-z", snapshot.CandidateTree, "--", literalPathspec(logicalPath))
 		if err != nil || len(entry) == 0 {

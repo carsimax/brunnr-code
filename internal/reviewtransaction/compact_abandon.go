@@ -20,9 +20,9 @@ import (
 // It is exported so a refusal in another package that names `review abandon`
 // as its continuation can print the template and be checked against the schema
 // this gate actually verifies, rather than against a copy of the string.
-const CompactAbandonAuthorizationSchema = "gentle-ai.review-abandon-authorization/v2"
+const CompactAbandonAuthorizationSchema = "brunnr-code.review-abandon-authorization/v2"
 
-const compactLegacyAbandonAuthorizationSchema = "gentle-ai.review-abandon-authorization/v1"
+const compactLegacyAbandonAuthorizationSchema = "brunnr-code.review-abandon-authorization/v1"
 
 // CompactAbandonRequest identifies one non-terminal compact-v2 review lineage to
 // quarantine, together with the exact maintainer authorization binding for

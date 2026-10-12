@@ -326,7 +326,7 @@ func TestConsentFollowUpPrintedPathFlagsRoundTripWindowsNativePaths(t *testing.T
 	for _, test := range []struct {
 		name, cwd, policy, trace string
 	}{
-		{name: "cwd", cwd: `C:\Users\reviewer\gentle ai`},
+		{name: "cwd", cwd: `C:\Users\reviewer\brunnr code`},
 		{name: "policy", cwd: "/repo", policy: `C:\Users\reviewer\policy files\review policy.json`},
 		{name: "trace", cwd: "/repo", trace: `C:\Users\reviewer\traces\operation trace.json`},
 	} {

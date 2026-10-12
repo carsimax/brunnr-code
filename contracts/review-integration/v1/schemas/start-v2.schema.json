@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v1/schemas/start-v2.schema.json",
-  "title": "Gentle AI negotiated review START response",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/start-v2.schema.json",
+  "title": "Brunnr-Code negotiated review START response",
   "type": "object",
   "additionalProperties": false,
   "dependentRequired": {
@@ -50,8 +50,8 @@
     "artifact_subjects"
   ],
   "properties": {
-    "schema": {"const": "gentle-ai.review-integration.start/v2"},
-    "contract": {"const": "gentle-ai.review-integration/v1"},
+    "schema": {"const": "brunnr-code.review-integration.start/v2"},
+    "contract": {"const": "brunnr-code.review-integration/v1"},
     "operation": {"const": "review.start"},
     "action": {"enum": ["created", "resumed", "reuse-receipt", "blocked-scope-action"]},
     "lenses_required": {"type": "boolean"},
@@ -135,7 +135,7 @@
         "selected_order"
       ],
       "properties": {
-        "schema": {"const": "gentle-ai.review-artifact-subject/v1"},
+        "schema": {"const": "brunnr-code.review-artifact-subject/v1"},
         "subject_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "lineage_id": {"type": "string", "minLength": 1},
         "authority_revision": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},

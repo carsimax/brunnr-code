@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const storeLockSchema = "gentle-ai.review-store-lock/v1"
+const storeLockSchema = "brunnr-code.review-store-lock/v1"
 
 type maintenanceLockMode bool
 

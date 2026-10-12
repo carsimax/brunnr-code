@@ -20,10 +20,10 @@ const (
 	// RDDModeStatusSchema identifies the observable projection of the kill
 	// switch. It reports both sources plus the effective mode; it is never an
 	// authorization and never carries a review outcome.
-	RDDModeStatusSchema = "gentle-ai.rdd-mode-status/v1"
+	RDDModeStatusSchema = "brunnr-code.rdd-mode-status/v1"
 
-	rddModeOverrideSchema   = "gentle-ai.rdd-mode-override/v1"
-	rddModeDigestDomain     = "gentle-ai.rdd-mode-override-digest/v1"
+	rddModeOverrideSchema   = "brunnr-code.rdd-mode-override/v1"
+	rddModeDigestDomain     = "brunnr-code.rdd-mode-override-digest/v1"
 	rddModeDirectory        = "rdd-mode"
 	rddModeLockName         = "LOCK"
 	rddModeGenerationPrefix = "gen-"
@@ -39,7 +39,7 @@ const (
 
 	// rddConsentSchema identifies the one-shot latch recording that the user has
 	// already been asked whether receipt-driven development may run.
-	rddConsentSchema = "gentle-ai.rdd-consent-asked/v1"
+	rddConsentSchema = "brunnr-code.rdd-consent-asked/v1"
 	// rddConsentName never matches the gen-%010d.json generation pattern, so the
 	// override head scan ignores it instead of mistaking it for a generation.
 	rddConsentName = "asked.json"

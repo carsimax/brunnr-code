@@ -89,8 +89,8 @@ const (
 	organicStateValidating         = "validating"
 	organicStateCorrectionRequired = "correction_required"
 
-	organicGateSchema = "gentle-ai.review-gate-result/v1"
-	organicModeSchema = "gentle-ai.review-mode/v1"
+	organicGateSchema = "brunnr-code.review-gate-result/v1"
+	organicModeSchema = "brunnr-code.review-mode/v1"
 
 	organicGateAllow = "allow"
 	organicModeOff   = "off"
@@ -343,7 +343,7 @@ func TestCodexProviderAdapterUsesPinnedLocalRuntime(t *testing.T) {
 	harness.git("commit", "-qm", "feat: committed Codex correction candidate")
 	const lineage = "codex-loopback-egress-proof"
 	statusPayload := harness.gentle(
-		"review", "status", "--cwd", harness.repo.worktree, "--contract", "gentle-ai.review-integration/v2",
+		"review", "status", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2",
 		"--agent", "codex", "--lineage", lineage, "--base-ref", baseTree, "--committed-only", "--next-transition",
 	)
 	var negotiated organicProviderStatusResult
@@ -352,7 +352,7 @@ func TestCodexProviderAdapterUsesPinnedLocalRuntime(t *testing.T) {
 	}
 	start := negotiated.NextTransition.Execute
 	stdout, stderr, err := harness.gentleAllowFailure(
-		"review", "start", "--cwd", harness.repo.worktree, "--contract", "gentle-ai.review-integration/v2",
+		"review", "start", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2",
 		"--target", start.argument("target"), "--projection", start.argument("projection"), "--base-ref", baseTree, "--committed-only",
 		"--lineage", lineage, "--agent", "codex", "--consent", "granted", "--focus", "reliability",
 	)
@@ -364,7 +364,7 @@ func TestCodexProviderAdapterUsesPinnedLocalRuntime(t *testing.T) {
 		t.Fatalf("committed Codex START = %#v, %v\n%s", started, err, stdout)
 	}
 	statusPayload = harness.gentle(
-		"review", "status", "--cwd", harness.repo.worktree, "--contract", "gentle-ai.review-integration/v2",
+		"review", "status", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2",
 		"--agent", "codex", "--lineage", lineage, "--base-ref", baseTree, "--committed-only", "--next-transition",
 	)
 	var reviewing organicProviderStatusResult
@@ -401,7 +401,7 @@ func TestCodexProviderAdapterUsesPinnedLocalRuntime(t *testing.T) {
 		if request.Method == http.MethodGet && request.URL.Path == "/v1/models" {
 			modelRequests++
 			writer.Header().Set("Content-Type", "application/json")
-			_, _ = fmt.Fprint(writer, `{"object":"list","data":[{"id":"gpt-5.6-terra","object":"model","created":0,"owned_by":"gentle-ai-loopback"}]}`)
+			_, _ = fmt.Fprint(writer, `{"object":"list","data":[{"id":"gpt-5.6-terra","object":"model","created":0,"owned_by":"brunnr-code-loopback"}]}`)
 			return
 		}
 		if request.Method != http.MethodPost || request.URL.Path != "/v1/responses" {
@@ -671,7 +671,7 @@ var (
 // a Responses body with a result that corroborates every claim, or returns
 // nil when the body is not a refuter request.
 func codexLoopbackRefuterResponse(body []byte) []byte {
-	if !bytes.Contains(body, []byte("gentle-ai.review-provider-refuter-request/v1")) {
+	if !bytes.Contains(body, []byte("brunnr-code.review-provider-refuter-request/v1")) {
 		return nil
 	}
 	hash := codexLoopbackRequestHash.FindSubmatch(body)
@@ -837,7 +837,7 @@ func organicProviderStart(t *testing.T, harness *organicHarness, lineage, agent 
 	}
 	transition := status.NextTransition.Execute
 	stdout, stderr, err := harness.gentleAllowFailure("review", "start", "--cwd", harness.repo.worktree,
-		"--contract", "gentle-ai.review-integration/v2", "--target", transition.argument("target"), "--projection", transition.argument("projection"),
+		"--contract", "brunnr-code.review-integration/v2", "--target", transition.argument("target"), "--projection", transition.argument("projection"),
 		"--lineage", lineage, "--agent", agent, "--consent", "granted", "--focus", "reliability")
 	if err != nil {
 		t.Fatalf("provider START: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
@@ -907,7 +907,7 @@ func (execute organicProviderExecute) argument(name string) string {
 
 func organicProviderStatus(t *testing.T, harness *organicHarness, lineage, agent string) organicProviderStatusResult {
 	t.Helper()
-	payload := harness.gentle("review", "status", "--cwd", harness.repo.worktree, "--contract", "gentle-ai.review-integration/v2", "--agent", agent, "--lineage", lineage, "--next-transition", "--projection", "workspace")
+	payload := harness.gentle("review", "status", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2", "--agent", agent, "--lineage", lineage, "--next-transition", "--projection", "workspace")
 	var status organicProviderStatusResult
 	if err := json.Unmarshal(payload, &status); err != nil {
 		t.Fatalf("decode provider status: %v\n%s", err, payload)
@@ -1959,7 +1959,7 @@ func organicAcknowledgementStatusSelectors(started organicStartResult) []string 
 func organicApprovedAcknowledgementStatus(t *testing.T, harness *organicHarness, lineage string, selectors ...string) *organicProviderExecute {
 	t.Helper()
 	arguments := []string{
-		"review", "status", "--cwd", harness.repo.worktree, "--contract", "gentle-ai.review-integration/v2",
+		"review", "status", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2",
 		"--lineage", lineage, "--next-transition",
 	}
 	arguments = append(arguments, selectors...)
@@ -2734,7 +2734,7 @@ func harnessCorrectionStatus(t *testing.T, harness *organicHarness, lineage stri
 	t.Helper()
 	payload := harness.gentle(
 		"review", "status", "--cwd", harness.repo.worktree, "--lineage", lineage,
-		"--contract", "gentle-ai.review-integration/v2", "--next-transition",
+		"--contract", "brunnr-code.review-integration/v2", "--next-transition",
 	)
 	var status organicCorrectionStatus
 	if err := json.Unmarshal(payload, &status); err != nil {

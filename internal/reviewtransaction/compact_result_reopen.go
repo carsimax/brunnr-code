@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	AdmittedReviewerResultSchemaV1         = "gentle-ai.review-admitted-result/v1"
-	AdmittedReviewerResultSchema           = "gentle-ai.review-admitted-result/v2"
+	AdmittedReviewerResultSchemaV1         = "brunnr-code.review-admitted-result/v1"
+	AdmittedReviewerResultSchema           = "brunnr-code.review-admitted-result/v2"
 	CompactResultReopenOperation           = "review/reopen-results"
-	compactResultReopenAuthorizationSchema = "gentle-ai.review-result-reopen-authorization/v1"
+	compactResultReopenAuthorizationSchema = "brunnr-code.review-result-reopen-authorization/v1"
 	compactReviewerResultSizeLimit         = 4 << 20
 )
 

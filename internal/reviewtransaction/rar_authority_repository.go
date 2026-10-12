@@ -16,11 +16,11 @@ import (
 )
 
 const (
-	RARVerificationAuthoritySchema = "gentle-ai.rar-verification-authority/v1"
-	RARNativeReceiptSchema         = "gentle-ai.rar-native-review-receipt/v1"
+	RARVerificationAuthoritySchema = "brunnr-code.rar-verification-authority/v1"
+	RARNativeReceiptSchema         = "brunnr-code.rar-native-review-receipt/v1"
 
-	rarAuthorityIndexSchema  = "gentle-ai.rar-authority-index/v1"
-	rarAuthorityDigestDomain = "gentle-ai.rar-verification-authority-digest/v1"
+	rarAuthorityIndexSchema  = "brunnr-code.rar-authority-index/v1"
+	rarAuthorityDigestDomain = "brunnr-code.rar-verification-authority-digest/v1"
 	rarAuthorityDirectory    = "rar-authority"
 	rarAuthorityVersion      = "v1"
 	rarAuthorityMaxBytes     = 4 << 20

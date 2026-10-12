@@ -127,7 +127,7 @@ func TestNegotiatedPrivacyGuardStillRejectsProviderPrivateFields(t *testing.T) {
 		},
 		{
 			name:    "lock handle anywhere is rejected",
-			payload: `{"next_transition":{"kind":"execute","execute":{"binding":{"lock":"/run/gentle-ai.lock"}}}}`,
+			payload: `{"next_transition":{"kind":"execute","execute":{"binding":{"lock":"/run/brunnr-code.lock"}}}}`,
 			want:    "next_transition.execute.binding.lock",
 		},
 	}

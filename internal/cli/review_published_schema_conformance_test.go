@@ -38,13 +38,13 @@ func compileWholePublishedReviewSchema(t *testing.T, version, name string) *json
 			if err := json.Unmarshal(payload, &document); err != nil {
 				t.Fatal(err)
 			}
-			location := "https://gentle-ai.dev/contracts/review-integration/" + resourceVersion + "/schemas/" + entry.Name()
+			location := "https://github.com/carsimax/brunnr-code/contracts/review-integration/" + resourceVersion + "/schemas/" + entry.Name()
 			if err := compiler.AddResource(location, document); err != nil {
 				t.Fatal(err)
 			}
 		}
 	}
-	schema, err := compiler.Compile("https://gentle-ai.dev/contracts/review-integration/" + version + "/schemas/" + name)
+	schema, err := compiler.Compile("https://github.com/carsimax/brunnr-code/contracts/review-integration/" + version + "/schemas/" + name)
 	if err != nil {
 		t.Fatal(err)
 	}

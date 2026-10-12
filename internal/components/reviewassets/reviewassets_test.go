@@ -13,7 +13,7 @@ func TestRuntimeContracts(t *testing.T) {
 		agent              model.AgentID
 		required, excluded string
 	}{
-		{model.AgentClaudeCode, "brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --agent claude-code --next-transition", "gentle_review_capture_group"},
+		{model.AgentClaudeCode, "brunnr-code review status --cwd <repo> --contract brunnr-code.review-integration/v2 --agent claude-code --next-transition", "gentle_review_capture_group"},
 	} {
 		t.Run(string(tc.agent), func(t *testing.T) {
 			got, err := ReviewExecutionContractFor(tc.agent)

@@ -31,11 +31,11 @@ import (
 func retiredSnapshotIdentity(snapshot Snapshot) string {
 	hash := sha256.New()
 	if snapshot.Kind == TargetBaseWorkspaceOverlay {
-		hash.Write([]byte("gentle-ai.review-snapshot/base-workspace-overlay/v1\x00"))
+		hash.Write([]byte("brunnr-code.review-snapshot/base-workspace-overlay/v1\x00"))
 	} else if snapshot.Projection == ProjectionStaged {
-		hash.Write([]byte("gentle-ai.review-snapshot/v2\x00"))
+		hash.Write([]byte("brunnr-code.review-snapshot/v2\x00"))
 	} else {
-		hash.Write([]byte("gentle-ai.review-snapshot/v1\x00"))
+		hash.Write([]byte("brunnr-code.review-snapshot/v1\x00"))
 	}
 	values := []string{string(snapshot.Kind), snapshot.BaseTree, snapshot.CandidateTree, snapshot.PathsDigest, snapshot.IntendedUntrackedProof}
 	if snapshot.Projection == ProjectionStaged {

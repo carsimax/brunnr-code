@@ -12,7 +12,7 @@ import (
 
 // forgedRecoveryPair persists one escalated predecessor with its receipt and a
 // changed-target escalated recovery successor whose recorded maintainer
-// authorization carries the exact gentle-ai.review-recovery-authorization/v1
+// authorization carries the exact brunnr-code.review-recovery-authorization/v1
 // prefix but binds different content: the reason drifted after the fact. It is
 // therefore neither the unchanged-target class nor the pre-contract free-form
 // class, so reconciliation classifies it as corruption and refuses.

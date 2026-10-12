@@ -1,10 +1,10 @@
 {
-  "schema": "gentle-ai.review-integration.consent/v1",
-  "contract": "gentle-ai.review-integration/v1",
+  "schema": "brunnr-code.review-integration.consent/v1",
+  "contract": "brunnr-code.review-integration/v1",
   "operation": "review.start",
   "action": "consent_required",
   "blocking": true,
-  "target_identity": "sha256:04c970c2b0f7c128751ed2b0f7e672a2fe26dc267f018bf10e612096d19cfa04",
+  "target_identity": "sha256:29f4fd5a86f08b4a2b8ecb556d1bea4851824fdaa4a95e6efbe70bc1738bbd0d",
   "projection": "workspace",
   "risk_level": "high",
   "changed_files": 1,
@@ -20,13 +20,13 @@
       "answer": "granted",
       "label": "Review this change",
       "effect": "Reviews only this change; later medium- or high-risk changes ask again, and delivery needs separate approval.",
-      "invocation": "brunnr-code review start --contract gentle-ai.review-integration/v1 --cwd /repo --target sha256:04c970c2b0f7c128751ed2b0f7e672a2fe26dc267f018bf10e612096d19cfa04 --target-evidence v1:current-changes:workspace:3e21a205dd9b55021aeae87965092623807e455f:556e838994d4e5669ffafda7b72226598bc38297:sha256:6948093c3d74e17ece6b63c4706f09a65e5e8251a4ec14b530430ac31f1aa98e --projection workspace --lineage review-consent-fixture --consent granted"
+      "invocation": "brunnr-code review start --contract brunnr-code.review-integration/v1 --cwd /repo --target sha256:29f4fd5a86f08b4a2b8ecb556d1bea4851824fdaa4a95e6efbe70bc1738bbd0d --target-evidence v1:current-changes:workspace:3e21a205dd9b55021aeae87965092623807e455f:556e838994d4e5669ffafda7b72226598bc38297:sha256:1cb68b191ea0337b5335de2c6dbbbb470129826a48bb0881bd87952316eaef1a --projection workspace --lineage review-consent-fixture --consent granted"
     },
     {
       "answer": "declined",
       "label": "Skip this time",
       "effect": "Skips only this change; no review record is created, and future reviews stay enabled.",
-      "invocation": "brunnr-code review start --contract gentle-ai.review-integration/v1 --cwd /repo --target sha256:04c970c2b0f7c128751ed2b0f7e672a2fe26dc267f018bf10e612096d19cfa04 --target-evidence v1:current-changes:workspace:3e21a205dd9b55021aeae87965092623807e455f:556e838994d4e5669ffafda7b72226598bc38297:sha256:6948093c3d74e17ece6b63c4706f09a65e5e8251a4ec14b530430ac31f1aa98e --projection workspace --lineage review-consent-fixture --consent declined"
+      "invocation": "brunnr-code review start --contract brunnr-code.review-integration/v1 --cwd /repo --target sha256:29f4fd5a86f08b4a2b8ecb556d1bea4851824fdaa4a95e6efbe70bc1738bbd0d --target-evidence v1:current-changes:workspace:3e21a205dd9b55021aeae87965092623807e455f:556e838994d4e5669ffafda7b72226598bc38297:sha256:1cb68b191ea0337b5335de2c6dbbbb470129826a48bb0881bd87952316eaef1a --projection workspace --lineage review-consent-fixture --consent declined"
     }
   ],
   "off_path": {

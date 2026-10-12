@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v1/schemas/status.schema.json",
-  "title": "Gentle AI Review Integration Target Status v1",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/status.schema.json",
+  "title": "Brunnr-Code Review Integration Target Status v1",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -17,8 +17,8 @@
     "candidates"
   ],
   "properties": {
-    "schema": { "const": "gentle-ai.review-integration.status/v1" },
-    "contract": { "const": "gentle-ai.review-integration/v1" },
+    "schema": { "const": "brunnr-code.review-integration.status/v1" },
+    "contract": { "const": "brunnr-code.review-integration/v1" },
     "operation": { "const": "review.status" },
     "applicability": { "enum": ["current_target", "unrelated", "ambiguous", "corrupted"] },
     "authority": {
@@ -121,7 +121,7 @@
     "transition_artifact": {
       "type": "object", "additionalProperties": false, "required": ["schema", "capability", "sha256", "lineage_id", "target_identity", "lens", "selected_order", "subject_hash", "admission_decision"],
       "properties": {
-        "schema": { "const": "gentle-ai.review-result-artifact/v2" }, "capability": { "const": "review.native_result_artifact" }, "sha256": { "$ref": "#/$defs/sha256" },
+        "schema": { "const": "brunnr-code.review-result-artifact/v2" }, "capability": { "const": "review.native_result_artifact" }, "sha256": { "$ref": "#/$defs/sha256" },
         "lineage_id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }, "target_identity": { "$ref": "#/$defs/sha256" }, "lens": { "type": "string", "minLength": 1 }, "selected_order": { "type": "integer", "minimum": 0 },
         "subject_hash": { "$ref": "#/$defs/sha256" }, "admission_decision": { "const": "completed" }
       }
@@ -140,7 +140,7 @@
       "allOf": [
         {
           "if": { "properties": { "capture_operation": { "const": "external.run_targeted_validation" } }, "required": ["capture_operation"] },
-          "then": { "required": ["validation_request"], "properties": { "schema": { "const": "gentle-ai.review-targeted-validation-request/v1" } } },
+          "then": { "required": ["validation_request"], "properties": { "schema": { "const": "brunnr-code.review-targeted-validation-request/v1" } } },
           "else": { "not": { "required": ["validation_request"] } }
         }
       ]

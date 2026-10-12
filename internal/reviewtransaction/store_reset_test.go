@@ -46,7 +46,7 @@ func seedStoreResetLineage(t *testing.T, repo, lineage string, state State) {
 func seedStoreResetLineageAt(t *testing.T, root, lineage string, state State) {
 	t.Helper()
 	writeStoreResetFile(t, filepath.Join(root, "review-transactions", "v2", lineage, "review-state.json"),
-		`{"schema":"gentle-ai.review-state-record/v2","revision":"sha256:00","state":{"schema":"gentle-ai.review-state/v2","lineage_id":"`+lineage+`","state":"`+string(state)+`"}}`+"\n")
+		`{"schema":"brunnr-code.review-state-record/v2","revision":"sha256:00","state":{"schema":"brunnr-code.review-state/v2","lineage_id":"`+lineage+`","state":"`+string(state)+`"}}`+"\n")
 }
 
 // seedStoreResetKillSwitch writes the clone-scoped kill switch into both the
@@ -56,8 +56,8 @@ func seedStoreResetKillSwitch(t *testing.T, repo string) (current, legacy string
 	root := storeResetBrunnrRoot(t, repo)
 	current = filepath.Join(root, "review-mode", "rar-authority", "v1", "rdd-mode", "gen-0000000001.json")
 	legacy = filepath.Join(root, "review-transactions", "rar-authority", "v1", "rdd-mode", "gen-0000000001.json")
-	writeStoreResetFile(t, current, `{"schema":"gentle-ai.rdd-mode-override/v1","mode":"off"}`+"\n")
-	writeStoreResetFile(t, legacy, `{"schema":"gentle-ai.rdd-mode-override/v1","mode":"off"}`+"\n")
+	writeStoreResetFile(t, current, `{"schema":"brunnr-code.rdd-mode-override/v1","mode":"off"}`+"\n")
+	writeStoreResetFile(t, legacy, `{"schema":"brunnr-code.rdd-mode-override/v1","mode":"off"}`+"\n")
 	return current, legacy
 }
 

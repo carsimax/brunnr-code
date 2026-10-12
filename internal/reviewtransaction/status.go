@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const ReviewAuthorityStatusSchema = "gentle-ai.review-authority-status/v1"
+const ReviewAuthorityStatusSchema = "brunnr-code.review-authority-status/v1"
 
 var probeExistingStoreLock = tryLockFile
 

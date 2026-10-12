@@ -24,7 +24,7 @@ const (
 	statusFail = "FAIL"
 	statusSkip = "SKIP"
 
-	reviewContract = "gentle-ai.review-integration/v2"
+	reviewContract = "brunnr-code.review-integration/v2"
 )
 
 type check struct {
@@ -339,7 +339,7 @@ func (b *battery) startCommittedMedium(lane, repo, agent, baseTree string) bool 
 		return false
 	}
 	consent, stderr, code := b.runTransitionExecution("start", repo, nil, execution)
-	if code != 0 || getString(consent, "schema") != "gentle-ai.review-integration.consent/v3" || getString(consent, "action") != "consent_required" {
+	if code != 0 || getString(consent, "schema") != "brunnr-code.review-integration.consent/v3" || getString(consent, "action") != "consent_required" {
 		b.fail(lane, "committed START consent", fmt.Sprintf("exit=%d schema=%q action=%q %s",
 			code, getString(consent, "schema"), getString(consent, "action"), firstLine(stderr)))
 		return false
@@ -516,9 +516,9 @@ func operationState(doc map[string]any) string {
 // no longer hands control to FINALIZE: it closes the review itself.
 func admittedCapture(doc map[string]any) bool {
 	switch getString(doc, "schema") {
-	case "gentle-ai.review-result-artifact/v2":
+	case "brunnr-code.review-result-artifact/v2":
 		return getString(doc, "admission_decision") == "completed"
-	case "gentle-ai.review-last-event-closure/v1":
+	case "brunnr-code.review-last-event-closure/v1":
 		switch operationState(doc) {
 		case "approved", "correction_required", "escalated":
 			return true

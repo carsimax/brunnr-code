@@ -17,8 +17,8 @@ import (
 // so a host can gate delegated verification on it before deciding whether to
 // start a review at all, with or without receipt-driven development enabled
 // (issue #4295).
-const ReviewAssessmentSchema = "gentle-ai.review-assessment/v1"
-const ReviewAssessmentSchemaID = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/assess.schema.json"
+const ReviewAssessmentSchema = "brunnr-code.review-assessment/v1"
+const ReviewAssessmentSchemaID = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/assess.schema.json"
 
 // ReviewAssessmentReason is the public projection of one
 // reviewtransaction.RiskReason: the same evidence code and path START already
@@ -73,7 +73,7 @@ const (
 	reviewAssessDueReasonAlreadyReviewed    = "already_reviewed"
 )
 
-// ReviewAssessmentResult is the complete gentle-ai.review-assessment/v1
+// ReviewAssessmentResult is the complete brunnr-code.review-assessment/v1
 // envelope. Risk is the public vocabulary: "passive" is exactly the tier
 // reviewtransaction.RiskLow names -- the same zero-lens, structural-readback
 // tier START selects for it -- and "medium"/"high" are unchanged so this
@@ -96,7 +96,7 @@ type ReviewAssessmentResult struct {
 }
 
 // reviewAssessPublicRisk maps the internal risk tier to the public
-// gentle-ai.review-assessment/v1 vocabulary. RiskLow is renamed to "passive"
+// brunnr-code.review-assessment/v1 vocabulary. RiskLow is renamed to "passive"
 // because that is exactly the condition it names: every authored path proven
 // passive documentation by its own frozen bytes, the one tier START selects
 // zero reviewer lenses for. Medium and high keep their internal spelling
@@ -296,7 +296,7 @@ func RunReviewAssess(args []string, stdout io.Writer) error {
 	baseRef := flags.String("base-ref", "", "optional base revision for an immutable base-to-HEAD assessment")
 	committedOnly := flags.Bool("committed-only", false, "acknowledge that --base-ref excludes dirty tracked changes")
 	agent := flags.String("agent", "", "optional generated active runtime identity to carry on the next_transition preflight")
-	jsonOutput := flags.Bool("json", false, "print the gentle-ai.review-assessment/v1 envelope as JSON instead of human-readable text")
+	jsonOutput := flags.Bool("json", false, "print the brunnr-code.review-assessment/v1 envelope as JSON instead of human-readable text")
 	escalateItem := flags.String("escalate-item", "", "raise the risk to high by citing one high-risk item (1-6); never lowers a tier")
 	escalateReason := flags.String("escalate-reason", "", "one-line reason for --escalate-item")
 	untrackedScope := reviewSingleValueFlag{}

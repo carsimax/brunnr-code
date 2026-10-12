@@ -12,7 +12,7 @@ func TestSchemaLaneCompilesPublishedIntendedUntrackedSelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := &battery{repoRoot: repoRoot}
-	const identity = "gentle-ai.review-intended-untracked-selection/v1"
+	const identity = "brunnr-code.review-intended-untracked-selection/v1"
 	inventory := "sha256:" + strings.Repeat("a", 64)
 	for _, selection := range []struct{ scope, paths string }{
 		{"exclude", `[]`},

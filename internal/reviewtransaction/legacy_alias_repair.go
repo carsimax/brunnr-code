@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	legacyAliasRepairAuthorizationSchema = "gentle-ai.review-legacy-alias-repair-authorization/v1"
+	legacyAliasRepairAuthorizationSchema = "brunnr-code.review-legacy-alias-repair-authorization/v1"
 	LegacyAliasRepairDisposition         = "quarantine-approved-historical-alias"
 	legacyAliasRepairDiagnostic          = "unsupported historical v1 operation alias"
 )

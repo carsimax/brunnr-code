@@ -8,14 +8,14 @@ import (
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
-const ReviewIntegrationStartSchemaV1 = "gentle-ai.review-integration.start/v1"
-const ReviewIntegrationStartSchemaIDV1 = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/start.schema.json"
-const ReviewIntegrationStartSchemaV2 = "gentle-ai.review-integration.start/v2"
-const ReviewIntegrationStartSchemaIDV2 = "https://gentle-ai.dev/contracts/review-integration/v1/schemas/start-v2.schema.json"
-const ReviewIntegrationStartSchemaV3 = "gentle-ai.review-integration.start/v3"
-const ReviewIntegrationStartSchemaIDV3 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/start.schema.json"
-const ReviewIntegrationStartSchemaV4 = "gentle-ai.review-integration.start/v4"
-const ReviewIntegrationStartSchemaIDV4 = "https://gentle-ai.dev/contracts/review-integration/v2/schemas/start-v4.schema.json"
+const ReviewIntegrationStartSchemaV1 = "brunnr-code.review-integration.start/v1"
+const ReviewIntegrationStartSchemaIDV1 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/start.schema.json"
+const ReviewIntegrationStartSchemaV2 = "brunnr-code.review-integration.start/v2"
+const ReviewIntegrationStartSchemaIDV2 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/start-v2.schema.json"
+const ReviewIntegrationStartSchemaV3 = "brunnr-code.review-integration.start/v3"
+const ReviewIntegrationStartSchemaIDV3 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/start.schema.json"
+const ReviewIntegrationStartSchemaV4 = "brunnr-code.review-integration.start/v4"
+const ReviewIntegrationStartSchemaIDV4 = "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/start-v4.schema.json"
 const ReviewIntegrationStartSchema = ReviewIntegrationStartSchemaV4
 const ReviewIntegrationStartSchemaID = ReviewIntegrationStartSchemaIDV4
 

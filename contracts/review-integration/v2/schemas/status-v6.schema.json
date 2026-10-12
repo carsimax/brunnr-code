@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v2/schemas/status-v6.schema.json",
-  "title": "Gentle AI Review Integration native Git target status v6",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/status-v6.schema.json",
+  "title": "Brunnr-Code Review Integration native Git target status v6",
   "type": "object", "additionalProperties": false,
   "required": [
     "schema", "contract", "operation", "applicability", "action", "replayability",
     "target_identity", "projection", "repair", "candidates"
   ],
   "properties": {
-    "schema": {"const": "gentle-ai.review-integration.status/v6"},
+    "schema": {"const": "brunnr-code.review-integration.status/v6"},
     "contract": {"$ref": "status-v5.schema.json#/properties/contract"}, "operation": {"$ref": "status-v5.schema.json#/properties/operation"},
     "applicability": {"$ref": "status-v5.schema.json#/properties/applicability"}, "authority": {"$ref": "status-v5.schema.json#/properties/authority"},
     "action": {"$ref": "status-v5.schema.json#/properties/action"}, "action_disposition": {"$ref": "status-v5.schema.json#/properties/action_disposition"},
@@ -41,7 +41,7 @@
                 "required": ["name", "schema", "capture_operation", "arguments", "submission"],
                 "properties": {
                   "name": {"const": "intended_untracked_selection"},
-                  "schema": {"const": "gentle-ai.review-intended-untracked-selection/v1"},
+                  "schema": {"const": "brunnr-code.review-intended-untracked-selection/v1"},
                   "capture_operation": {"const": "external.select_intended_untracked"},
                   "arguments": {"type": "array", "minItems": 6, "maxItems": 6, "prefixItems": [
                     {"$ref": "#/$defs/contract_argument"}, {"$ref": "#/$defs/next_transition_argument"},
@@ -56,7 +56,7 @@
         }
       }
     ]},
-    "contract_argument": {"allOf": [{"$ref": "transition-execution.schema.json#/$defs/transition_argument"}, {"properties": {"name": {"const": "contract"}, "value": {"const": "gentle-ai.review-integration/v2"}}}]},
+    "contract_argument": {"allOf": [{"$ref": "transition-execution.schema.json#/$defs/transition_argument"}, {"properties": {"name": {"const": "contract"}, "value": {"const": "brunnr-code.review-integration/v2"}}}]},
     "next_transition_argument": {"allOf": [{"$ref": "transition-execution.schema.json#/$defs/transition_argument"}, {"properties": {"name": {"const": "next-transition"}, "value": {"const": "true"}}}]},
     "agent_argument": {"allOf": [{"$ref": "transition-execution.schema.json#/$defs/transition_argument"}, {"properties": {"name": {"const": "agent"}, "value": {"pattern": "^\\S+$"}}}]},
     "workspace_projection_argument": {"allOf": [{"$ref": "transition-execution.schema.json#/$defs/transition_argument"}, {"properties": {"name": {"const": "projection"}, "value": {"const": "workspace"}}}]},
@@ -68,7 +68,7 @@
       "properties": {
         "operation_token": {"const": "status"},
         "argument_tokens": {"type": "array", "minItems": 5, "maxItems": 5, "prefixItems": [
-          {"const": "--contract=gentle-ai.review-integration/v2"}, {"const": "--next-transition=true"},
+          {"const": "--contract=brunnr-code.review-integration/v2"}, {"const": "--next-transition=true"},
           {"pattern": "^--agent=\\S+$"}, {"const": "--projection=workspace"},
           {"const": "--intended-untracked-selection={{value}}"}
         ], "items": false},
@@ -77,7 +77,7 @@
           "required": ["slot", "domain", "schema", "substitution_location"],
           "properties": {
             "slot": {"const": "intended_untracked_selection"}, "domain": {"const": "schema_bound_json"},
-            "schema": {"const": "gentle-ai.review-intended-untracked-selection/v1"}, "substitution_location": {"const": 4}
+            "schema": {"const": "brunnr-code.review-intended-untracked-selection/v1"}, "substitution_location": {"const": 4}
           }
         }
       }

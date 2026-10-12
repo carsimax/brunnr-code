@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	ReviewResumeSchema   = "gentle-ai.review-resume/v1"
-	ReviewBundleSchema   = "gentle-ai.review-bundle-result/v1"
-	ReviewValidateSchema = "gentle-ai.review-gate-result/v1"
+	ReviewResumeSchema   = "brunnr-code.review-resume/v1"
+	ReviewBundleSchema   = "brunnr-code.review-bundle-result/v1"
+	ReviewValidateSchema = "brunnr-code.review-gate-result/v1"
 )
 
 type ReviewValidateResult struct {
@@ -29,7 +29,7 @@ type ReviewValidateResult struct {
 	Context reviewtransaction.GateContext `json:"context"`
 	// Delivery names what governs delivery when the answer is not the receipt
 	// itself. It is an additive, omitted-by-default extension of
-	// gentle-ai.review-gate-result/v1: every projection that already shipped
+	// brunnr-code.review-gate-result/v1: every projection that already shipped
 	// keeps its exact field set, and only a candidate that is unmanaged by the
 	// user's own choice carries the extra token. It never carries an approval.
 	Delivery reviewtransaction.RDDDelivery `json:"delivery,omitempty"`

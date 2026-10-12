@@ -16,7 +16,7 @@ import (
 )
 
 // ManifestSchema is the on-disk identity; bump the suffix on incompatible changes.
-const ManifestSchema = "gentle-ai.managed-assets/v1"
+const ManifestSchema = "brunnr-code.managed-assets/v1"
 
 const (
 	manifestFileName = "managed-assets.manifest.json"

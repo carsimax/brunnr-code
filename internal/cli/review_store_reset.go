@@ -13,7 +13,7 @@ import (
 )
 
 // ReviewStoreResetSchema identifies the user-facing store reset projection.
-const ReviewStoreResetSchema = "gentle-ai.review-store-reset-result/v1"
+const ReviewStoreResetSchema = "brunnr-code.review-store-reset-result/v1"
 
 // ReviewStoreResetResult is the command's machine-readable output.
 type ReviewStoreResetResult struct {

@@ -105,7 +105,7 @@ func TestInventoryAuthorityDistinguishesReleasedBusyAndMalformedLockTruth(t *tes
 	}{
 		{
 			name: "released metadata", complete: true, want: AuthorityLockReleased,
-			content: `{"schema":"gentle-ai.review-store-lock/v1","owner_id":"released","pid":42,"host":"old-host","acquired_at":"2026-07-14T00:00:00Z"}` + "\n",
+			content: `{"schema":"brunnr-code.review-store-lock/v1","owner_id":"released","pid":42,"host":"old-host","acquired_at":"2026-07-14T00:00:00Z"}` + "\n",
 		},
 		{name: "busy advisory lock", hold: true, complete: true, want: AuthorityLockOwned},
 		{name: "malformed metadata", content: "not-json\n", want: AuthorityLockAmbiguous, wantProblem: true},
@@ -198,7 +198,7 @@ func TestInventoryAuthorityDistinguishesReleasedBusyAndMalformedLockTruth(t *tes
 
 func TestInventoryLockProbeFailureIsAmbiguousAndNonMutating(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "LOCK")
-	payload := []byte(`{"schema":"gentle-ai.review-store-lock/v1","owner_id":"old","pid":42,"host":"old-host","acquired_at":"2026-07-14T00:00:00Z"}` + "\n")
+	payload := []byte(`{"schema":"brunnr-code.review-store-lock/v1","owner_id":"old","pid":42,"host":"old-host","acquired_at":"2026-07-14T00:00:00Z"}` + "\n")
 	if err := os.WriteFile(path, payload, 0o600); err != nil {
 		t.Fatal(err)
 	}

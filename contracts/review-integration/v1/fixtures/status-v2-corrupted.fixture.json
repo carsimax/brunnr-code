@@ -1,6 +1,6 @@
 {
-  "schema": "gentle-ai.review-integration.status/v2",
-  "contract": "gentle-ai.review-integration/v1",
+  "schema": "brunnr-code.review-integration.status/v2",
+  "contract": "brunnr-code.review-integration/v1",
   "operation": "review.status",
   "applicability": "corrupted",
   "receipt": {
@@ -10,7 +10,7 @@
   "replayability": "manual_action_required",
   "target_identity": "sha256:e6faad1cb9ceb2db170e0ec9ea5394b44c3991dff6cbd02fb6787539715968f6",
   "projection": {
-    "schema": "gentle-ai.review-integration.projection/v1",
+    "schema": "brunnr-code.review-integration.projection/v1",
     "kind": "current-changes",
     "projection": "workspace",
     "base_tree": "3e21a205dd9b55021aeae87965092623807e455f",
@@ -26,7 +26,7 @@
     "current_snapshot_identity": "sha256:e6faad1cb9ceb2db170e0ec9ea5394b44c3991dff6cbd02fb6787539715968f6"
   },
   "repair": {
-    "schema": "gentle-ai.review-authority-repair-assessment/v1",
+    "schema": "brunnr-code.review-authority-repair-assessment/v1",
     "status": "unsupported",
     "counts": {
       "lineages": 0,
@@ -42,7 +42,7 @@
       "review/complete-fix",
       "review/validate-fix"
     ],
-    "authorization_schema": "gentle-ai.review-repair-authorization/v1"
+    "authorization_schema": "brunnr-code.review-repair-authorization/v1"
   },
   "candidates": [],
   "eligibility": {

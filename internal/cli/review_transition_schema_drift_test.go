@@ -40,8 +40,8 @@ func TestV2TransitionSchemasStayLocalSharedAndPackaged(t *testing.T) {
 	}
 
 	for name, wantID := range map[string]string{
-		reviewV2TransitionBindingSchema:   "https://gentle-ai.dev/contracts/review-integration/v2/schemas/transition-binding.schema.json",
-		reviewV2TransitionExecutionSchema: "https://gentle-ai.dev/contracts/review-integration/v2/schemas/transition-execution.schema.json",
+		reviewV2TransitionBindingSchema:   "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/transition-binding.schema.json",
+		reviewV2TransitionExecutionSchema: "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/transition-execution.schema.json",
 	} {
 		if got := documents[name]["$id"]; got != wantID {
 			t.Fatalf("%s id = %#v, want %q", name, got, wantID)

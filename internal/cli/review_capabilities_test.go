@@ -129,7 +129,7 @@ func TestReviewCapabilitiesV26AdvertisementIsCurrent(t *testing.T) {
 	if got.Schema != ReviewIntegrationCapabilitiesSchemaV26 || got.Protocol != (ReviewCapabilitiesProtocol{Major: 2, Minor: 6}) ||
 		!slices.Contains(got.Schemas, ReviewIntegrationStatusSchemaV5) || !slices.Contains(got.Schemas, ReviewIntegrationStatusSchemaV6) ||
 		!slices.Contains(got.Schemas, ReviewIntegrationStatusSchemaV7) || !slices.Contains(got.Schemas, ReviewIntegrationStatusSchemaV8) ||
-		!slices.Contains(got.Schemas, "gentle-ai.review-intended-untracked-selection/v1") || !slices.Contains(got.Schemas, ReviewIntegrationStartSchema) || !slices.Contains(got.Schemas, ReviewIntegrationConsentSchemaV3) ||
+		!slices.Contains(got.Schemas, "brunnr-code.review-intended-untracked-selection/v1") || !slices.Contains(got.Schemas, ReviewIntegrationStartSchema) || !slices.Contains(got.Schemas, ReviewIntegrationConsentSchemaV3) ||
 		slices.Contains(got.Schemas, ReviewIntegrationCapabilitiesSchemaV23) || slices.Contains(got.Schemas, ReviewIntegrationCapabilitiesSchemaV24) || slices.Contains(got.Schemas, ReviewIntegrationCapabilitiesSchemaV25) {
 		t.Fatalf("current v2 capabilities advertisement = %#v", got)
 	}
@@ -189,8 +189,8 @@ func validateReviewCapabilitiesSchema(t *testing.T, name, id string, fixture []b
 	}
 	compiler := jsonschema.NewCompiler()
 	for uri, payload := range map[string][]byte{
-		"https://gentle-ai.dev/contracts/review-integration/v1/schemas/capabilities-v1.4.schema.json": v14,
-		"https://gentle-ai.dev/contracts/review-integration/v2/schemas/capabilities-v2.3.schema.json": v23,
+		"https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/capabilities-v1.4.schema.json": v14,
+		"https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/capabilities-v2.3.schema.json": v23,
 		id: capabilities,
 	} {
 		var document any
@@ -224,7 +224,7 @@ func TestReviewCapabilitiesContractValidationIsExactAndReadOnly(t *testing.T) {
 		{name: "supported", contract: ReviewIntegrationContractV1},
 		{name: "native Git", contract: ReviewIntegrationContractV2},
 		{name: "empty", contract: "", wantErr: true},
-		{name: "future major", contract: "gentle-ai.review-integration/v3", wantErr: true},
+		{name: "future major", contract: "brunnr-code.review-integration/v3", wantErr: true},
 		{name: "surrounding whitespace", contract: " " + ReviewIntegrationContractV1, wantErr: true},
 	}
 	for _, tt := range tests {
@@ -276,7 +276,7 @@ func TestReviewCapabilitiesAdvertisesOnlyNativeSurface(t *testing.T) {
 	if !slices.Contains(result.Schemas, reviewResultArtifactSchema) || !slices.Contains(result.Schemas, ReviewIntegrationOperationSchema) || !slices.Contains(result.Schemas, ReviewIntegrationStartSchemaV2) || !slices.Contains(result.Schemas, ReviewIntegrationStatusSchemaV2) || !slices.Contains(result.Schemas, ReviewIntegrationProjectionSchema) || !slices.Contains(result.Schemas, ReviewIntegrationRepairSchema) || !slices.Contains(result.Schemas, reviewtransaction.AuthorityRepairAssessmentSchema) {
 		t.Fatalf("capability schemas do not advertise the negotiated provider surface: %v", result.Schemas)
 	}
-	if result.Bootstrap == nil || result.Bootstrap.Command != "brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v1 --next-transition" ||
+	if result.Bootstrap == nil || result.Bootstrap.Command != "brunnr-code review status --cwd <repo> --contract brunnr-code.review-integration/v1 --next-transition" ||
 		result.Bootstrap.RequiredFeature != "native_next_transition" || result.Bootstrap.UnsupportedOutcome != "unsupported-capability" || !result.Bootstrap.ParentOnly ||
 		len(result.Bootstrap.TargetSelectorVariants) != 4 {
 		t.Fatalf("capability bootstrap = %#v", result.Bootstrap)

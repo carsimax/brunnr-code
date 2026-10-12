@@ -8,15 +8,15 @@ import "testing"
 // file URLs, emails, and every other environment assignment (#3443).
 func TestReviewScrubDefectReportFieldKeepsPublicIdentifiersAndRedactsTheRest(t *testing.T) {
 	cases := []struct{ name, in, want string }{
-		{"contract id survives", "run brunnr-code review status --contract gentle-ai.review-integration/v2 --agent codex", "run brunnr-code review status --contract gentle-ai.review-integration/v2 --agent codex"},
-		{"schema id survives", "schema gentle-ai.review-integration.status/v7 required", "schema gentle-ai.review-integration.status/v7 required"},
-		{"other assignments still redact", "export SOME_RELAY_CONTRACT=gentle-ai.review-relay/v9 and GITHUB_TOKEN=abc", "export <redacted> and <redacted>"},
+		{"contract id survives", "run brunnr-code review status --contract brunnr-code.review-integration/v2 --agent codex", "run brunnr-code review status --contract brunnr-code.review-integration/v2 --agent codex"},
+		{"schema id survives", "schema brunnr-code.review-integration.status/v7 required", "schema brunnr-code.review-integration.status/v7 required"},
+		{"other assignments still redact", "export SOME_RELAY_CONTRACT=brunnr-code.review-relay/v9 and GITHUB_TOKEN=abc", "export <redacted> and <redacted>"},
 		{"absolute path still redacts", "repo at /Users/alan/work/gentle-ai failed", "repo at <redacted> failed"},
 		{"home-rooted path still redacts", "read ~/.codex/config.toml first", "read ~<redacted> first"},
 		{"file url still redacts", "see file:///Users/alan/x", "see fil<redacted>"},
 		{"windows path still redacts", `path C:\Users\alan\repo\x.go missing`, "path <redacted> missing"},
 		{"email still redacts", "by alan@example.com", "by <redacted>"},
-		{"identifier next to a path keeps only the identifier", "gentle-ai.review-integration/v2 at /tmp/x", "gentle-ai.review-integration/v2 at <redacted>"},
+		{"identifier next to a path keeps only the identifier", "brunnr-code.review-integration/v2 at /tmp/x", "brunnr-code.review-integration/v2 at <redacted>"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

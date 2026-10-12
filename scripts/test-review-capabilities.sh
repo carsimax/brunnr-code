@@ -16,7 +16,7 @@ mkdir -p "$outside"
 )
 (
   cd "$outside"
-  "$binary" review capabilities --contract gentle-ai.review-integration/v1 >"$result"
+  "$binary" review capabilities --contract brunnr-code.review-integration/v1 >"$result"
 )
 
 python3 - "$result" "$outside" <<'PY'
@@ -29,8 +29,8 @@ result_path = pathlib.Path(sys.argv[1])
 outside = pathlib.Path(sys.argv[2])
 document = json.loads(result_path.read_text(encoding="utf-8"))
 
-assert document["schema"] == "gentle-ai.review-integration.capabilities/v1.5"
-assert document["contract"] == "gentle-ai.review-integration/v1"
+assert document["schema"] == "brunnr-code.review-integration.capabilities/v1.5"
+assert document["contract"] == "brunnr-code.review-integration/v1"
 assert document["protocol"] == {"major": 1, "minor": 5}
 assert document["gates"] == ["post-apply", "pre-commit", "pre-push", "pre-pr", "release"]
 assert document["projections"] == ["staged", "workspace"]
@@ -73,11 +73,11 @@ assert features["validating_result_reopen"] == {
     "supported": True,
     "requires": ["compact_v2_authority", "provider_artifact_admission"],
 }
-assert "gentle-ai.review-artifact-subject/v1" in document["schemas"]
-assert "gentle-ai.review-admitted-result/v1" in document["schemas"]
-assert "gentle-ai.review-targeted-validation-request/v1" in document["schemas"]
-assert "gentle-ai.review-authority-repair-assessment/v1" in document["schemas"]
-assert "gentle-ai.review-integration.repair/v1" in document["schemas"]
+assert "brunnr-code.review-artifact-subject/v1" in document["schemas"]
+assert "brunnr-code.review-admitted-result/v1" in document["schemas"]
+assert "brunnr-code.review-targeted-validation-request/v1" in document["schemas"]
+assert "brunnr-code.review-authority-repair-assessment/v1" in document["schemas"]
+assert "brunnr-code.review-integration.repair/v1" in document["schemas"]
 assert "review.repair" in document["operations"]
 assert list(outside.iterdir()) == []
 

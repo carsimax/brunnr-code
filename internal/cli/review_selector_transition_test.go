@@ -265,7 +265,7 @@ func testAccountingOnlyRecoveryShape(t *testing.T, tc accountingRecoveryScenario
 		t.Fatal(err)
 	}
 	persisted, err := json.MarshalIndent(reviewtransaction.CompactRecord{
-		Schema: "gentle-ai.review-state-record/v2", Revision: revision, State: predecessor.State,
+		Schema: "brunnr-code.review-state-record/v2", Revision: revision, State: predecessor.State,
 	}, "", "  ")
 	if err != nil {
 		t.Fatal(err)
@@ -330,7 +330,7 @@ func testAccountingOnlyRecoveryShape(t *testing.T, tc accountingRecoveryScenario
 		}
 		return
 	}
-	authorization := "gentle-ai.review-recovery-authorization/v1\npredecessor_lineage=" + started.LineageID +
+	authorization := "brunnr-code.review-recovery-authorization/v1\npredecessor_lineage=" + started.LineageID +
 		"\npredecessor_revision=" + probe.Authority.Revision + "\ntarget_identity=" + probe.TargetIdentity +
 		"\nactor=" + actor + "\nreason=" + reason
 	status := selectorTransitionStatus(t, repo, "--lineage", started.LineageID,
@@ -671,7 +671,7 @@ func TestCurrentChangesRecoverSelectorPresenceSurvivesJSONRoundTrip(t *testing.T
 		t.Fatalf("current-changes recovery probe action = %q, target=%s authority=%s projection=%#v", probe.Action, probe.TargetIdentity, probe.AuthorityTargetIdentity, probe.Projection)
 	}
 	reason, actor, successor := "approved current scope", "maintainer", "selector-current-successor"
-	authorization := "gentle-ai.review-recovery-authorization/v1\npredecessor_lineage=" + record.State.LineageID +
+	authorization := "brunnr-code.review-recovery-authorization/v1\npredecessor_lineage=" + record.State.LineageID +
 		"\npredecessor_revision=" + probe.Authority.Revision + "\ntarget_identity=" + probe.TargetIdentity +
 		"\nsuccessor_lineage=" + successor + "\nactor=" + actor + "\nreason=" + reason
 	status := selectorTransitionStatus(t, repo,
@@ -892,7 +892,7 @@ func TestStatusStopsUnchangedBaseDiffRecoveryWithoutSuccessor(t *testing.T) {
 	before, _ := os.ReadFile(store.StatePath())
 	probe := selectorTransitionStatus(t, repo, "--lineage", record.State.LineageID, "--base-ref", base)
 	reason, actor := "unchanged recovery", "maintainer"
-	authorization := "gentle-ai.review-recovery-authorization/v1\npredecessor_lineage=" + record.State.LineageID + "\npredecessor_revision=" + record.Revision + "\ntarget_identity=" + probe.TargetIdentity + "\nactor=" + actor + "\nreason=" + reason
+	authorization := "brunnr-code.review-recovery-authorization/v1\npredecessor_lineage=" + record.State.LineageID + "\npredecessor_revision=" + record.Revision + "\ntarget_identity=" + probe.TargetIdentity + "\nactor=" + actor + "\nreason=" + reason
 	status := selectorTransitionStatus(t, repo, "--lineage", record.State.LineageID, "--base-ref", base,
 		"--recovery-successor-lineage", "selector-unchanged-successor", "--recovery-reason", reason,
 		"--recovery-actor", actor, "--recovery-authorization", authorization)
@@ -983,7 +983,7 @@ func recoveryAuthorizationFromStatus(t *testing.T, status ReviewTargetStatusResu
 		t.Fatalf("recovery provider binding = %#v", status)
 	}
 	return strings.Join([]string{
-		"gentle-ai.review-recovery-authorization/v1",
+		"brunnr-code.review-recovery-authorization/v1",
 		"predecessor_lineage=" + binding.LineageID,
 		"predecessor_revision=" + binding.Revision,
 		"target_identity=" + binding.TargetIdentity,

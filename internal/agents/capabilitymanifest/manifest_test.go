@@ -201,13 +201,13 @@ func TestManifestRejectsWeakenedRoutingFacts(t *testing.T) {
 func TestEveryManifestKeepsWorkRoutingDormantAndHashesCanonically(t *testing.T) {
 	t.Parallel()
 
-	const wantRoutingDigest = "sha256:1c343ca2792be730e02b35f1655a19884a2672dc0d2915ef2afb33b6ac01bc1c"
+	const wantRoutingDigest = "sha256:c0a1447d01dbc41b4e22db194ecbd2dc185cc5d5c2ead8c0220937d9a55ff32a"
 	// Digests pin the two providers with an enforceable fresh-reviewer
 	// boundary: Claude Code's generated reviewer has no live tools, and
 	// Codex's provider subprocess reaches the same contract.
 	wantManifestDigests := map[model.AgentID]string{
-		model.AgentClaudeCode: "sha256:0644de1b6539cffee24ed3d673b450bf1f460fe5db7e8f05c5a0911aace8b280",
-		model.AgentCodex:      "sha256:b47855dc0acdae65aa2215eba09135087d32a890814dc73baab13595ecb6602b",
+		model.AgentClaudeCode: "sha256:3fd781489ca4c50738ded9200eb9c308fdfb42e678c2c11c5b2075d4e597c910",
+		model.AgentCodex:      "sha256:e5de61ab4a49eaee933c3c7aa2cda09053edb832c036cd660301e05704ec1011",
 	}
 
 	for agent, wantDigest := range wantManifestDigests {
@@ -285,8 +285,8 @@ func TestEveryManifestDigestStaysByteStable(t *testing.T) {
 	t.Parallel()
 
 	wantDigests := map[model.AgentID]string{
-		model.AgentClaudeCode: "sha256:0644de1b6539cffee24ed3d673b450bf1f460fe5db7e8f05c5a0911aace8b280",
-		model.AgentCodex:      "sha256:b47855dc0acdae65aa2215eba09135087d32a890814dc73baab13595ecb6602b",
+		model.AgentClaudeCode: "sha256:3fd781489ca4c50738ded9200eb9c308fdfb42e678c2c11c5b2075d4e597c910",
+		model.AgentCodex:      "sha256:e5de61ab4a49eaee933c3c7aa2cda09053edb832c036cd660301e05704ec1011",
 	}
 
 	agents := make([]model.AgentID, 0, len(wantDigests))

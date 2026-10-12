@@ -11,7 +11,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
-const reviewLastEventClosureSchema = "gentle-ai.review-last-event-closure/v1"
+const reviewLastEventClosureSchema = "brunnr-code.review-last-event-closure/v1"
 
 const reviewApprovedLastEventAcknowledgementAction = "the approved review completed on the last admitted event and awaits its exact acknowledgement"
 
@@ -45,7 +45,7 @@ func reviewApprovedAcknowledgementTransition(repo string, acknowledgement review
 // reviewAcknowledgedSchema names the terminal answer the burn prints. Consumers
 // use this envelope directly; no post-burn STATUS is required. Later incidental
 // STATUS calls can recognize the consumed target but cannot replay authority.
-const reviewAcknowledgedSchema = "gentle-ai.review-acknowledged/v1"
+const reviewAcknowledgedSchema = "brunnr-code.review-acknowledged/v1"
 
 type reviewAcknowledgedResult struct {
 	Schema           string `json:"schema"`
@@ -228,7 +228,7 @@ func closeReviewOnLastCapturedLens(
 			if _, captured, err := reviewProviderCaptureRefuter(ctx, repo, store, state, state.CapturePhaseRevision, runtime); err != nil {
 				return nil, err
 			} else if !captured {
-				return nil, errors.New("compiled provider refuter was required but no result was captured; rerun `brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition` and follow its capture route")
+				return nil, errors.New("compiled provider refuter was required but no result was captured; rerun `brunnr-code review status --cwd <repo> --contract brunnr-code.review-integration/v2 --next-transition` and follow its capture route")
 			}
 			current, err := store.LoadContext(ctx)
 			if err != nil {

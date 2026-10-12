@@ -28,7 +28,7 @@ func TestRetiredBindSDDRejectsBothPublishedContractsWithoutAnEnvelope(t *testing
 
 func TestNegotiatedReviewOperationsRejectInvalidContractsBeforeMutation(t *testing.T) {
 	reviewEnabledHome(t)
-	for _, contract := range []string{"", "gentle-ai.review-integration/v3"} {
+	for _, contract := range []string{"", "brunnr-code.review-integration/v3"} {
 		t.Run("validate_"+contract, func(t *testing.T) {
 			repo := initReviewCLIRepo(t)
 			writeNegotiatedOperationChange(t, repo, "thin")

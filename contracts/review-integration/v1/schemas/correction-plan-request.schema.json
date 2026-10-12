@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v1/schemas/correction-plan-request.schema.json",
-  "title": "Gentle AI provider-owned bounded correction plan request",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/correction-plan-request.schema.json",
+  "title": "Brunnr-Code provider-owned bounded correction plan request",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -9,7 +9,7 @@
     "correction_budget", "fix_finding_ids", "findings"
   ],
   "properties": {
-    "schema": {"const": "gentle-ai.review-correction-plan-request/v1"},
+    "schema": {"const": "brunnr-code.review-correction-plan-request/v1"},
     "request_hash": {"$ref": "#/$defs/sha256"},
     "lineage_id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
     "expected_revision": {"$ref": "#/$defs/sha256"},

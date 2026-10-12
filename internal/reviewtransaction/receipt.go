@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const ReceiptSchema = "gentle-ai.review-receipt/v1"
+const ReceiptSchema = "brunnr-code.review-receipt/v1"
 
 var EmptyFixDeltaHash = func() string {
 	sum := sha256.Sum256(nil)
@@ -234,7 +234,7 @@ type GateScopeChangeDiagnostics struct {
 	// the recovery: which successor scope this gate will actually accept,
 	// and the derived publication boundary it must be frozen against. They
 	// are deliberately NOT projected into the negotiated
-	// gentle-ai.review-integration/v1 failure envelope, whose published
+	// brunnr-code.review-integration/v1 failure envelope, whose published
 	// failure.schema.json pins `scope_change` to
 	// `additionalProperties: false` and `recovery_required_inputs` to
 	// exactly six items. Both stay empty for every gate whose bare
@@ -248,7 +248,7 @@ type GateScopeChangeDiagnostics struct {
 	// input the command derives is a false instruction: it sends an operator
 	// hunting for a value that does not exist. Like RecoveryScope and
 	// RecoveryBaseRef this stays out of the negotiated
-	// gentle-ai.review-integration/v1 failure envelope, whose published
+	// brunnr-code.review-integration/v1 failure envelope, whose published
 	// failure.schema.json pins recovery_required_inputs to exactly six items;
 	// the complete operation input set keeps travelling on the wire unscoped.
 	RecoveryDerivedInputs []string `json:"recovery_derived_inputs,omitempty"`

@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v2/schemas/assess.schema.json",
-  "title": "Gentle AI read-only review candidate risk assessment",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/assess.schema.json",
+  "title": "Brunnr-Code read-only review candidate risk assessment",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "risk", "reasons", "changed_paths", "changed_lines", "candidate", "review_due", "review_due_reason"],
   "properties": {
-    "schema": {"const": "gentle-ai.review-assessment/v1"},
+    "schema": {"const": "brunnr-code.review-assessment/v1"},
     "risk": {"enum": ["passive", "medium", "high"]},
     "reasons": {
       "type": "array",

@@ -10,7 +10,7 @@ import (
 )
 
 // AuthorityDispositionPlanSchema identifies AuthorityDispositionPlan's shape.
-const AuthorityDispositionPlanSchema = "gentle-ai.review-authority-disposition-plan/v1"
+const AuthorityDispositionPlanSchema = "brunnr-code.review-authority-disposition-plan/v1"
 
 // AuthorityDispositionPlan is the generic, deterministically-derived
 // disposition plan for a closed-classified authority graph anomaly
@@ -60,7 +60,7 @@ type AuthorityDispositionSelector struct {
 // compactContentMismatchedRecoveryAuthorizationClass is the one closed
 // anomaly class Wave 2 derives a plan for: a recovery successor whose
 // persisted maintainer authorization carries the exact
-// gentle-ai.review-recovery-authorization/v1 schema prefix but binds
+// brunnr-code.review-recovery-authorization/v1 schema prefix but binds
 // different content than the successor's own recorded fields — corruption
 // rather than a pre-contract legacy authorization
 // (classifyCompactRecoveryEdgeAnomalies, compact_reconcile.go). It is
@@ -395,7 +395,7 @@ func authorityInventoryRevision(records map[string]CompactRecord, historical map
 	for lineage, record := range historical {
 		revisions[lineage] = record.RawDigest
 	}
-	return classifiedAuthorityRepairDigest("gentle-ai.review-authority-inventory-revision/v1", revisions)
+	return classifiedAuthorityRepairDigest("brunnr-code.review-authority-inventory-revision/v1", revisions)
 }
 
 // authorityDispositionPlanDigest computes plan_digest over the seven derived
@@ -427,15 +427,15 @@ func authorityDispositionPlanDigest(plan AuthorityDispositionPlan) (string, erro
 		AuthorityInventoryRevision: plan.AuthorityInventoryRevision, AnomalyClass: plan.AnomalyClass,
 		Selector: plan.Selector, SeedSet: plan.SeedSet, Closure: plan.Closure, ExpectedRevisions: plan.ExpectedRevisions,
 	}
-	return classifiedAuthorityRepairDigest("gentle-ai.review-disposition-plan-digest/v1", canonical)
+	return classifiedAuthorityRepairDigest("brunnr-code.review-disposition-plan-digest/v1", canonical)
 }
 
 // authorityDispositionAuthorizationSchema is the first line of the exact
-// seven-line gentle-ai.review-disposition-authorization/v1 binding a
+// seven-line brunnr-code.review-disposition-authorization/v1 binding a
 // maintainer must supply verbatim (rdd-authority-disposition-plan /
 // "Authorization Binds to Digest and Revision, No Wall-Clock Expiry",
 // pending-confirmation assumption 1).
-const authorityDispositionAuthorizationSchema = "gentle-ai.review-disposition-authorization/v1"
+const authorityDispositionAuthorizationSchema = "brunnr-code.review-disposition-authorization/v1"
 
 // AuthorityDispositionAuthorizationSchema is the exported form of
 // authorityDispositionAuthorizationSchema for Wave 6 Slice S4's negotiated-

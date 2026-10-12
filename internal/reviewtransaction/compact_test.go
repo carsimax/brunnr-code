@@ -34,7 +34,7 @@ func TestCompactStateWithoutRequestContextKeepsItsBytes(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Captured before the request context fields were added.
-	const historical = "sha256:29aaf1517a5ef6d67e5e40c1942977242cbc069c21aa924fd697a35c3a80813f"
+	const historical = "sha256:aa8617513fbafac821ed43f046e23c922f978068d9b92f75121c969a366852d3"
 	if phase != historical {
 		t.Fatalf("capture phase without request context = %s, want the historical %s", phase, historical)
 	}

@@ -303,7 +303,7 @@ func reviewNegotiatedStartCommand(snapshot Snapshot) string {
 
 var reviewStopReasonNarration = map[string]string{
 	"corrected_candidate_unavailable": "Change the candidate content, then re-run " +
-		"` + "`" + `brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --agent claude-code --next-transition` + "`" + `.",
+		"` + "`" + `brunnr-code review status --cwd <repo> --contract brunnr-code.review-integration/v2 --agent claude-code --next-transition` + "`" + `.",
 }
 `,
 	} {

@@ -126,7 +126,7 @@ func TestReviewNarrationReviewModeDisableIsAlwaysCloneScoped(t *testing.T) {
 // TestReviewNarrationNamedCommandsAreAlwaysComplete is the execution-based
 // RED-first proof for adversarial findings F1 and F7 applied to
 // review_narration.go: `brunnr-code review status --next-transition` alone is
-// refused by this real CLI without `--contract gentle-ai.review-integration/v2
+// refused by this real CLI without `--contract brunnr-code.review-integration/v2
 // --agent claude-code`, and `brunnr-code review reopen-results` is refused
 // without --cwd/--lineage/--expected-revision/--target/--reason/--actor
 // (both verified by execution against a fresh binary).
@@ -140,8 +140,8 @@ func TestReviewNarrationNamedCommandsAreAlwaysComplete(t *testing.T) {
 			// bindNarrationRuntimeIdentity fills with whoever declared
 			// itself on this invocation; naming claude-code here is what
 			// let issue #2440 through.
-			if !strings.Contains(invocation, "--contract gentle-ai.review-integration/v2") || !reviewAgentBindingRegexp.MatchString(invocation) {
-				t.Errorf("stop reason %q: %s is incomplete -- the real CLI refuses --next-transition without --contract gentle-ai.review-integration/v2 and a bound --agent", code, invocation)
+			if !strings.Contains(invocation, "--contract brunnr-code.review-integration/v2") || !reviewAgentBindingRegexp.MatchString(invocation) {
+				t.Errorf("stop reason %q: %s is incomplete -- the real CLI refuses --next-transition without --contract brunnr-code.review-integration/v2 and a bound --agent", code, invocation)
 			}
 		}
 		for _, invocation := range reopenRe.FindAllString(statement, -1) {

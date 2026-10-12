@@ -11,7 +11,7 @@ Canonical bodies for the orchestrator subsections shared across runtimes.
 <!-- odd-orchestrator-section:Language Domain Contract:end -->
 
 <!-- odd-orchestrator-section:Delegated Verification Gate (MANDATORY):start -->
-Verification of a delegated writer's work follows the native risk tier whether receipt-driven development (RDD) is on or off. After the writer returns, the parent runs `brunnr-code review assess --cwd <repo> --agent {{BRUNNR_CODE_RUNTIME_AGENT_ID}} --json` (`gentle-ai.review-assessment/v1`, `risk` one of `passive`, `medium`, `high`) over the writer's diff; any assessment failure or an unrecognized verb is treated as `high`.
+Verification of a delegated writer's work follows the native risk tier whether receipt-driven development (RDD) is on or off. After the writer returns, the parent runs `brunnr-code review assess --cwd <repo> --agent {{BRUNNR_CODE_RUNTIME_AGENT_ID}} --json` (`brunnr-code.review-assessment/v1`, `risk` one of `passive`, `medium`, `high`) over the writer's diff; any assessment failure or an unrecognized verb is treated as `high`.
 
 - **Risk tier**: passive: structural readback only; medium: writer self-verification, with a separate verifier only when the writer ran on a small-model profile (low effort or a mini model); high or unassessable: writer self-verification plus an independent verifier. The small-model bias raises the tier by one for verification purposes. The bounded writer runs the parent-authorized `## Verification` commands in the foreground and reports `<command>: <observed result>`.
 - **RDD on**: the native review is an additional outside view of the change, from the lenses pertinent to what was touched; it never replaces or skips the tier's verification, and the tier's verifier runs before review. A runtime that renders an RDD status line reads it from there; otherwise read `brunnr-code review mode status` (read-only) and treat a failure as `unknown`. A declined consent, a disabled clone, or a refused START or STATUS changes nothing about verification.
@@ -48,7 +48,7 @@ Verification of a delegated writer's work is proportionate to the risk of the ch
 <!-- odd-orchestrator-section:Native Checking Contract (ODD only):end -->
 
 <!-- odd-orchestrator-section:Delegated Verification Gate (Reduced Form):start -->
-This runtime has no subagent delegation mechanism, so there is no separate writer or verifier to gate: the orchestrator itself performs the bounded action and its own verification. The native risk tier from `brunnr-code review assess --cwd <repo> --json` (`gentle-ai.review-assessment/v1`, `risk` one of `passive`, `medium`, `high`; any failure or an unrecognized verb is treated as `high`) still decides whether verification commands run at all:
+This runtime has no subagent delegation mechanism, so there is no separate writer or verifier to gate: the orchestrator itself performs the bounded action and its own verification. The native risk tier from `brunnr-code review assess --cwd <repo> --json` (`brunnr-code.review-assessment/v1`, `risk` one of `passive`, `medium`, `high`; any failure or an unrecognized verb is treated as `high`) still decides whether verification commands run at all:
 
 - **Passive**: structural readback only; do not run the `## Verification` commands.
 - **Medium or high**: run the exact `## Verification` commands yourself, in the foreground, and report `<command>: <observed result>`.

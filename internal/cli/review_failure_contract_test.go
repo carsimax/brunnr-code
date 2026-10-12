@@ -56,7 +56,7 @@ func TestNegotiatedReviewContractFailuresArePreMutationAndLegacyErrorsStayCompat
 		args []string
 		code string
 	}{
-		{name: "capabilities unsupported", args: []string{"capabilities", "--contract", "gentle-ai.review-integration/v3"}, code: "unsupported_contract"},
+		{name: "capabilities unsupported", args: []string{"capabilities", "--contract", "brunnr-code.review-integration/v3"}, code: "unsupported_contract"},
 		{name: "start empty", args: []string{"start", "--contract="}, code: "empty_contract"},
 	}
 	for _, tt := range tests {

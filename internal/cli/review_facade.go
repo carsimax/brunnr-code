@@ -1047,7 +1047,7 @@ func runReviewStatus(ctx context.Context, args []string, stdout io.Writer) error
 		// lineage fails closed instead of preflighting a fresh target there.
 		if requestedContext := strings.TrimSpace(*repositoryContextHandle); requestedContext != "" {
 			if requestedLineage == "" || !*nextTransition || reviewtransaction.ValidateReviewRepositoryContextHandle(requestedContext) != nil {
-				return reviewPreflightError(errors.New("review status --repository-context is only valid with --next-transition and the --lineage START issued it for; rerun the exact continuation `brunnr-code review status --contract gentle-ai.review-integration/v2 --next-transition --lineage <lineage> --repository-context <handle>` START returned"))
+				return reviewPreflightError(errors.New("review status --repository-context is only valid with --next-transition and the --lineage START issued it for; rerun the exact continuation `brunnr-code review status --contract brunnr-code.review-integration/v2 --next-transition --lineage <lineage> --repository-context <handle>` START returned"))
 			}
 			if !requestedLineageOccupied {
 				return reviewPreflightError(fmt.Errorf("review lineage %q is not held by repository %s; rerun the same command from the repository that owns the lineage, or name it: `brunnr-code review status --cwd <repository> --contract %s --next-transition --lineage %s --repository-context %s`", requestedLineage, root, *contract, requestedLineage, requestedContext))
@@ -1682,7 +1682,7 @@ func RunReviewRecover(args []string, stdout io.Writer) error {
 	reason := flags.String("reason", "", "recovery reason")
 	actor := flags.String("actor", "", "recovery actor")
 	projectionFlag := flags.String("projection", "", "successor projection: workspace or staged (default: predecessor projection)")
-	authorization := flags.String("maintainer-authorization", "", "exact LF-only gentle-ai.review-recovery-authorization/v1 binding: predecessor_lineage, predecessor_revision, target_identity, optional native successor_lineage, actor, reason")
+	authorization := flags.String("maintainer-authorization", "", "exact LF-only brunnr-code.review-recovery-authorization/v1 binding: predecessor_lineage, predecessor_revision, target_identity, optional native successor_lineage, actor, reason")
 	policySource := flags.String("policy", "", "optional review policy file")
 	focus := flags.String("focus", "reliability", "dominant standard-risk focus; large pure documentation always uses readability")
 	baseRef := flags.String("base-ref", "", "optional base revision for immutable base-to-HEAD review")
@@ -1998,7 +1998,7 @@ func reviewUnchangedRecoveryRefusal(cause error, cwd, predecessor, expected, suc
 // relayed verbatim into machine envelopes, so it stays path-free and the
 // continuation runs with the repository as the working directory.
 func reviewInexactRecoveryAuthorizationRefusal(cause error, predecessor, expected, successor, disposition string, selectors []string) error {
-	return fmt.Errorf("%w: an accepted binding is the LF-joined text `gentle-ai.review-recovery-authorization/v1` followed by one key=value line each for predecessor_lineage, predecessor_revision, target_identity (the successor target this command derived, echoed above), actor, and reason; a target derived by a status query with different selectors never binds here. This recovery shape derives its own binding, so omit --maintainer-authorization, --actor, and --reason and, with the repository as the working directory, re-run: %s",
+	return fmt.Errorf("%w: an accepted binding is the LF-joined text `brunnr-code.review-recovery-authorization/v1` followed by one key=value line each for predecessor_lineage, predecessor_revision, target_identity (the successor target this command derived, echoed above), actor, and reason; a target derived by a status query with different selectors never binds here. This recovery shape derives its own binding, so omit --maintainer-authorization, --actor, and --reason and, with the repository as the working directory, re-run: %s",
 		cause, strings.Join(append([]string{reviewRecoverCommand("", predecessor, expected, successor, disposition)}, selectors...), " "))
 }
 
@@ -3238,7 +3238,7 @@ var errFacadeArtifactManifestInputNotRegular = errors.New("artifact manifest inp
 
 func facadeValueHash(domain string, value any) string {
 	payload, _ := json.Marshal(value)
-	sum := sha256.Sum256(append([]byte("gentle-ai.facade-"+domain+"/v1\x00"), payload...))
+	sum := sha256.Sum256(append([]byte("brunnr-code.facade-"+domain+"/v1\x00"), payload...))
 	return "sha256:" + hex.EncodeToString(sum[:])
 }
 

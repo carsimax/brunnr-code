@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v1/schemas/projection.schema.json",
-  "title": "Gentle AI Review Integration Projection v1",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v1/schemas/projection.schema.json",
+  "title": "Brunnr-Code Review Integration Projection v1",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -19,7 +19,7 @@
     "current_snapshot_identity"
   ],
   "properties": {
-    "schema": { "const": "gentle-ai.review-integration.projection/v1" },
+    "schema": { "const": "brunnr-code.review-integration.projection/v1" },
     "kind": { "enum": ["current-changes", "base-diff", "base-workspace-overlay", "exact-revision", "fix-diff"] },
     "projection": { "enum": ["staged", "workspace"] },
     "base_tree": { "$ref": "#/$defs/gitTree" },

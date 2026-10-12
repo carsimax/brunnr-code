@@ -146,20 +146,20 @@ var reviewStatusNextTransitionInvocationRegexp = regexp.MustCompile("`brunnr-cod
 // RED-first proof for adversarial finding F1: `brunnr-code review status
 // --next-transition` alone is refused by this real CLI --
 //
-//	Error: --action-eligibility and --next-transition require --contract gentle-ai.review-integration/v1
+//	Error: --action-eligibility and --next-transition require --contract brunnr-code.review-integration/v1
 //
 // -- and even the error's own suggested `--contract` names the LEGACY v1
 // schema, not the v2 contract this table's own Route section requires
 // routing from. The only form that actually runs is `brunnr-code review
-// status --cwd <repo> --contract gentle-ai.review-integration/v2 --agent
+// status --cwd <repo> --contract brunnr-code.review-integration/v2 --agent
 // claude-code --next-transition` (confirmed by execution: exit 0, real
 // next_transition JSON returned). Every backtick-quoted invocation in the
 // shipped asset and its docs source must be this complete form.
 func TestNamedReviewStatusNextTransitionIsAlwaysComplete(t *testing.T) {
 	for label, content := range reviewStopReasonDocsCompleteDocuments(t) {
 		for _, invocation := range reviewStatusNextTransitionInvocationRegexp.FindAllString(content, -1) {
-			if !strings.Contains(invocation, "--contract gentle-ai.review-integration/v2") || !reviewAgentBindingRegexp.MatchString(invocation) {
-				t.Errorf("%s: %s is incomplete -- the real CLI refuses --next-transition without --contract gentle-ai.review-integration/v2 and a bound --agent (verified by execution)", label, invocation)
+			if !strings.Contains(invocation, "--contract brunnr-code.review-integration/v2") || !reviewAgentBindingRegexp.MatchString(invocation) {
+				t.Errorf("%s: %s is incomplete -- the real CLI refuses --next-transition without --contract brunnr-code.review-integration/v2 and a bound --agent (verified by execution)", label, invocation)
 			}
 		}
 	}

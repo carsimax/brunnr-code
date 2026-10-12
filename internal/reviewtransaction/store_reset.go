@@ -49,7 +49,7 @@ import (
 
 // StoreResetReportSchema identifies the clone-scoped review store reset
 // projection.
-const StoreResetReportSchema = "gentle-ai.review-store-reset/v1"
+const StoreResetReportSchema = "brunnr-code.review-store-reset/v1"
 
 const (
 	// StoreResetPreview names a read-only survey that removes nothing.

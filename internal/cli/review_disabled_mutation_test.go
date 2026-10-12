@@ -48,7 +48,7 @@ func disabledReviewRepo(t *testing.T, lineage string) (repo string, started Revi
 // so malformed requests cannot prove the disabled-mode refusal.
 func TestDisabledReviewRefusesEveryAuthorityProgressingVerb(t *testing.T) {
 	const digest = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-	const authorization = "gentle-ai.maintainer-authorization/v1"
+	const authorization = "brunnr-code.maintainer-authorization/v1"
 	input := filepath.Join(t.TempDir(), "input.json")
 	if err := os.WriteFile(input, []byte("{}\n"), 0o644); err != nil {
 		t.Fatal(err)

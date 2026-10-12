@@ -1,6 +1,6 @@
 {
-  "schema": "gentle-ai.review-integration.status/v3",
-  "contract": "gentle-ai.review-integration/v2",
+  "schema": "brunnr-code.review-integration.status/v3",
+  "contract": "brunnr-code.review-integration/v2",
   "operation": "review.status",
   "applicability": "current_target",
   "authority": {
@@ -23,7 +23,7 @@
   },
   "target_identity": "sha256:e6faad1cb9ceb2db170e0ec9ea5394b44c3991dff6cbd02fb6787539715968f6",
   "projection": {
-    "schema": "gentle-ai.review-integration.projection/v1",
+    "schema": "brunnr-code.review-integration.projection/v1",
     "kind": "current-changes",
     "projection": "workspace",
     "base_tree": "3e21a205dd9b55021aeae87965092623807e455f",
@@ -39,7 +39,7 @@
     "current_snapshot_identity": "sha256:e6faad1cb9ceb2db170e0ec9ea5394b44c3991dff6cbd02fb6787539715968f6"
   },
   "repair": {
-    "schema": "gentle-ai.review-authority-repair-assessment/v1",
+    "schema": "brunnr-code.review-authority-repair-assessment/v1",
     "status": "unsupported",
     "counts": {
       "lineages": 0,
@@ -55,7 +55,7 @@
       "review/complete-fix",
       "review/validate-fix"
     ],
-    "authorization_schema": "gentle-ai.review-repair-authorization/v1"
+    "authorization_schema": "brunnr-code.review-repair-authorization/v1"
   },
   "candidates": [],
   "next_transition": {
@@ -65,7 +65,7 @@
       "inputs": [
         {
           "name": "reviewer_result",
-          "schema": "https://gentle-ai.dev/schema/review/reviewer/v1",
+          "schema": "https://github.com/carsimax/brunnr-code/schema/review/reviewer/v1",
           "capture_operation": "review.capture-result",
           "arguments": [
             {
@@ -100,13 +100,13 @@
             },
             {
               "name": "subject-hash",
-              "value": "sha256:34c226ef1586f0c77b30311320d4d2529819097fbb073ee31634f4d87a19da6a",
-              "token": "--subject-hash=sha256:34c226ef1586f0c77b30311320d4d2529819097fbb073ee31634f4d87a19da6a"
+              "value": "sha256:bf40613ae4a672a0ef98057e24cfa831697b06d7bd50ff180b72bd672c220aea",
+              "token": "--subject-hash=sha256:bf40613ae4a672a0ef98057e24cfa831697b06d7bd50ff180b72bd672c220aea"
             }
           ],
           "artifact_subject": {
-            "schema": "gentle-ai.review-artifact-subject/v2",
-            "subject_hash": "sha256:34c226ef1586f0c77b30311320d4d2529819097fbb073ee31634f4d87a19da6a",
+            "schema": "brunnr-code.review-artifact-subject/v2",
+            "subject_hash": "sha256:bf40613ae4a672a0ef98057e24cfa831697b06d7bd50ff180b72bd672c220aea",
             "lineage_id": "review-status-fixture",
             "authority_revision": "sha256:81cdad8f3182d4919147d3c4fe8f614814068e5ef68417e3dcbd5e326dd3e390",
             "target_identity": "sha256:e6faad1cb9ceb2db170e0ec9ea5394b44c3991dff6cbd02fb6787539715968f6",

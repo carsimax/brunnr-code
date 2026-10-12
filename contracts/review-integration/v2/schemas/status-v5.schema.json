@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v2/schemas/status-v5.schema.json",
-  "title": "Gentle AI Review Integration native Git target status v5",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/status-v5.schema.json",
+  "title": "Brunnr-Code Review Integration native Git target status v5",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -9,8 +9,8 @@
     "target_identity", "projection", "repair", "candidates"
   ],
   "properties": {
-    "schema": {"const": "gentle-ai.review-integration.status/v5"},
-    "contract": {"const": "gentle-ai.review-integration/v2"},
+    "schema": {"const": "brunnr-code.review-integration.status/v5"},
+    "contract": {"const": "brunnr-code.review-integration/v2"},
     "operation": {"const": "review.status"},
     "applicability": {"$ref": "../../v1/schemas/status-v2.schema.json#/properties/applicability"},
     "authority": {"$ref": "../../v1/schemas/status-v2.schema.json#/properties/authority"},
@@ -107,12 +107,12 @@
         "provider_task": {"$ref": "#/$defs/provider_task"}
       },
       "allOf": [
-        {"if": {"properties": {"capture_operation": {"const": "external.run_targeted_validation"}}, "required": ["capture_operation"]}, "then": {"required": ["validation_request", "submission"], "properties": {"schema": {"const": "gentle-ai.review-targeted-validation-request/v1"}}}},
+        {"if": {"properties": {"capture_operation": {"const": "external.run_targeted_validation"}}, "required": ["capture_operation"]}, "then": {"required": ["validation_request", "submission"], "properties": {"schema": {"const": "brunnr-code.review-targeted-validation-request/v1"}}}},
         {"if": {"properties": {"capture_operation": {"const": "review.capture-validation"}}, "required": ["capture_operation"]}, "then": {"required": ["validation_request"]}},
         {"if": {"properties": {"capture_operation": {"not": {"enum": ["external.run_targeted_validation", "review.capture-validation"]}}}, "required": ["capture_operation"]}, "then": {"not": {"required": ["validation_request"]}}},
-        {"if": {"properties": {"capture_operation": {"const": "review.capture-correction-plan"}}, "required": ["capture_operation"]}, "then": {"required": ["submission"], "properties": {"schema": {"const": "gentle-ai.review-correction-plan/v1"}}}},
+        {"if": {"properties": {"capture_operation": {"const": "review.capture-correction-plan"}}, "required": ["capture_operation"]}, "then": {"required": ["submission"], "properties": {"schema": {"const": "brunnr-code.review-correction-plan/v1"}}}},
         {"if": {"properties": {"capture_operation": {"not": {"enum": ["review.capture-correction-plan", "external.run_targeted_validation", "review.capture-result"]}}}, "required": ["capture_operation"]}, "then": {"not": {"required": ["submission"]}}},
-        {"if": {"properties": {"capture_operation": {"const": "review.capture-result"}}, "required": ["capture_operation"]}, "then": {"required": ["artifact_subject", "base_tree", "candidate_tree"], "properties": {"schema": {"const": "https://gentle-ai.dev/schema/review/reviewer/v1"}, "submission": {"$ref": "#/$defs/capture_result_submission_descriptor"}}}, "else": {"allOf": [{"not": {"required": ["artifact_subject"]}}, {"not": {"required": ["base_tree"]}}, {"not": {"required": ["candidate_tree"]}}, {"not": {"required": ["changed_path_manifest"]}}]}},
+        {"if": {"properties": {"capture_operation": {"const": "review.capture-result"}}, "required": ["capture_operation"]}, "then": {"required": ["artifact_subject", "base_tree", "candidate_tree"], "properties": {"schema": {"const": "https://github.com/carsimax/brunnr-code/schema/review/reviewer/v1"}, "submission": {"$ref": "#/$defs/capture_result_submission_descriptor"}}}, "else": {"allOf": [{"not": {"required": ["artifact_subject"]}}, {"not": {"required": ["base_tree"]}}, {"not": {"required": ["candidate_tree"]}}, {"not": {"required": ["changed_path_manifest"]}}]}},
         {"if": {"properties": {"capture_operation": {"const": "external.run_provider_role"}}, "required": ["capture_operation"]}, "then": {"required": ["provider_task"]}, "else": {"not": {"required": ["provider_task"]}}}
       ]
     },
@@ -141,7 +141,7 @@
       "properties": {
         "slot": {"const": "reviewer_result"},
         "domain": {"const": "artifact_path_or_stdin"},
-        "schema": {"const": "https://gentle-ai.dev/schema/review/reviewer/v1"},
+        "schema": {"const": "https://github.com/carsimax/brunnr-code/schema/review/reviewer/v1"},
         "substitution_location": {"const": 7}
       }
     },

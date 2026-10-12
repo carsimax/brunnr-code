@@ -1,6 +1,6 @@
 {
-  "schema": "gentle-ai.review-integration.status/v1",
-  "contract": "gentle-ai.review-integration/v1",
+  "schema": "brunnr-code.review-integration.status/v1",
+  "contract": "brunnr-code.review-integration/v1",
   "operation": "review.status",
   "applicability": "current_target",
   "authority": {
@@ -22,7 +22,7 @@
   },
   "target_identity": "sha256:e6faad1cb9ceb2db170e0ec9ea5394b44c3991dff6cbd02fb6787539715968f6",
   "projection": {
-    "schema": "gentle-ai.review-integration.projection/v1",
+    "schema": "brunnr-code.review-integration.projection/v1",
     "kind": "current-changes",
     "projection": "workspace",
     "base_tree": "3e21a205dd9b55021aeae87965092623807e455f",
@@ -92,7 +92,7 @@
       "inputs": [
         {
           "name": "reviewer_result",
-          "schema": "https://gentle-ai.dev/schema/review/reviewer/v1",
+          "schema": "https://github.com/carsimax/brunnr-code/schema/review/reviewer/v1",
           "capture_operation": "review.capture-result",
           "arguments": [
             {

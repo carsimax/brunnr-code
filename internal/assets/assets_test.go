@@ -192,7 +192,7 @@ var retiredWorkRunCeremonyTokens = []string{
 	"connectorSessionRef",
 	"BRUNNR_CODE_PRODUCTIVE_RUNTIME",
 	"{{BRUNNR_CODE_RUNTIME_AGENT_ID}}",
-	"--contract gentle-ai.work-",
+	"--contract brunnr-code.work-",
 }
 
 func TestODDOrchestratorsCarryNoRetiredWorkRunCeremony(t *testing.T) {
@@ -232,7 +232,7 @@ func TestOrchestratorsProjectOrganicRouting(t *testing.T) {
 		}
 		for _, retired := range []string{
 			"#### Review Lens Selection", "run exactly ONE lens", "run the full 4R set",
-			"review/start(target)", "gentle-ai.review-integration/v1 --next-transition",
+			"review/start(target)", "brunnr-code.review-integration/v1 --next-transition",
 		} {
 			if strings.Contains(content, retired) {
 				t.Fatalf("%s retained prompt-owned review ceremony %q", path, retired)

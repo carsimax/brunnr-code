@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-const compactTerminalConsumptionSchema = "gentle-ai.review-terminal-consumption/v1"
+const compactTerminalConsumptionSchema = "brunnr-code.review-terminal-consumption/v1"
 
 // This tombstone is only a deduplication fact. It contains neither authority,
 // a receipt usable by delivery gates, nor an acknowledgement replay token.

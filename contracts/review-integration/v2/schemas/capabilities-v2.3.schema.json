@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gentle-ai.dev/contracts/review-integration/v2/schemas/capabilities-v2.3.schema.json",
-  "title": "Gentle AI review integration capabilities protocol 2.3",
+  "$id": "https://github.com/carsimax/brunnr-code/contracts/review-integration/v2/schemas/capabilities-v2.3.schema.json",
+  "title": "Brunnr-Code review integration capabilities protocol 2.3",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -9,8 +9,8 @@
     "projections", "schemas", "features", "compatibility"
   ],
   "properties": {
-    "schema": {"const": "gentle-ai.review-integration.capabilities/v2.3"},
-    "contract": {"const": "gentle-ai.review-integration/v2"},
+    "schema": {"const": "brunnr-code.review-integration.capabilities/v2.3"},
+    "contract": {"const": "brunnr-code.review-integration/v2"},
     "protocol": {
       "type": "object", "additionalProperties": false, "required": ["major", "minor"],
       "properties": {"major": {"const": 2}, "minor": {"const": 3}}
@@ -28,25 +28,25 @@
       "type": "array", "minItems": 19, "maxItems": 19, "uniqueItems": true,
       "items": {
         "enum": [
-          "gentle-ai.review-admitted-result/v2",
-          "gentle-ai.review-artifact-subject/v2",
-          "gentle-ai.review-authority-repair-assessment/v1",
-          "gentle-ai.review-authority-status/v1",
-          "gentle-ai.review-gate-request/v1",
-          "gentle-ai.review-integration.capabilities/v2.3",
-          "gentle-ai.review-integration.consent/v3",
-          "gentle-ai.review-integration.failure/v2",
-          "gentle-ai.review-integration.operation/v2",
-          "gentle-ai.review-integration.projection/v1",
-          "gentle-ai.review-integration.repair/v2",
-          "gentle-ai.review-integration.start/v4",
-          "gentle-ai.review-integration.status/v5",
-          "gentle-ai.review-receipt/v1",
-          "gentle-ai.review-result-artifact/v2",
-          "gentle-ai.review-targeted-validation-request/v1",
-          "https://gentle-ai.dev/schema/review/refuter/v1",
-          "https://gentle-ai.dev/schema/review/reviewer/v1",
-          "https://gentle-ai.dev/schema/review/validator/v1"
+          "brunnr-code.review-admitted-result/v2",
+          "brunnr-code.review-artifact-subject/v2",
+          "brunnr-code.review-authority-repair-assessment/v1",
+          "brunnr-code.review-authority-status/v1",
+          "brunnr-code.review-gate-request/v1",
+          "brunnr-code.review-integration.capabilities/v2.3",
+          "brunnr-code.review-integration.consent/v3",
+          "brunnr-code.review-integration.failure/v2",
+          "brunnr-code.review-integration.operation/v2",
+          "brunnr-code.review-integration.projection/v1",
+          "brunnr-code.review-integration.repair/v2",
+          "brunnr-code.review-integration.start/v4",
+          "brunnr-code.review-integration.status/v5",
+          "brunnr-code.review-receipt/v1",
+          "brunnr-code.review-result-artifact/v2",
+          "brunnr-code.review-targeted-validation-request/v1",
+          "https://github.com/carsimax/brunnr-code/schema/review/refuter/v1",
+          "https://github.com/carsimax/brunnr-code/schema/review/reviewer/v1",
+          "https://github.com/carsimax/brunnr-code/schema/review/validator/v1"
         ]
       }
     },
@@ -101,7 +101,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["command", "target_selector_variants", "required_feature", "unsupported_outcome", "parent_only"],
       "properties": {
-        "command": {"const": "brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition"},
+        "command": {"const": "brunnr-code review status --cwd <repo> --contract brunnr-code.review-integration/v2 --next-transition"},
         "target_selector_variants": {"$ref": "../../v1/schemas/capabilities-v1.4.schema.json#/$defs/bootstrap/properties/target_selector_variants"},
         "required_feature": {"const": "native_next_transition"},
         "unsupported_outcome": {"const": "unsupported-capability"},

@@ -21,7 +21,7 @@ func storeResetSeedLineage(t *testing.T, repo, lineage string, state reviewtrans
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	payload := `{"schema":"gentle-ai.review-state-record/v2","revision":"sha256:00","state":{"schema":"gentle-ai.review-state/v2","lineage_id":"` +
+	payload := `{"schema":"brunnr-code.review-state-record/v2","revision":"sha256:00","state":{"schema":"brunnr-code.review-state/v2","lineage_id":"` +
 		lineage + `","state":"` + string(state) + `"}}` + "\n"
 	if err := os.WriteFile(filepath.Join(dir, "review-state.json"), []byte(payload), 0o644); err != nil {
 		t.Fatal(err)

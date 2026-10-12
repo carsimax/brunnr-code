@@ -1,6 +1,6 @@
 {
-  "schema": "gentle-ai.review-integration.status/v2",
-  "contract": "gentle-ai.review-integration/v1",
+  "schema": "brunnr-code.review-integration.status/v2",
+  "contract": "brunnr-code.review-integration/v1",
   "operation": "review.status",
   "applicability": "current_target",
   "authority": {
@@ -22,7 +22,7 @@
   },
   "target_identity": "sha256:00c0d796b4136e365d0130886f300c954ecf9431c45d96d8031155c415507d49",
   "projection": {
-    "schema": "gentle-ai.review-integration.projection/v1",
+    "schema": "brunnr-code.review-integration.projection/v1",
     "kind": "current-changes",
     "projection": "workspace",
     "base_tree": "3e21a205dd9b55021aeae87965092623807e455f",
@@ -38,7 +38,7 @@
     "current_snapshot_identity": "sha256:00c0d796b4136e365d0130886f300c954ecf9431c45d96d8031155c415507d49"
   },
   "repair": {
-    "schema": "gentle-ai.review-authority-repair-assessment/v1",
+    "schema": "brunnr-code.review-authority-repair-assessment/v1",
     "status": "unsupported",
     "counts": {
       "lineages": 0,
@@ -54,7 +54,7 @@
       "review/complete-fix",
       "review/validate-fix"
     ],
-    "authorization_schema": "gentle-ai.review-repair-authorization/v1"
+    "authorization_schema": "brunnr-code.review-repair-authorization/v1"
   },
   "candidates": [],
   "eligibility": {
@@ -119,7 +119,7 @@
       "inputs": [
         {
           "name": "reviewer_result",
-          "schema": "https://gentle-ai.dev/schema/review/reviewer/v1",
+          "schema": "https://github.com/carsimax/brunnr-code/schema/review/reviewer/v1",
           "capture_operation": "review.capture-result",
           "arguments": [
             {
@@ -154,8 +154,8 @@
             }
           ],
           "artifact_subject": {
-            "schema": "gentle-ai.review-artifact-subject/v1",
-            "subject_hash": "sha256:d8f46ff5cdcd86385033ce73f18cbfd61651c81deba1340b743e034cdf9dce48",
+            "schema": "brunnr-code.review-artifact-subject/v1",
+            "subject_hash": "sha256:a147c7058b9d7867a329a2579a47413d577b97727ae45aa058675156c47e8c5f",
             "lineage_id": "review-status-fixture",
             "authority_revision": "sha256:c978e5383ae788a963c5e80c4f887d3b65ca415767398d57de827a9f0905f423",
             "target_identity": "sha256:00c0d796b4136e365d0130886f300c954ecf9431c45d96d8031155c415507d49",
