@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/assets"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 // #5256 T2a proves only the lossless construction of a Claude core plus

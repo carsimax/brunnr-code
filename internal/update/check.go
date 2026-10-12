@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
+	"github.com/carsimax/brunnr-code/internal/system"
 )
 
 var updateChannelEnv = os.Getenv

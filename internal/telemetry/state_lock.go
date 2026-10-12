@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
+	"github.com/carsimax/brunnr-code/internal/state"
 )
 
 // lockFileExclusive is a package-level var so tests can sabotage the

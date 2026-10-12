@@ -10,7 +10,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
+	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
 func TestReviewProviderArtifactV1ContractsArePinned(t *testing.T) {

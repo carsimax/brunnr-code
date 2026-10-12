@@ -17,17 +17,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/carsimax/brunnr-code/internal/agents/codex"
+	"github.com/carsimax/brunnr-code/internal/backup"
+	"github.com/carsimax/brunnr-code/internal/model"
+	"github.com/carsimax/brunnr-code/internal/planner"
+	"github.com/carsimax/brunnr-code/internal/state"
+	"github.com/carsimax/brunnr-code/internal/system"
+	"github.com/carsimax/brunnr-code/internal/tui"
+	"github.com/carsimax/brunnr-code/internal/tui/screens"
+	"github.com/carsimax/brunnr-code/internal/update"
+	"github.com/carsimax/brunnr-code/internal/update/upgrade"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/planner"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/tui"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/tui/screens"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/update"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/update/upgrade"
 )
 
 func TestClaudeNativeReviewAssignmentsPersistThroughAppStateConversion(t *testing.T) {

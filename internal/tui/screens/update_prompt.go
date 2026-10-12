@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/tui/styles"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/update"
+	"github.com/carsimax/brunnr-code/internal/tui/styles"
+	"github.com/carsimax/brunnr-code/internal/update"
 )
 
 // UpdatePromptOptions returns the display labels for the three update-prompt options.

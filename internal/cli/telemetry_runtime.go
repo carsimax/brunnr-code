@@ -10,8 +10,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/telemetryruntime"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/telemetry"
+	"github.com/carsimax/brunnr-code/internal/components/telemetryruntime"
+	"github.com/carsimax/brunnr-code/internal/telemetry"
 )
 
 // Tests inject transport and stdin deadlines. Direct send input keeps

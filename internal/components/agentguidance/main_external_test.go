@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/agentguidance"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/reviewassets"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/testenv"
+	"github.com/carsimax/brunnr-code/internal/components/agentguidance"
+	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
+	"github.com/carsimax/brunnr-code/internal/testenv"
 )
 
 // TestMain wires the production review contract source the installer

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
+	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
 // rdd-risk-gated S14/S17: STATUS preflights the START options a caller

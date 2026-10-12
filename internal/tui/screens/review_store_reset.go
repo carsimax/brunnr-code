@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/tui/styles"
+	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
+	"github.com/carsimax/brunnr-code/internal/tui/styles"
 )
 
 // ReviewStoreResetConfirmOptionCount reports how many options the confirmation

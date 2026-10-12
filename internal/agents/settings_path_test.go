@@ -3,7 +3,7 @@ package agents
 import (
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 type settingsPathAdapter struct {

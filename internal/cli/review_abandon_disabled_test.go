@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
+	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
 // pristineReviewingCLIFixture starts one reviewing compact lineage through the

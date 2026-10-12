@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	codexagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/engram"
+	codexagent "github.com/carsimax/brunnr-code/internal/agents/codex"
+	"github.com/carsimax/brunnr-code/internal/components/engram"
 )
 
 type installedDeliveryGuaranteeInvariant struct {

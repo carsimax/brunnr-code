@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/carsimax/brunnr-code/internal/tui/styles"
+	"github.com/carsimax/brunnr-code/internal/update"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/tui/styles"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/update"
 	"github.com/rivo/uniseg"
 )
 

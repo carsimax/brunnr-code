@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/assets"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 // embeddedSharedFileNames returns the names of every file embedded under

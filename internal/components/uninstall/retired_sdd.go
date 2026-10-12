@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/legacyassets"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/agents"
+	"github.com/carsimax/brunnr-code/internal/components/legacyassets"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 // retiredSDDOperation retires what releases installed for SDD for a runtime

@@ -5,9 +5,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/tui/styles"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/update"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/update/upgrade"
+	"github.com/carsimax/brunnr-code/internal/tui/styles"
+	"github.com/carsimax/brunnr-code/internal/update"
+	"github.com/carsimax/brunnr-code/internal/update/upgrade"
 )
 
 // spinnerFrames are the unicode spinner animation frames used across screens.

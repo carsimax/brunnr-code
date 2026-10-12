@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/reviewassets"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/agents"
+	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 // A fork inherits its parent's tools and context; it is not a Markdown reviewer.

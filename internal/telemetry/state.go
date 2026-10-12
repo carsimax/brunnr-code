@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
+	"github.com/carsimax/brunnr-code/internal/components/filemerge"
+	"github.com/carsimax/brunnr-code/internal/state"
 )
 
 // stateDir is the default folder name under home. Telemetry state lives next

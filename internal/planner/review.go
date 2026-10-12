@@ -1,7 +1,7 @@
 package planner
 
 import (
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 func BuildReviewPayload(selection model.Selection, resolved ResolvedPlan) ReviewPayload {

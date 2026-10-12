@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/cli"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/engram"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/update"
+	"github.com/carsimax/brunnr-code/internal/cli"
+	"github.com/carsimax/brunnr-code/internal/components/engram"
+	"github.com/carsimax/brunnr-code/internal/system"
+	"github.com/carsimax/brunnr-code/internal/update"
 )
 
 // engramDownloadFn is the function used to download the engram binary on the stable channel.

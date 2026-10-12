@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
+	"github.com/carsimax/brunnr-code/internal/assets"
 )
 
 // reviewStopTransitionCallRegexp extracts every literal reason code passed to

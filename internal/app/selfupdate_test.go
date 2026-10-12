@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/update"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/update/upgrade"
+	"github.com/carsimax/brunnr-code/internal/state"
+	"github.com/carsimax/brunnr-code/internal/system"
+	"github.com/carsimax/brunnr-code/internal/update"
+	"github.com/carsimax/brunnr-code/internal/update/upgrade"
 )
 
 // stubProfile returns a minimal PlatformProfile for testing.

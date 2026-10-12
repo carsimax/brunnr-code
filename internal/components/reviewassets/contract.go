@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/capabilitymanifest"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewerprovider"
+	"github.com/carsimax/brunnr-code/internal/agents/capabilitymanifest"
+	"github.com/carsimax/brunnr-code/internal/assets"
+	"github.com/carsimax/brunnr-code/internal/model"
+	"github.com/carsimax/brunnr-code/internal/reviewerprovider"
 )
 
 const identityPlaceholder = "{{GENTLE_AI_RUNTIME_AGENT_ID}}"

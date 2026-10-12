@@ -6,9 +6,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewerprovider"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
+	"github.com/carsimax/brunnr-code/internal/model"
+	"github.com/carsimax/brunnr-code/internal/reviewerprovider"
+	"github.com/carsimax/brunnr-code/internal/state"
 )
 
 // reviewProviderAdapter resolves a compiled runtime only after the role's

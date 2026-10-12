@@ -9,11 +9,11 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/agentguidance"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/pipeline"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/planner"
+	"github.com/carsimax/brunnr-code/internal/backup"
+	"github.com/carsimax/brunnr-code/internal/components/agentguidance"
+	"github.com/carsimax/brunnr-code/internal/model"
+	"github.com/carsimax/brunnr-code/internal/pipeline"
+	"github.com/carsimax/brunnr-code/internal/planner"
 )
 
 // #5256 U2b-2: the Claude routing step installs the retained review/telemetry

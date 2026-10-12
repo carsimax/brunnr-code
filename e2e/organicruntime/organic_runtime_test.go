@@ -32,7 +32,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewerprovider"
+	"github.com/carsimax/brunnr-code/internal/reviewerprovider"
 )
 
 const (

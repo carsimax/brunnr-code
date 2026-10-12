@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewerprovider"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
+	"github.com/carsimax/brunnr-code/internal/model"
+	"github.com/carsimax/brunnr-code/internal/reviewerprovider"
+	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
 const reviewProviderRoleCaptureSchema = "gentle-ai.review-provider-role-capture/v1"

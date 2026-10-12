@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/managedownership"
+	"github.com/carsimax/brunnr-code/internal/managedownership"
 )
 
 // OwnershipLedgerFilename identifies the native rendered-agent ownership record.

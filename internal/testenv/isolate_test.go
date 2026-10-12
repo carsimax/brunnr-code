@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/testenv"
+	"github.com/carsimax/brunnr-code/internal/testenv"
 )
 
 // Isolate removes inherited overrides entirely, rather than setting empty

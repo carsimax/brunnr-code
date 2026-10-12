@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/capabilitymanifest"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/agents/capabilitymanifest"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 const reviewTransportCapabilityUnsupportedCode = "review_transport_capability_unsupported"

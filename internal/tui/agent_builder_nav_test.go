@@ -4,11 +4,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/carsimax/brunnr-code/internal/agentbuilder"
+	"github.com/carsimax/brunnr-code/internal/model"
+	"github.com/carsimax/brunnr-code/internal/system"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agentbuilder"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
 )
 
 // ─── Helper: set up a model on the agent builder engine screen ───────────────

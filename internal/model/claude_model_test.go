@@ -3,7 +3,7 @@ package model_test
 import (
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 // TestClaudeModelAliasValid verifies that Valid accepts exactly the four

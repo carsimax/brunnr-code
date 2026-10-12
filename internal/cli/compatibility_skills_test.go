@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
-	componentskills "github.com/gentleman-programming/gentle-ai/v4/internal/components/skills"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/pipeline"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/planner"
+	"github.com/carsimax/brunnr-code/internal/backup"
+	componentskills "github.com/carsimax/brunnr-code/internal/components/skills"
+	"github.com/carsimax/brunnr-code/internal/model"
+	"github.com/carsimax/brunnr-code/internal/pipeline"
+	"github.com/carsimax/brunnr-code/internal/planner"
 )
 
 func temporaryUserHome(t *testing.T) string {

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/doctor"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
+	"github.com/carsimax/brunnr-code/internal/doctor"
+	"github.com/carsimax/brunnr-code/internal/state"
 )
 
 func TestRunDoctor_StateErrorsPreserveState(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
+	"github.com/carsimax/brunnr-code/internal/agents"
 )
 
 // Startup project-resolution contract (#1903). These are structural checks on

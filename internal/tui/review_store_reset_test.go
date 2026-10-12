@@ -7,9 +7,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/tui/screens"
+	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
+	"github.com/carsimax/brunnr-code/internal/system"
+	"github.com/carsimax/brunnr-code/internal/tui/screens"
 )
 
 func reviewStoreResetModel(t *testing.T) Model {

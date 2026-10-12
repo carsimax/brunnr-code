@@ -12,7 +12,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
+	"github.com/carsimax/brunnr-code/internal/components/filemerge"
 )
 
 // ManifestSchema is the on-disk identity; bump the suffix on incompatible changes.

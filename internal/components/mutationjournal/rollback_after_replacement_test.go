@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
+	"github.com/carsimax/brunnr-code/internal/components/filemerge"
 )
 
 // replaceThenFail mimics the one window WriteFileAtomic documents: the rename

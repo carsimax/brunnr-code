@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/pipeline"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
+	"github.com/carsimax/brunnr-code/internal/agents/codex"
+	"github.com/carsimax/brunnr-code/internal/backup"
+	"github.com/carsimax/brunnr-code/internal/model"
+	"github.com/carsimax/brunnr-code/internal/pipeline"
+	"github.com/carsimax/brunnr-code/internal/system"
 )
 
 // missingBinaryLookPath simulates all installable binaries (engram, gga) as

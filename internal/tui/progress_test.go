@@ -3,7 +3,7 @@ package tui
 import (
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/pipeline"
+	"github.com/carsimax/brunnr-code/internal/pipeline"
 )
 
 func TestProgressTerminalStatuses(t *testing.T) {

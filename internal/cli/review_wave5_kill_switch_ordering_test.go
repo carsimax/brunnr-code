@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
+	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
 func TestReviewValidateRejectsUnsupportedGateBeforeRepositoryAndModeResolution(t *testing.T) {

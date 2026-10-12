@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
+	"github.com/carsimax/brunnr-code/internal/assets"
 )
 
 // This file generalizes the pattern already proven by

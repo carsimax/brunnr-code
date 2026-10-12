@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/statecoord"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
+	"github.com/carsimax/brunnr-code/internal/state"
+	"github.com/carsimax/brunnr-code/internal/statecoord"
+	"github.com/carsimax/brunnr-code/internal/system"
 )
 
 // UpdateCheckTTL is the minimum time between automatic remote update checks.

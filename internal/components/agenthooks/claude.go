@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/agents"
+	"github.com/carsimax/brunnr-code/internal/components/filemerge"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 // InstallRetainedClaudeHooks installs review and telemetry hooks independently of SDD.

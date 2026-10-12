@@ -12,8 +12,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/mutationjournal"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/managedownership"
+	"github.com/carsimax/brunnr-code/internal/components/mutationjournal"
+	"github.com/carsimax/brunnr-code/internal/managedownership"
 )
 
 // #5256 U1a: the private installer for the user-global Claude orchestrator

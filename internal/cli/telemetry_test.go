@@ -14,7 +14,7 @@ import (
 
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/telemetry"
+	"github.com/carsimax/brunnr-code/internal/telemetry"
 )
 
 func TestTelemetryPolicyReadOnly(t *testing.T) {

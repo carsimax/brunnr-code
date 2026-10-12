@@ -13,9 +13,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/app"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/cli"
+	"github.com/carsimax/brunnr-code/internal/app"
+	"github.com/carsimax/brunnr-code/internal/assets"
+	"github.com/carsimax/brunnr-code/internal/cli"
 )
 
 // This corpus exists because of #2506: the product states runnable commands

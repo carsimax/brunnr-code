@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/catalog"
-	componentuninstall "github.com/gentleman-programming/gentle-ai/v4/internal/components/uninstall"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/catalog"
+	componentuninstall "github.com/carsimax/brunnr-code/internal/components/uninstall"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 type UninstallFlags struct {

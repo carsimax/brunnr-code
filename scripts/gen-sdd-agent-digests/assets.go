@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/legacyassets"
+	"github.com/carsimax/brunnr-code/internal/components/filemerge"
+	"github.com/carsimax/brunnr-code/internal/components/legacyassets"
 )
 
 // Releases installed retired SDD skills and slash commands as follows; the asset registry records every render:

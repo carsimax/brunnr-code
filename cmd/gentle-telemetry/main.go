@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/telemetrycollector"
+	"github.com/carsimax/brunnr-code/internal/telemetrycollector"
 )
 
 const (

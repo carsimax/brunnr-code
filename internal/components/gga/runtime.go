@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
+	"github.com/carsimax/brunnr-code/internal/assets"
+	"github.com/carsimax/brunnr-code/internal/components/filemerge"
 )
 
 // RuntimeLibDir returns the runtime lib path used by gga.

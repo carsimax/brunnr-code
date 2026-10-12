@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/engram"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/doctor"
+	"github.com/carsimax/brunnr-code/internal/components/engram"
+	"github.com/carsimax/brunnr-code/internal/doctor"
 )
 
 // --- checkOneTool ---

@@ -1,7 +1,7 @@
 package reviewassets
 
 import (
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/model"
 	"strings"
 )
 

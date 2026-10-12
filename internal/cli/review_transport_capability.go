@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/capabilitymanifest"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/catalog"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/agents/capabilitymanifest"
+	"github.com/carsimax/brunnr-code/internal/catalog"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 const reviewImmutableTransportUnsupportedCode = "immutable_review_transport_unsupported"

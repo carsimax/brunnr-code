@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/managedownership"
+	"github.com/carsimax/brunnr-code/internal/managedownership"
 )
 
 // #5256 U1b covers the private core/module transaction against a temporary

@@ -7,8 +7,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
+	"github.com/carsimax/brunnr-code/internal/model"
+	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
 const reviewLastEventClosureSchema = "gentle-ai.review-last-event-closure/v1"

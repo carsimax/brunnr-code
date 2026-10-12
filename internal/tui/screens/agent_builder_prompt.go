@@ -3,8 +3,8 @@ package screens
 import (
 	"strings"
 
+	"github.com/carsimax/brunnr-code/internal/tui/styles"
 	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/tui/styles"
 )
 
 // RenderABPrompt renders the prompt input screen for the agent builder flow.

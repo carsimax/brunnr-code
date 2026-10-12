@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/pathquote"
+	"github.com/carsimax/brunnr-code/internal/pathquote"
 )
 
 // AuthorityDispositionProofSchema identifies AuthorityDispositionProof's shape.

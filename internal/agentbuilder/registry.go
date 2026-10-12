@@ -5,7 +5,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/catalog"
+	"github.com/carsimax/brunnr-code/internal/catalog"
 )
 
 // builtinSkills returns the current set of built-in skill names derived from

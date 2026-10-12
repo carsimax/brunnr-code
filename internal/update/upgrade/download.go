@@ -20,9 +20,9 @@ import (
 
 	minisign "github.com/jedisct1/go-minisign"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/update"
+	"github.com/carsimax/brunnr-code/internal/components/filemerge"
+	"github.com/carsimax/brunnr-code/internal/system"
+	"github.com/carsimax/brunnr-code/internal/update"
 )
 
 // httpClient is the HTTP client used for asset downloads.
@@ -57,7 +57,7 @@ const (
 // releaseMinisignPublicKeys is the production trust-anchor injection point.
 // GoReleaser sets it with:
 //
-//	-X github.com/gentleman-programming/gentle-ai/v4/internal/update/upgrade.releaseMinisignPublicKeys=${MINISIGN_PUBLIC_KEYS}
+//	-X github.com/carsimax/brunnr-code/internal/update/upgrade.releaseMinisignPublicKeys=${MINISIGN_PUBLIC_KEYS}
 //
 // The value is one or two comma-separated minisign public-key payloads (the
 // base64 line accepted by `minisign -P`). Two keys permit a bounded overlap

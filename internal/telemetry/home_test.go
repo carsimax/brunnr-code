@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
+	"github.com/carsimax/brunnr-code/internal/state"
 )
 
 func TestPathDefaultsToDotGentleAIUnderHome(t *testing.T) {

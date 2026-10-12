@@ -3,8 +3,8 @@ package agentguidance
 import (
 	"strings"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
+	"github.com/carsimax/brunnr-code/internal/assets"
+	"github.com/carsimax/brunnr-code/internal/components/filemerge"
 )
 
 // InjectRemoteAuthorization projects the canonical behavioral boundary into a

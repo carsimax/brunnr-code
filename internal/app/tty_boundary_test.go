@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/carsimax/brunnr-code/internal/state"
+	"github.com/carsimax/brunnr-code/internal/system"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
 )
 
 func assumeInteractiveTTY(t *testing.T) {

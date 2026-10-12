@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
+	"github.com/carsimax/brunnr-code/internal/assets"
 )
 
 // The stop-reason table may group codes with the same continuation. Its

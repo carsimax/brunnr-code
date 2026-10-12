@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/telemetry"
+	"github.com/carsimax/brunnr-code/internal/telemetry"
 )
 
 func TestReadClaudeFileReturnsOnlyBoundedTail(t *testing.T) {

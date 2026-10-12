@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/engram"
+	"github.com/carsimax/brunnr-code/internal/components/engram"
 )
 
 // ---------------------------------------------------------------------------

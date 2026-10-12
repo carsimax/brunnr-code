@@ -12,7 +12,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 // SDDAgentFamilies maps each runtime that received native SDD sub-agents to

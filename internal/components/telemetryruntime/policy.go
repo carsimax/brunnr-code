@@ -5,7 +5,7 @@ package telemetryruntime
 import (
 	"errors"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/telemetry"
+	"github.com/carsimax/brunnr-code/internal/telemetry"
 )
 
 var errEnvelope = errors.New("invalid runtime telemetry envelope")

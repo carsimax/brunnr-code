@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
+	"github.com/carsimax/brunnr-code/internal/assets"
 )
 
 // embeddedSharedFileNames returns the names of every file embedded under

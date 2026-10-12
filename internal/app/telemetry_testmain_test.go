@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/telemetry"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/testenv"
+	"github.com/carsimax/brunnr-code/internal/telemetry"
+	"github.com/carsimax/brunnr-code/internal/testenv"
 )
 
 // TestMain gives the whole internal/app test binary a safe, sandboxed HOME

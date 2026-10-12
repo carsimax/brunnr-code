@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	componentuninstall "github.com/gentleman-programming/gentle-ai/v4/internal/components/uninstall"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
+	componentuninstall "github.com/carsimax/brunnr-code/internal/components/uninstall"
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 func TestRenderUninstallResultIncludesManualCleanup(t *testing.T) {

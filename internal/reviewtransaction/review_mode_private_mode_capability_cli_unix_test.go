@@ -17,8 +17,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/cli"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
+	"github.com/carsimax/brunnr-code/internal/cli"
+	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
 // precreateWorldAccessibleSwitchRoot reproduces the field report's trigger:
