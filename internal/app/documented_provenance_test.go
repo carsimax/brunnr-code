@@ -130,7 +130,7 @@ func TestRenderedSurfaceNamesOnlyItsOwnRuntime(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if strings.Contains(content, "{{GENTLE_AI_RUNTIME_AGENT_ID}}") {
+			if strings.Contains(content, "{{BRUNNR_CODE_RUNTIME_AGENT_ID}}") {
 				t.Fatal("rendered review contract has an unbound runtime identity")
 			}
 			found := 0

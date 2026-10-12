@@ -58,7 +58,7 @@ func pinGoCachesBeforeHomeIsolation() {
 // e.g. TestAgentInstallStepRefusesMissingCodexInsteadOfInstalling for that
 // opposite, deliberately-kept case.
 func TestMain(m *testing.M) {
-	if os.Getenv("GENTLE_AI_TEST_BREW_FIXTURE") == "1" {
+	if os.Getenv("BRUNNR_CODE_TEST_BREW_FIXTURE") == "1" {
 		os.Exit(runPortableBrewFixture())
 	}
 	// Neutralize ambient agent config-path overrides before anything else,
@@ -73,7 +73,7 @@ func TestMain(m *testing.M) {
 	// from under the captured environment the continuation was emitted
 	// against. The same LookPath stubs as the harness keep agent discovery
 	// hermetic.
-	if os.Getenv("GENTLE_AI_TEST_CLI_STANDIN") == "1" {
+	if os.Getenv("BRUNNR_CODE_TEST_CLI_STANDIN") == "1" {
 		agentPresent := func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
 		claude.LookPathOverride = agentPresent
 		// The same routing app.RunArgs performs for the sync subcommand

@@ -27,7 +27,7 @@ func TestEveryODDOrchestratorDoesNotRejectPlannedPaths(t *testing.T) {
 		}
 		seen[path.Dir(assetPath)] = true
 		content := MustRead(assetPath)
-		if !strings.Contains(content, "GENTLE_AI_ODD_SECTION:") {
+		if !strings.Contains(content, "BRUNNR_CODE_ODD_SECTION:") {
 			t.Errorf("%s no longer carries the ODD contract", assetPath)
 		}
 		if rejectsPlannedPaths(content) {

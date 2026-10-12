@@ -181,7 +181,7 @@ func TestRARPrivateOwnerRemainsTokenUserOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	if tokenOwner.Equals(currentUser) {
-		if os.Getenv("GENTLE_AI_REQUIRE_DISTINCT_WINDOWS_TOKEN_OWNER") == "1" {
+		if os.Getenv("BRUNNR_CODE_REQUIRE_DISTINCT_WINDOWS_TOKEN_OWNER") == "1" {
 			t.Fatal("release blocker requires a distinct Windows token owner")
 		}
 		t.Skip("token owner and token user are identical")

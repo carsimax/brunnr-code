@@ -8,8 +8,8 @@ import (
 	"github.com/carsimax/brunnr-code/internal/state"
 )
 
-// validateIsolationEnv rejects an invalid GENTLE_AI_HOME or
-// GENTLE_AI_ENGRAM_BIN before detection or any write, then applies GENTLE_AI_HOME to backup checks.
+// validateIsolationEnv rejects an invalid BRUNNR_CODE_HOME or
+// BRUNNR_CODE_ENGRAM_BIN before detection or any write, then applies BRUNNR_CODE_HOME to backup checks.
 func validateIsolationEnv() error {
 	for _, validate := range []func() error{state.ValidateHomeEnv, engram.ValidateCallerBinary} {
 		if err := validate(); err != nil {
@@ -20,7 +20,7 @@ func validateIsolationEnv() error {
 	return nil
 }
 
-// applyStateHome points backup deletion checks at GENTLE_AI_HOME/backups,
+// applyStateHome points backup deletion checks at BRUNNR_CODE_HOME/backups,
 // where install and sync write backups when that variable is set.
 func applyStateHome() {
 	if os.Getenv(state.HomeEnv) == "" {

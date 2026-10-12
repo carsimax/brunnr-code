@@ -24,8 +24,8 @@ import (
 // Responses are scripted, so neither an account nor model inference is needed.
 // It is not a network-namespace proof; the Docker lane owns that boundary.
 func TestClaudeMarkdownSubagentsEnforceEmptyTools(t *testing.T) {
-	if testing.Short() || os.Getenv("GENTLE_AI_CLAUDE_SUBAGENT_E2E") != "1" {
-		t.Skip("set GENTLE_AI_CLAUDE_SUBAGENT_E2E=1 for the local Claude subagent proof")
+	if testing.Short() || os.Getenv("BRUNNR_CODE_CLAUDE_SUBAGENT_E2E") != "1" {
+		t.Skip("set BRUNNR_CODE_CLAUDE_SUBAGENT_E2E=1 for the local Claude subagent proof")
 	}
 	binary, err := exec.LookPath("claude")
 	if err != nil {

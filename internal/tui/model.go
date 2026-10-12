@@ -137,7 +137,7 @@ func codexPhaseModelsFromCustomAssignments(assignments map[string]screens.CodexC
 // TickMsg drives the spinner animation on the installing screen.
 type TickMsg time.Time
 
-const noAnimationEnv = "GENTLE_AI_NO_ANIMATION"
+const noAnimationEnv = "BRUNNR_CODE_NO_ANIMATION"
 
 func tuiAnimationsDisabled() bool {
 	return os.Getenv(noAnimationEnv) == "1"

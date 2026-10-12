@@ -97,7 +97,7 @@ func oddLanguageContractContent(t *testing.T, path string) string {
 	if path == "codex/orchestrator.md" {
 		return content
 	}
-	const placeholder = "{{GENTLE_AI_ODD_SECTION:Language Domain Contract}}"
+	const placeholder = "{{BRUNNR_CODE_ODD_SECTION:Language Domain Contract}}"
 	if strings.Count(content, placeholder) != 1 {
 		t.Fatalf("%s must reference the shared ODD language contract exactly once", path)
 	}

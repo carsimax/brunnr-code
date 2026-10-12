@@ -157,8 +157,8 @@ func TestBenchRunnerDoesNotRestoreNewLineageEnvironmentActivation(t *testing.T) 
 	if err != nil {
 		t.Fatalf("read runner.go: %v", err)
 	}
-	if strings.Contains(string(content), "GENTLE_AI_RDD_NEW_LINEAGE") {
-		t.Fatal("bench runner restored retired GENTLE_AI_RDD_NEW_LINEAGE ambient-authority activation")
+	if strings.Contains(string(content), "BRUNNR_CODE_RDD_NEW_LINEAGE") {
+		t.Fatal("bench runner restored retired BRUNNR_CODE_RDD_NEW_LINEAGE ambient-authority activation")
 	}
 }
 

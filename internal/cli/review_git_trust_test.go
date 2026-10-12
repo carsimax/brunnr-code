@@ -45,16 +45,16 @@ func installFailingGitShim(t *testing.T, stderr string) {
 	shim := "#!/bin/sh\n" +
 		"for arg in \"$@\"; do\n" +
 		"  if [ \"$arg\" = \"--git-common-dir\" ]; then\n" +
-		"    printf '%s\\n' \"$GENTLE_AI_TEST_GIT_STDERR\" >&2\n" +
+		"    printf '%s\\n' \"$BRUNNR_CODE_TEST_GIT_STDERR\" >&2\n" +
 		"    exit 128\n" +
 		"  fi\n" +
 		"done\n" +
-		"exec \"$GENTLE_AI_TEST_REAL_GIT\" \"$@\"\n"
+		"exec \"$BRUNNR_CODE_TEST_REAL_GIT\" \"$@\"\n"
 	if err := os.WriteFile(filepath.Join(shimDir, "git"), []byte(shim), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("GENTLE_AI_TEST_REAL_GIT", realGit)
-	t.Setenv("GENTLE_AI_TEST_GIT_STDERR", stderr)
+	t.Setenv("BRUNNR_CODE_TEST_REAL_GIT", realGit)
+	t.Setenv("BRUNNR_CODE_TEST_GIT_STDERR", stderr)
 	t.Setenv("PATH", shimDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 }
 

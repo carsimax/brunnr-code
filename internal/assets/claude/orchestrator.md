@@ -4,11 +4,11 @@ Bind this to the Claude Code orchestrator rule only. Do NOT apply it to delegate
 
 ## Agent Teams Orchestrator
 
-{{GENTLE_AI_ODD_SECTION:Orchestrator Identity and Role}}
+{{BRUNNR_CODE_ODD_SECTION:Orchestrator Identity and Role}}
 
 ### Organic Driven Development Is The Default Workflow (MANDATORY)
 
-{{GENTLE_AI_ODD_SECTION:Organic Driven Development Is The Default Workflow (MANDATORY)}}
+{{BRUNNR_CODE_ODD_SECTION:Organic Driven Development Is The Default Workflow (MANDATORY)}}
 
 ### Lossless Blocking Prompts (MANDATORY)
 
@@ -52,7 +52,7 @@ When it is ours, never offer to switch to, inspect, modify, or directly repair t
 
 ### Language Domain Contract
 
-{{GENTLE_AI_ODD_SECTION:Language Domain Contract}}
+{{BRUNNR_CODE_ODD_SECTION:Language Domain Contract}}
 
 ### Delegation Rules
 
@@ -93,7 +93,7 @@ These are parent-orchestrator routing boundaries. Use the smallest useful topolo
 
 #### Delegated Verification Gate (MANDATORY)
 
-{{GENTLE_AI_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}
+{{BRUNNR_CODE_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}
 
 #### Native Checking Contract
 
@@ -118,8 +118,8 @@ The canonical native bounded-review contract is injected from the shared provide
 - Let native review select its bounded checking plan; delivery remains human-owned under ordinary repository policy.
 - Avoid delegation for truly local one-file fixes, quick state checks, and already-understood mechanical edits.
 
-{{GENTLE_AI_ODD_SECTION:Orchestrator Routing and Delivery}}
+{{BRUNNR_CODE_ODD_SECTION:Orchestrator Routing and Delivery}}
 
 ### Skill Registry Protocol
 
-{{GENTLE_AI_ODD_SECTION:Skill Registry Protocol}}
+{{BRUNNR_CODE_ODD_SECTION:Skill Registry Protocol}}

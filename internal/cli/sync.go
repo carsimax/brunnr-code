@@ -145,7 +145,7 @@ func ParseSyncFlags(args []string) (SyncFlags, error) {
 	fs.BoolVar(&opts.StrictTDD, "strict-tdd", false, "retired: ODD uses applicable test-first development by default")
 	fs.BoolVar(&opts.IncludePermissions, "include-permissions", false, "include permissions component in sync")
 	fs.BoolVar(&opts.IncludeTheme, "include-theme", false, "include theme component in sync")
-	fs.StringVar(&opts.Scope, "scope", "", "sync scope: global (default) or workspace — env: GENTLE_AI_INSTALL_SCOPE")
+	fs.StringVar(&opts.Scope, "scope", "", "sync scope: global (default) or workspace — env: BRUNNR_CODE_INSTALL_SCOPE")
 	fs.BoolVar(&opts.DryRun, "dry-run", false, "preview plan without executing")
 
 	if err := fs.Parse(args); err != nil {
@@ -196,7 +196,7 @@ FLAGS
   --strict-tdd                       Retired (rejected); applicable test-first ODD is default
   --include-permissions              Include permissions component
   --include-theme                    Include theme component
-  --scope global|workspace           Sync scope (env: GENTLE_AI_INSTALL_SCOPE)
+  --scope global|workspace           Sync scope (env: BRUNNR_CODE_INSTALL_SCOPE)
                                      workspace refreshes only workspace-scoped files and never mutates global state, backups, plugins, or routing guidance; components managed only globally are skipped
   --dry-run                          Preview plan without executing
   --help, -h                         Show this help
@@ -1460,7 +1460,7 @@ func RunSync(args []string) (SyncResult, error) {
 	}
 
 	// Resolve the sync scope with install semantics: explicit flag >
-	// GENTLE_AI_INSTALL_SCOPE > global default (issue #1074).
+	// BRUNNR_CODE_INSTALL_SCOPE > global default (issue #1074).
 	scope, err := ResolveInstallScope(flags.Scope)
 	if err != nil {
 		return SyncResult{}, err

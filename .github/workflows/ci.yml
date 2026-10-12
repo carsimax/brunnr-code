@@ -135,7 +135,7 @@ jobs:
           docker run --rm --pull=never --network none --cap-drop=ALL \
             --security-opt=no-new-privileges --read-only \
             --tmpfs /tmp:rw,noexec,nosuid,nodev,mode=1777 \
-            -e GENTLE_AI_PARENT_NETNS="$(stat -Lc %i /proc/self/ns/net)" \
+            -e BRUNNR_CODE_PARENT_NETNS="$(stat -Lc %i /proc/self/ns/net)" \
             brunnr-code-claude-network-none:ci
 
   windows-runtime:
@@ -226,8 +226,8 @@ jobs:
         shell: pwsh
         timeout-minutes: 10
         env:
-          GENTLE_AI_TEST_BINARY: ${{ runner.temp }}\brunnr-code.exe
-          GENTLE_AI_REQUIRE_DISTINCT_WINDOWS_TOKEN_OWNER: "1"
+          BRUNNR_CODE_TEST_BINARY: ${{ runner.temp }}\brunnr-code.exe
+          BRUNNR_CODE_REQUIRE_DISTINCT_WINDOWS_TOKEN_OWNER: "1"
         run: |
           $packages = @('./internal/cli', './internal/reviewtransaction', './internal/components/engram')
           $expected = @(
@@ -397,15 +397,15 @@ jobs:
         # TestOrganicConfiguredAgentReceivesRoutingGuidanceRealAgents, which
         # `go test ./...` never does — see that file's build-tag comment.
         env:
-          GENTLE_AI_REAL_AGENT_E2E: "1"
+          BRUNNR_CODE_REAL_AGENT_E2E: "1"
           # The Linux-only Codex journey invokes the registered adapter through
           # the product CLI under a process-scoped denying proxy and strace.
-          GENTLE_AI_CODEX_RUNTIME_E2E: ${{ matrix.os == 'ubuntu-latest' && '1' || '0' }}
+          BRUNNR_CODE_CODEX_RUNTIME_E2E: ${{ matrix.os == 'ubuntu-latest' && '1' || '0' }}
           # The large-workspace journey spawns one Git subprocess per intended
           # untracked path, so its cost is dominated by process creation. Linux
           # absorbs it; Windows does not, and gating it here keeps the real
           # coverage where it is affordable instead of deleting it outright.
-          GENTLE_AI_LARGE_WORKSPACE_E2E: ${{ matrix.os == 'ubuntu-latest' && '1' || '0' }}
+          BRUNNR_CODE_LARGE_WORKSPACE_E2E: ${{ matrix.os == 'ubuntu-latest' && '1' || '0' }}
         run: go test -tags real_agent_e2e -v ./e2e/organicruntime -count=1 -timeout=25m
 
   e2e-tests:

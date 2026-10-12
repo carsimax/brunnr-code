@@ -52,7 +52,7 @@ package cli
 //  (c) is frozen in the baseline (.refusal-ratchet-baseline.txt at the repo
 //      root), which may only shrink. Regenerate after fixing entries with:
 //
-//        GENTLE_AI_REFUSAL_RATCHET_UPDATE=1 go test ./internal/cli \
+//        BRUNNR_CODE_REFUSAL_RATCHET_UPDATE=1 go test ./internal/cli \
 //          -run TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign -count=1
 //
 // Why a ratchet and not a clean gate: these packages already carry thousands
@@ -686,7 +686,7 @@ func TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign(t *testing.T) {
 	}
 	baselinePath := filepath.Join("..", "..", ".refusal-ratchet-baseline.txt")
 
-	if os.Getenv("GENTLE_AI_REFUSAL_RATCHET_UPDATE") == "1" {
+	if os.Getenv("BRUNNR_CODE_REFUSAL_RATCHET_UPDATE") == "1" {
 		keys := make([]string, 0, len(current))
 		for key := range current {
 			keys = append(keys, key)
@@ -706,7 +706,7 @@ func TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign(t *testing.T) {
 
 	raw, err := os.ReadFile(baselinePath)
 	if err != nil {
-		t.Fatalf("missing baseline %s -- run: GENTLE_AI_REFUSAL_RATCHET_UPDATE=1 go test ./internal/cli -run TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign -count=1 (%v)", baselinePath, err)
+		t.Fatalf("missing baseline %s -- run: BRUNNR_CODE_REFUSAL_RATCHET_UPDATE=1 go test ./internal/cli -run TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign -count=1 (%v)", baselinePath, err)
 	}
 	baselineEntries := strings.Split(strings.TrimRight(string(raw), "\n"), "\n")
 	baseline := map[string]bool{}
@@ -742,7 +742,7 @@ func TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign(t *testing.T) {
 		t.Errorf("STALE baseline entry matches no analyzed refusal site: %s%s\n"+
 			"  A frozen entry that matches nothing has exactly two causes and they are opposites.\n"+
 			"  If the refusal was removed, reworded, or now names its exit, shrink the baseline:\n"+
-			"    GENTLE_AI_REFUSAL_RATCHET_UPDATE=1 go test ./internal/cli -run TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign -count=1\n"+
+			"    BRUNNR_CODE_REFUSAL_RATCHET_UPDATE=1 go test ./internal/cli -run TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign -count=1\n"+
 			"  If instead it moved into a shape this analyzer cannot see -- a runtime-built\n"+
 			"  message, a stream write, a carrier outside the covered set -- then it left\n"+
 			"  coverage without anyone deciding to stop governing it (#3471). Put it back in an\n"+
@@ -752,7 +752,7 @@ func TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign(t *testing.T) {
 		t.Logf("baselined refusal now names a resolution or is annotated: %s", key)
 	}
 	if len(drift.resolved) > 0 {
-		t.Logf("      Tighten the baseline with: GENTLE_AI_REFUSAL_RATCHET_UPDATE=1 go test ./internal/cli -run TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign -count=1")
+		t.Logf("      Tighten the baseline with: BRUNNR_CODE_REFUSAL_RATCHET_UPDATE=1 go test ./internal/cli -run TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign -count=1")
 	}
 }
 

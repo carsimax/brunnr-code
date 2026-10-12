@@ -24,7 +24,7 @@ import (
 
 func TestMain(m *testing.M) {
 	testenv.RunBrewProbeFixture()
-	if os.Getenv("GENTLE_AI_FAKE_GO") == "1" {
+	if os.Getenv("BRUNNR_CODE_FAKE_GO") == "1" {
 		data := fmt.Sprintf("GONOSUMDB=%s\nGOPRIVATE=%s\nGONOPROXY=%s\n", os.Getenv("GONOSUMDB"), os.Getenv("GOPRIVATE"), os.Getenv("GONOPROXY"))
 		_ = os.WriteFile(os.Getenv("GO_ENV_RECORD"), []byte(data), 0o600)
 		os.Exit(0)

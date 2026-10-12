@@ -367,11 +367,11 @@ func installLargeStderrGitAddShim(t *testing.T) {
 		"  fi\n" +
 		"  prev=\"$arg\"\n" +
 		"done\n" +
-		"exec \"$GENTLE_AI_TEST_REAL_GIT\" \"$@\"\n"
+		"exec \"$BRUNNR_CODE_TEST_REAL_GIT\" \"$@\"\n"
 	if err := os.WriteFile(filepath.Join(shimDir, "git"), []byte(shim), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("GENTLE_AI_TEST_REAL_GIT", realGit)
+	t.Setenv("BRUNNR_CODE_TEST_REAL_GIT", realGit)
 	t.Setenv("PATH", shimDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 }
 
@@ -1579,7 +1579,7 @@ func TestBaseWorkspaceOverlayPropagatesTemporaryIndexInventoryErrors(t *testing.
 	if !filepath.IsAbs(realIndex) {
 		realIndex = filepath.Join(repo, realIndex)
 	}
-	t.Setenv("GENTLE_AI_TEST_REAL_INDEX", realIndex)
+	t.Setenv("BRUNNR_CODE_TEST_REAL_INDEX", realIndex)
 
 	originalCommand := gitCommandContext
 	gitCommandContext = func(ctx context.Context, name string, args ...string) *exec.Cmd {
@@ -1601,7 +1601,7 @@ func TestBaseWorkspaceOverlayPropagatesTemporaryIndexInventoryErrors(t *testing.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("GENTLE_AI_EMPTY_INDEX_INVENTORY_HELPER", tt.mode)
+			t.Setenv("BRUNNR_CODE_EMPTY_INDEX_INVENTORY_HELPER", tt.mode)
 			_, err := (SnapshotBuilder{Repo: repo}).Build(context.Background(), Target{
 				Kind: TargetBaseWorkspaceOverlay, BaseRef: "HEAD", IntendedUntracked: []string{"new.txt"},
 			})
@@ -1620,12 +1620,12 @@ func TestBaseWorkspaceOverlayPropagatesTemporaryIndexInventoryErrors(t *testing.
 }
 
 func TestEmptyIndexInventoryHelperProcess(t *testing.T) {
-	mode := os.Getenv("GENTLE_AI_EMPTY_INDEX_INVENTORY_HELPER")
+	mode := os.Getenv("BRUNNR_CODE_EMPTY_INDEX_INVENTORY_HELPER")
 	if mode == "" {
 		return
 	}
 	index := os.Getenv("GIT_INDEX_FILE")
-	if index == "" || filepath.Clean(index) == filepath.Clean(os.Getenv("GENTLE_AI_TEST_REAL_INDEX")) {
+	if index == "" || filepath.Clean(index) == filepath.Clean(os.Getenv("BRUNNR_CODE_TEST_REAL_INDEX")) {
 		_, _ = fmt.Fprint(os.Stderr, "temporary index environment missing")
 		os.Exit(72)
 	}
@@ -2032,7 +2032,7 @@ func TestNulSeparatedGitParsersPreserveUnusualPaths(t *testing.T) {
 }
 
 func TestBatchGitProtocolReadersRejectDiagnostics(t *testing.T) {
-	t.Setenv("GENTLE_AI_TEST_GIT_PROTOCOL_DIAGNOSTIC", "1")
+	t.Setenv("BRUNNR_CODE_TEST_GIT_PROTOCOL_DIAGNOSTIC", "1")
 	originalCommand := gitCommandContext
 	gitCommandContext = func(ctx context.Context, _ string, _ ...string) *exec.Cmd {
 		return exec.CommandContext(ctx, os.Args[0], "-test.run=^TestBatchGitProtocolDiagnosticHelperProcess$")
@@ -2064,7 +2064,7 @@ func TestBatchGitProtocolReadersRejectDiagnostics(t *testing.T) {
 }
 
 func TestBatchGitProtocolDiagnosticHelperProcess(t *testing.T) {
-	if os.Getenv("GENTLE_AI_TEST_GIT_PROTOCOL_DIAGNOSTIC") != "1" {
+	if os.Getenv("BRUNNR_CODE_TEST_GIT_PROTOCOL_DIAGNOSTIC") != "1" {
 		return
 	}
 	_, _ = fmt.Fprint(os.Stderr, "protocol diagnostic")
@@ -2221,7 +2221,7 @@ func TestClassifyMergeTreeWriteTreeProbe(t *testing.T) {
 			err := tt.err
 			if tt.exitCode != "" {
 				cmd := exec.Command(os.Args[0], "-test.run=^TestMergeTreeProbeExitHelper$")
-				cmd.Env = append(os.Environ(), "GENTLE_AI_TEST_MERGE_TREE_EXIT="+tt.exitCode)
+				cmd.Env = append(os.Environ(), "BRUNNR_CODE_TEST_MERGE_TREE_EXIT="+tt.exitCode)
 				err = cmd.Run()
 			}
 			got, err := classifyMergeTreeWriteTreeProbe([]byte(tt.output), err)
@@ -2233,7 +2233,7 @@ func TestClassifyMergeTreeWriteTreeProbe(t *testing.T) {
 }
 
 func TestMergeTreeProbeExitHelper(t *testing.T) {
-	switch os.Getenv("GENTLE_AI_TEST_MERGE_TREE_EXIT") {
+	switch os.Getenv("BRUNNR_CODE_TEST_MERGE_TREE_EXIT") {
 	case "129":
 		os.Exit(129)
 	case "23":

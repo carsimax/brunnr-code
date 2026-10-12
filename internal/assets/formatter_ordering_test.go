@@ -103,7 +103,7 @@ func TestWindowsReleaseBlockerCannotSkipOwnerRebinding(t *testing.T) {
 	}
 	for _, required := range []string{
 		"TestRARPrivateOwnerRemainsTokenUserOnly",
-		`GENTLE_AI_REQUIRE_DISTINCT_WINDOWS_TOKEN_OWNER: "1"`,
+		`BRUNNR_CODE_REQUIRE_DISTINCT_WINDOWS_TOKEN_OWNER: "1"`,
 	} {
 		if !strings.Contains(string(workflow), required) {
 			t.Fatalf(
@@ -128,7 +128,7 @@ func TestWindowsReleaseBlockerCannotSkipOwnerRebinding(t *testing.T) {
 	}
 	if !strings.Contains(
 		string(testSource),
-		`os.Getenv("GENTLE_AI_REQUIRE_DISTINCT_WINDOWS_TOKEN_OWNER") == "1"`,
+		`os.Getenv("BRUNNR_CODE_REQUIRE_DISTINCT_WINDOWS_TOKEN_OWNER") == "1"`,
 	) {
 		t.Fatal(
 			"native Windows owner-rebinding test can skip the release precondition",

@@ -37,7 +37,7 @@ import (
 
 const (
 	// realAgentE2EEnvironment gates the real-agent journeys.
-	realAgentE2EEnvironment = "GENTLE_AI_REAL_AGENT_E2E"
+	realAgentE2EEnvironment = "BRUNNR_CODE_REAL_AGENT_E2E"
 
 	organicLocalTimeout     = 90 * time.Second
 	organicSetupTimeout     = 5 * time.Minute
@@ -58,17 +58,17 @@ const (
 // never escalates its own route. Re-executing the compiled test binary keeps
 // that real without adding a language runtime dependency to the suite.
 const (
-	organicActorRoleEnvironment                     = "GENTLE_AI_ORGANIC_ACTOR_ROLE"
-	organicActorRepoEnvironment                     = "GENTLE_AI_ORGANIC_ACTOR_REPO"
-	organicActorPathEnvironment                     = "GENTLE_AI_ORGANIC_ACTOR_PATH"
-	organicActorBodyEnvironment                     = "GENTLE_AI_ORGANIC_ACTOR_BODY"
-	organicActorMessageEnvironment                  = "GENTLE_AI_ORGANIC_ACTOR_MESSAGE"
-	organicActorBinaryEnvironment                   = "GENTLE_AI_ORGANIC_ACTOR_BINARY"
-	organicTestBinaryEnvironment                    = "GENTLE_AI_ORGANIC_TEST_BINARY"
-	organicProviderCaptureFakeAgentEnvironment      = "GENTLE_AI_ORGANIC_PROVIDER_CAPTURE_FAKE_AGENT"
-	organicProviderCaptureFakePayloadEnvironment    = "GENTLE_AI_ORGANIC_PROVIDER_CAPTURE_FAKE_PAYLOAD"
-	organicProviderCaptureFakeFailureEnvironment    = "GENTLE_AI_ORGANIC_PROVIDER_CAPTURE_FAKE_FAILURE"
-	organicProviderCaptureFakeInvocationEnvironment = "GENTLE_AI_ORGANIC_PROVIDER_CAPTURE_FAKE_INVOCATION"
+	organicActorRoleEnvironment                     = "BRUNNR_CODE_ORGANIC_ACTOR_ROLE"
+	organicActorRepoEnvironment                     = "BRUNNR_CODE_ORGANIC_ACTOR_REPO"
+	organicActorPathEnvironment                     = "BRUNNR_CODE_ORGANIC_ACTOR_PATH"
+	organicActorBodyEnvironment                     = "BRUNNR_CODE_ORGANIC_ACTOR_BODY"
+	organicActorMessageEnvironment                  = "BRUNNR_CODE_ORGANIC_ACTOR_MESSAGE"
+	organicActorBinaryEnvironment                   = "BRUNNR_CODE_ORGANIC_ACTOR_BINARY"
+	organicTestBinaryEnvironment                    = "BRUNNR_CODE_ORGANIC_TEST_BINARY"
+	organicProviderCaptureFakeAgentEnvironment      = "BRUNNR_CODE_ORGANIC_PROVIDER_CAPTURE_FAKE_AGENT"
+	organicProviderCaptureFakePayloadEnvironment    = "BRUNNR_CODE_ORGANIC_PROVIDER_CAPTURE_FAKE_PAYLOAD"
+	organicProviderCaptureFakeFailureEnvironment    = "BRUNNR_CODE_ORGANIC_PROVIDER_CAPTURE_FAKE_FAILURE"
+	organicProviderCaptureFakeInvocationEnvironment = "BRUNNR_CODE_ORGANIC_PROVIDER_CAPTURE_FAKE_INVOCATION"
 
 	organicActorRoleDirect    = "direct"
 	organicActorRoleDelegated = "delegated"
@@ -254,10 +254,10 @@ func TestOrganicDirectoryIdentityAcceptsCanonicalAliases(t *testing.T) {
 }
 
 func TestClaudeProviderAdapterUsesPinnedNetworkNoneRuntime(t *testing.T) {
-	if testing.Short() || os.Getenv("GENTLE_AI_CLAUDE_RUNTIME_E2E") != "1" {
+	if testing.Short() || os.Getenv("BRUNNR_CODE_CLAUDE_RUNTIME_E2E") != "1" {
 		t.Skip("claude_network_none_skipped: requires the pinned Docker proof image")
 	}
-	binary := os.Getenv("GENTLE_AI_CLAUDE_RUNTIME_BINARY")
+	binary := os.Getenv("BRUNNR_CODE_CLAUDE_RUNTIME_BINARY")
 	if binary == "" {
 		t.Fatal("claude_network_none_unavailable: pinned binary path is empty")
 	}
@@ -318,8 +318,8 @@ func TestClaudeProviderAdapterUsesPinnedNetworkNoneRuntime(t *testing.T) {
 }
 
 func TestCodexProviderAdapterUsesPinnedLocalRuntime(t *testing.T) {
-	if testing.Short() || strings.TrimSpace(os.Getenv("GENTLE_AI_CODEX_RUNTIME_E2E")) != "1" {
-		t.Skip("set GENTLE_AI_CODEX_RUNTIME_E2E=1 to run the pinned local Codex transport proof")
+	if testing.Short() || strings.TrimSpace(os.Getenv("BRUNNR_CODE_CODEX_RUNTIME_E2E")) != "1" {
+		t.Skip("set BRUNNR_CODE_CODEX_RUNTIME_E2E=1 to run the pinned local Codex transport proof")
 	}
 	if runtime.GOOS != "linux" {
 		t.Skip("the Codex egress proof requires Linux strace")
@@ -434,16 +434,16 @@ func TestCodexProviderAdapterUsesPinnedLocalRuntime(t *testing.T) {
 	wrapper := filepath.Join(bin, "codex")
 	if err := os.WriteFile(wrapper, []byte(`#!/bin/sh
 set -eu
-exec "$GENTLE_AI_RUNTIME_TRACE_BINARY" -ff -o "$GENTLE_AI_RUNTIME_TRACE_LOG" -e trace=connect "$GENTLE_AI_RUNTIME_TRACE_TARGET" "$@"
+exec "$BRUNNR_CODE_RUNTIME_TRACE_BINARY" -ff -o "$BRUNNR_CODE_RUNTIME_TRACE_LOG" -e trace=connect "$BRUNNR_CODE_RUNTIME_TRACE_TARGET" "$@"
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	environment := append(harness.environment(),
 		"PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"GENTLE_AI_CODEX_REVIEWER_LOOPBACK_BASE_URL="+server.URL+"/v1",
-		"GENTLE_AI_RUNTIME_TRACE_BINARY="+strace,
-		"GENTLE_AI_RUNTIME_TRACE_LOG="+traceBase,
-		"GENTLE_AI_RUNTIME_TRACE_TARGET="+binary,
+		"BRUNNR_CODE_CODEX_REVIEWER_LOOPBACK_BASE_URL="+server.URL+"/v1",
+		"BRUNNR_CODE_RUNTIME_TRACE_BINARY="+strace,
+		"BRUNNR_CODE_RUNTIME_TRACE_LOG="+traceBase,
+		"BRUNNR_CODE_RUNTIME_TRACE_TARGET="+binary,
 		"HTTP_PROXY="+proxy.URL,
 		"HTTPS_PROXY="+proxy.URL,
 		"ALL_PROXY="+proxy.URL,
@@ -757,7 +757,7 @@ func writeCodexResponsesLoopback(t *testing.T, writer http.ResponseWriter, respo
 	}
 }
 
-const organicReviewBindingPrefix = "GENTLE_AI_REVIEW_BINDING "
+const organicReviewBindingPrefix = "BRUNNR_CODE_REVIEW_BINDING "
 
 func TestNativeProviderCaptureResultCLIUsesCompiledAdapters(t *testing.T) {
 	for _, test := range []struct {
@@ -2931,12 +2931,12 @@ func equalOrganicStrings(left, right []string) bool {
 // bash tool, so the implementation step is a real child process of a real agent.
 func organicActorToolCommand(t *testing.T) string {
 	t.Helper()
-	return organicToolCommand(t, "GENTLE_AI_ORGANIC_ACTOR_EXECUTABLE")
+	return organicToolCommand(t, "BRUNNR_CODE_ORGANIC_ACTOR_EXECUTABLE")
 }
 
 func organicReviewToolCommand(t *testing.T, arguments ...string) string {
 	t.Helper()
-	return organicToolCommand(t, "GENTLE_AI_ORGANIC_BINARY", arguments...)
+	return organicToolCommand(t, "BRUNNR_CODE_ORGANIC_BINARY", arguments...)
 }
 
 // organicToolCommand turns one fixture-authored argv into the string the

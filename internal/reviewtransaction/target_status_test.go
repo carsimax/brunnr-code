@@ -918,7 +918,7 @@ func TestAssessTargetStatusPropagatesOperationalAuthorityFailures(t *testing.T) 
 		writeSnapshotFile(t, repo, "tracked.txt", "drifted candidate\n")
 		originalCommand := gitCommandContext
 		t.Cleanup(func() { gitCommandContext = originalCommand })
-		t.Setenv("GENTLE_AI_TARGET_STATUS_GIT_HELPER", "exit73")
+		t.Setenv("BRUNNR_CODE_TARGET_STATUS_GIT_HELPER", "exit73")
 		gitCommandContext = func(ctx context.Context, name string, args ...string) *exec.Cmd {
 			if gitInvocationContains(args, "--git-common-dir") {
 				return exec.CommandContext(ctx, os.Args[0], "-test.run=^TestTargetStatusGitHelperProcess$", "--")
@@ -940,7 +940,7 @@ func TestAssessTargetStatusPropagatesOperationalAuthorityFailures(t *testing.T) 
 		t.Cleanup(func() {
 			gitCommandContext, LocalGitCommandTimeout, gitCommandWaitDelay = originalCommand, originalTimeout, originalWait
 		})
-		t.Setenv("GENTLE_AI_TARGET_STATUS_GIT_HELPER", "sleep")
+		t.Setenv("BRUNNR_CODE_TARGET_STATUS_GIT_HELPER", "sleep")
 		LocalGitCommandTimeout, gitCommandWaitDelay = 25*time.Millisecond, 10*time.Millisecond
 		gitCommandContext = func(ctx context.Context, name string, args ...string) *exec.Cmd {
 			if gitInvocationContains(args, "--git-common-dir") {
@@ -1173,7 +1173,7 @@ func TestAssessTargetStatusStopsStableReadOnDeadline(t *testing.T) {
 }
 
 func TestTargetStatusGitHelperProcess(t *testing.T) {
-	switch os.Getenv("GENTLE_AI_TARGET_STATUS_GIT_HELPER") {
+	switch os.Getenv("BRUNNR_CODE_TARGET_STATUS_GIT_HELPER") {
 	case "exit73":
 		os.Exit(73)
 	case "sleep":

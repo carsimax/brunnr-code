@@ -93,7 +93,7 @@ func TestReviewAuthorityRootRejectsLegacyOptionEchoWithoutMutation(t *testing.T)
 	requireSnapshotGit(t)
 	repo := initSnapshotRepo(t)
 	original := gitCommandContext
-	t.Setenv("GENTLE_AI_TEST_GIT_PATH_OUTPUT", base64.StdEncoding.EncodeToString([]byte("--path-format=absolute\n.git\n")))
+	t.Setenv("BRUNNR_CODE_TEST_GIT_PATH_OUTPUT", base64.StdEncoding.EncodeToString([]byte("--path-format=absolute\n.git\n")))
 	gitCommandContext = func(ctx context.Context, name string, args ...string) *exec.Cmd {
 		if slicesContain(args, "--git-common-dir") {
 			return exec.CommandContext(ctx, os.Args[0], "-test.run=^TestGitAuthorityPathHelperProcess$")
@@ -120,7 +120,7 @@ func TestResolveRepositoryRootRejectsUnrelatedAbsoluteOutput(t *testing.T) {
 	repo := initSnapshotRepo(t)
 	outside := t.TempDir()
 	original := gitCommandContext
-	t.Setenv("GENTLE_AI_TEST_GIT_PATH_OUTPUT", base64.StdEncoding.EncodeToString([]byte(outside+"\n")))
+	t.Setenv("BRUNNR_CODE_TEST_GIT_PATH_OUTPUT", base64.StdEncoding.EncodeToString([]byte(outside+"\n")))
 	gitCommandContext = func(ctx context.Context, name string, args ...string) *exec.Cmd {
 		if slicesContain(args, "--show-toplevel") {
 			return exec.CommandContext(ctx, os.Args[0], "-test.run=^TestGitAuthorityPathHelperProcess$")
@@ -205,7 +205,7 @@ func TestReviewRepositoryIdentityPreservesGitCommandError(t *testing.T) {
 	repo := initSnapshotRepo(t)
 	original := gitCommandContext
 	showTopLevelCalls := 0
-	t.Setenv("GENTLE_AI_TEST_GIT_PATH_FAIL", "1")
+	t.Setenv("BRUNNR_CODE_TEST_GIT_PATH_FAIL", "1")
 	gitCommandContext = func(ctx context.Context, name string, args ...string) *exec.Cmd {
 		if slicesContain(args, "--show-toplevel") {
 			showTopLevelCalls++
@@ -386,10 +386,10 @@ func overrideGitDirectoryOutputs(t *testing.T, repo, commonDir, gitDir string, b
 }
 
 func TestGitAuthorityPathHelperProcess(t *testing.T) {
-	if os.Getenv("GENTLE_AI_TEST_GIT_PATH_FAIL") == "1" {
+	if os.Getenv("BRUNNR_CODE_TEST_GIT_PATH_FAIL") == "1" {
 		os.Exit(23)
 	}
-	encoded := os.Getenv("GENTLE_AI_TEST_GIT_PATH_OUTPUT")
+	encoded := os.Getenv("BRUNNR_CODE_TEST_GIT_PATH_OUTPUT")
 	if encoded == "" && len(os.Args) > 2 && os.Args[len(os.Args)-2] == "--" {
 		encoded = os.Args[len(os.Args)-1]
 	}

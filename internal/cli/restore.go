@@ -248,7 +248,7 @@ func listBackupsFromDir(homeDir string) []backup.Manifest {
 }
 
 // backupRootDir returns the path to the backup directory under homeDir, or
-// under GENTLE_AI_HOME when set.
+// under BRUNNR_CODE_HOME when set.
 func backupRootDir(homeDir string) string {
 	if os.Getenv(state.HomeEnv) != "" {
 		return state.BackupsDir(homeDir)

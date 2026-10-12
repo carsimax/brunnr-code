@@ -54,7 +54,7 @@ func TestAcknowledgedTargetRestartIsTheDocumentedStartNotStatus(t *testing.T) {
 		t.Fatalf("target_already_acknowledged row names %d `brunnr-code review start` commands, want exactly 1: %s", len(matches), row)
 	}
 	documented := matches[0][1]
-	if !strings.Contains(documented, "--agent {{GENTLE_AI_RUNTIME_AGENT_ID}} ") {
+	if !strings.Contains(documented, "--agent {{BRUNNR_CODE_RUNTIME_AGENT_ID}} ") {
 		t.Fatalf("documented restart does not declare the runtime: %s", documented)
 	}
 	if strings.Contains(row, "brunnr-code review status") {
@@ -63,7 +63,7 @@ func TestAcknowledgedTargetRestartIsTheDocumentedStartNotStatus(t *testing.T) {
 	// Fill the documented slots from this STATUS, as an orchestrator would;
 	// this target is a committed range, so the documented range pair applies.
 	command := strings.NewReplacer(
-		"{{GENTLE_AI_RUNTIME_AGENT_ID}}", string(model.AgentClaudeCode),
+		"{{BRUNNR_CODE_RUNTIME_AGENT_ID}}", string(model.AgentClaudeCode),
 		"<B>", repo,
 		"<target_identity>", acknowledged.TargetIdentity,
 		"<projection.projection>", string(acknowledged.Projection.Projection),

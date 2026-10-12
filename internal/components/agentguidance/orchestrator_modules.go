@@ -117,7 +117,7 @@ func splitOrchestratorModules(annotated string, specs []orchestratorFragmentSpec
 		}
 		byID[spec.id] = spec
 	}
-	if strings.Contains(annotated, "{{GENTLE_AI_") {
+	if strings.Contains(annotated, "{{BRUNNR_CODE_") {
 		return invalid("unresolved template placeholder")
 	}
 

@@ -18,7 +18,7 @@ const (
 	ScopeWorkspace InstallScope = "workspace"
 
 	// scopeEnvVar is the environment variable that controls install scope.
-	scopeEnvVar = "GENTLE_AI_INSTALL_SCOPE"
+	scopeEnvVar = "BRUNNR_CODE_INSTALL_SCOPE"
 )
 
 // ResolveInstallScope resolves the install scope from the flag value and env var.

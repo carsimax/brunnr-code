@@ -36,7 +36,7 @@ type Sandbox struct {
 	Remote     string
 	TracePath  string
 	// BenchCrashAtPhase, when non-empty, is read by product binaries built
-	// with `-tags bench_fixture` as GENTLE_AI_BENCH_CRASH_AT_PHASE
+	// with `-tags bench_fixture` as BRUNNR_CODE_BENCH_CRASH_AT_PHASE
 	// (format "<phase>:<lineage_id>"): the deterministic phase-hook
 	// interruption internal/reviewtransaction's own crash-position matrix
 	// uses in-process (compactReclaimPhaseHook), reachable here through the
@@ -106,7 +106,7 @@ func (s *Sandbox) env() []string {
 		env = append(env, "SHELL="+s.LoginShell)
 	}
 	if s.BenchCrashAtPhase != "" {
-		env = append(env, "GENTLE_AI_BENCH_CRASH_AT_PHASE="+s.BenchCrashAtPhase)
+		env = append(env, "BRUNNR_CODE_BENCH_CRASH_AT_PHASE="+s.BenchCrashAtPhase)
 	}
 	// Set last so a journey that poisons the process temp directory overrides
 	// the sandbox's own writable TMP/TEMP/TMPDIR defaults above.
@@ -179,7 +179,7 @@ func (s *Sandbox) initRepo(path string) error {
 		return err
 	}
 	// The installed agent config must never leak into a reviewed diff.
-	return s.write(filepath.Join(path, ".gitignore"), ".claude/\n.gentle-ai/\n")
+	return s.write(filepath.Join(path, ".gitignore"), ".claude/\n.brunnr-code/\n")
 }
 
 func (s *Sandbox) write(path, content string) error {

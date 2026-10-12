@@ -183,16 +183,16 @@ func TestClaudeUserPromptSubmitHookExecutesPowerShellCommandWithSpecialChars(t *
 	childEnv := make([]string, 0, len(os.Environ())+4)
 	for _, kv := range os.Environ() {
 		if strings.HasPrefix(kv, "PATH=") ||
-			strings.HasPrefix(kv, "GENTLE_AI_FAKE_LOG=") ||
-			strings.HasPrefix(kv, "GENTLE_AI_FAKE_EXIT=") {
+			strings.HasPrefix(kv, "BRUNNR_CODE_FAKE_LOG=") ||
+			strings.HasPrefix(kv, "BRUNNR_CODE_FAKE_EXIT=") {
 			continue
 		}
 		childEnv = append(childEnv, kv)
 	}
 	childEnv = append(childEnv,
 		"PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"GENTLE_AI_FAKE_LOG="+fakeLogPath,
-		"GENTLE_AI_FAKE_EXIT=7",
+		"BRUNNR_CODE_FAKE_LOG="+fakeLogPath,
+		"BRUNNR_CODE_FAKE_EXIT=7",
 		"CLAUDE_PROJECT_DIR="+projectDir,
 	)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

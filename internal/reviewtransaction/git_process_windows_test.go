@@ -89,7 +89,7 @@ func TestStartGitProcessTreeKillsUnboundChildOnFailure(t *testing.T) {
 // smoke concern, not a claim this API-level regression makes.
 func TestRunGitStartsWithoutAttachedConsole(t *testing.T) {
 	command := exec.Command(os.Args[0], "-test.run=^TestRunGitConsoleWindowHelper$")
-	command.Env = append(os.Environ(), "GENTLE_AI_TEST_GIT_CONSOLE_WINDOW=launcher")
+	command.Env = append(os.Environ(), "BRUNNR_CODE_TEST_GIT_CONSOLE_WINDOW=launcher")
 	output, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("launch consoleless Git helper: %v: %s", err, output)
@@ -105,7 +105,7 @@ func TestRunGitStartsWithoutAttachedConsole(t *testing.T) {
 // Successful helpers exit directly so testing.Main cannot append PASS to the
 // numeric subprocess protocol. Parent test cleanup is unaffected.
 func TestRunGitConsoleWindowHelper(t *testing.T) {
-	switch os.Getenv("GENTLE_AI_TEST_GIT_CONSOLE_WINDOW") {
+	switch os.Getenv("BRUNNR_CODE_TEST_GIT_CONSOLE_WINDOW") {
 	case "":
 		return
 	case "probe":
@@ -124,7 +124,7 @@ func TestRunGitConsoleWindowHelper(t *testing.T) {
 		gitCommandContext = func(ctx context.Context, _ string, _ ...string) *exec.Cmd {
 			return exec.CommandContext(ctx, os.Args[0], "-test.run=^TestRunGitConsoleWindowHelper$")
 		}
-		t.Setenv("GENTLE_AI_TEST_GIT_CONSOLE_WINDOW", "probe")
+		t.Setenv("BRUNNR_CODE_TEST_GIT_CONSOLE_WINDOW", "probe")
 		output, err := runGit(context.Background(), t.TempDir(), nil, nil, "rev-parse", "--show-toplevel")
 		gitCommandContext = originalCommand
 		if err != nil {
@@ -133,7 +133,7 @@ func TestRunGitConsoleWindowHelper(t *testing.T) {
 		_, _ = os.Stdout.Write(output)
 		os.Exit(0)
 	default:
-		t.Fatalf("unknown console helper mode %q", os.Getenv("GENTLE_AI_TEST_GIT_CONSOLE_WINDOW"))
+		t.Fatalf("unknown console helper mode %q", os.Getenv("BRUNNR_CODE_TEST_GIT_CONSOLE_WINDOW"))
 	}
 }
 

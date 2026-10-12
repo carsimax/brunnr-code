@@ -22,7 +22,7 @@ import (
 const (
 	// runtimeAgentIDPlaceholder is the identity slot the shared review ledger
 	// contract carries; it is bound to the runtime that receives the bytes.
-	runtimeAgentIDPlaceholder = "{{GENTLE_AI_RUNTIME_AGENT_ID}}"
+	runtimeAgentIDPlaceholder = "{{BRUNNR_CODE_RUNTIME_AGENT_ID}}"
 	sharedDirName             = "_shared"
 	// compatibilityRuntimeSlot binds the shared ~/.agents/skills root, which
 	// every runtime reads, to a generic slot instead of one runtime identity.

@@ -92,7 +92,7 @@ func TestNegotiatedStartRuntimeBudgetRefusesOver200KiBCandidateWithoutAuthority(
 		failure.Failure.NextAction != "stop" || failure.Failure.Code != "lens_context_budget_exceeded" {
 		t.Fatalf("over-runtime-budget START envelope does not report a refusal that wrote nothing: %#v", failure.Failure)
 	}
-	if strings.Contains(output.String(), "GENTLE_AI_REVIEW_") {
+	if strings.Contains(output.String(), "BRUNNR_CODE_REVIEW_") {
 		t.Fatalf("over-runtime-budget START refusal emitted reviewer evidence:\n%s", output.String())
 	}
 	if after := snapshotAuthorityTree(t, authorityRoot); authorityBefore != after {

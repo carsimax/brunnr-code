@@ -15,7 +15,7 @@ import (
 // during bootstrap and crashes with an ENOENT uv_cwd error when that
 // directory no longer exists (issue #2148).
 func TestHelperProcessGetwd(t *testing.T) {
-	if os.Getenv("GENTLE_AI_WANT_GETWD_HELPER") != "1" {
+	if os.Getenv("BRUNNR_CODE_WANT_GETWD_HELPER") != "1" {
 		return
 	}
 	if _, err := os.Getwd(); err != nil {
@@ -35,7 +35,7 @@ func TestExecuteExternalCommandSurvivesDeletedWorkingDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve test binary: %v", err)
 	}
-	t.Setenv("GENTLE_AI_WANT_GETWD_HELPER", "1")
+	t.Setenv("BRUNNR_CODE_WANT_GETWD_HELPER", "1")
 
 	gone := filepath.Join(t.TempDir(), "gone")
 	if err := os.Mkdir(gone, 0o755); err != nil {

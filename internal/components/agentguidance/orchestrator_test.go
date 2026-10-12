@@ -95,7 +95,7 @@ func TestInjectRoutingInstallsOrchestratorForEveryRuntime(t *testing.T) {
 			if strings.Index(prompt, orchestratorOpenMarker) > strings.Index(prompt, routingOpenMarkerForTest) {
 				t.Fatal("orchestrator block must precede the routing block it points to")
 			}
-			if strings.Contains(prompt, "{{GENTLE_AI_") {
+			if strings.Contains(prompt, "{{BRUNNR_CODE_") {
 				t.Fatalf("installed prompt carries an unresolved placeholder:\n%s", prompt)
 			}
 

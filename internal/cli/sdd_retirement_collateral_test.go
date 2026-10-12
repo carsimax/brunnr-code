@@ -109,7 +109,7 @@ func TestInstallLeavesNoDanglingSharedReferences(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if bytes.Contains(ledger, []byte("{{GENTLE_AI_RUNTIME_AGENT_ID}}")) || !bytes.Contains(ledger, []byte("--agent "+string(agent))) {
+			if bytes.Contains(ledger, []byte("{{BRUNNR_CODE_RUNTIME_AGENT_ID}}")) || !bytes.Contains(ledger, []byte("--agent "+string(agent))) {
 				t.Errorf("review-ledger-contract.md is not bound to runtime %s", agent)
 			}
 		})

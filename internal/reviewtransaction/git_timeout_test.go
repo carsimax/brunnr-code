@@ -20,7 +20,7 @@ func TestRunGitBoundsLocalAndRemoteCommands(t *testing.T) {
 		RemoteGitCommandTimeout = originalRemote
 		gitCommandWaitDelay = originalWaitDelay
 	})
-	t.Setenv("GENTLE_AI_GIT_TIMEOUT_HELPER", "sleep")
+	t.Setenv("BRUNNR_CODE_GIT_TIMEOUT_HELPER", "sleep")
 	gitCommandContext = func(ctx context.Context, _ string, _ ...string) *exec.Cmd {
 		return exec.CommandContext(ctx, os.Args[0], "-test.run=^TestRunGitTimeoutHelper$", "--")
 	}
@@ -53,8 +53,8 @@ func TestRunGitBoundsLocalAndRemoteCommands(t *testing.T) {
 		})
 	}
 	marker := t.TempDir() + "/escaped"
-	t.Setenv("GENTLE_AI_GIT_TIMEOUT_HELPER", "parent-exit")
-	t.Setenv("GENTLE_AI_GIT_ESCAPE_MARKER", marker)
+	t.Setenv("BRUNNR_CODE_GIT_TIMEOUT_HELPER", "parent-exit")
+	t.Setenv("BRUNNR_CODE_GIT_ESCAPE_MARKER", marker)
 	LocalGitCommandTimeout = time.Second
 	_, _ = runGit(context.Background(), t.TempDir(), nil, nil, "status")
 	time.Sleep(2100 * time.Millisecond)
@@ -75,7 +75,7 @@ func TestRunGitDistinguishesAggregateDeadlineAndTypedExit(t *testing.T) {
 	}
 	LocalGitCommandTimeout = time.Second
 
-	t.Setenv("GENTLE_AI_GIT_TIMEOUT_HELPER", "sleep")
+	t.Setenv("BRUNNR_CODE_GIT_TIMEOUT_HELPER", "sleep")
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
 	defer cancel()
 	_, err := runGit(ctx, t.TempDir(), nil, nil, "status")
@@ -84,7 +84,7 @@ func TestRunGitDistinguishesAggregateDeadlineAndTypedExit(t *testing.T) {
 		t.Fatalf("aggregate timeout = %T %#v", err, timeout)
 	}
 
-	t.Setenv("GENTLE_AI_GIT_TIMEOUT_HELPER", "exit")
+	t.Setenv("BRUNNR_CODE_GIT_TIMEOUT_HELPER", "exit")
 	_, err = runGit(context.Background(), t.TempDir(), nil, nil, "status")
 	var commandErr *GitCommandError
 	if !errors.As(err, &commandErr) || commandErr.ExitCode != 7 || commandErr.Remote || errors.Is(err, ErrGitCommandTimeout) {
@@ -93,16 +93,16 @@ func TestRunGitDistinguishesAggregateDeadlineAndTypedExit(t *testing.T) {
 }
 
 func TestRunGitTimeoutHelper(t *testing.T) {
-	switch os.Getenv("GENTLE_AI_GIT_TIMEOUT_HELPER") {
+	switch os.Getenv("BRUNNR_CODE_GIT_TIMEOUT_HELPER") {
 	case "parent-exit":
 		child := exec.Command(os.Args[0], "-test.run=^TestRunGitTimeoutHelper$", "--")
-		child.Env = append(os.Environ(), "GENTLE_AI_GIT_TIMEOUT_HELPER=mark")
+		child.Env = append(os.Environ(), "BRUNNR_CODE_GIT_TIMEOUT_HELPER=mark")
 		if err := child.Start(); err != nil {
 			t.Fatal(err)
 		}
 	case "mark":
 		time.Sleep(2 * time.Second)
-		_ = os.WriteFile(os.Getenv("GENTLE_AI_GIT_ESCAPE_MARKER"), []byte("escaped"), 0o644)
+		_ = os.WriteFile(os.Getenv("BRUNNR_CODE_GIT_ESCAPE_MARKER"), []byte("escaped"), 0o644)
 	case "sleep":
 		time.Sleep(10 * time.Second)
 	case "exit":

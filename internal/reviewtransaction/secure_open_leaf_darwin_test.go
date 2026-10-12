@@ -94,7 +94,7 @@ type secureOpenLeafCall struct {
 }
 
 const (
-	secureOpenLeafStuckBeforeEntryEnv  = "GENTLE_AI_SECURE_OPEN_LEAF_STUCK_BEFORE_ENTRY"
+	secureOpenLeafStuckBeforeEntryEnv  = "BRUNNR_CODE_SECURE_OPEN_LEAF_STUCK_BEFORE_ENTRY"
 	secureOpenLeafConcurrentLifeline   = 5 * time.Second
 	secureOpenLeafInjectedFailureBound = 100 * time.Millisecond
 )

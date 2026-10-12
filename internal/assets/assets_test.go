@@ -107,9 +107,9 @@ func TestSharedReferenceNegativeControls(t *testing.T) {
 func TestClaudeODDOnlyOrchestrator(t *testing.T) {
 	content := MustRead("claude/orchestrator.md")
 	for _, required := range []string{
-		"{{GENTLE_AI_ODD_SECTION:Organic Driven Development Is The Default Workflow (MANDATORY)}}",
-		"{{GENTLE_AI_ODD_SECTION:Language Domain Contract}}",
-		"{{GENTLE_AI_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}",
+		"{{BRUNNR_CODE_ODD_SECTION:Organic Driven Development Is The Default Workflow (MANDATORY)}}",
+		"{{BRUNNR_CODE_ODD_SECTION:Language Domain Contract}}",
+		"{{BRUNNR_CODE_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}",
 		"Lossless Blocking Prompts", "Brunnr-Code Provider Defect Handoff",
 		"Native Checking Contract", "Review Execution Contract", "Mandatory Delegation Triggers",
 	} {
@@ -118,9 +118,9 @@ func TestClaudeODDOnlyOrchestrator(t *testing.T) {
 		}
 	}
 	for _, forbidden := range []string{
-		"{{GENTLE_AI_SDD_SECTION:", "SDD Workflow", "SDD Edit-Authority", "sdd-apply",
+		"{{BRUNNR_CODE_SDD_SECTION:", "SDD Workflow", "SDD Edit-Authority", "sdd-apply",
 		"sdd-verify", "sdd-orchestrator-workflow.md", "optional SDD", "Optional SDD rule",
-		"sdd-model-assignments", "SDD phase", "OpenSpec", "{{GENTLE_AI_RESEARCH_LIFECYCLE}}",
+		"sdd-model-assignments", "SDD phase", "OpenSpec", "{{BRUNNR_CODE_RESEARCH_LIFECYCLE}}",
 	} {
 		if strings.Contains(content, forbidden) {
 			t.Errorf("Claude orchestrator retains %q", forbidden)
@@ -143,8 +143,8 @@ func TestPrimaryODDOnlyOrchestrator(t *testing.T) {
 		t.Run(runtime, func(t *testing.T) {
 			content := MustRead(runtime + "/orchestrator.md")
 			for _, required := range []string{
-				"{{GENTLE_AI_ODD_SECTION:Organic Driven Development Is The Default Workflow (MANDATORY)}}",
-				"{{GENTLE_AI_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}",
+				"{{BRUNNR_CODE_ODD_SECTION:Organic Driven Development Is The Default Workflow (MANDATORY)}}",
+				"{{BRUNNR_CODE_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}",
 				"Lossless Blocking Prompts", "Brunnr-Code Provider Defect Handoff",
 				"Mandatory Delegation Triggers", "Native Checking Contract", "Review Execution Contract",
 			} {
@@ -153,7 +153,7 @@ func TestPrimaryODDOnlyOrchestrator(t *testing.T) {
 				}
 			}
 			for _, forbidden := range []string{
-				"{{GENTLE_AI_SDD_SECTION:", "{{GENTLE_AI_RESEARCH_LIFECYCLE}}",
+				"{{BRUNNR_CODE_SDD_SECTION:", "{{BRUNNR_CODE_RESEARCH_LIFECYCLE}}",
 				"SDD Workflow", "SDD Edit-Authority", "SDD Session Preflight", "sdd-apply",
 				"sdd-verify", "sdd-init", "sdd-model-assignments", "optional SDD",
 				"Optional SDD rule", "SDD phase", "OpenSpec", "openspec", "{{CODEX_PHASE_EFFORTS}}",
@@ -190,8 +190,8 @@ var retiredWorkRunCeremonyTokens = []string{
 	"authorizedTransition",
 	"Capability stop rule",
 	"connectorSessionRef",
-	"GENTLE_AI_PRODUCTIVE_RUNTIME",
-	"{{GENTLE_AI_RUNTIME_AGENT_ID}}",
+	"BRUNNR_CODE_PRODUCTIVE_RUNTIME",
+	"{{BRUNNR_CODE_RUNTIME_AGENT_ID}}",
 	"--contract gentle-ai.work-",
 }
 

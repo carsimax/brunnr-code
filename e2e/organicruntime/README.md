@@ -7,7 +7,7 @@
 From the repository root, with `claude` on `PATH`:
 
 ```bash
-GENTLE_AI_CLAUDE_SUBAGENT_E2E=1 go test ./e2e/organicruntime \
+BRUNNR_CODE_CLAUDE_SUBAGENT_E2E=1 go test ./e2e/organicruntime \
   -run '^TestClaudeMarkdownSubagentsEnforceEmptyTools$' -count=1 -v -timeout=6m
 ```
 
@@ -28,7 +28,7 @@ The parent process can use only `Agent` and `Read`. It uses a fresh configuratio
 `TestClaudeForkAndNamedReviewerToolBoundary` compares the special `fork` Agent type with the installed `review-risk` Markdown definition on the same pinned client:
 
 ```bash
-GENTLE_AI_CLAUDE_SUBAGENT_E2E=1 go test ./e2e/organicruntime \
+BRUNNR_CODE_CLAUDE_SUBAGENT_E2E=1 go test ./e2e/organicruntime \
   -run '^TestClaudeForkAndNamedReviewerToolBoundary$' -count=1 -v -timeout=3m
 ```
 

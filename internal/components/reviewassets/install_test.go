@@ -20,7 +20,7 @@ import (
 // and again when those rules gained the observable-harm qualification.
 var installedHashes = map[model.AgentID]map[string]string{
 	model.AgentClaudeCode: {
-		"jd-fix-agent.md": "cdeae78ee628b3a2eb53f767a16b438dba4da987908cc771baa81aa8686a7336", "jd-judge-a.md": "585162b0123fb5898ee63a0b784b0952919dbe5db103be6a93f1fef81125654d", "jd-judge-b.md": "e90a5bf1410e6e8c68f5f8e9408954512c785b7fb1a36ff4db170fc63dd99538", "review-readability.md": "18722db66c7a12445f812cf00d8075634b2762ce3f8da186411e212e61663d1e", "review-refuter.md": "8d07f9d3f3b732ae351258dbc25edc70e0405ddd95a882ddac279c5cdc69d365", "review-reliability.md": "5cbb8fca833ee057606d8c79c79f4b0866f647f299c1c03e10e952258cfe4795", "review-resilience.md": "9d023680ebf7cb9231e9c4938465a87ddfa3e8d52136c56e5a571e2e0feb5b2d", "review-risk.md": "ce83c929444ceccc26763f517ed1ea68fffe76a9097b275cbaea773257c09dce",
+		"jd-fix-agent.md": "cdeae78ee628b3a2eb53f767a16b438dba4da987908cc771baa81aa8686a7336", "jd-judge-a.md": "585162b0123fb5898ee63a0b784b0952919dbe5db103be6a93f1fef81125654d", "jd-judge-b.md": "e90a5bf1410e6e8c68f5f8e9408954512c785b7fb1a36ff4db170fc63dd99538", "review-readability.md": "f6a65ebecaeb11ec37712f53234d57e725bf5af043eca167688d7f9cfe48f7a1", "review-refuter.md": "8d07f9d3f3b732ae351258dbc25edc70e0405ddd95a882ddac279c5cdc69d365", "review-reliability.md": "55282525b3307249ccb49e15ddf7422a28928b1f879366e43b1d3c6c460a130f", "review-resilience.md": "1f49ae14f3e2ca11ca729fca099aa8d59a888b71655639fb6e4658288e6db697", "review-risk.md": "6be63bd9b8473867868ef03ca887ddb2562c2b926fcf3765aaad3f086e51c387",
 	},
 }
 

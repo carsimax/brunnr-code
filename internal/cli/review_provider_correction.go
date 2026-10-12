@@ -22,7 +22,7 @@ import (
 // their reviewer and receive the same preserved payload instead.
 const (
 	maxReviewerResultAdmissionAttempts     = 2
-	reviewProviderCorrectiveFeedbackHeader = "GENTLE_AI_REVIEW_ADMISSION_FEEDBACK"
+	reviewProviderCorrectiveFeedbackHeader = "BRUNNR_CODE_REVIEW_ADMISSION_FEEDBACK"
 )
 
 // reviewProviderCapture is everything one in-process lens capture needs to

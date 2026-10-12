@@ -180,7 +180,7 @@ func canonicalOrchestrationEntries() ([]orchestrationEntry, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%w: orchestration runtime %q: %v", errInvalidBundle, runtime, err)
 		}
-		if strings.Contains(content, "{{GENTLE_AI_RUNTIME_AGENT_ID}}") {
+		if strings.Contains(content, "{{BRUNNR_CODE_RUNTIME_AGENT_ID}}") {
 			return nil, fmt.Errorf("%w: orchestration runtime %q left the runtime identity placeholder unbound", errInvalidBundle, runtime)
 		}
 		wantCommand := "--agent " + runtime

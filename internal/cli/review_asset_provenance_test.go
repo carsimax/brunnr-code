@@ -432,7 +432,7 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 		// rather than merely decoding it ourselves.
 		run = exec.Command("sh", "-c", status.NextTransition.Continuation.Command)
 	}
-	run.Env = append(os.Environ(), "GENTLE_AI_TEST_CLI_STANDIN=1")
+	run.Env = append(os.Environ(), "BRUNNR_CODE_TEST_CLI_STANDIN=1")
 	if out, err := run.CombinedOutput(); err != nil {
 		t.Fatalf("executing the advertised continuation %q failed: %v\n%s", status.NextTransition.Continuation.Command, err, out)
 	}

@@ -16,7 +16,7 @@ import (
 // gentleAIMarkerToken matches every envelope marker either half of the
 // reviewer transport can name, so the guard below compares the two halves by
 // what they actually contain rather than by a name restated in the test.
-var gentleAIMarkerToken = regexp.MustCompile(`GENTLE_AI_[A-Z_]+`)
+var gentleAIMarkerToken = regexp.MustCompile(`BRUNNR_CODE_[A-Z_]+`)
 
 // TestLensContextBlockCarriesEveryMarkerInstalledClaudeLensAgentsRequire is the
 // regression guard for issue #2777: the renderer a Claude parent relays and the

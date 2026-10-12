@@ -25,7 +25,7 @@ type portableBrewState struct {
 }
 
 func runPortableBrewFixture() int {
-	path := os.Getenv("GENTLE_AI_TEST_BREW_STATE")
+	path := os.Getenv("BRUNNR_CODE_TEST_BREW_STATE")
 	var state portableBrewState
 	if data, err := os.ReadFile(path); err == nil {
 		if json.Unmarshal(data, &state) != nil {
@@ -41,13 +41,13 @@ func runPortableBrewFixture() int {
 	code := 0
 	switch {
 	case args == "help trust":
-		if os.Getenv("GENTLE_AI_TEST_BREW_LEGACY") == "1" {
+		if os.Getenv("BRUNNR_CODE_TEST_BREW_LEGACY") == "1" {
 			code = 2
 		}
 	case args == "tap Gentleman-Programming/homebrew-tap":
 	case strings.HasPrefix(args, "trust --formula gentleman-programming/tap/"):
 		formula := strings.TrimPrefix(args, "trust --formula gentleman-programming/tap/")
-		if os.Getenv("GENTLE_AI_TEST_BREW_DENY") == "1" || formula != "engram" {
+		if os.Getenv("BRUNNR_CODE_TEST_BREW_DENY") == "1" || formula != "engram" {
 			fmt.Fprintln(os.Stderr, "fixture: trust refused")
 			code = 7
 		} else {
@@ -55,7 +55,7 @@ func runPortableBrewFixture() int {
 		}
 	case args == "install engram":
 		formula := strings.Fields(args)[1]
-		if os.Getenv("GENTLE_AI_TEST_BREW_LEGACY") != "1" && state.Trusted != formula {
+		if os.Getenv("BRUNNR_CODE_TEST_BREW_LEGACY") != "1" && state.Trusted != formula {
 			fmt.Fprintln(os.Stderr, "fixture: formula is untrusted")
 			code = 8
 		} else {
@@ -100,7 +100,7 @@ func TestPortableHomebrewComponentPipeline(t *testing.T) {
 		t.Fatalf("copy fixture: %v, %v", copyErr, closeErr)
 	}
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("GENTLE_AI_TEST_BREW_FIXTURE", "1")
+	t.Setenv("BRUNNR_CODE_TEST_BREW_FIXTURE", "1")
 	originalRunner := runCommand
 	runCommand = executeCommand
 	t.Cleanup(func() { runCommand = originalRunner })
@@ -110,14 +110,14 @@ func TestPortableHomebrewComponentPipeline(t *testing.T) {
 	for _, component := range []model.ComponentID{model.ComponentEngram} {
 		for _, mode := range []string{"modern", "legacy", "denied", "untrusted-control"} {
 			t.Run(string(component)+"/"+mode, func(t *testing.T) {
-				t.Setenv("GENTLE_AI_TEST_BREW_STATE", filepath.Join(t.TempDir(), "state.json"))
-				t.Setenv("GENTLE_AI_TEST_BREW_LEGACY", "0")
-				t.Setenv("GENTLE_AI_TEST_BREW_DENY", "0")
+				t.Setenv("BRUNNR_CODE_TEST_BREW_STATE", filepath.Join(t.TempDir(), "state.json"))
+				t.Setenv("BRUNNR_CODE_TEST_BREW_LEGACY", "0")
+				t.Setenv("BRUNNR_CODE_TEST_BREW_DENY", "0")
 				if mode == "legacy" {
-					t.Setenv("GENTLE_AI_TEST_BREW_LEGACY", "1")
+					t.Setenv("BRUNNR_CODE_TEST_BREW_LEGACY", "1")
 				}
 				if mode == "denied" {
-					t.Setenv("GENTLE_AI_TEST_BREW_DENY", "1")
+					t.Setenv("BRUNNR_CODE_TEST_BREW_DENY", "1")
 				}
 				commands, err := installcmd.NewResolver().ResolveComponentInstall(system.PlatformProfile{OS: "darwin", PackageManager: "brew"}, component)
 				if err != nil {

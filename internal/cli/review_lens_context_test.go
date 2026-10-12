@@ -62,7 +62,7 @@ func TestReviewLensContextEmitsFinishedReviewerBlockFromTwoTokens(t *testing.T) 
 	if len(lines) < 3 {
 		t.Fatalf("lens context is not a multi-line block:\n%s", block)
 	}
-	bindingJSON, found := strings.CutPrefix(lines[0], "GENTLE_AI_REVIEW_BINDING ")
+	bindingJSON, found := strings.CutPrefix(lines[0], "BRUNNR_CODE_REVIEW_BINDING ")
 	if !found {
 		t.Fatalf("first line is not the binding: %q", lines[0])
 	}
@@ -90,7 +90,7 @@ func TestReviewLensContextEmitsFinishedReviewerBlockFromTwoTokens(t *testing.T) 
 		t.Fatalf("binding does not echo the supplied tokens: %v", binding)
 	}
 
-	contextJSON, found := strings.CutPrefix(lines[1], "GENTLE_AI_REVIEW_CONTEXT ")
+	contextJSON, found := strings.CutPrefix(lines[1], "BRUNNR_CODE_REVIEW_CONTEXT ")
 	if !found {
 		t.Fatalf("second line is not the capture context: %q", lines[1])
 	}
@@ -118,8 +118,8 @@ func TestReviewLensContextEmitsFinishedReviewerBlockFromTwoTokens(t *testing.T) 
 		"--lens", lens, "--order", "0",
 	}
 	wantSections := map[string][]string{
-		"GENTLE_AI_REVIEW_NAME_STATUS": {"--operation", "name-status"},
-		"GENTLE_AI_REVIEW_NUMSTAT":     {"--operation", "numstat"},
+		"BRUNNR_CODE_REVIEW_NAME_STATUS": {"--operation", "name-status"},
+		"BRUNNR_CODE_REVIEW_NUMSTAT":     {"--operation", "numstat"},
 	}
 	for header, operation := range wantSections {
 		var expected bytes.Buffer
@@ -142,13 +142,13 @@ func TestReviewLensContextEmitsFinishedReviewerBlockFromTwoTokens(t *testing.T) 
 			[]string{"--operation", "patch", "--path-index", fmt.Sprint(index)}), &expected); err != nil {
 			t.Fatal(err)
 		}
-		want := fmt.Sprintf("GENTLE_AI_REVIEW_PATCH %d %s\n%s\nGENTLE_AI_REVIEW_PATCH_END\n",
+		want := fmt.Sprintf("BRUNNR_CODE_REVIEW_PATCH %d %s\n%s\nBRUNNR_CODE_REVIEW_PATCH_END\n",
 			index, entry["path"], strings.TrimSpace(expected.String()))
 		if !strings.Contains(block, want) {
 			t.Fatalf("block omits patch %d\nwant:\n%s\ngot:\n%s", index, want, block)
 		}
 	}
-	if !strings.HasSuffix(block, "GENTLE_AI_REVIEW_CONTEXT_END\n") {
+	if !strings.HasSuffix(block, "BRUNNR_CODE_REVIEW_CONTEXT_END\n") {
 		t.Fatalf("block is not terminated:\n%s", block)
 	}
 }
@@ -182,7 +182,7 @@ func TestReviewLensContextRefusesUnboundInput(t *testing.T) {
 			if err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("error = %v, want %q", err, test.want)
 			}
-			if strings.Contains(output.String(), "GENTLE_AI_REVIEW_") {
+			if strings.Contains(output.String(), "BRUNNR_CODE_REVIEW_") {
 				t.Fatalf("refusal leaked partial reviewer context to stdout:\n%s", output.String())
 			}
 		})
@@ -236,7 +236,7 @@ func TestNegotiatedStartRefusesOverBudgetCandidateWithoutPersistingAuthority(t *
 		!strings.Contains(failure.Failure.Cause, "brunnr-code review status") {
 		t.Fatalf("over-budget START cause does not name the runnable continuation: %q", failure.Failure.Cause)
 	}
-	if strings.Contains(output.String(), "GENTLE_AI_REVIEW_") {
+	if strings.Contains(output.String(), "BRUNNR_CODE_REVIEW_") {
 		t.Fatalf("over-budget START refusal emitted reviewer evidence:\n%s", output.String())
 	}
 	if after := snapshotAuthorityTree(t, authorityRoot); authorityBefore != after {
@@ -264,7 +264,7 @@ func TestNegotiatedStartRefusesOverBudgetDependencyLocks(t *testing.T) {
 		failure.Failure.MutationOutcome != ReviewMutationNotStarted {
 		t.Fatalf("oversized dependency locks must refuse before authority creation: %v", err)
 	}
-	if strings.Contains(output.String(), "GENTLE_AI_REVIEW_") {
+	if strings.Contains(output.String(), "BRUNNR_CODE_REVIEW_") {
 		t.Fatal("budget refusal emitted partial reviewer evidence")
 	}
 	if after := runReviewCLIGit(t, repo, "status", "--porcelain=v2", "--untracked-files=all"); before != after {
@@ -490,12 +490,12 @@ func TestReviewLensContextDependencyLocksKeepFrozenPatches(t *testing.T) {
 		"--expected-revision", started.RepositoryContext.Revision}
 	block := lensContextBlock(t, argv, started.SelectedLenses[0])
 	for _, path := range paths {
-		header := fmt.Sprintf("GENTLE_AI_REVIEW_PATCH %d %s", lensContextManifestIndex(t, block, path), path)
+		header := fmt.Sprintf("BRUNNR_CODE_REVIEW_PATCH %d %s", lensContextManifestIndex(t, block, path), path)
 		_, after, found := strings.Cut(block, header+"\n")
 		if !found {
 			t.Fatalf("dependency lock %q lost its full frozen patch", path)
 		}
-		patch, _, ended := strings.Cut(after, "\nGENTLE_AI_REVIEW_PATCH_END\n")
+		patch, _, ended := strings.Cut(after, "\nBRUNNR_CODE_REVIEW_PATCH_END\n")
 		if !ended || !strings.Contains(patch, "-base dependency marker") || !strings.Contains(patch, "+candidate dependency marker") || strings.Contains(patch, "live dependency marker") {
 			t.Fatalf("dependency lock %q does not carry complete frozen evidence: %s", path, patch)
 		}
@@ -515,11 +515,11 @@ func TestReviewLensContextDependencyLocksKeepFrozenPatches(t *testing.T) {
 func lensContextPreflight(t *testing.T, block string) map[string]any {
 	t.Helper()
 	lines := strings.SplitN(block, "\n", 3)
-	if len(lines) < 2 || !strings.HasPrefix(lines[1], "GENTLE_AI_REVIEW_CONTEXT ") {
+	if len(lines) < 2 || !strings.HasPrefix(lines[1], "BRUNNR_CODE_REVIEW_CONTEXT ") {
 		t.Fatalf("block is missing the capture context line:\n%s", block)
 	}
 	var preflight map[string]any
-	if err := json.Unmarshal([]byte(strings.TrimPrefix(lines[1], "GENTLE_AI_REVIEW_CONTEXT ")), &preflight); err != nil {
+	if err := json.Unmarshal([]byte(strings.TrimPrefix(lines[1], "BRUNNR_CODE_REVIEW_CONTEXT ")), &preflight); err != nil {
 		t.Fatalf("capture context is not one-line JSON: %v", err)
 	}
 	return preflight
@@ -542,14 +542,14 @@ func lensContextManifestIndex(t *testing.T, block, path string) int {
 // lensContextGeneratedSection extracts one generated-summary section by path.
 func lensContextGeneratedSection(block, path string) (string, bool) {
 	for _, line := range strings.Split(block, "\n") {
-		if !strings.HasPrefix(line, "GENTLE_AI_REVIEW_GENERATED ") || !strings.HasSuffix(line, " "+path) {
+		if !strings.HasPrefix(line, "BRUNNR_CODE_REVIEW_GENERATED ") || !strings.HasSuffix(line, " "+path) {
 			continue
 		}
 		_, after, found := strings.Cut(block, "\n"+line+"\n")
 		if !found {
 			return "", false
 		}
-		body, _, found := strings.Cut(after, "\nGENTLE_AI_REVIEW_GENERATED_END\n")
+		body, _, found := strings.Cut(after, "\nBRUNNR_CODE_REVIEW_GENERATED_END\n")
 		return body, found
 	}
 	return "", false
@@ -602,7 +602,7 @@ func assertGeneratedSummary(t *testing.T, block string, want generatedSummaryExp
 	if !strings.Contains(section, "did not receive and did not examine") {
 		t.Fatalf("generated summary omits the disclosure that hunks were not examined:\n%s", section)
 	}
-	if strings.Contains(block, fmt.Sprintf("GENTLE_AI_REVIEW_PATCH %d %s\n", lensContextManifestIndex(t, block, want.path), want.path)) {
+	if strings.Contains(block, fmt.Sprintf("BRUNNR_CODE_REVIEW_PATCH %d %s\n", lensContextManifestIndex(t, block, want.path), want.path)) {
 		t.Fatalf("block still carries the full patch for generated path %q", want.path)
 	}
 }
@@ -635,14 +635,14 @@ func TestReviewLensContextSummarizesGeneratedPathsAndOmitsTheirPatches(t *testin
 		{"go.sum", "+new dependency line"},
 		{"web/package-lock.json", "+package-lock line"},
 	} {
-		if !strings.Contains(block, fmt.Sprintf("GENTLE_AI_REVIEW_PATCH %d %s\n", lensContextManifestIndex(t, block, lock.path), lock.path)) ||
+		if !strings.Contains(block, fmt.Sprintf("BRUNNR_CODE_REVIEW_PATCH %d %s\n", lensContextManifestIndex(t, block, lock.path), lock.path)) ||
 			!strings.Contains(block, lock.added) {
 			t.Fatalf("dependency lock %q lost its complete patch", lock.path)
 		}
 	}
 
 	// The ordinary authored path keeps its complete patch.
-	if !strings.Contains(block, fmt.Sprintf("GENTLE_AI_REVIEW_PATCH %d internal/auth/token.go\n", lensContextManifestIndex(t, block, "internal/auth/token.go"))) ||
+	if !strings.Contains(block, fmt.Sprintf("BRUNNR_CODE_REVIEW_PATCH %d internal/auth/token.go\n", lensContextManifestIndex(t, block, "internal/auth/token.go"))) ||
 		!strings.Contains(block, "+func Token() string") {
 		t.Fatalf("ordinary authored path lost its full patch:\n%s", block)
 	}
@@ -660,7 +660,7 @@ func TestReviewLensContextSummarizesGeneratedPathsAndOmitsTheirPatches(t *testin
 
 	// The reviewer instruction must disclose the omission instead of claiming
 	// full patch coverage over the whole candidate.
-	instruction, found := lensContextSection(block, "GENTLE_AI_REVIEW_INSTRUCTION")
+	instruction, found := lensContextSection(block, "BRUNNR_CODE_REVIEW_INSTRUCTION")
 	if !found {
 		t.Fatalf("block carries no reviewer instruction:\n%s", block)
 	}
@@ -688,7 +688,7 @@ func TestReviewLensContextGeneratedSummaryKeepsDeletionEvidenceAndNearMissPatche
 	writeReviewStartCandidate(t, repo, "docs/yarn.lock.example", "# authored example, not a lockfile\n", 0o644)
 	block := runGeneratedSummaryLensContext(t, repo, "generated-summary-deletion")
 
-	if !strings.Contains(block, fmt.Sprintf("GENTLE_AI_REVIEW_PATCH %d yarn.lock\n", lensContextManifestIndex(t, block, "yarn.lock"))) ||
+	if !strings.Contains(block, fmt.Sprintf("BRUNNR_CODE_REVIEW_PATCH %d yarn.lock\n", lensContextManifestIndex(t, block, "yarn.lock"))) ||
 		!strings.Contains(block, "deleted file mode") || strings.Count(block, "-yarn dependency line\n") != 80 {
 		t.Fatal("deleted dependency lock lost its complete deletion patch")
 	}
@@ -696,7 +696,7 @@ func TestReviewLensContextGeneratedSummaryKeepsDeletionEvidenceAndNearMissPatche
 		if _, summarized := lensContextGeneratedSection(block, path); summarized {
 			t.Fatalf("near-miss %q was summarized as generated", path)
 		}
-		if !strings.Contains(block, fmt.Sprintf("GENTLE_AI_REVIEW_PATCH %d %s\n", lensContextManifestIndex(t, block, path), path)) {
+		if !strings.Contains(block, fmt.Sprintf("BRUNNR_CODE_REVIEW_PATCH %d %s\n", lensContextManifestIndex(t, block, path), path)) {
 			t.Fatalf("near-miss %q lost its full patch:\n%s", path, block)
 		}
 	}
@@ -927,7 +927,7 @@ func TestReviewLensContextStandsAloneAsTheReviewerInstruction(t *testing.T) {
 	for _, lens := range record.State.SelectedLenses {
 		t.Run(lens, func(t *testing.T) {
 			block := lensContextBlock(t, args, lens)
-			instruction, found := lensContextSection(block, "GENTLE_AI_REVIEW_INSTRUCTION")
+			instruction, found := lensContextSection(block, "BRUNNR_CODE_REVIEW_INSTRUCTION")
 			if !found {
 				t.Fatalf("block carries no reviewer instruction:\n%s", block)
 			}
@@ -958,7 +958,7 @@ func TestReviewLensContextStandsAloneAsTheReviewerInstruction(t *testing.T) {
 					t.Fatalf("instruction omits %q:\n%s", required, instruction)
 				}
 			}
-			schema, found := lensContextSection(block, "GENTLE_AI_REVIEW_RESULT_SCHEMA")
+			schema, found := lensContextSection(block, "BRUNNR_CODE_REVIEW_RESULT_SCHEMA")
 			if !found {
 				t.Fatalf("block carries no reviewer result schema:\n%s", block)
 			}
@@ -967,10 +967,10 @@ func TestReviewLensContextStandsAloneAsTheReviewerInstruction(t *testing.T) {
 			}
 			// The instruction precedes the evidence, and the block still ends
 			// where every existing consumer expects it to.
-			if strings.Index(block, "GENTLE_AI_REVIEW_INSTRUCTION") > strings.Index(block, "GENTLE_AI_REVIEW_NAME_STATUS") {
+			if strings.Index(block, "BRUNNR_CODE_REVIEW_INSTRUCTION") > strings.Index(block, "BRUNNR_CODE_REVIEW_NAME_STATUS") {
 				t.Fatal("instruction appears after the evidence")
 			}
-			if !strings.HasSuffix(block, "GENTLE_AI_REVIEW_CONTEXT_END\n") {
+			if !strings.HasSuffix(block, "BRUNNR_CODE_REVIEW_CONTEXT_END\n") {
 				t.Fatal("block terminator moved")
 			}
 		})
@@ -983,7 +983,7 @@ func TestReviewLensContextInstructionAppliesSeverityRules(t *testing.T) {
 	reviewEnabledHome(t)
 	_, args, _, _ := newCandidateInspectionReview(t, "candidate\n", true)
 	block := lensContextBlock(t, args, args[slices.Index(args, "--lens")+1])
-	instruction, found := lensContextSection(block, "GENTLE_AI_REVIEW_INSTRUCTION")
+	instruction, found := lensContextSection(block, "BRUNNR_CODE_REVIEW_INSTRUCTION")
 	if !found {
 		t.Fatalf("block carries no reviewer instruction:\n%s", block)
 	}

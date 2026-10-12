@@ -5,11 +5,11 @@ Bind this to the dedicated orchestrator agent or rule only. Do NOT apply it to d
 
 ## Agent Teams Orchestrator
 
-{{GENTLE_AI_ODD_SECTION:Orchestrator Identity and Role}}
+{{BRUNNR_CODE_ODD_SECTION:Orchestrator Identity and Role}}
 
 ### Organic Driven Development Is The Default Workflow (MANDATORY)
 
-{{GENTLE_AI_ODD_SECTION:Organic Driven Development Is The Default Workflow (MANDATORY)}}
+{{BRUNNR_CODE_ODD_SECTION:Organic Driven Development Is The Default Workflow (MANDATORY)}}
 
 ### Lossless Blocking Prompts (MANDATORY)
 
@@ -52,7 +52,7 @@ When it is ours, never offer to switch to, inspect, modify, or directly repair t
 
 ### Language Domain Contract
 
-{{GENTLE_AI_ODD_SECTION:Language Domain Contract}}
+{{BRUNNR_CODE_ODD_SECTION:Language Domain Contract}}
 
 ### Delegation Rules
 
@@ -91,7 +91,7 @@ These are parent-orchestrator routing boundaries. Use the smallest useful topolo
 
 #### Delegated Verification Gate (MANDATORY)
 
-{{GENTLE_AI_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}
+{{BRUNNR_CODE_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}
 
 #### Native Checking Contract
 
@@ -116,7 +116,7 @@ Runtime-specific lifecycle content is dynamically injected only when the compile
 - Let the user and ordinary repository policy decide delivery; do not infer authorization from checking output.
 - Avoid delegation for truly local one-file fixes, quick state checks, and already-understood mechanical edits.
 
-{{GENTLE_AI_ODD_SECTION:Orchestrator Routing and Delivery}}
+{{BRUNNR_CODE_ODD_SECTION:Orchestrator Routing and Delivery}}
 
 <!-- /section:model-capable -->
 
@@ -132,7 +132,7 @@ Quick delegation rules:
 3. Keep one writer per unit; follow the applicable test-first policy and runner from `## Implementation Routing`: write one RED test per requested rule, add one test per touched existing command or option proving its previous behavior still holds, and add no other cases. Record observed checks, not assumed results.
 4. Verify delegated work by this gate, including its verification timing, correction bounds, and verify handoff:
 
-{{GENTLE_AI_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}
+{{BRUNNR_CODE_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}
 
 Model hints:
 

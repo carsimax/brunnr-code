@@ -430,7 +430,7 @@ func requireNoDoubleMoveAcrossClosure(r *journeyRun) error {
 // interruption the Go matrix uses (compactReclaimPhaseHook), made reachable
 // through the real binary via a build-tag-gated product hook
 // (internal/reviewtransaction/bench_fixture.go, `-tags bench_fixture`):
-// GENTLE_AI_BENCH_CRASH_AT_PHASE names the exact "<phase>:<lineage>"
+// BRUNNR_CODE_BENCH_CRASH_AT_PHASE names the exact "<phase>:<lineage>"
 // pair to refuse right after, a genuine interruption of the real command
 // with nothing after that point in the SAME process ever executing — not an
 // authored on-disk state. Six journeys are generated, one per (phase,
@@ -457,7 +457,7 @@ var crashPositionRoles = []crashPositionRole{
 // crashPositionPhases reproduces, as plain strings, internal/reviewtransaction's
 // own compactReclaimPhasePrepared / compactReclaimPhaseCommitted literals
 // ("prepared" / "committed") — this package cannot import them, and
-// GENTLE_AI_BENCH_CRASH_AT_PHASE's own contract (bench_fixture.go) is
+// BRUNNR_CODE_BENCH_CRASH_AT_PHASE's own contract (bench_fixture.go) is
 // exactly these two literal values.
 var crashPositionPhases = []string{"prepared", "committed"}
 
@@ -489,7 +489,7 @@ func clearedCrashDispositionRepairArgs(reason string) func(*Sandbox) ([]string, 
 // entirely unrelated, real reasons — so this requires the exact
 // bench_fixture.go marker text, proof the interruption is the deterministic
 // one this journey asked for. A binary without the bench_fixture build tag
-// never links that hook, so GENTLE_AI_BENCH_CRASH_AT_PHASE has no effect and
+// never links that hook, so BRUNNR_CODE_BENCH_CRASH_AT_PHASE has no effect and
 // the disposition completes instead. That is a failed crash-position proof,
 // never an unsupported result borrowed from a retired axis.
 func requireGenuineBenchFixtureCrash(_ *Sandbox, observation Observation) error {

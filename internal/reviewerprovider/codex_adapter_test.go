@@ -14,11 +14,11 @@ import (
 	"testing"
 )
 
-const codexAdapterHelperEnvironment = "GENTLE_AI_REVIEWER_PROVIDER_CODEX_HELPER"
-const codexAdapterPromptPathEnvironment = "GENTLE_AI_REVIEWER_PROVIDER_CODEX_PROMPT_PATH"
-const codexAdapterArgumentsPathEnvironment = "GENTLE_AI_REVIEWER_PROVIDER_CODEX_ARGUMENTS_PATH"
-const codexAdapterWorkdirPathEnvironment = "GENTLE_AI_REVIEWER_PROVIDER_CODEX_WORKDIR_PATH"
-const codexAdapterFailEnvironment = "GENTLE_AI_REVIEWER_PROVIDER_CODEX_FAIL"
+const codexAdapterHelperEnvironment = "BRUNNR_CODE_REVIEWER_PROVIDER_CODEX_HELPER"
+const codexAdapterPromptPathEnvironment = "BRUNNR_CODE_REVIEWER_PROVIDER_CODEX_PROMPT_PATH"
+const codexAdapterArgumentsPathEnvironment = "BRUNNR_CODE_REVIEWER_PROVIDER_CODEX_ARGUMENTS_PATH"
+const codexAdapterWorkdirPathEnvironment = "BRUNNR_CODE_REVIEWER_PROVIDER_CODEX_WORKDIR_PATH"
+const codexAdapterFailEnvironment = "BRUNNR_CODE_REVIEWER_PROVIDER_CODEX_FAIL"
 
 func TestCodexAdapterReturnsNoBytesWhenUnavailable(t *testing.T) {
 	adapter := &CodexAdapter{LookPath: func(string) (string, error) { return "", errors.New("not found") }}

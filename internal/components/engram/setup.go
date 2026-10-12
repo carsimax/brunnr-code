@@ -75,8 +75,8 @@ func ProbeProtocolFlagCommand(ctx context.Context, command string) (string, erro
 }
 
 const (
-	SetupModeEnvVar   = "GENTLE_AI_ENGRAM_SETUP_MODE"
-	SetupStrictEnvVar = "GENTLE_AI_ENGRAM_SETUP_STRICT"
+	SetupModeEnvVar   = "BRUNNR_CODE_ENGRAM_SETUP_MODE"
+	SetupStrictEnvVar = "BRUNNR_CODE_ENGRAM_SETUP_STRICT"
 )
 
 type SetupMode string

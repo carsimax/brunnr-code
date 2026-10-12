@@ -29,7 +29,7 @@ const legacyOrchestratorSectionID = "sdd-orchestrator"
 
 const (
 	sharedOrchestratorSectionsAsset = "skills/_shared/odd-orchestrator-sections.md"
-	runtimeAgentIDPlaceholder       = "{{GENTLE_AI_RUNTIME_AGENT_ID}}"
+	runtimeAgentIDPlaceholder       = "{{BRUNNR_CODE_RUNTIME_AGENT_ID}}"
 	reviewExecutionHeading          = "#### Review Execution Contract"
 	reviewExecutionNextHeading      = "Cost and Context Balance"
 	providerDefectHandoffHeading    = "#### Brunnr-Code Provider Defect Handoff (MANDATORY)"
@@ -112,8 +112,8 @@ func reviewExecutionContract(agent model.AgentID, source ReviewContractSource) (
 	return contract, true, nil
 }
 
-// sharedOrchestratorSectionPlaceholder matches one {{GENTLE_AI_ODD_SECTION:<name>}}.
-var sharedOrchestratorSectionPlaceholder = regexp.MustCompile(`\{\{GENTLE_AI_ODD_SECTION:([^}]*)\}\}`)
+// sharedOrchestratorSectionPlaceholder matches one {{BRUNNR_CODE_ODD_SECTION:<name>}}.
+var sharedOrchestratorSectionPlaceholder = regexp.MustCompile(`\{\{BRUNNR_CODE_ODD_SECTION:([^}]*)\}\}`)
 
 // orchestratorAsset selects the embedded orchestrator for one supported
 // runtime, or "" when the runtime has none.
@@ -173,7 +173,7 @@ func renderOrchestrator(agent model.AgentID, source ReviewContractSource, annota
 	}
 
 	content = strings.ReplaceAll(content, runtimeAgentIDPlaceholder, string(agent))
-	if strings.Contains(content, "{{GENTLE_AI_") {
+	if strings.Contains(content, "{{BRUNNR_CODE_") {
 		return "", fmt.Errorf("render orchestrator for %q: unresolved template placeholder in %s", agent, path)
 	}
 	if !annotate && strings.Contains(content, orchestratorFragmentMarkerToken) {

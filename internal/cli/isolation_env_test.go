@@ -19,7 +19,7 @@ func TestBackupRootsHonorGentleAIHome(t *testing.T) {
 		override bool
 	}{
 		{name: "default stays under ~/.brunnr-code"},
-		{name: "GENTLE_AI_HOME moves backups", override: true},
+		{name: "BRUNNR_CODE_HOME moves backups", override: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			home := t.TempDir()

@@ -494,7 +494,7 @@ func TestInstallRetainedAgentsWithoutSDD(t *testing.T) {
 			for _, name := range reviewassets.NativeAgentManifest[agent] {
 				path := filepath.Join(adapter.SubAgentsDir(home), name)
 				body := readTextFile(t, path)
-				if strings.HasPrefix(name, "review-") && name != "review-refuter.md" && strings.HasSuffix(name, ".md") && !strings.Contains(body, "GENTLE_AI_") {
+				if strings.HasPrefix(name, "review-") && name != "review-refuter.md" && strings.HasSuffix(name, ".md") && !strings.Contains(body, "BRUNNR_CODE_") {
 					t.Fatalf("%s missing lens envelope markers", path)
 				}
 				first[path] = body

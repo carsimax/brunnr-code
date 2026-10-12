@@ -16,7 +16,7 @@ import (
 
 func TestMain(m *testing.M) {
 	name := strings.ToLower(filepath.Base(os.Args[0]))
-	if logPath := os.Getenv("GENTLE_AI_FAKE_LOG"); logPath != "" && (name == "brunnr-code" || name == "brunnr-code.exe") {
+	if logPath := os.Getenv("BRUNNR_CODE_FAKE_LOG"); logPath != "" && (name == "brunnr-code" || name == "brunnr-code.exe") {
 		os.Exit(runGentleAIFake(logPath))
 	}
 	os.Exit(m.Run())
@@ -38,7 +38,7 @@ func runGentleAIFake(logPath string) int {
 	log.Write(stdinBytes)
 	log.WriteString("\nstdin-end\n")
 	exitCode := 0
-	if raw := os.Getenv("GENTLE_AI_FAKE_EXIT"); raw != "" {
+	if raw := os.Getenv("BRUNNR_CODE_FAKE_EXIT"); raw != "" {
 		if parsed, err := strconv.Atoi(raw); err == nil {
 			exitCode = parsed
 		}

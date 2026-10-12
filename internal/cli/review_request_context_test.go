@@ -129,12 +129,12 @@ func TestReviewLensContextCarriesRequestContext(t *testing.T) {
 	_, args, _ := startRequestContextReview(t, "request-context-lens", "--request-context", request)
 
 	block := lensContextBlock(t, args, args[slices.Index(args, "--lens")+1])
-	section, found := lensContextSection(block, "GENTLE_AI_REVIEW_REQUEST_CONTEXT")
+	section, found := lensContextSection(block, "BRUNNR_CODE_REVIEW_REQUEST_CONTEXT")
 	if !found || section != strings.TrimSpace(requestContextFixture) {
 		t.Fatalf("lens block does not carry the verbatim request context:\n%s", block)
 	}
-	instruction, _ := lensContextSection(block, "GENTLE_AI_REVIEW_INSTRUCTION")
-	for _, required := range []string{"GENTLE_AI_REVIEW_REQUEST_CONTEXT", "only to understand what the change intends", "verified separately"} {
+	instruction, _ := lensContextSection(block, "BRUNNR_CODE_REVIEW_INSTRUCTION")
+	for _, required := range []string{"BRUNNR_CODE_REVIEW_REQUEST_CONTEXT", "only to understand what the change intends", "verified separately"} {
 		if !strings.Contains(instruction, required) {
 			t.Fatalf("instruction omits %q:\n%s", required, instruction)
 		}
@@ -144,7 +144,7 @@ func TestReviewLensContextCarriesRequestContext(t *testing.T) {
 			t.Fatalf("instruction still charges the lens with auditing the request (%q):\n%s", audit, instruction)
 		}
 	}
-	if strings.Index(block, "GENTLE_AI_REVIEW_REQUEST_CONTEXT\n") > strings.Index(block, "GENTLE_AI_REVIEW_NAME_STATUS") {
+	if strings.Index(block, "BRUNNR_CODE_REVIEW_REQUEST_CONTEXT\n") > strings.Index(block, "BRUNNR_CODE_REVIEW_NAME_STATUS") {
 		t.Fatal("request context appears after the candidate evidence")
 	}
 }
@@ -160,14 +160,14 @@ const requestContextVerifyPassFixture = requestContextFixture + "\n## Verify\n\n
 // verify verdicts.
 func requireVerifyEvidenceExcluded(t *testing.T, block, lens string) {
 	t.Helper()
-	section, found := lensContextSection(block, "GENTLE_AI_REVIEW_REQUEST_CONTEXT")
+	section, found := lensContextSection(block, "BRUNNR_CODE_REVIEW_REQUEST_CONTEXT")
 	if !found || section != strings.TrimSpace(requestContextFixture) {
 		t.Fatalf("lens block must carry the request without its verify section:\n%s", block)
 	}
 	if strings.Contains(block, "## Verify") || strings.Contains(block, "PASS probe") {
 		t.Fatalf("lens block carries verify evidence:\n%s", block)
 	}
-	instruction, _ := lensContextSection(block, "GENTLE_AI_REVIEW_INSTRUCTION")
+	instruction, _ := lensContextSection(block, "BRUNNR_CODE_REVIEW_INSTRUCTION")
 	if strings.Contains(instruction, "Verify evidence.") || strings.Contains(instruction, "reports as passing") {
 		t.Fatalf("instruction still mentions verify evidence:\n%s", instruction)
 	}
@@ -249,7 +249,7 @@ func TestReviewWithoutRequestContextIsUnchanged(t *testing.T) {
 		t.Fatalf("absent --request-context froze request fields: %#v", record.State)
 	}
 	block := lensContextBlock(t, args, args[slices.Index(args, "--lens")+1])
-	if strings.Contains(block, "GENTLE_AI_REVIEW_REQUEST_CONTEXT") || strings.Contains(block, "unrequested scope") {
+	if strings.Contains(block, "BRUNNR_CODE_REVIEW_REQUEST_CONTEXT") || strings.Contains(block, "unrequested scope") {
 		t.Fatalf("absent --request-context changed the lens block:\n%s", block)
 	}
 }

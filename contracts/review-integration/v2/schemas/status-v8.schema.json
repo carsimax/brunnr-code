@@ -67,7 +67,7 @@
       "properties": {
         "agent": {"enum": ["review-risk", "review-resilience", "review-readability", "review-reliability"]},
         "role": {"const": "lens"},
-        "prompt": {"type": "string", "minLength": 1, "pattern": "^GENTLE_AI_REVIEW_BINDING \\{[^\\r\\n]+\\}$"}
+        "prompt": {"type": "string", "minLength": 1, "pattern": "^BRUNNR_CODE_REVIEW_BINDING \\{[^\\r\\n]+\\}$"}
       }
     }
   },

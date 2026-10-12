@@ -15,7 +15,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/model"
 )
 
-const codexReviewerLoopbackBaseURLEnvironment = "GENTLE_AI_CODEX_REVIEWER_LOOPBACK_BASE_URL"
+const codexReviewerLoopbackBaseURLEnvironment = "BRUNNR_CODE_CODEX_REVIEWER_LOOPBACK_BASE_URL"
 
 const codexReviewerLoopbackProviderID = "gentle_ai_reviewer_loopback"
 

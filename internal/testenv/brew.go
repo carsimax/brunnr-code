@@ -10,7 +10,7 @@ import (
 // RunBrewProbeFixture dispatches only copied brew test binaries before m.Run.
 func RunBrewProbeFixture() {
 	name := filepath.Base(os.Args[0])
-	mode := os.Getenv("GENTLE_AI_TEST_BREW_PROBE")
+	mode := os.Getenv("BRUNNR_CODE_TEST_BREW_PROBE")
 	if mode == "" || (name != "brew" && name != "brew.exe") {
 		return
 	}
@@ -46,6 +46,6 @@ func BrewProbe(t *testing.T, supported bool) {
 	if supported {
 		mode = "modern"
 	}
-	t.Setenv("GENTLE_AI_TEST_BREW_PROBE", mode)
+	t.Setenv("BRUNNR_CODE_TEST_BREW_PROBE", mode)
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 }

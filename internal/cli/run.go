@@ -1302,7 +1302,7 @@ func (s componentApplyStep) Run() error {
 		// Probe --protocol support once before the adapter loop (Decision 4),
 		// but only when at least one selected adapter will actually attempt
 		// `engram setup` under setupMode (JD-013): under
-		// GENTLE_AI_ENGRAM_SETUP_MODE=off, ShouldAttemptSetup is false for
+		// BRUNNR_CODE_ENGRAM_SETUP_MODE=off, ShouldAttemptSetup is false for
 		// every adapter, no setup invocation ever happens, and the probe's
 		// result would never be used — so skip the (up to 5s) probe
 		// entirely rather than run it unconditionally.

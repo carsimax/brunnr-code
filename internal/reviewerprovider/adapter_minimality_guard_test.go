@@ -52,7 +52,7 @@ func (adapter *BadAdapter) Review(ctx context.Context, invocation Invocation) ([
   _ = AdmitArtifact
   _ = CaptureAdmittedReviewerResult
   _ = CorrectionPlan
-  _ = NewInvocation([]byte("GENTLE_AI_REVIEW_CONTEXT"))
+  _ = NewInvocation([]byte("BRUNNR_CODE_REVIEW_CONTEXT"))
   prompt := invocation.Prompt()
   if len(prompt) > 0 { return nil, nil }
   for retry := 0; retry < 1; retry++ {}
@@ -260,7 +260,7 @@ func reviewerAdapterSourceViolations(file string, source []byte) []string {
 		case *ast.BasicLit:
 			if value.Kind == token.STRING {
 				literal, unquoteErr := strconv.Unquote(value.Value)
-				if unquoteErr == nil && (strings.Contains(literal, "GENTLE_AI_REVIEW_") || strings.Contains(literal, "subject_hash")) {
+				if unquoteErr == nil && (strings.Contains(literal, "BRUNNR_CODE_REVIEW_") || strings.Contains(literal, "subject_hash")) {
 					add("contains provider prompt text")
 				}
 			}

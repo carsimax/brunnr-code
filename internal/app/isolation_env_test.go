@@ -18,8 +18,8 @@ func TestRunArgsRejectsInvalidIsolationVariablesBeforeDetection(t *testing.T) {
 		env   string
 		value string
 	}{
-		{"relative GENTLE_AI_HOME", state.HomeEnv, "relative/state"},
-		{"missing GENTLE_AI_ENGRAM_BIN", system.EngramBinEnv, filepath.Join(t.TempDir(), "engram")},
+		{"relative BRUNNR_CODE_HOME", state.HomeEnv, "relative/state"},
+		{"missing BRUNNR_CODE_ENGRAM_BIN", system.EngramBinEnv, filepath.Join(t.TempDir(), "engram")},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			setupMockHome(t, t.TempDir())

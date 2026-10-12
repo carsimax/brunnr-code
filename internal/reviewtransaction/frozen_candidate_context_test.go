@@ -924,11 +924,11 @@ func installShowObjectFormatRejectingGitShim(t *testing.T) {
 		"    exit 0\n" +
 		"  fi\n" +
 		"done\n" +
-		"exec \"$GENTLE_AI_TEST_REAL_GIT\" \"$@\"\n"
+		"exec \"$BRUNNR_CODE_TEST_REAL_GIT\" \"$@\"\n"
 	if err := os.WriteFile(filepath.Join(shimDir, "git"), []byte(shim), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("GENTLE_AI_TEST_REAL_GIT", realGit)
+	t.Setenv("BRUNNR_CODE_TEST_REAL_GIT", realGit)
 	t.Setenv("PATH", shimDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 }
 

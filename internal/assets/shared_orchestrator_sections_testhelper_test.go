@@ -9,7 +9,7 @@ import "strings"
 // This mirrors what composeOrchestratorPrompt does; the assets package cannot
 // import the renderer without a cycle.
 func resolveSharedOrchestratorSections(content string) string {
-	const open = "{{GENTLE_AI_ODD_SECTION:"
+	const open = "{{BRUNNR_CODE_ODD_SECTION:"
 	shared := MustRead("skills/_shared/odd-orchestrator-sections.md")
 	for {
 		start := strings.Index(content, open)

@@ -553,7 +553,7 @@ func TestConsentQuestionMatchesVersionedFixture(t *testing.T) {
 			}
 			normalized := normalizeConsentFixtureCWD(t, output.Bytes(), root)
 			fixturePath := filepath.Join("..", "..", "contracts", "review-integration", tt.fixture)
-			if os.Getenv("GENTLE_AI_CONSENT_FIXTURE_UPDATE") == "1" {
+			if os.Getenv("BRUNNR_CODE_CONSENT_FIXTURE_UPDATE") == "1" {
 				if err := os.WriteFile(fixturePath, normalized, 0o644); err != nil {
 					t.Fatal(err)
 				}

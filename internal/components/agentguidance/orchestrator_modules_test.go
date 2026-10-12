@@ -91,7 +91,7 @@ func TestBuildOrchestratorModulesReconstructsPublicRender(t *testing.T) {
 			t.Errorf("core references %s %d times, want %d", file, got, want)
 		}
 	}
-	for _, forbidden := range []string{orchestratorFragmentMarkerToken, "{{GENTLE_AI_", "@~/", "@" + testModuleDir} {
+	for _, forbidden := range []string{orchestratorFragmentMarkerToken, "{{BRUNNR_CODE_", "@~/", "@" + testModuleDir} {
 		if strings.Contains(bundle.core, forbidden) {
 			t.Errorf("core carries %q", forbidden)
 		}
@@ -128,7 +128,7 @@ func TestOrchestratorModulesCarryCanonicalBodies(t *testing.T) {
 		t.Errorf("delegation module heading = %q", strings.SplitN(delegation, "\n", 2)[0])
 	}
 	for _, module := range bundle.modules {
-		if strings.Contains(module.content, orchestratorFragmentMarkerToken) || strings.Contains(module.content, "{{GENTLE_AI_") {
+		if strings.Contains(module.content, orchestratorFragmentMarkerToken) || strings.Contains(module.content, "{{BRUNNR_CODE_") {
 			t.Errorf("%s carries a marker or template token", module.file)
 		}
 	}
@@ -192,7 +192,7 @@ func TestOrchestratorModuleCoreKeepsCriticalPolicy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Main's canonical gate now requires the concrete runtime binding.
 			// Compare its whole body after binding, not an unresolved template.
-			tc.body = strings.ReplaceAll(tc.body, "{{GENTLE_AI_RUNTIME_AGENT_ID}}", string(model.AgentClaudeCode))
+			tc.body = strings.ReplaceAll(tc.body, "{{BRUNNR_CODE_RUNTIME_AGENT_ID}}", string(model.AgentClaudeCode))
 			for _, clause := range tc.clauses {
 				if !strings.Contains(tc.body, clause) {
 					t.Fatalf("canonical body no longer carries %q", clause)
@@ -309,7 +309,7 @@ func TestSplitOrchestratorModulesFailsClosed(t *testing.T) {
 	}{
 		{name: "decoder rejects a duplicate fragment", doc: valid + fragment("delegation.a", "again\n"), want: "duplicate"},
 		{name: "decoder rejects a missing fragment", doc: "# Core\n" + fragment("delegation.a", "A\n") + fragment("delegation.b", "B\n"), want: "missing"},
-		{name: "unresolved placeholder", doc: valid + "{{GENTLE_AI_ODD_SECTION:X}}\n", want: "unresolved"},
+		{name: "unresolved placeholder", doc: valid + "{{BRUNNR_CODE_ODD_SECTION:X}}\n", want: "unresolved"},
 		{name: "unknown module", doc: valid, specs: append(append([]orchestratorFragmentSpec{}, specs...), orchestratorFragmentSpec{id: "bogus.x", title: "X", reason: "x"}), want: "unknown module"},
 		{name: "duplicate spec", doc: valid, specs: append(append([]orchestratorFragmentSpec{}, specs...), specs[0]), want: "duplicate or incomplete"},
 		{name: "spec without reason", doc: valid, specs: []orchestratorFragmentSpec{specs[0], specs[1], {id: "delegation.b", title: "B"}}, want: "duplicate or incomplete"},

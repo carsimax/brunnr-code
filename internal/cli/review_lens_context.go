@@ -74,12 +74,12 @@ const (
 	reviewLensContextBindingHeader = reviewtransaction.ReviewerBindingMarker
 	reviewLensContextContextHeader = reviewtransaction.ReviewerContextMarker
 	reviewLensContextTerminator    = reviewtransaction.ReviewerContextTerminator
-	reviewLensContextNameStatus    = "GENTLE_AI_REVIEW_NAME_STATUS"
-	reviewLensContextNumstat       = "GENTLE_AI_REVIEW_NUMSTAT"
-	reviewLensContextInstruction   = "GENTLE_AI_REVIEW_INSTRUCTION"
-	reviewLensContextResultSchema  = "GENTLE_AI_REVIEW_RESULT_SCHEMA"
-	reviewLensContextPatch         = "GENTLE_AI_REVIEW_PATCH"
-	reviewLensContextGenerated     = "GENTLE_AI_REVIEW_GENERATED"
+	reviewLensContextNameStatus    = "BRUNNR_CODE_REVIEW_NAME_STATUS"
+	reviewLensContextNumstat       = "BRUNNR_CODE_REVIEW_NUMSTAT"
+	reviewLensContextInstruction   = "BRUNNR_CODE_REVIEW_INSTRUCTION"
+	reviewLensContextResultSchema  = "BRUNNR_CODE_REVIEW_RESULT_SCHEMA"
+	reviewLensContextPatch         = "BRUNNR_CODE_REVIEW_PATCH"
+	reviewLensContextGenerated     = "BRUNNR_CODE_REVIEW_GENERATED"
 )
 
 // reviewLensContextBinding is the machine data a relaying orchestrator used to

@@ -12,7 +12,7 @@ import (
 // engram setup disabled, so the Engram component only merges its settings.
 func stubEngramLookPath(t *testing.T, home string) {
 	t.Helper()
-	t.Setenv("GENTLE_AI_ENGRAM_SETUP_MODE", "off")
+	t.Setenv("BRUNNR_CODE_ENGRAM_SETUP_MODE", "off")
 	originalLookPath := cmdLookPath
 	cmdLookPath = func(name string) (string, error) {
 		if name == "engram" {

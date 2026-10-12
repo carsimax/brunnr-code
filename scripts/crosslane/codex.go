@@ -100,7 +100,7 @@ func (b *battery) checkCodexBoundary(log, subject string) bool {
 	stdin, stdinErr := os.ReadFile(filepath.Join(log, "stdin"))
 	raw, rawErr := os.ReadFile(filepath.Join(log, "raw"))
 	var result map[string]any
-	if argvErr != nil || stdinErr != nil || rawErr != nil || json.Unmarshal(raw, &result) != nil || !strings.HasPrefix(string(argv), "exec\n--skip-git-repo-check\n--ignore-user-config\n--sandbox\nread-only\n-C\n") || strings.Contains(string(argv), "GENTLE_AI_REVIEW_") || !strings.Contains(string(stdin), subject) || getString(result, "subject_hash") != subject {
+	if argvErr != nil || stdinErr != nil || rawErr != nil || json.Unmarshal(raw, &result) != nil || !strings.HasPrefix(string(argv), "exec\n--skip-git-repo-check\n--ignore-user-config\n--sandbox\nread-only\n-C\n") || strings.Contains(string(argv), "BRUNNR_CODE_REVIEW_") || !strings.Contains(string(stdin), subject) || getString(result, "subject_hash") != subject {
 		b.fail(codexLane, "adapter argv/stdin/raw boundary", "compiled adapter did not preserve the isolated opaque raw-result boundary")
 		return false
 	}

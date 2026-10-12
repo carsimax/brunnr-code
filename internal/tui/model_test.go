@@ -5411,7 +5411,7 @@ func TestCodexModelPickerCustomConfirmSignalsOrchestratorClear(t *testing.T) {
 
 func setNoAnimationEnv(t *testing.T, value *string) {
 	t.Helper()
-	const name = "GENTLE_AI_NO_ANIMATION"
+	const name = "BRUNNR_CODE_NO_ANIMATION"
 	previous, wasSet := os.LookupEnv(name)
 	t.Cleanup(func() {
 		if wasSet {

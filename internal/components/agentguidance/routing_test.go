@@ -48,7 +48,7 @@ var retiredRemoteControlPlaneVocabulary = []string{
 	"work-verification-decide",
 	"workrun",
 	"connector",
-	"GENTLE_AI_PRODUCTIVE_RUNTIME",
+	"BRUNNR_CODE_PRODUCTIVE_RUNTIME",
 	"dormant",
 	"advertised",
 	"exposure",

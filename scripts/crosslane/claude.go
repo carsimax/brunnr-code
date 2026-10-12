@@ -117,7 +117,7 @@ func (b *battery) prepareClaudeProcessFixture() ([]string, string, error) {
 	promptPath := filepath.Join(dir, "provider-prompt.json")
 	fixture := `#!/bin/sh
 set -eu
-prompt_path="${GENTLE_AI_CROSSLANE_CLAUDE_PROMPT:?}"
+prompt_path="${BRUNNR_CODE_CROSSLANE_CLAUDE_PROMPT:?}"
 cat > "$prompt_path"
 # Deterministic severe claims are routed through the provider refuter, which
 # spawns this same binary: corroborate every supplied claim.
@@ -139,6 +139,6 @@ printf '%s\n' '{"subject_hash":"'"$subject_hash"'","inspection":{"status":"compl
 	}
 	return []string{
 		"PATH=" + dir + string(os.PathListSeparator) + os.Getenv("PATH"),
-		"GENTLE_AI_CROSSLANE_CLAUDE_PROMPT=" + promptPath,
+		"BRUNNR_CODE_CROSSLANE_CLAUDE_PROMPT=" + promptPath,
 	}, promptPath, nil
 }

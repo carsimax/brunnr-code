@@ -38,7 +38,7 @@ func TestGitCommandTimeoutNamesCommandAndElapsed(t *testing.T) {
 		LocalGitCommandTimeout = originalLocal
 		gitCommandWaitDelay = originalWaitDelay
 	})
-	t.Setenv("GENTLE_AI_GIT_TIMEOUT_HELPER", "sleep")
+	t.Setenv("BRUNNR_CODE_GIT_TIMEOUT_HELPER", "sleep")
 	gitCommandContext = func(ctx context.Context, _ string, _ ...string) *exec.Cmd {
 		return exec.CommandContext(ctx, os.Args[0], "-test.run=^TestRunGitTimeoutHelper$", "--")
 	}

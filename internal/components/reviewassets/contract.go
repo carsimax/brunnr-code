@@ -11,7 +11,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/reviewerprovider"
 )
 
-const identityPlaceholder = "{{GENTLE_AI_RUNTIME_AGENT_ID}}"
+const identityPlaceholder = "{{BRUNNR_CODE_RUNTIME_AGENT_ID}}"
 const captureStart = "<!-- reviewer-capture-transport:start -->"
 const captureEnd = "<!-- reviewer-capture-transport:end -->"
 

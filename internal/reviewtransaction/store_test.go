@@ -350,8 +350,8 @@ func TestStoreLockRecoversCrashAndCorruptOwnerRecords(t *testing.T) {
 }
 
 func TestStoreLockIsReleasedWhenOwnerProcessExits(t *testing.T) {
-	if os.Getenv("GENTLE_AI_LOCK_EXIT_HELPER") == "1" {
-		lock, err := acquireStoreLock(os.Getenv("GENTLE_AI_LOCK_EXIT_PATH"))
+	if os.Getenv("BRUNNR_CODE_LOCK_EXIT_HELPER") == "1" {
+		lock, err := acquireStoreLock(os.Getenv("BRUNNR_CODE_LOCK_EXIT_PATH"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -360,7 +360,7 @@ func TestStoreLockIsReleasedWhenOwnerProcessExits(t *testing.T) {
 	}
 	path := filepath.Join(canonicalTempDir(t), "review-store", "LOCK")
 	command := exec.Command(os.Args[0], "-test.run=^TestStoreLockIsReleasedWhenOwnerProcessExits$")
-	command.Env = append(os.Environ(), "GENTLE_AI_LOCK_EXIT_HELPER=1", "GENTLE_AI_LOCK_EXIT_PATH="+path)
+	command.Env = append(os.Environ(), "BRUNNR_CODE_LOCK_EXIT_HELPER=1", "BRUNNR_CODE_LOCK_EXIT_PATH="+path)
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("lock owner helper: %v\n%s", err, output)
 	}

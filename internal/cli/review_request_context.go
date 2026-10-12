@@ -12,7 +12,7 @@ import (
 
 // reviewLensContextRequestContext names the lens-context section that carries
 // the verbatim request START froze from --request-context.
-const reviewLensContextRequestContext = "GENTLE_AI_REVIEW_REQUEST_CONTEXT"
+const reviewLensContextRequestContext = "BRUNNR_CODE_REVIEW_REQUEST_CONTEXT"
 
 // reviewRequestContextVerifyHeading opens the optional verify section of a
 // request file: per-spec verdicts and probes carried through to the end of the

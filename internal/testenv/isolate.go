@@ -8,7 +8,7 @@ import "os"
 // overrideEnvVars lists inherited config-path overrides that can bypass
 // a test's temporary home during agent-path resolution:
 //   - XDG_CONFIG_HOME (XDG config resolution when homeDir is the OS home)
-//   - GENTLE_AI_HOME, GENTLE_AI_ENGRAM_BIN (isolated installs: a run from an
+//   - BRUNNR_CODE_HOME, BRUNNR_CODE_ENGRAM_BIN (isolated installs: a run from an
 //     isolated environment would otherwise write into that real prefix)
 //
 // Inherited overrides can redirect tests into external configuration instead
@@ -17,8 +17,8 @@ import "os"
 // Tests may explicitly set overrides after isolation to exercise resolution.
 var overrideEnvVars = []string{
 	"XDG_CONFIG_HOME",
-	"GENTLE_AI_HOME",
-	"GENTLE_AI_ENGRAM_BIN",
+	"BRUNNR_CODE_HOME",
+	"BRUNNR_CODE_ENGRAM_BIN",
 }
 
 // Isolate unsets every known agent runtime-dir override environment

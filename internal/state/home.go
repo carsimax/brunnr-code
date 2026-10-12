@@ -10,7 +10,7 @@ import (
 // state: state.json, the managed-assets manifest and journal, and install
 // backups. A caller that bundles Brunnr-Code sets it to keep
 // that state inside its own prefix. It must be absolute.
-const HomeEnv = "GENTLE_AI_HOME"
+const HomeEnv = "BRUNNR_CODE_HOME"
 
 // Dir returns Brunnr-Code's state folder: the absolute HomeEnv value when set,
 // otherwise <homeDir>/.brunnr-code. A relative value is rejected by

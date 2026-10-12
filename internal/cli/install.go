@@ -28,15 +28,15 @@ FLAGS
   --component, --components <list>   Components to install
   --skill, --skills <list>           Skills to install (requires skills in the resolved plan)
   --preset <name>                    Preset to apply
-  --scope global|workspace           Install scope (env: GENTLE_AI_INSTALL_SCOPE)
+  --scope global|workspace           Install scope (env: BRUNNR_CODE_INSTALL_SCOPE)
   --claude-orchestrator-modules      Global Claude only: install the orchestrator as a core plus on-demand modules
                                      under ~/.claude/brunnr-code/orchestrator/ (default off)
   --dry-run                          Preview plan without executing
   --help, -h                         Show this help
 
 ISOLATED INSTALLS (absolute paths; all unset by default)
-  GENTLE_AI_HOME=<dir>               Brunnr-Code state and backups instead of ~/.brunnr-code
-  GENTLE_AI_ENGRAM_BIN=<file>        Use this Engram executable: no brew, download, go install or PATH change,
+  BRUNNR_CODE_HOME=<dir>               Brunnr-Code state and backups instead of ~/.brunnr-code
+  BRUNNR_CODE_ENGRAM_BIN=<file>        Use this Engram executable: no brew, download, go install or PATH change,
                                      and dependency detection runs no git, curl, node, npm, brew or go command
 
 ORPHAN MODIFIERS
@@ -57,7 +57,7 @@ func ParseInstallFlags(args []string) (InstallFlags, error) {
 	registerListFlag(fs, "skill", &opts.Skills)
 	registerListFlag(fs, "skills", &opts.Skills)
 	fs.StringVar(&opts.Preset, "preset", "", "preset to apply")
-	fs.StringVar(&opts.Scope, "scope", "", "install scope: global (default) or workspace — env: GENTLE_AI_INSTALL_SCOPE")
+	fs.StringVar(&opts.Scope, "scope", "", "install scope: global (default) or workspace — env: BRUNNR_CODE_INSTALL_SCOPE")
 	fs.BoolVar(&opts.ClaudeOrchestratorModules, "claude-orchestrator-modules", false, "global Claude only: install the orchestrator as a core plus on-demand modules")
 	fs.BoolVar(&opts.DryRun, "dry-run", false, "preview plan without executing")
 
