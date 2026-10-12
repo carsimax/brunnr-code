@@ -50,8 +50,8 @@ func TestSelectionHasCodexModelAssignments(t *testing.T) {
 		t.Fatal("Selection.CodexModelAssignments zero value should be nil")
 	}
 
-	s.CodexModelAssignments = map[string]CodexEffort{"sdd-apply": CodexEffortHigh}
-	if s.CodexModelAssignments["sdd-apply"] != CodexEffortHigh {
+	s.CodexModelAssignments = map[string]CodexEffort{"odd-worker": CodexEffortHigh}
+	if s.CodexModelAssignments["odd-worker"] != CodexEffortHigh {
 		t.Fatal("Selection.CodexModelAssignments not accessible after assignment")
 	}
 }

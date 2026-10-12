@@ -34,7 +34,7 @@ func TestPersistAssignmentsReReadsLatestStateUnderLock(t *testing.T) {
 	home := t.TempDir()
 	held := holdCanonicalInstallStateLock(t, home)
 	selection := model.Selection{
-		CodexCarrilModelAssignments: map[string]string{"sdd-strong": "test-model"},
+		CodexCarrilModelAssignments: map[string]string{"odd-verify": "test-model"},
 	}
 	if err := persistAssignments(home, selection); err == nil || !strings.Contains(err.Error(), "acquire install state lock") {
 		t.Fatalf("contended persistAssignments error = %v, want lock acquisition failure", err)
@@ -53,7 +53,7 @@ func TestPersistAssignmentsReReadsLatestStateUnderLock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.CodexCarrilModelAssignments["sdd-strong"] != "test-model" {
+	if got.CodexCarrilModelAssignments["odd-verify"] != "test-model" {
 		t.Fatalf("assignments were not persisted: %#v", got.CodexCarrilModelAssignments)
 	}
 	if got.RDDMode != "on" || got.Preset != "concurrent" {

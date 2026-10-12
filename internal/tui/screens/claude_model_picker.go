@@ -172,11 +172,6 @@ func visibleClaudeAssignments(assignments map[string]model.ClaudePhaseAssignment
 
 func claudePickerPresetAssignments(preset map[string]model.ClaudeModelAlias) map[string]model.ClaudePhaseAssignment {
 	assignments := model.ClaudePhaseAssignmentsFromModelPreset(preset)
-	for key := range assignments {
-		if strings.HasPrefix(key, "sdd-") {
-			delete(assignments, key)
-		}
-	}
 	assignments["odd-explorer"] = model.ClaudePhaseAssignment{Model: model.ClaudeModelSonnet}
 	assignments["odd-worker"] = model.ClaudePhaseAssignment{Model: model.ClaudeModelSonnet}
 	assignments["odd-verify"] = model.ClaudePhaseAssignment{Model: model.ClaudeModelSonnet}
@@ -275,11 +270,6 @@ func handlePresetNav(
 	// Named preset — build assignments and signal that the screen is done.
 	constructor := presetConstructors[selected]
 	assignments := claudePickerPresetAssignments(constructor())
-	for key, value := range state.CustomAssignments {
-		if strings.HasPrefix(key, "sdd-") {
-			assignments[key] = value // Preserve legacy persisted values without exposing retired rows.
-		}
-	}
 	state.CustomAssignments = copyPhaseAssignments(assignments)
 	return true, copyPhaseAssignments(assignments)
 }

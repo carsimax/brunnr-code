@@ -22,11 +22,6 @@ func TestCodexPickerPresetRetainsODDEffortPolicy(t *testing.T) {
 					t.Errorf("%s = %s, want %s", role, got[role], effort)
 				}
 			}
-			for role := range got {
-				if strings.HasPrefix(role, "sdd-") {
-					t.Errorf("new preset includes retired role %q", role)
-				}
-			}
 		})
 	}
 }
@@ -39,9 +34,6 @@ func TestCodexPickerOffersOnlyActiveRoles(t *testing.T) {
 		if !strings.Contains(rows, role) {
 			t.Errorf("missing active role %q: %s", role, rows)
 		}
-	}
-	if strings.Contains(rows, "sdd-") {
-		t.Errorf("retired SDD roles visible: %s", rows)
 	}
 }
 
@@ -60,22 +52,22 @@ func TestNewCodexModelPickerStateFromAssignments_KnownPreset(t *testing.T) {
 	}{
 		{
 			name:        "Recommended map → Recommended preset",
-			assignments: model.CodexModelPresetRecommended(),
+			assignments: model.CodexODDEffortsForPreset(string(screens.CodexPresetRecommended)),
 			wantPreset:  screens.CodexPresetRecommended,
 		},
 		{
 			name:        "Powerful map → Powerful preset",
-			assignments: model.CodexModelPresetPowerful(),
+			assignments: model.CodexODDEffortsForPreset(string(screens.CodexPresetPowerful)),
 			wantPreset:  screens.CodexPresetPowerful,
 		},
 		{
 			name:        "LowCost map → LowCost preset",
-			assignments: model.CodexModelPresetLowCost(),
+			assignments: model.CodexODDEffortsForPreset(string(screens.CodexPresetLowCost)),
 			wantPreset:  screens.CodexPresetLowCost,
 		},
 		{
 			name:        "unknown map → Recommended (no Custom fallback)",
-			assignments: map[string]model.CodexEffort{"sdd-apply": model.CodexEffortXHigh},
+			assignments: map[string]model.CodexEffort{"odd-worker": model.CodexEffortXHigh},
 			wantPreset:  screens.CodexPresetRecommended,
 		},
 		{
@@ -243,9 +235,9 @@ func TestRenderCodexModelPicker_ContainsAllLabels(t *testing.T) {
 func TestCodexPickerLabels_SelfDescribing(t *testing.T) {
 	tests := []struct {
 		preset           screens.CodexModelPreset
-		wantStrongEffort string // Razonamiento/sdd-strong effort
-		wantMidEffort    string // Código/sdd-mid effort
-		wantCheapEffort  string // Liviano/sdd-cheap effort
+		wantStrongEffort string // Razonamiento/odd-verify effort
+		wantMidEffort    string // Código/odd-worker effort
+		wantCheapEffort  string // Liviano/odd-explorer effort
 	}{
 		{
 			preset:           screens.CodexPresetLowCost,
@@ -275,19 +267,19 @@ func TestCodexPickerLabels_SelfDescribing(t *testing.T) {
 			// Verify each carril by anchoring the model/effort token to its OWN
 			// carril segment. This catches a regression in one carril even when
 			// another carril shares the same model+effort.
-			strong := defaults["sdd-strong"]
+			strong := defaults["odd-verify"]
 			strongToken := "Razonamiento " + strong.Model + "/" + tc.wantStrongEffort
 			if !strings.Contains(label, strongToken) {
 				t.Errorf("CodexPresetLabel(%q) = %q: Razonamiento carril missing %q", tc.preset, label, strongToken)
 			}
 
-			mid := defaults["sdd-mid"]
+			mid := defaults["odd-worker"]
 			midToken := "Código " + mid.Model + "/" + tc.wantMidEffort
 			if !strings.Contains(label, midToken) {
 				t.Errorf("CodexPresetLabel(%q) = %q: Código carril missing %q", tc.preset, label, midToken)
 			}
 
-			cheap := defaults["sdd-cheap"]
+			cheap := defaults["odd-explorer"]
 			cheapToken := "Liviano " + cheap.Model + "/" + tc.wantCheapEffort
 			if !strings.Contains(label, cheapToken) {
 				t.Errorf("CodexPresetLabel(%q) = %q: Liviano carril missing %q", tc.preset, label, cheapToken)
@@ -566,21 +558,12 @@ func TestCodexCustomEffortSelect_MultipleDownReachesIndex2(t *testing.T) {
 // HandleCodexModelPickerNav returns a non-nil, non-empty assignments map from
 // the stored custom per-phase assignments, and CustomConfirmed is set to true.
 func TestCodexCustomRestoresPresetWithWorkerEfforts(t *testing.T) {
-	for _, tc := range []struct {
-		preset  screens.CodexModelPreset
-		efforts map[string]model.CodexEffort
-	}{
-		{screens.CodexPresetLowCost, model.CodexModelPresetLowCost()},
-		{screens.CodexPresetRecommended, model.CodexModelPresetRecommended()},
-		{screens.CodexPresetPowerful, model.CodexModelPresetPowerful()},
-	} {
-		defaults := model.CodexPresetCarrilDefaults(string(tc.preset))
-		for _, role := range model.CodexODDRoleCarrils() {
-			tc.efforts[role.Role] = defaults[role.Carril].Effort
-		}
-		got := screens.NewCodexModelPickerStateFromAssignments(tc.efforts)
-		if got.Preset != tc.preset {
-			t.Errorf("restored preset = %s, want %s", got.Preset, tc.preset)
+	for _, preset := range []screens.CodexModelPreset{screens.CodexPresetLowCost, screens.CodexPresetRecommended, screens.CodexPresetPowerful} {
+		efforts := model.CodexODDEffortsForPreset(string(preset))
+		efforts["jd-judge-a"] = model.CodexEffortXHigh
+		got := screens.NewCodexModelPickerStateFromAssignments(efforts)
+		if got.Preset != preset {
+			t.Errorf("restored preset = %s, want %s", got.Preset, preset)
 		}
 	}
 }

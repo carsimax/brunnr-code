@@ -61,21 +61,21 @@ func fullyPopulatedInstallState() InstallState {
 		StrictTDD:                true,
 		CommunityTools:           []string{"codegraph"},
 		CommunityToolsConfigured: true,
-		ClaudeModelAssignments:   map[string]string{"sdd-explore": "sonnet"},
+		ClaudeModelAssignments:   map[string]string{"odd-explorer": "sonnet"},
 		ClaudePhaseAssignments: map[string]ClaudePhaseAssignmentState{
-			"sdd-apply": {Model: "opus", Effort: "max"},
+			"odd-worker": {Model: "opus", Effort: "max"},
 		},
 		CodexModelAssignments: map[string]string{
-			"sdd-verify": "high",
+			"odd-verify": "high",
 		},
 		CodexOrchestratorAssignment: &CodexOrchestratorAssignmentState{Model: "gpt-5.6-luna", Effort: "high"},
 		CodexServiceTier:            "priority",
 		CodexCarrilModelAssignments: map[string]string{
-			"sdd-strong": "gpt-5.6-luna",
-			"sdd-cheap":  "gpt-5.4-mini",
+			"odd-verify":   "gpt-5.6-luna",
+			"odd-explorer": "gpt-5.4-mini",
 		},
 		CodexPhaseModelAssignments: map[string]string{
-			"sdd-propose": "gpt-5.6-sol",
+			"jd-judge-a": "gpt-5.6-sol",
 		},
 		LastUpdateCheck:   &lastUpdateCheck,
 		RDDMode:           "off",
@@ -127,7 +127,7 @@ func TestInstallStatePreservesEveryField(t *testing.T) {
 // TestMergeAgents verifies that MergeAgents appends new agents to existing
 // installed_agents with deduplication and preserves all other fields.
 func TestMergeAgents(t *testing.T) {
-	existingClaude := map[string]string{"sdd-explore": "sonnet", "sdd-archive": "haiku"}
+	existingClaude := map[string]string{"odd-explorer": "sonnet", "jd-fix-agent": "haiku"}
 	existingCommunityTools := []string{"codegraph"}
 
 	tests := []struct {
@@ -443,8 +443,8 @@ func TestClaudePhaseAssignmentsRoundTrip(t *testing.T) {
 	want := InstallState{
 		InstalledAgents: []string{"claude-code"},
 		ClaudePhaseAssignments: map[string]ClaudePhaseAssignmentState{
-			"sdd-apply":   {Model: "sonnet", Effort: "max"},
-			"sdd-archive": {Model: "haiku"},
+			"odd-worker":   {Model: "sonnet", Effort: "max"},
+			"jd-fix-agent": {Model: "haiku"},
 		},
 	}
 
@@ -495,9 +495,9 @@ func TestInstallStateCodexRoundTrip(t *testing.T) {
 	home := t.TempDir()
 
 	assignments := map[string]string{
-		"sdd-apply":   "high",
-		"sdd-explore": "low",
-		"default":     "medium",
+		"odd-worker":   "high",
+		"odd-explorer": "low",
+		"default":      "medium",
 	}
 
 	s := InstallState{
@@ -570,9 +570,9 @@ func TestCodexCarrilModelAssignments_RoundTrip(t *testing.T) {
 	home := t.TempDir()
 
 	carrilMap := map[string]string{
-		"sdd-strong": "gpt-5.5",
-		"sdd-mid":    "gpt-5.5",
-		"sdd-cheap":  "gpt-5.4-mini",
+		"odd-verify":   "gpt-5.5",
+		"odd-worker":   "gpt-5.5",
+		"odd-explorer": "gpt-5.4-mini",
 	}
 	s := InstallState{
 		InstalledAgents:             []string{"codex"},
@@ -610,7 +610,7 @@ func TestCodexCarrilModelAssignments_BackwardCompat(t *testing.T) {
 		t.Fatalf("MkdirAll() error = %v", err)
 	}
 	// Legacy blob has codexModelAssignments but no codexCarrilModelAssignments.
-	legacy := `{"installed_agents":["codex"],"codexModelAssignments":{"sdd-apply":"high"}}` + "\n"
+	legacy := `{"installed_agents":["codex"],"codexModelAssignments":{"odd-worker":"high"}}` + "\n"
 	if err := os.WriteFile(Path(home), []byte(legacy), 0o644); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
@@ -623,8 +623,8 @@ func TestCodexCarrilModelAssignments_BackwardCompat(t *testing.T) {
 		t.Errorf("CodexCarrilModelAssignments = %v, want nil for legacy state", s.CodexCarrilModelAssignments)
 	}
 	// Original key must still be there.
-	if s.CodexModelAssignments["sdd-apply"] != "high" {
-		t.Errorf("CodexModelAssignments[sdd-apply] = %q, want high", s.CodexModelAssignments["sdd-apply"])
+	if s.CodexModelAssignments["odd-worker"] != "high" {
+		t.Errorf("CodexModelAssignments[odd-worker] = %q, want high", s.CodexModelAssignments["odd-worker"])
 	}
 }
 
@@ -651,8 +651,8 @@ func TestMergeAgents_PreservesCodexCarrilAssignments(t *testing.T) {
 	existing := InstallState{
 		InstalledAgents: []string{"codex"},
 		CodexCarrilModelAssignments: map[string]string{
-			"sdd-strong": "gpt-5.5",
-			"sdd-cheap":  "gpt-5.4-mini",
+			"odd-verify":   "gpt-5.5",
+			"odd-explorer": "gpt-5.4-mini",
 		},
 	}
 	merged := MergeAgents(existing, []string{"example-agent"})
@@ -670,9 +670,9 @@ func TestCodexPhaseModelAssignments_RoundTrip(t *testing.T) {
 	home := t.TempDir()
 
 	assignments := map[string]string{
-		"sdd-propose": "gpt-5.5",
-		"sdd-apply":   "gpt-5.4",
-		"sdd-explore": "gpt-5.4-mini",
+		"jd-judge-a":   "gpt-5.5",
+		"odd-worker":   "gpt-5.4",
+		"odd-explorer": "gpt-5.4-mini",
 	}
 	s := InstallState{
 		InstalledAgents:            []string{"codex"},
@@ -726,7 +726,7 @@ func TestCodexPhaseModelAssignments_LegacyAbsent(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(home, stateDir), 0o755); err != nil {
 		t.Fatalf("MkdirAll() error = %v", err)
 	}
-	legacy := `{"installed_agents":["codex"],"codexModelAssignments":{"sdd-apply":"high"}}` + "\n"
+	legacy := `{"installed_agents":["codex"],"codexModelAssignments":{"odd-worker":"high"}}` + "\n"
 	if err := os.WriteFile(Path(home), []byte(legacy), 0o644); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
@@ -745,8 +745,8 @@ func TestMergeAgents_PreservesCodexPhaseModelAssignments(t *testing.T) {
 	existing := InstallState{
 		InstalledAgents: []string{"codex"},
 		CodexPhaseModelAssignments: map[string]string{
-			"sdd-propose": "gpt-5.5",
-			"sdd-explore": "gpt-5.4-mini",
+			"jd-judge-a":   "gpt-5.5",
+			"odd-explorer": "gpt-5.4-mini",
 		},
 	}
 	merged := MergeAgents(existing, []string{"example-agent"})

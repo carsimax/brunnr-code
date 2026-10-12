@@ -21,16 +21,16 @@ func TestMergeExplicitAgentInstallStatePreservesExistingAssignmentsWhenFreshStat
 	if err := state.Write(home, state.InstallState{
 		InstalledAgents: []string{"claude-code"},
 		ClaudeModelAssignments: map[string]string{
-			"sdd-apply": "opus",
+			"odd-worker": "opus",
 		},
 		CodexModelAssignments: map[string]string{
-			"sdd-apply": "low",
+			"odd-worker": "low",
 		},
 		CodexCarrilModelAssignments: map[string]string{
-			"sdd-strong": "gpt-5.5",
+			"odd-verify": "gpt-5.5",
 		},
 		CodexPhaseModelAssignments: map[string]string{
-			"sdd-verify": "gpt-5.4",
+			"odd-verify": "gpt-5.4",
 		},
 	}); err != nil {
 		t.Fatalf("state.Write: %v", err)
@@ -43,16 +43,16 @@ func TestMergeExplicitAgentInstallStatePreservesExistingAssignmentsWhenFreshStat
 	if got := merged.InstalledAgents; len(got) != 2 || got[0] != "claude-code" || got[1] != "codex" {
 		t.Fatalf("InstalledAgents = %#v, want [claude-code codex]", got)
 	}
-	if merged.ClaudeModelAssignments["sdd-apply"] != "opus" {
+	if merged.ClaudeModelAssignments["odd-worker"] != "opus" {
 		t.Fatalf("ClaudeModelAssignments not preserved: %#v", merged.ClaudeModelAssignments)
 	}
-	if merged.CodexModelAssignments["sdd-apply"] != "low" {
+	if merged.CodexModelAssignments["odd-worker"] != "low" {
 		t.Fatalf("CodexModelAssignments not preserved: %#v", merged.CodexModelAssignments)
 	}
-	if merged.CodexCarrilModelAssignments["sdd-strong"] != "gpt-5.5" {
+	if merged.CodexCarrilModelAssignments["odd-verify"] != "gpt-5.5" {
 		t.Fatalf("CodexCarrilModelAssignments not preserved: %#v", merged.CodexCarrilModelAssignments)
 	}
-	if merged.CodexPhaseModelAssignments["sdd-verify"] != "gpt-5.4" {
+	if merged.CodexPhaseModelAssignments["odd-verify"] != "gpt-5.4" {
 		t.Fatalf("CodexPhaseModelAssignments not preserved: %#v", merged.CodexPhaseModelAssignments)
 	}
 }
@@ -211,7 +211,7 @@ func TestMergeExplicitAgentInstallStatePreservesFreshAssignments(t *testing.T) {
 	if err := state.Write(home, state.InstallState{
 		InstalledAgents: []string{"claude-code"},
 		CodexModelAssignments: map[string]string{
-			"sdd-apply": "low",
+			"odd-worker": "low",
 		},
 	}); err != nil {
 		t.Fatalf("state.Write: %v", err)
@@ -220,13 +220,13 @@ func TestMergeExplicitAgentInstallStatePreservesFreshAssignments(t *testing.T) {
 	fresh := state.InstallState{
 		InstalledAgents: []string{"codex"},
 		CodexModelAssignments: codexEffortsToStrings(map[string]model.CodexEffort{
-			"sdd-apply": model.CodexEffortHigh,
+			"odd-worker": model.CodexEffortHigh,
 		}),
 		CodexCarrilModelAssignments: map[string]string{
-			"sdd-strong": "gpt-5.5",
+			"odd-verify": "gpt-5.5",
 		},
 		CodexPhaseModelAssignments: map[string]string{
-			"sdd-apply": "gpt-5.4",
+			"odd-worker": "gpt-5.4",
 		},
 	}
 
@@ -237,13 +237,13 @@ func TestMergeExplicitAgentInstallStatePreservesFreshAssignments(t *testing.T) {
 	if got := merged.InstalledAgents; len(got) != 2 || got[0] != "claude-code" || got[1] != "codex" {
 		t.Fatalf("InstalledAgents = %#v, want [claude-code codex]", got)
 	}
-	if merged.CodexModelAssignments["sdd-apply"] != "high" {
-		t.Fatalf("CodexModelAssignments[sdd-apply] = %q, want high", merged.CodexModelAssignments["sdd-apply"])
+	if merged.CodexModelAssignments["odd-worker"] != "high" {
+		t.Fatalf("CodexModelAssignments[odd-worker] = %q, want high", merged.CodexModelAssignments["odd-worker"])
 	}
-	if merged.CodexCarrilModelAssignments["sdd-strong"] != "gpt-5.5" {
+	if merged.CodexCarrilModelAssignments["odd-verify"] != "gpt-5.5" {
 		t.Fatalf("CodexCarrilModelAssignments not preserved: %#v", merged.CodexCarrilModelAssignments)
 	}
-	if merged.CodexPhaseModelAssignments["sdd-apply"] != "gpt-5.4" {
+	if merged.CodexPhaseModelAssignments["odd-worker"] != "gpt-5.4" {
 		t.Fatalf("CodexPhaseModelAssignments not preserved: %#v", merged.CodexPhaseModelAssignments)
 	}
 }

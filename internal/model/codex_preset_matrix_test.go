@@ -39,7 +39,7 @@ func TestCodexPresetMatrixMatchesTheMaintainerTable(t *testing.T) {
 		t.Run(string(testCase.preset), func(t *testing.T) {
 			carriles := CodexPresetCarrilDefaults(string(testCase.preset))
 			for lane, want := range map[string]CodexCarrilDefault{
-				"sdd-strong": testCase.strong, "sdd-mid": testCase.mid, "sdd-cheap": testCase.cheap,
+				"odd-verify": testCase.strong, "odd-worker": testCase.mid, "odd-explorer": testCase.cheap,
 			} {
 				if got := carriles[lane]; got != want {
 					t.Errorf("%s = %+v, want %+v", lane, got, want)

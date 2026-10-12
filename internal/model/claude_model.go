@@ -3,7 +3,7 @@ package model
 import "maps"
 
 // ClaudeModelAlias represents one of the Claude model tiers used for
-// per-phase model assignments in the SDD orchestrator.
+// per-role model assignments for Claude Code sub-agents.
 //
 // Only four values are valid: ClaudeModelFable, ClaudeModelOpus,
 // ClaudeModelSonnet, ClaudeModelHaiku.
@@ -19,7 +19,7 @@ const (
 	// and orchestration. Maps to the current claude-opus-* family.
 	ClaudeModelOpus ClaudeModelAlias = "opus"
 
-	// ClaudeModelSonnet is the balanced tier, suitable for most SDD phases.
+	// ClaudeModelSonnet is the balanced tier, suitable for most sub-agent roles.
 	// Maps to the current claude-sonnet-* family.
 	ClaudeModelSonnet ClaudeModelAlias = "sonnet"
 
@@ -96,7 +96,7 @@ func ClaudeEffortAllowedForModel(alias ClaudeModelAlias, effort ClaudeEffort) bo
 }
 
 // ClaudePhaseAssignment configures the Claude Code model and effort for one
-// SDD/JD phase subagent. Empty Effort means inherit the session/model default.
+// sub-agent role. Empty Effort means inherit the session/model default.
 type ClaudePhaseAssignment struct {
 	Model  ClaudeModelAlias `json:"model"`
 	Effort ClaudeEffort     `json:"effort,omitempty"`
@@ -130,21 +130,11 @@ func ClaudePhaseAssignmentsFromModelPreset(assignments map[string]ClaudeModelAli
 }
 
 // ClaudeModelPresetBalanced returns the default model assignment table.
-// It balances cost and capability for Claude sub-agents: architecture phases use opus;
-// implementation and validation use sonnet; archiving uses haiku.
+// It balances cost and capability for Claude sub-agents: the orchestrator uses
+// opus; judgment-day agents and everything else default to sonnet.
 func ClaudeModelPresetBalanced() map[string]ClaudeModelAlias {
 	return map[string]ClaudeModelAlias{
 		"orchestrator": ClaudeModelOpus,
-		"sdd-explore":  ClaudeModelSonnet,
-		"sdd-research": ClaudeModelSonnet,
-		"sdd-propose":  ClaudeModelOpus,
-		"sdd-spec":     ClaudeModelSonnet,
-		"sdd-design":   ClaudeModelOpus,
-		"sdd-tasks":    ClaudeModelSonnet,
-		"sdd-apply":    ClaudeModelSonnet,
-		"sdd-verify":   ClaudeModelSonnet,
-		"sdd-archive":  ClaudeModelHaiku,
-		"sdd-onboard":  ClaudeModelHaiku,
 		"jd-judge-a":   ClaudeModelSonnet,
 		"jd-judge-b":   ClaudeModelSonnet,
 		"jd-fix-agent": ClaudeModelSonnet,
@@ -153,20 +143,10 @@ func ClaudeModelPresetBalanced() map[string]ClaudeModelAlias {
 }
 
 // ClaudeModelPresetPerformance returns a model assignment table optimised for
-// output quality. Architecture, planning, and verification phases all use opus.
+// output quality. The orchestrator and judgment-day agents use opus.
 func ClaudeModelPresetPerformance() map[string]ClaudeModelAlias {
 	return map[string]ClaudeModelAlias{
 		"orchestrator": ClaudeModelOpus,
-		"sdd-explore":  ClaudeModelSonnet,
-		"sdd-research": ClaudeModelSonnet,
-		"sdd-propose":  ClaudeModelOpus,
-		"sdd-spec":     ClaudeModelSonnet,
-		"sdd-design":   ClaudeModelOpus,
-		"sdd-tasks":    ClaudeModelSonnet,
-		"sdd-apply":    ClaudeModelSonnet,
-		"sdd-verify":   ClaudeModelOpus,
-		"sdd-archive":  ClaudeModelHaiku,
-		"sdd-onboard":  ClaudeModelHaiku,
 		"jd-judge-a":   ClaudeModelOpus,
 		"jd-judge-b":   ClaudeModelOpus,
 		"jd-fix-agent": ClaudeModelOpus,
@@ -175,20 +155,10 @@ func ClaudeModelPresetPerformance() map[string]ClaudeModelAlias {
 }
 
 // ClaudeModelPresetEconomy returns a model assignment table optimised for cost.
-// SDD phases use sonnet except archive; JD agents use haiku for maximum savings.
+// The orchestrator uses sonnet; JD agents use haiku for maximum savings.
 func ClaudeModelPresetEconomy() map[string]ClaudeModelAlias {
 	return map[string]ClaudeModelAlias{
 		"orchestrator": ClaudeModelSonnet,
-		"sdd-explore":  ClaudeModelSonnet,
-		"sdd-research": ClaudeModelSonnet,
-		"sdd-propose":  ClaudeModelSonnet,
-		"sdd-spec":     ClaudeModelSonnet,
-		"sdd-design":   ClaudeModelSonnet,
-		"sdd-tasks":    ClaudeModelSonnet,
-		"sdd-apply":    ClaudeModelSonnet,
-		"sdd-verify":   ClaudeModelSonnet,
-		"sdd-archive":  ClaudeModelHaiku,
-		"sdd-onboard":  ClaudeModelHaiku,
 		"jd-judge-a":   ClaudeModelHaiku,
 		"jd-judge-b":   ClaudeModelHaiku,
 		"jd-fix-agent": ClaudeModelHaiku,

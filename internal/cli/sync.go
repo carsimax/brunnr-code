@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -1528,7 +1529,7 @@ func RunSync(args []string) (SyncResult, error) {
 		selection.CodexModelAssignments = m
 	}
 	if len(selection.CodexCarrilModelAssignments) == 0 && len(persistedState.CodexCarrilModelAssignments) > 0 {
-		selection.CodexCarrilModelAssignments = model.MigrateLegacyCodexCarrilDefaults(persistedState.CodexCarrilModelAssignments)
+		selection.CodexCarrilModelAssignments = maps.Clone(persistedState.CodexCarrilModelAssignments)
 	}
 	if len(selection.CodexPhaseModelAssignments) == 0 && len(persistedState.CodexPhaseModelAssignments) > 0 {
 		m := make(map[string]string, len(persistedState.CodexPhaseModelAssignments))

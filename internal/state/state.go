@@ -45,17 +45,17 @@ type InstallState struct {
 	CommunityTools           []string `json:"community_tools,omitempty"`
 	CommunityToolsConfigured bool     `json:"community_tools_configured,omitempty"`
 
-	// ClaudeModelAssignments maps SDD phase names (e.g. "sdd-explore") to a
+	// ClaudeModelAssignments maps sub-agent role names (e.g. "odd-explorer") to a
 	// Claude model alias ("fable", "opus", "sonnet", "haiku"). Persisted so that
 	// `brunnr-code sync` preserves the user's model choices instead of falling
 	// back to the "balanced" preset every time.
 	ClaudeModelAssignments map[string]string `json:"claude_model_assignments,omitempty"`
 
-	// ClaudePhaseAssignments maps SDD phase names to Claude model+effort assignments.
+	// ClaudePhaseAssignments maps sub-agent role names to Claude model+effort assignments.
 	// It supersedes ClaudeModelAssignments while preserving backward compatibility.
 	ClaudePhaseAssignments map[string]ClaudePhaseAssignmentState `json:"claude_phase_assignments,omitempty"`
 
-	// CodexModelAssignments maps SDD phase names to a Codex reasoning_effort value
+	// CodexModelAssignments maps sub-agent role names to a Codex reasoning_effort value
 	// (low|medium|high|xhigh). Persisted so that `brunnr-code sync` preserves the
 	// user's per-phase effort preset instead of falling back to Recommended.
 	CodexModelAssignments map[string]string `json:"codexModelAssignments,omitempty"`
@@ -68,14 +68,14 @@ type InstallState struct {
 	// a user-set service_tier is never touched.
 	CodexServiceTier string `json:"codexServiceTier,omitempty"`
 
-	// CodexCarrilModelAssignments maps the three carril profile names
-	// (sdd-strong|sdd-mid|sdd-cheap) to OpenAI subscription model IDs
+	// CodexCarrilModelAssignments maps the three ODD roles
+	// (odd-explorer|odd-worker|odd-verify) to OpenAI subscription model IDs
 	// (e.g. "gpt-5.6-sol", "gpt-5.6-luna"). Persisted so that `brunnr-code sync`
-	// regenerates profile files with the user's chosen model per tier.
-	// Absent/empty = resolve to DefaultCarrilModels at runtime (backward-compat).
+	// keeps the user's chosen model per role. Absent/empty = the Recommended
+	// preset models.
 	CodexCarrilModelAssignments map[string]string `json:"codexCarrilModelAssignments,omitempty"`
 
-	// CodexPhaseModelAssignments maps each of the 13 SDD phase names to the
+	// CodexPhaseModelAssignments maps sub-agent role names to the
 	// model id the user assigned in the Custom per-phase picker (e.g. "gpt-5.6-sol").
 	// When non-nil, overrides the carril-level model selection for that phase.
 	// Absent/nil = not using custom per-phase assignments (preset/carril behavior

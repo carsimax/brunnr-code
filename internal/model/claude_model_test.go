@@ -41,7 +41,7 @@ func TestClaudeModelAliasString(t *testing.T) {
 }
 
 // TestClaudeModelPresetsContainOnlyValidAliases verifies that every preset
-// assigns a valid alias to all 15 phase keys, guarding against preset drift
+// assigns a valid alias to all 5 role keys, guarding against preset drift
 // when new aliases are introduced.
 func TestClaudeModelPresetsContainOnlyValidAliases(t *testing.T) {
 	presets := []struct {
@@ -56,11 +56,11 @@ func TestClaudeModelPresetsContainOnlyValidAliases(t *testing.T) {
 	for _, tc := range presets {
 		t.Run(tc.name, func(t *testing.T) {
 			m := tc.fn()
-			if len(m) != 15 {
-				t.Errorf("%s preset has %d keys, want 15", tc.name, len(m))
+			if len(m) != 5 {
+				t.Errorf("%s preset has %d keys, want 5", tc.name, len(m))
 			}
-			if _, ok := m["sdd-research"]; !ok {
-				t.Errorf("%s preset missing sdd-research", tc.name)
+			if _, ok := m["jd-fix-agent"]; !ok {
+				t.Errorf("%s preset missing jd-fix-agent", tc.name)
 			}
 			for k, v := range m {
 				if !v.Valid() {
@@ -101,17 +101,17 @@ func TestClaudeEffortsForModelOfficialMatrix(t *testing.T) {
 
 func TestClaudePhaseAssignmentsFromLegacyPreservesModelsWithDefaultEffort(t *testing.T) {
 	legacy := map[string]model.ClaudeModelAlias{
-		"sdd-design": model.ClaudeModelOpus,
-		"sdd-apply":  model.ClaudeModelSonnet,
+		"jd-judge-a": model.ClaudeModelOpus,
+		"odd-worker": model.ClaudeModelSonnet,
 		"bad":        model.ClaudeModelAlias("bogus"),
 	}
 
 	got := model.ClaudePhaseAssignmentsFromLegacy(legacy)
-	if got["sdd-design"].Model != model.ClaudeModelOpus || got["sdd-design"].Effort != "" {
-		t.Fatalf("sdd-design assignment = %+v, want opus with default effort", got["sdd-design"])
+	if got["jd-judge-a"].Model != model.ClaudeModelOpus || got["jd-judge-a"].Effort != "" {
+		t.Fatalf("jd-judge-a assignment = %+v, want opus with default effort", got["jd-judge-a"])
 	}
-	if got["sdd-apply"].Model != model.ClaudeModelSonnet || got["sdd-apply"].Effort != "" {
-		t.Fatalf("sdd-apply assignment = %+v, want sonnet with default effort", got["sdd-apply"])
+	if got["odd-worker"].Model != model.ClaudeModelSonnet || got["odd-worker"].Effort != "" {
+		t.Fatalf("odd-worker assignment = %+v, want sonnet with default effort", got["odd-worker"])
 	}
 	if _, ok := got["bad"]; ok {
 		t.Fatalf("invalid legacy alias should be ignored, got %+v", got["bad"])

@@ -81,7 +81,7 @@ func TestCodexODDAssignmentInstallRoutingStep(t *testing.T) {
 		agent: model.AgentCodex, homeDir: home, scope: ScopeGlobal,
 		codexPhaseModels: map[string]string{"odd-worker": "gpt-explicit"},
 		codexEfforts:     map[string]model.CodexEffort{"odd-worker": model.CodexEffortXHigh},
-		codexCarrils:     map[string]string{"sdd-cheap": "gpt-cheap", "sdd-strong": "gpt-strong"},
+		codexCarrils:     map[string]string{"odd-explorer": "gpt-cheap", "odd-verify": "gpt-strong"},
 	}
 	if err := step.Run(); err != nil {
 		t.Fatal(err)
@@ -113,7 +113,7 @@ func TestRunInstallCodexKeepsOldRuntimeFailure(t *testing.T) {
 	restoreRuntime := codex.SetRuntimeVersionCommandForTest("codex-cli 0.143.9", nil)
 	t.Cleanup(restoreRuntime)
 
-	profiles := []string{"sdd-strong.config.toml", "sdd-mid.config.toml", "sdd-cheap.config.toml"}
+	profiles := []string{"user-a.config.toml", "user-b.config.toml"}
 	for _, name := range profiles {
 		path := filepath.Join(home, ".codex", name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

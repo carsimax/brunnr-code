@@ -49,7 +49,7 @@ var codexPresetConstructors = map[CodexModelPreset]func() map[string]model.Codex
 }
 
 // codexCustomPhases is the ordered list of ODD and RDD roles for the Custom
-// per-phase model picker. Order matches codexTierGroups phase groupings.
+// per-phase model picker.
 var codexCustomPhases = []string{
 	"jd-judge-a", "jd-judge-b", "jd-fix-agent", "default",
 	"odd-explorer", "odd-worker", "odd-verify",
@@ -126,7 +126,7 @@ func NewCodexModelPickerStateFromAssignments(assignments map[string]model.CodexE
 	}
 	for _, preset := range codexPresetOrder {
 		constructor := codexPresetConstructors[preset]
-		if codexAssignmentsEqual(constructor(), assignments) || codexPresetMatchesCustomEfforts(preset, assignments) || codexAssignmentsEqual(legacyCodexPreset(preset), assignments) {
+		if codexAssignmentsEqual(constructor(), assignments) || codexPresetMatchesCustomEfforts(preset, assignments) {
 			return CodexModelPickerState{
 				Preset:            preset,
 				AvailableModels:   model.CodexAvailableModels(),
@@ -139,17 +139,6 @@ func NewCodexModelPickerStateFromAssignments(assignments map[string]model.CodexE
 		Preset:            CodexPresetRecommended,
 		AvailableModels:   model.CodexAvailableModels(),
 		CustomAssignments: make(map[string]CodexCustomAssignment),
-	}
-}
-
-func legacyCodexPreset(preset CodexModelPreset) map[string]model.CodexEffort {
-	switch preset {
-	case CodexPresetLowCost:
-		return model.CodexModelPresetLowCost()
-	case CodexPresetPowerful:
-		return model.CodexModelPresetPowerful()
-	default:
-		return model.CodexModelPresetRecommended()
 	}
 }
 
@@ -367,7 +356,7 @@ func handleCustomPhaseListNav(key string, state *CodexModelPickerState, cursor i
 			// Phases without a custom assignment use the selected preset defaults.
 			constructor := codexPresetConstructors[state.Preset]
 			if constructor == nil {
-				constructor = model.CodexModelPresetRecommended
+				constructor = codexPresetConstructors[CodexPresetRecommended]
 			}
 			base := constructor()
 			for phase, a := range state.CustomAssignments {
@@ -724,9 +713,9 @@ func codexModelSearchDisplay(query string) string {
 // Format: "<Plan> — Orquestador <model>/<effort> · Razonamiento <model>/<effort> · Código <model>/<effort> · Liviano <model>/<effort>"
 func CodexPresetLabel(preset CodexModelPreset) string {
 	defaults := model.CodexPresetCarrilDefaults(string(preset))
-	strong := defaults["sdd-strong"]
-	mid := defaults["sdd-mid"]
-	cheap := defaults["sdd-cheap"]
+	strong := defaults["odd-verify"]
+	mid := defaults["odd-worker"]
+	cheap := defaults["odd-explorer"]
 
 	plan := string(preset)
 	switch preset {

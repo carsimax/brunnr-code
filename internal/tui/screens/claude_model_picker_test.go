@@ -28,19 +28,6 @@ func TestClaudeShortTerminalShowsFocusedRDDRowsAndConfirm(t *testing.T) {
 	}
 }
 
-func TestClaudePickerPreservesLegacyAssignmentsWithoutShowingRows(t *testing.T) {
-	legacy := model.ClaudePhaseAssignment{Model: model.ClaudeModelFable, Effort: model.ClaudeEffortHigh}
-	picker := NewClaudeModelPickerStateFromPhaseAssignments(map[string]model.ClaudePhaseAssignment{"sdd-propose": legacy})
-	picker.InCustomMode = true
-	if strings.Contains(RenderClaudeModelPicker(picker, 0), "Propose") {
-		t.Fatal("legacy SDD role is visible")
-	}
-	_, saved := HandleClaudeModelPickerNav("enter", &picker, ClaudeModelPickerOptionCount(picker)-2)
-	if saved["sdd-propose"] != legacy {
-		t.Fatalf("legacy assignment changed: %+v", saved["sdd-propose"])
-	}
-}
-
 func TestClaudePickerOffersOnlyActiveRoles(t *testing.T) {
 	picker := NewClaudeModelPickerState()
 	picker.InCustomMode = true
@@ -48,11 +35,6 @@ func TestClaudePickerOffersOnlyActiveRoles(t *testing.T) {
 	for _, role := range []string{"ODD Explorer", "ODD Worker", "ODD Verify", "RDD Risk", "RDD Validator", "General delegation"} {
 		if !strings.Contains(rows, role) {
 			t.Errorf("missing active role %q: %s", role, rows)
-		}
-	}
-	for _, role := range []string{"sdd-", "SDD phase", "Explore   ", "Apply   "} {
-		if strings.Contains(rows, role) {
-			t.Errorf("retired SDD role %q visible: %s", role, rows)
 		}
 	}
 }
@@ -129,7 +111,7 @@ func TestNewClaudeModelPickerStateFromAssignments(t *testing.T) {
 		},
 		{
 			name:        "custom assignment",
-			assignments: map[string]model.ClaudeModelAlias{"sdd-apply": model.ClaudeModelHaiku},
+			assignments: map[string]model.ClaudeModelAlias{"odd-worker": model.ClaudeModelHaiku},
 			wantPreset:  ClaudePresetCustom,
 		},
 	}
@@ -155,9 +137,9 @@ func TestNewClaudeModelPickerStateFromAssignments_CopiesMap(t *testing.T) {
 	state := NewClaudeModelPickerStateFromAssignments(original)
 
 	// Mutating original should not affect state.
-	original["sdd-apply"] = model.ClaudeModelOpus
+	original["odd-worker"] = model.ClaudeModelOpus
 
-	if state.CustomAssignments["sdd-apply"].Model == model.ClaudeModelOpus {
+	if state.CustomAssignments["odd-worker"].Model == model.ClaudeModelOpus {
 		t.Error("CustomAssignments shares memory with the input map — expected a defensive copy")
 	}
 }
@@ -290,7 +272,7 @@ func TestRenderClaudeModelPicker_ShowsCurrentPreset(t *testing.T) {
 		},
 		{
 			name:        "custom assignments shows custom",
-			assignments: map[string]model.ClaudeModelAlias{"sdd-apply": model.ClaudeModelHaiku},
+			assignments: map[string]model.ClaudeModelAlias{"odd-worker": model.ClaudeModelHaiku},
 			wantLabel:   "Current: custom",
 		},
 	}

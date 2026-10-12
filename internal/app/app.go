@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -785,7 +786,7 @@ func loadPersistedAssignments(homeDir string, selection *model.Selection) {
 		selection.CodexModelAssignments = m
 	}
 	if len(selection.CodexCarrilModelAssignments) == 0 && len(s.CodexCarrilModelAssignments) > 0 {
-		selection.CodexCarrilModelAssignments = model.MigrateLegacyCodexCarrilDefaults(s.CodexCarrilModelAssignments)
+		selection.CodexCarrilModelAssignments = maps.Clone(s.CodexCarrilModelAssignments)
 	}
 	if len(selection.CodexPhaseModelAssignments) == 0 && len(s.CodexPhaseModelAssignments) > 0 {
 		m := make(map[string]string, len(s.CodexPhaseModelAssignments))

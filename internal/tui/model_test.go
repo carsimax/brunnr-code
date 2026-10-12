@@ -1043,7 +1043,7 @@ func TestBackupRestoreMsgHandledGracefully(t *testing.T) {
 	}
 }
 
-func TestModelConfigPickerPredicatesDoNotDependOnInstallerSDD(t *testing.T) {
+func TestModelConfigModeShowsBothModelPickers(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Selection.Agents = []model.AgentID{model.AgentClaudeCode, model.AgentCodex}
 	m.ModelConfigMode = true
@@ -1055,7 +1055,7 @@ func TestModelConfigPickerPredicatesDoNotDependOnInstallerSDD(t *testing.T) {
 		{"Codex", m.shouldShowCodexModelPickerScreen},
 	} {
 		if !check.show() {
-			t.Errorf("Configure models must retain %s picker without installer SDD", check.name)
+			t.Errorf("Configure models must show the %s picker", check.name)
 		}
 	}
 }
@@ -1131,9 +1131,6 @@ func TestClaudeModelPickerBalancedSelectionStoresAssignments(t *testing.T) {
 	}
 	if got := state.Selection.ClaudeModelAssignments["odd-worker"]; got != model.ClaudeModelSonnet {
 		t.Fatalf("odd-worker = %q, want %q", got, model.ClaudeModelSonnet)
-	}
-	if _, exists := state.Selection.ClaudeModelAssignments["sdd-archive"]; exists {
-		t.Fatal("fresh preset introduced retired SDD role")
 	}
 }
 
@@ -3737,27 +3734,27 @@ func TestCodexPresetSelection_PopulatesPendingSyncOverrides(t *testing.T) {
 			name:   "low cost",
 			cursor: 0,
 			want: map[string]string{
-				"sdd-strong": "gpt-6.1-sol",
-				"sdd-mid":    "gpt-6.1-luna",
-				"sdd-cheap":  "gpt-6.1-luna",
+				"odd-verify":   "gpt-6.1-sol",
+				"odd-worker":   "gpt-6.1-luna",
+				"odd-explorer": "gpt-6.1-luna",
 			},
 		},
 		{
 			name:   "recommended",
 			cursor: 1,
 			want: map[string]string{
-				"sdd-strong": "gpt-6.1-sol",
-				"sdd-mid":    "gpt-6.1-luna",
-				"sdd-cheap":  "gpt-6.1-luna",
+				"odd-verify":   "gpt-6.1-sol",
+				"odd-worker":   "gpt-6.1-luna",
+				"odd-explorer": "gpt-6.1-luna",
 			},
 		},
 		{
 			name:   "powerful",
 			cursor: 2,
 			want: map[string]string{
-				"sdd-strong": "gpt-6.1-astra",
-				"sdd-mid":    "gpt-6.1-sol",
-				"sdd-cheap":  "gpt-6.1-luna",
+				"odd-verify":   "gpt-6.1-astra",
+				"odd-worker":   "gpt-6.1-sol",
+				"odd-explorer": "gpt-6.1-luna",
 			},
 		},
 	}
@@ -3804,7 +3801,7 @@ func TestCodexPresetSelection_PopulatesPendingSyncOverrides(t *testing.T) {
 // ─── FIX W-2: CustomConfirmed reset on preset selection ──────────────────────
 
 // TestCodexModelPickerPresetClearsCustomState verifies that selecting a preset
-// clears active custom role models but retains legacy SDD config for migration.
+// clears active custom role models.
 func TestCodexModelPickerPresetClearsCustomState(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenCodexModelPicker
@@ -3812,11 +3809,8 @@ func TestCodexModelPickerPresetClearsCustomState(t *testing.T) {
 
 	// Simulate a previously confirmed Custom flow.
 	m.CodexModelPicker.CustomConfirmed = true
-	m.Selection.CodexPhaseModelAssignments = map[string]string{
-		"sdd-propose": "gpt-5.4",
-		"odd-worker":  "gpt-6.1-astra",
-	}
-	m.Selection.CodexModelAssignments = map[string]model.CodexEffort{"sdd-propose": model.CodexEffortXHigh}
+	m.Selection.CodexPhaseModelAssignments = map[string]string{"odd-worker": "gpt-6.1-astra"}
+	m.Selection.CodexModelAssignments = map[string]model.CodexEffort{"odd-worker": model.CodexEffortXHigh}
 
 	// Select the Recommended preset (cursor index 1).
 	m.Cursor = 1
@@ -3827,11 +3821,8 @@ func TestCodexModelPickerPresetClearsCustomState(t *testing.T) {
 	if state.CodexModelPicker.CustomConfirmed {
 		t.Error("CodexModelPicker.CustomConfirmed = true after preset selection, want false")
 	}
-	if got := state.Selection.CodexPhaseModelAssignments; !reflect.DeepEqual(got, map[string]string{"sdd-propose": "gpt-5.4"}) {
-		t.Errorf("phase models = %v, want only preserved legacy assignment", got)
-	}
-	if got := state.Selection.CodexModelAssignments["sdd-propose"]; got != model.CodexEffortXHigh {
-		t.Errorf("legacy effort = %s, want xhigh", got)
+	if got := state.Selection.CodexPhaseModelAssignments; got != nil {
+		t.Errorf("phase models = %v, want nil after preset selection", got)
 	}
 	if got := state.Selection.CodexModelAssignments["odd-worker"]; got != model.CodexODDEffortsForPreset(string(screens.CodexPresetRecommended))["odd-worker"] {
 		t.Errorf("odd-worker effort = %s, want preset policy", got)

@@ -1362,13 +1362,6 @@ func (m Model) handleKeyPress(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, m.codexModelDiscoveryCmd(m.codexModelDiscoveryRequest)
 			}
 			if assignments != nil {
-				// Retired SDD rows are not editable, but existing persisted choices
-				// remain intact until a separate migration owns their removal.
-				for role, effort := range m.Selection.CodexModelAssignments {
-					if strings.HasPrefix(role, "sdd-") {
-						assignments[role] = effort
-					}
-				}
 				m.Selection.CodexModelAssignments = assignments
 				m.Selection.CodexServiceTier = m.CodexModelPicker.ServiceTier
 				// Derive carril model assignments from the selected preset so each
@@ -1383,12 +1376,6 @@ func (m Model) handleKeyPress(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.Selection.ClearCodexOrchestratorAssignment = false
 				}
 
-				legacyModels := make(map[string]string)
-				for role, modelID := range m.Selection.CodexPhaseModelAssignments {
-					if strings.HasPrefix(role, "sdd-") {
-						legacyModels[role] = modelID
-					}
-				}
 				// When the user confirmed Custom per-phase assignments, also
 				// persist the per-phase model map so the inject layer can render
 				// a per-phase table instead of the carril table.
@@ -1396,25 +1383,14 @@ func (m Model) handleKeyPress(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 					phaseModels := codexPhaseModelsFromCustomAssignments(m.CodexModelPicker.CustomAssignments)
 					m.Selection.CodexPhaseModelAssignments = phaseModels
 				} else {
-					// Preset selected — clear active custom role assignments, but
-					// retain legacy SDD model keys pending an explicit migration.
+					// Preset selected — clear active custom role assignments.
 					m.Selection.CodexPhaseModelAssignments = nil
-				}
-				if len(legacyModels) > 0 {
-					if m.Selection.CodexPhaseModelAssignments == nil {
-						m.Selection.CodexPhaseModelAssignments = legacyModels
-					} else {
-						for role, modelID := range legacyModels {
-							m.Selection.CodexPhaseModelAssignments[role] = modelID
-						}
-					}
 				}
 
 				if m.ModelConfigMode {
 					m.ModelConfigMode = false
-					// An empty preset selection explicitly clears stale active models.
-					// Legacy SDD model keys remain in the override until migration;
-					// Custom forwards the active role models alongside those keys.
+					// An empty preset selection explicitly clears stale active models;
+					// Custom forwards the active role models.
 					phaseOverride := m.Selection.CodexPhaseModelAssignments
 					if phaseOverride == nil {
 						phaseOverride = map[string]string{} // explicit clear signal for the preset path

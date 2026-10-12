@@ -269,45 +269,13 @@ const (
 	CodexPresetPowerful    CodexPresetKey = "powerful"
 )
 
+// codexODDRoles is the render order of the ODD worker classes. The class
+// names are also the keys of codexPresetMatrix and of persisted custom
+// model assignments.
+var codexODDRoles = []string{"odd-explorer", "odd-worker", "odd-verify"}
+
+// codexPresetMatrix is the default model and effort per ODD worker class.
 var codexPresetMatrix = map[CodexPresetKey]map[string]CodexCarrilDefault{
-	CodexPresetLowCost: {
-		"sdd-strong": {Model: "gpt-6.1-sol", Effort: CodexEffortMedium},
-		"sdd-mid":    {Model: "gpt-6.1-luna", Effort: CodexEffortMedium},
-		"sdd-cheap":  {Model: "gpt-6.1-luna", Effort: CodexEffortHigh},
-	},
-	CodexPresetRecommended: {
-		"sdd-strong": {Model: "gpt-6.1-sol", Effort: CodexEffortMedium},
-		"sdd-mid":    {Model: "gpt-6.1-luna", Effort: CodexEffortHigh},
-		"sdd-cheap":  {Model: "gpt-6.1-luna", Effort: CodexEffortHigh},
-	},
-	CodexPresetPowerful: {
-		"sdd-strong": {Model: "gpt-6.1-astra", Effort: CodexEffortXHigh},
-		"sdd-mid":    {Model: "gpt-6.1-sol", Effort: CodexEffortHigh},
-		"sdd-cheap":  {Model: "gpt-6.1-luna", Effort: CodexEffortHigh},
-	},
-}
-
-// codexPresetOrchestrator is the main-session model per preset. It is no
-// longer one shared policy: the low-cost preset runs the orchestrator on
-// Luna, because a Plus plan cannot afford Sol in both the main session and
-// every strong lane, and the strong lanes are where reasoning actually pays.
-// Unknown keys fall back to Recommended, as the carril matrix does.
-var codexPresetOrchestrator = map[CodexPresetKey]CodexOrchestratorAssignment{
-	CodexPresetLowCost:     {Model: "gpt-6.1-luna", Effort: CodexEffortMedium},
-	CodexPresetRecommended: {Model: "gpt-6.1-sol", Effort: CodexEffortMedium},
-	CodexPresetPowerful:    {Model: "gpt-6.1-astra", Effort: CodexEffortMedium},
-}
-
-// CodexODDRoles maps ODD worker classes to legacy saved carril keys.
-// Carril keys remain readable for existing custom model assignments, but
-// do not determine ODD's default models or effort.
-var codexODDRoles = []struct{ Role, Carril string }{
-	{"odd-explorer", "sdd-cheap"},
-	{"odd-worker", "sdd-mid"},
-	{"odd-verify", "sdd-strong"},
-}
-
-var codexODDDefaults = map[CodexPresetKey]map[string]CodexCarrilDefault{
 	CodexPresetLowCost: {
 		"odd-explorer": {Model: "gpt-6.1-luna", Effort: CodexEffortHigh},
 		"odd-worker":   {Model: "gpt-6.1-luna", Effort: CodexEffortMedium},
@@ -325,12 +293,23 @@ var codexODDDefaults = map[CodexPresetKey]map[string]CodexCarrilDefault{
 	},
 }
 
-// CodexODDEffortsForPreset provides ODD-only effort assignments without SDD
-// phase keys. A caller retiring the old picker rows can use these directly.
+// codexPresetOrchestrator is the main-session model per preset. It is no
+// longer one shared policy: the low-cost preset runs the orchestrator on
+// Luna, because a Plus plan cannot afford Sol in both the main session and
+// every strong lane, and the strong lanes are where reasoning actually pays.
+// Unknown keys fall back to Recommended, as the carril matrix does.
+var codexPresetOrchestrator = map[CodexPresetKey]CodexOrchestratorAssignment{
+	CodexPresetLowCost:     {Model: "gpt-6.1-luna", Effort: CodexEffortMedium},
+	CodexPresetRecommended: {Model: "gpt-6.1-sol", Effort: CodexEffortMedium},
+	CodexPresetPowerful:    {Model: "gpt-6.1-astra", Effort: CodexEffortMedium},
+}
+
+// CodexODDEffortsForPreset returns the per-role effort assignments of a
+// preset. Unknown keys fall back to Recommended.
 func CodexODDEffortsForPreset(preset string) map[string]CodexEffort {
-	defaults, ok := codexODDDefaults[CodexPresetKey(preset)]
+	defaults, ok := codexPresetMatrix[CodexPresetKey(preset)]
 	if !ok {
-		defaults = codexODDDefaults[CodexPresetRecommended]
+		defaults = codexPresetMatrix[CodexPresetRecommended]
 	}
 	out := make(map[string]CodexEffort, len(defaults))
 	for role, value := range defaults {
@@ -339,59 +318,31 @@ func CodexODDEffortsForPreset(preset string) map[string]CodexEffort {
 	return out
 }
 
-func codexLegacyPresetForEfforts(efforts map[string]CodexEffort) CodexPresetKey {
-	for _, preset := range []CodexPresetKey{CodexPresetLowCost, CodexPresetPowerful} {
-		defaults := codexPresetEfforts(string(preset))
-		if len(efforts) != len(defaults) {
-			continue
-		}
-		match := true
-		for phase, effort := range defaults {
-			if efforts[phase] != effort {
-				match = false
-				break
-			}
-		}
-		if match {
-			return preset
-		}
-	}
-	return CodexPresetRecommended
-}
-
-// CodexODDRoleCarrils returns the worker-class to preset-lane mapping.
-func CodexODDRoleCarrils() []struct{ Role, Carril string } {
-	return append([]struct{ Role, Carril string }(nil), codexODDRoles...)
-}
-
 // RenderCodexODDAssignments provides spawn_agent arguments for ODD work.
 // RDD assignments remain persisted for the native adapter, not prompt delegation.
 func RenderCodexODDAssignments(phaseModels map[string]string, efforts map[string]CodexEffort, carrilModels map[string]string) string {
-	// Compatibility with persisted 14-phase preset maps; new ODD-only maps
-	// use explicit odd-* effort values and never require SDD phase keys.
-	preset := codexLegacyPresetForEfforts(efforts)
+	defaults := codexPresetMatrix[CodexPresetRecommended]
 	var b strings.Builder
 	b.WriteString("| ODD worker class | Model | reasoning_effort |\n|---|---|---|\n")
-	for _, role := range CodexODDRoleCarrils() {
-		defaults := codexODDDefaults[preset][role.Role]
-		modelID := carrilModels[role.Carril]
+	for _, role := range codexODDRoles {
+		modelID := carrilModels[role]
 		if modelID == "" {
-			modelID = codexODDDefaults[CodexPresetRecommended][role.Role].Model
+			modelID = defaults[role].Model
 		}
-		if phaseModels[role.Role] != "" {
-			modelID = phaseModels[role.Role]
+		if phaseModels[role] != "" {
+			modelID = phaseModels[role]
 		}
-		effort := efforts[role.Role]
+		effort := efforts[role]
 		if !effort.Valid() {
-			effort = defaults.Effort
+			effort = defaults[role].Effort
 		}
-		fmt.Fprintf(&b, "| `%s` | `%s` | `%s` |\n", role.Role, modelID, effort)
+		fmt.Fprintf(&b, "| `%s` | `%s` | `%s` |\n", role, modelID, effort)
 	}
 	return b.String()
 }
 
 // CodexOrchestratorAssignment is the explicit top-level Codex session model
-// selected by a Brunnr-Code preset. It is separate from delegated SDD carriles.
+// selected by a Brunnr-Code preset. It is separate from the delegated ODD roles.
 type CodexOrchestratorAssignment struct {
 	Model  string
 	Effort CodexEffort
@@ -435,198 +386,4 @@ func CodexCarrilModelsForPreset(preset string) map[string]string {
 		out[carril] = value.Model
 	}
 	return out
-}
-
-// MigrateLegacyCodexCarrilDefaults replaces the exact historical implicit
-// default tuple with the current Recommended models. Every other persisted map
-// is custom and is returned unchanged as a defensive copy.
-func MigrateLegacyCodexCarrilDefaults(assignments map[string]string) map[string]string {
-	if len(assignments) == 3 &&
-		assignments["sdd-strong"] == "gpt-5.5" &&
-		assignments["sdd-mid"] == "gpt-5.5" &&
-		assignments["sdd-cheap"] == "gpt-5.4-mini" {
-		return CodexCarrilModelsForPreset(string(CodexPresetRecommended))
-	}
-
-	out := make(map[string]string, len(assignments))
-	for carril, modelID := range assignments {
-		out[carril] = modelID
-	}
-	return out
-}
-
-func codexPresetEfforts(preset string) map[string]CodexEffort {
-	defaults := CodexPresetCarrilDefaults(preset)
-	out := make(map[string]CodexEffort, 14)
-	for _, tier := range codexTierGroups {
-		effort := defaults[tier.Profile].Effort
-		for _, phase := range tier.Phases {
-			out[phase] = effort
-		}
-	}
-	return out
-}
-
-// CodexModelPresetRecommended returns the Recommended preset.
-func CodexModelPresetRecommended() map[string]CodexEffort {
-	return codexPresetEfforts(string(CodexPresetRecommended))
-}
-
-// CodexModelPresetPowerful returns the Powerful preset.
-func CodexModelPresetPowerful() map[string]CodexEffort {
-	return codexPresetEfforts(string(CodexPresetPowerful))
-}
-
-// CodexModelPresetLowCost returns the Low-cost preset.
-func CodexModelPresetLowCost() map[string]CodexEffort {
-	return codexPresetEfforts(string(CodexPresetLowCost))
-}
-
-// CodexTierGroup defines one CLI profile tier: the profile filename (without
-// extension), the canonical default model id for that carril, the default
-// reasoning_effort tier, and the SDD phases covered.
-//
-// Phase groupings (Approach C — orthogonal carril axis). Sol/Astra reason,
-// Luna/Sol write, Luna handles lightweight work:
-//   - sdd-strong (Razonamiento): explore, propose, design, verify, judge-a, judge-b, default
-//   - sdd-mid    (Código):       apply, fix-agent
-//   - sdd-cheap  (Liviano):      spec, tasks, archive, onboard
-//
-// codexTierGroups below is the single source of this grouping; the rendered
-// table derives its phase column from it via codexTierPhaseLabel.
-type CodexTierGroup struct {
-	Profile       string
-	Model         string
-	DefaultEffort CodexEffort
-	Phases        []string
-}
-
-// codexTierGroups defines the three CLI profile tiers and which phases they cover.
-//
-// Invariant: within each carril, ALL phases carry the same effort value in every
-// preset constructor (CodexModelPresetLowCost, CodexModelPresetRecommended,
-// CodexModelPresetPowerful). This guarantees that maxEffort over a carril's phases
-// always yields the carril's intended effort tier — never an accidental max from a
-// stale per-phase value.
-//
-// DefaultEffort values match CodexModelPresetRecommended so that the nil-input
-// fallback in RenderCodexPhaseEfforts and the nil-input fallback in
-// resolveProfileAssignments agree on the same canonical tier values:
-//
-// These efforts are Brunnr-Code workload policy, not Codex defaults.
-//
-//	Carril      LowCost  Recommended  Powerful
-//	sdd-strong  medium   medium       xhigh
-//	sdd-mid     medium   high         high
-//	sdd-cheap   high     high         high
-var codexTierGroups = []CodexTierGroup{
-	{
-		Profile:       "sdd-strong",
-		Model:         codexPresetMatrix[CodexPresetRecommended]["sdd-strong"].Model,
-		DefaultEffort: codexPresetMatrix[CodexPresetRecommended]["sdd-strong"].Effort,
-		Phases:        []string{"sdd-explore", "sdd-research", "sdd-propose", "sdd-design", "sdd-verify", "jd-judge-a", "jd-judge-b", "default"},
-	},
-	{
-		Profile:       "sdd-mid",
-		Model:         codexPresetMatrix[CodexPresetRecommended]["sdd-mid"].Model,
-		DefaultEffort: codexPresetMatrix[CodexPresetRecommended]["sdd-mid"].Effort,
-		Phases:        []string{"sdd-apply", "jd-fix-agent"},
-	},
-	{
-		Profile:       "sdd-cheap",
-		Model:         codexPresetMatrix[CodexPresetRecommended]["sdd-cheap"].Model,
-		DefaultEffort: codexPresetMatrix[CodexPresetRecommended]["sdd-cheap"].Effort,
-		Phases:        []string{"sdd-spec", "sdd-tasks", "sdd-archive", "sdd-onboard"},
-	},
-}
-
-// DefaultCarrilModels returns the canonical default model id for each carril.
-// Used when state.CodexCarrilModelAssignments is absent (old state files).
-func DefaultCarrilModels() map[string]string {
-	m := make(map[string]string, len(codexTierGroups))
-	for _, g := range codexTierGroups {
-		m[g.Profile] = g.Model
-	}
-	return m
-}
-
-func maxEffort(assignments map[string]CodexEffort, phases []string) CodexEffort {
-	best := CodexEffortLow
-	for _, phase := range phases {
-		e, ok := assignments[phase]
-		if !ok {
-			continue
-		}
-		if slices.Index(codexEffortOrder, e) > slices.Index(codexEffortOrder, best) {
-			best = e
-		}
-	}
-	return best
-}
-
-// codexTierPhaseLabel renders the human-readable "SDD phases" cell for one
-// carril row directly from that carril's Phases. It exists so the rendered
-// table cannot drift from codexTierGroups: the grouping has exactly one
-// source, and moving a phase between carriles updates the table for free.
-//
-// Three presentation rules shape the label. Runtime prefixes (sdd-, jd-) are
-// dropped because the column is already scoped to phases. The two Judgment Day
-// judges collapse into a single "judge" entry, since a reader picking a profile
-// does not care that there are two blind judges. "default" is omitted because
-// it is the fallback binding for anything unlisted, not an SDD phase.
-func codexTierPhaseLabel(tier CodexTierGroup) string {
-	labels := make([]string, 0, len(tier.Phases))
-	seen := make(map[string]bool, len(tier.Phases))
-	for _, phase := range tier.Phases {
-		if phase == "default" {
-			continue
-		}
-		name := strings.TrimPrefix(strings.TrimPrefix(phase, "sdd-"), "jd-")
-		if name == "judge-a" || name == "judge-b" {
-			name = "judge"
-		}
-		if seen[name] {
-			continue
-		}
-		seen[name] = true
-		labels = append(labels, name)
-	}
-	return strings.Join(labels, ", ")
-}
-
-// RenderCodexPhaseEfforts renders the Model Profiles table for the Codex
-// sdd-orchestrator.md asset. The table maps CLI profile names to their model,
-// reasoning_effort tier, and covered SDD phases. The output is deterministic:
-// tier groups are always rendered in codexTierGroups order.
-//
-// When assignments is nil or empty, falls back to CodexModelPresetRecommended.
-// When carrilModels is nil or empty, falls back to DefaultCarrilModels.
-func RenderCodexPhaseEfforts(assignments map[string]CodexEffort, carrilModels map[string]string) string {
-	if len(assignments) == 0 {
-		assignments = CodexModelPresetRecommended()
-	}
-	if len(carrilModels) == 0 {
-		carrilModels = DefaultCarrilModels()
-	}
-
-	var sb strings.Builder
-	sb.WriteString("| Profile (CLI) | Model | `reasoning_effort` (spawn_agent) | SDD phases |\n")
-	sb.WriteString("|---------------|-------|----------------------------------|------------|\n")
-
-	for _, tier := range codexTierGroups {
-		effort := maxEffort(assignments, tier.Phases)
-		phases := codexTierPhaseLabel(tier)
-		modelID := carrilModels[tier.Profile]
-		if modelID == "" {
-			modelID = tier.Model
-		}
-		sb.WriteString(fmt.Sprintf("| `%s` | `%s` | `%s` | %s |\n",
-			tier.Profile,
-			modelID,
-			effort,
-			phases,
-		))
-	}
-
-	return sb.String()
 }

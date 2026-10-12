@@ -905,7 +905,7 @@ func TestLoadPersistedAssignmentsPopulatesEmptySelection(t *testing.T) {
 		InstalledAgents: []string{"codex"},
 		ClaudeModelAssignments: map[string]string{
 			"orchestrator": "opus",
-			"sdd-apply":    "sonnet",
+			"odd-worker":   "sonnet",
 		},
 	})
 	if err != nil {
@@ -918,8 +918,8 @@ func TestLoadPersistedAssignmentsPopulatesEmptySelection(t *testing.T) {
 	if got := selection.ClaudeModelAssignments["orchestrator"]; got != model.ClaudeModelOpus {
 		t.Errorf("persisted orchestrator metadata = %q, want opus", got)
 	}
-	if got := selection.ClaudeModelAssignments["sdd-apply"]; got != "sonnet" {
-		t.Errorf("ClaudeModelAssignments[sdd-apply] = %q, want %q", got, "sonnet")
+	if got := selection.ClaudeModelAssignments["odd-worker"]; got != "sonnet" {
+		t.Errorf("ClaudeModelAssignments[odd-worker] = %q, want %q", got, "sonnet")
 	}
 }
 
@@ -931,7 +931,7 @@ func TestLoadPersistedAssignmentsDoesNotOverrideExisting(t *testing.T) {
 
 	// Seed state with "old" assignments.
 	err := state.Write(home, state.InstallState{
-		ClaudeModelAssignments: map[string]string{"sdd-apply": "haiku"},
+		ClaudeModelAssignments: map[string]string{"odd-worker": "haiku"},
 	})
 	if err != nil {
 		t.Fatalf("state.Write: %v", err)
@@ -940,14 +940,14 @@ func TestLoadPersistedAssignmentsDoesNotOverrideExisting(t *testing.T) {
 	// Selection already has assignments from the TUI configure flow.
 	selection := model.Selection{
 		ClaudeModelAssignments: map[string]model.ClaudeModelAlias{
-			"sdd-apply": "opus",
+			"odd-worker": "opus",
 		},
 	}
 	loadPersistedAssignments(home, &selection)
 
 	// Existing values must be preserved, NOT overwritten.
-	if got := selection.ClaudeModelAssignments["sdd-apply"]; got != "opus" {
-		t.Errorf("ClaudeModelAssignments[sdd-apply] = %q, want %q (should not be overwritten)", got, "opus")
+	if got := selection.ClaudeModelAssignments["odd-worker"]; got != "opus" {
+		t.Errorf("ClaudeModelAssignments[odd-worker] = %q, want %q (should not be overwritten)", got, "opus")
 	}
 }
 
@@ -967,7 +967,7 @@ func TestPersistAssignmentsPreservesInstalledAgents(t *testing.T) {
 	selection := model.Selection{
 		ClaudeModelAssignments: map[string]model.ClaudeModelAlias{
 			"orchestrator": "opus",
-			"sdd-apply":    "sonnet",
+			"odd-worker":   "sonnet",
 		},
 	}
 	persistAssignments(home, selection)
@@ -983,8 +983,8 @@ func TestPersistAssignmentsPreservesInstalledAgents(t *testing.T) {
 	if alias := got.ClaudeModelAssignments["orchestrator"]; alias != "opus" {
 		t.Errorf("persisted orchestrator metadata = %q, want opus", alias)
 	}
-	if got.ClaudeModelAssignments["sdd-apply"] != "sonnet" {
-		t.Errorf("ClaudeModelAssignments[sdd-apply] = %q, want %q", got.ClaudeModelAssignments["sdd-apply"], "sonnet")
+	if got.ClaudeModelAssignments["odd-worker"] != "sonnet" {
+		t.Errorf("ClaudeModelAssignments[odd-worker] = %q, want %q", got.ClaudeModelAssignments["odd-worker"], "sonnet")
 	}
 }
 
@@ -993,13 +993,13 @@ func TestPersistAssignmentsClearsNonPhaseAssignmentMaps(t *testing.T) {
 	if err := state.Write(home, state.InstallState{
 		InstalledAgents: []string{"example-agent", "codex", "claude-code"},
 		ClaudeModelAssignments: map[string]string{
-			"sdd-apply": "sonnet",
+			"odd-worker": "sonnet",
 		},
 		CodexModelAssignments: map[string]string{
-			"sdd-apply": "high",
+			"odd-worker": "high",
 		},
 		CodexCarrilModelAssignments: map[string]string{
-			"sdd-strong": "gpt-5.4",
+			"odd-verify": "gpt-5.4",
 		},
 	}); err != nil {
 		t.Fatalf("state.Write: %v", err)
@@ -1032,7 +1032,7 @@ func TestPersistAssignmentsClearsNonPhaseAssignmentMaps(t *testing.T) {
 func TestApplyOverridesClaudePhaseAssignmentsClearsLegacyAssignments(t *testing.T) {
 	selection := model.Selection{
 		ClaudeModelAssignments: map[string]model.ClaudeModelAlias{
-			"sdd-apply": model.ClaudeModelOpus,
+			"odd-worker": model.ClaudeModelOpus,
 		},
 	}
 	overrides := &model.SyncOverrides{
@@ -1078,10 +1078,10 @@ func TestPersistAssignmentsClearsClaudePhaseAssignments(t *testing.T) {
 	if err := state.Write(home, state.InstallState{
 		InstalledAgents: []string{string(model.AgentClaudeCode)},
 		ClaudeModelAssignments: map[string]string{
-			"sdd-apply": "haiku",
+			"odd-worker": "haiku",
 		},
 		ClaudePhaseAssignments: map[string]state.ClaudePhaseAssignmentState{
-			"sdd-apply": {Model: "sonnet", Effort: "max"},
+			"odd-worker": {Model: "sonnet", Effort: "max"},
 		},
 	}); err != nil {
 		t.Fatalf("state.Write: %v", err)
@@ -1256,7 +1256,7 @@ func setupMockHome(t *testing.T, home string) {
 // CodexModelAssignments override sets the selection.
 func TestApplyOverrides_CodexModelAssignments(t *testing.T) {
 	sel := model.Selection{}
-	assignments := model.CodexModelPresetPowerful()
+	assignments := model.CodexODDEffortsForPreset(string(model.CodexPresetPowerful))
 	overrides := &model.SyncOverrides{
 		CodexModelAssignments: assignments,
 	}
@@ -1264,8 +1264,8 @@ func TestApplyOverrides_CodexModelAssignments(t *testing.T) {
 	if len(sel.CodexModelAssignments) != len(assignments) {
 		t.Fatalf("CodexModelAssignments len = %d, want %d", len(sel.CodexModelAssignments), len(assignments))
 	}
-	if sel.CodexModelAssignments["sdd-apply"] != model.CodexEffortHigh {
-		t.Errorf("CodexModelAssignments[sdd-apply] = %q, want high", sel.CodexModelAssignments["sdd-apply"])
+	if sel.CodexModelAssignments["odd-worker"] != model.CodexEffortHigh {
+		t.Errorf("CodexModelAssignments[odd-worker] = %q, want high", sel.CodexModelAssignments["odd-worker"])
 	}
 }
 
@@ -1276,9 +1276,9 @@ func TestLoadPersistedAssignments_Codex(t *testing.T) {
 	if err := state.Write(home, state.InstallState{
 		InstalledAgents: []string{"codex"},
 		CodexModelAssignments: map[string]string{
-			"sdd-apply":   "medium",
-			"sdd-explore": "low",
-			"default":     "medium",
+			"odd-worker":   "medium",
+			"odd-explorer": "low",
+			"default":      "medium",
 		},
 	}); err != nil {
 		t.Fatalf("state.Write: %v", err)
@@ -1287,8 +1287,8 @@ func TestLoadPersistedAssignments_Codex(t *testing.T) {
 	sel := model.Selection{}
 	loadPersistedAssignments(home, &sel)
 
-	if sel.CodexModelAssignments["sdd-apply"] != model.CodexEffortMedium {
-		t.Errorf("CodexModelAssignments[sdd-apply] = %q, want medium", sel.CodexModelAssignments["sdd-apply"])
+	if sel.CodexModelAssignments["odd-worker"] != model.CodexEffortMedium {
+		t.Errorf("CodexModelAssignments[odd-worker] = %q, want medium", sel.CodexModelAssignments["odd-worker"])
 	}
 }
 
@@ -1320,7 +1320,7 @@ func TestPersistAssignments_Codex(t *testing.T) {
 	}
 
 	sel := model.Selection{
-		CodexModelAssignments: model.CodexModelPresetLowCost(),
+		CodexModelAssignments: model.CodexODDEffortsForPreset(string(model.CodexPresetLowCost)),
 	}
 	persistAssignments(home, sel)
 
@@ -1328,8 +1328,8 @@ func TestPersistAssignments_Codex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("state.Read: %v", err)
 	}
-	if s.CodexModelAssignments["sdd-apply"] != "medium" {
-		t.Errorf("state.CodexModelAssignments[sdd-apply] = %q, want medium", s.CodexModelAssignments["sdd-apply"])
+	if s.CodexModelAssignments["odd-worker"] != "medium" {
+		t.Errorf("state.CodexModelAssignments[odd-worker] = %q, want medium", s.CodexModelAssignments["odd-worker"])
 	}
 }
 
@@ -1339,7 +1339,7 @@ func TestPersistAssignments_Codex(t *testing.T) {
 // CodexCarrilModelAssignments override sets the selection.
 func TestApplyOverrides_CodexCarrilModelAssignments(t *testing.T) {
 	sel := model.Selection{}
-	carrilModels := model.DefaultCarrilModels()
+	carrilModels := model.CodexCarrilModelsForPreset(string(model.CodexPresetRecommended))
 	overrides := &model.SyncOverrides{
 		CodexCarrilModelAssignments: carrilModels,
 	}
@@ -1347,11 +1347,11 @@ func TestApplyOverrides_CodexCarrilModelAssignments(t *testing.T) {
 	if len(sel.CodexCarrilModelAssignments) != len(carrilModels) {
 		t.Fatalf("CodexCarrilModelAssignments len = %d, want %d", len(sel.CodexCarrilModelAssignments), len(carrilModels))
 	}
-	if sel.CodexCarrilModelAssignments["sdd-cheap"] != "gpt-6.1-luna" {
-		t.Errorf("CodexCarrilModelAssignments[sdd-cheap] = %q, want gpt-6.1-luna", sel.CodexCarrilModelAssignments["sdd-cheap"])
+	if sel.CodexCarrilModelAssignments["odd-explorer"] != "gpt-6.1-luna" {
+		t.Errorf("CodexCarrilModelAssignments[odd-explorer] = %q, want gpt-6.1-luna", sel.CodexCarrilModelAssignments["odd-explorer"])
 	}
-	if sel.CodexCarrilModelAssignments["sdd-strong"] != "gpt-6.1-sol" {
-		t.Errorf("CodexCarrilModelAssignments[sdd-strong] = %q, want gpt-6.1-sol", sel.CodexCarrilModelAssignments["sdd-strong"])
+	if sel.CodexCarrilModelAssignments["odd-verify"] != "gpt-6.1-sol" {
+		t.Errorf("CodexCarrilModelAssignments[odd-verify] = %q, want gpt-6.1-sol", sel.CodexCarrilModelAssignments["odd-verify"])
 	}
 }
 
@@ -1361,8 +1361,7 @@ func TestLoadPersistedAssignments_CodexCarrilModels(t *testing.T) {
 		persisted map[string]string
 		want      map[string]string
 	}{
-		{name: "migrates exact legacy defaults", persisted: map[string]string{"sdd-strong": "gpt-5.5", "sdd-mid": "gpt-5.5", "sdd-cheap": "gpt-5.4-mini"}, want: model.DefaultCarrilModels()},
-		{name: "preserves custom tuple", persisted: map[string]string{"sdd-strong": "gpt-5.5", "sdd-mid": "gpt-5.4", "sdd-cheap": "gpt-5.4-mini"}, want: map[string]string{"sdd-strong": "gpt-5.5", "sdd-mid": "gpt-5.4", "sdd-cheap": "gpt-5.4-mini"}},
+		{name: "preserves custom tuple", persisted: map[string]string{"odd-verify": "gpt-5.5", "odd-worker": "gpt-5.4", "odd-explorer": "gpt-5.4-mini"}, want: map[string]string{"odd-verify": "gpt-5.5", "odd-worker": "gpt-5.4", "odd-explorer": "gpt-5.4-mini"}},
 	}
 
 	for _, tt := range tests {
@@ -1381,61 +1380,6 @@ func TestLoadPersistedAssignments_CodexCarrilModels(t *testing.T) {
 	}
 }
 
-func TestTuiSyncMigratesLegacyCodexCarrilDefaults(t *testing.T) {
-	t.Cleanup(codex.SetRuntimeVersionCommandForTest("codex-cli 0.144.0", nil))
-	home := t.TempDir()
-	if err := state.Write(home, state.InstallState{
-		InstalledAgents:             []string{"codex"},
-		CodexCarrilModelAssignments: map[string]string{"sdd-strong": "gpt-5.5", "sdd-mid": "gpt-5.5", "sdd-cheap": "gpt-5.4-mini"},
-		CodexModelAssignments:       map[string]string{"sdd-apply": "medium"},
-	}); err != nil {
-		t.Fatalf("state.Write: %v", err)
-	}
-
-	changed, err := tuiSync(home)(nil)
-	if err != nil {
-		t.Fatalf("tuiSync() error = %v", err)
-	}
-	changedSet := make(map[string]bool, len(changed))
-	for _, path := range changed {
-		changedSet[path] = true
-	}
-
-	promptPath := filepath.Join(home, ".codex", "AGENTS.md")
-	body, err := os.ReadFile(promptPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, row := range []string{
-		"| `odd-explorer` | `gpt-6.1-luna` | `high` |",
-		"| `odd-worker` | `gpt-6.1-luna` | `high` |",
-		"| `odd-verify` | `gpt-6.1-sol` | `medium` |",
-	} {
-		if !strings.Contains(string(body), row) {
-			t.Errorf("migrated Codex routing missing %q", row)
-		}
-	}
-	if !changedSet[promptPath] {
-		t.Errorf("tuiSync changed files missing %s: %#v", promptPath, changed)
-	}
-	for _, name := range []string{"sdd-strong.config.toml", "sdd-mid.config.toml", "sdd-cheap.config.toml"} {
-		if _, err := os.Stat(filepath.Join(home, ".codex", name)); !os.IsNotExist(err) {
-			t.Errorf("retired profile %s generated: %v", name, err)
-		}
-	}
-
-	persisted, err := state.Read(home)
-	if err != nil {
-		t.Fatalf("state.Read after tuiSync: %v", err)
-	}
-	if !reflect.DeepEqual(persisted.CodexCarrilModelAssignments, model.DefaultCarrilModels()) {
-		t.Fatalf("persisted carril assignments = %#v, want %#v", persisted.CodexCarrilModelAssignments, model.DefaultCarrilModels())
-	}
-	if persisted.CodexModelAssignments["sdd-apply"] != "medium" {
-		t.Fatalf("persisted effort assignment = %#v, want sdd-apply medium", persisted.CodexModelAssignments)
-	}
-}
-
 // TestPersistAssignments_CodexCarrilModels verifies that non-empty
 // CodexCarrilModelAssignments are persisted to state.json.
 func TestPersistAssignments_CodexCarrilModels(t *testing.T) {
@@ -1446,9 +1390,9 @@ func TestPersistAssignments_CodexCarrilModels(t *testing.T) {
 
 	sel := model.Selection{
 		CodexCarrilModelAssignments: map[string]string{
-			"sdd-strong": "gpt-5.5",
-			"sdd-mid":    "gpt-5.5",
-			"sdd-cheap":  "gpt-5.4-mini",
+			"odd-verify":   "gpt-5.5",
+			"odd-worker":   "gpt-5.5",
+			"odd-explorer": "gpt-5.4-mini",
 		},
 	}
 	persistAssignments(home, sel)
@@ -1457,11 +1401,11 @@ func TestPersistAssignments_CodexCarrilModels(t *testing.T) {
 	if err != nil {
 		t.Fatalf("state.Read: %v", err)
 	}
-	if s.CodexCarrilModelAssignments["sdd-cheap"] != "gpt-5.4-mini" {
-		t.Errorf("state.CodexCarrilModelAssignments[sdd-cheap] = %q, want gpt-5.4-mini", s.CodexCarrilModelAssignments["sdd-cheap"])
+	if s.CodexCarrilModelAssignments["odd-explorer"] != "gpt-5.4-mini" {
+		t.Errorf("state.CodexCarrilModelAssignments[odd-explorer] = %q, want gpt-5.4-mini", s.CodexCarrilModelAssignments["odd-explorer"])
 	}
-	if s.CodexCarrilModelAssignments["sdd-strong"] != "gpt-5.5" {
-		t.Errorf("state.CodexCarrilModelAssignments[sdd-strong] = %q, want gpt-5.5", s.CodexCarrilModelAssignments["sdd-strong"])
+	if s.CodexCarrilModelAssignments["odd-verify"] != "gpt-5.5" {
+		t.Errorf("state.CodexCarrilModelAssignments[odd-verify] = %q, want gpt-5.5", s.CodexCarrilModelAssignments["odd-verify"])
 	}
 }
 
@@ -1482,9 +1426,9 @@ func TestPresetSyncClearsCodexPhaseModelAssignments(t *testing.T) {
 	if err := state.Write(home, state.InstallState{
 		InstalledAgents: []string{"codex"},
 		CodexPhaseModelAssignments: map[string]string{
-			"sdd-apply":   "o3",
-			"sdd-explore": "gpt-4o-mini",
-			"default":     "o3",
+			"odd-worker":   "o3",
+			"odd-explorer": "gpt-4o-mini",
+			"default":      "o3",
 		},
 	}); err != nil {
 		t.Fatalf("state.Write (seed): %v", err)
@@ -1493,10 +1437,10 @@ func TestPresetSyncClearsCodexPhaseModelAssignments(t *testing.T) {
 	// Step 2 — simulate a preset sync: overrides carry an empty-map clear signal.
 	// model.go sets CodexPhaseModelAssignments to map[string]string{} (non-nil empty)
 	// when the user picks a preset. Nil means "not provided"; empty means "clear".
-	presetCarril := model.DefaultCarrilModels()
+	presetCarril := model.CodexCarrilModelsForPreset(string(model.CodexPresetRecommended))
 	overrides := &model.SyncOverrides{
 		TargetAgents:                []model.AgentID{model.AgentCodex},
-		CodexModelAssignments:       model.CodexModelPresetRecommended(),
+		CodexModelAssignments:       model.CodexODDEffortsForPreset(string(model.CodexPresetRecommended)),
 		CodexCarrilModelAssignments: presetCarril,
 		CodexPhaseModelAssignments:  map[string]string{}, // explicit clear signal
 	}
@@ -1529,9 +1473,9 @@ func TestPartialSyncDoesNotWipeCodexPhaseModelAssignments(t *testing.T) {
 
 	// Seed state with per-phase assignments.
 	existingPhaseAssignments := map[string]string{
-		"sdd-apply":   "o3",
-		"sdd-explore": "gpt-4o-mini",
-		"default":     "o3",
+		"odd-worker":   "o3",
+		"odd-explorer": "gpt-4o-mini",
+		"default":      "o3",
 	}
 	if err := state.Write(home, state.InstallState{
 		InstalledAgents:            []string{"codex"},
@@ -1543,7 +1487,7 @@ func TestPartialSyncDoesNotWipeCodexPhaseModelAssignments(t *testing.T) {
 	// Partial sync that only updates Claude model assignments — no Codex override.
 	overrides := &model.SyncOverrides{
 		ClaudeModelAssignments: map[string]model.ClaudeModelAlias{
-			"sdd-apply": model.ClaudeModelHaiku,
+			"odd-worker": model.ClaudeModelHaiku,
 		},
 	}
 
@@ -1557,8 +1501,8 @@ func TestPartialSyncDoesNotWipeCodexPhaseModelAssignments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("state.Read: %v", err)
 	}
-	if s.CodexPhaseModelAssignments["sdd-apply"] != "o3" {
-		t.Fatalf("state.CodexPhaseModelAssignments[sdd-apply] = %q, want %q (wiped by unrelated partial sync)", s.CodexPhaseModelAssignments["sdd-apply"], "o3")
+	if s.CodexPhaseModelAssignments["odd-worker"] != "o3" {
+		t.Fatalf("state.CodexPhaseModelAssignments[odd-worker] = %q, want %q (wiped by unrelated partial sync)", s.CodexPhaseModelAssignments["odd-worker"], "o3")
 	}
 	if s.CodexPhaseModelAssignments["default"] != "o3" {
 		t.Fatalf("state.CodexPhaseModelAssignments[default] = %q, want %q", s.CodexPhaseModelAssignments["default"], "o3")

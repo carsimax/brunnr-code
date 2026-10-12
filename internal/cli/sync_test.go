@@ -2293,7 +2293,7 @@ func TestCodexODDAssignmentSyncPropagatesSavedSelections(t *testing.T) {
 	runCommand = func(string, ...string) error { return nil }
 	cmdLookPath = func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
 	home := setupCodexSyncHomeWithPhaseModels(t,
-		map[string]string{"sdd-cheap": "gpt-cheap", "sdd-mid": "gpt-mid", "sdd-strong": "gpt-strong"},
+		map[string]string{"odd-explorer": "gpt-cheap", "odd-worker": "gpt-mid", "odd-verify": "gpt-strong"},
 		map[string]string{"odd-explorer": "high", "odd-worker": "xhigh", "odd-verify": "medium"},
 		map[string]string{"odd-worker": "gpt-explicit"})
 	osUserHomeDir = func() (string, error) { return home, nil }
@@ -2301,7 +2301,7 @@ func TestCodexODDAssignmentSyncPropagatesSavedSelections(t *testing.T) {
 		Agents:                      []model.AgentID{model.AgentCodex},
 		CodexPhaseModelAssignments:  map[string]string{"odd-worker": "gpt-explicit"},
 		CodexModelAssignments:       map[string]model.CodexEffort{"odd-explorer": model.CodexEffortHigh, "odd-worker": model.CodexEffortXHigh, "odd-verify": model.CodexEffortMedium},
-		CodexCarrilModelAssignments: map[string]string{"sdd-cheap": "gpt-cheap", "sdd-mid": "gpt-mid", "sdd-strong": "gpt-strong"},
+		CodexCarrilModelAssignments: map[string]string{"odd-explorer": "gpt-cheap", "odd-worker": "gpt-mid", "odd-verify": "gpt-strong"},
 	}
 	runInstallInjectionSteps(t, newTestInstallRuntime(t, home, selection))
 	promptPath := filepath.Join(home, ".codex", "AGENTS.md")
@@ -2375,8 +2375,7 @@ func TestRunSync_RestoresCodexCarrilAssignments(t *testing.T) {
 		want      map[string]string
 		runs      int
 	}{
-		{name: "migrates exact legacy defaults repeatedly", persisted: map[string]string{"sdd-strong": "gpt-5.5", "sdd-mid": "gpt-5.5", "sdd-cheap": "gpt-5.4-mini"}, want: model.DefaultCarrilModels(), runs: 2},
-		{name: "preserves custom tuple", persisted: map[string]string{"sdd-strong": "gpt-5.5", "sdd-mid": "gpt-5.4", "sdd-cheap": "gpt-5.4-mini"}, want: map[string]string{"sdd-strong": "gpt-5.5", "sdd-mid": "gpt-5.4", "sdd-cheap": "gpt-5.4-mini"}, runs: 1},
+		{name: "preserves custom tuple repeatedly", persisted: map[string]string{"odd-verify": "gpt-5.5", "odd-worker": "gpt-5.4", "odd-explorer": "gpt-5.4-mini"}, want: map[string]string{"odd-verify": "gpt-5.5", "odd-worker": "gpt-5.4", "odd-explorer": "gpt-5.4-mini"}, runs: 2},
 	}
 
 	for _, tt := range tests {
@@ -2388,15 +2387,6 @@ func TestRunSync_RestoresCodexCarrilAssignments(t *testing.T) {
 			}
 			osUserHomeDir = func() (string, error) { return home, nil }
 
-			// A user-owned legacy profile is not a generated sync target.
-			legacyPath := filepath.Join(home, ".codex", "sdd-strong.config.toml")
-			if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
-				t.Fatal(err)
-			}
-			const personalProfile = "# user-owned legacy profile\n"
-			if err := os.WriteFile(legacyPath, []byte(personalProfile), 0o644); err != nil {
-				t.Fatal(err)
-			}
 			var firstPrompt []byte
 			for run := 0; run < tt.runs; run++ {
 				result, err := RunSync([]string{"--agents", "codex"})
@@ -2411,16 +2401,13 @@ func TestRunSync_RestoresCodexCarrilAssignments(t *testing.T) {
 					t.Fatal(err)
 				}
 				for _, row := range []string{
-					"| `odd-explorer` | `" + tt.want["sdd-cheap"] + "` |",
-					"| `odd-worker` | `" + tt.want["sdd-mid"] + "` |",
-					"| `odd-verify` | `" + tt.want["sdd-strong"] + "` |",
+					"| `odd-explorer` | `" + tt.want["odd-explorer"] + "` |",
+					"| `odd-worker` | `" + tt.want["odd-worker"] + "` |",
+					"| `odd-verify` | `" + tt.want["odd-verify"] + "` |",
 				} {
 					if !strings.Contains(string(prompt), row) {
 						t.Errorf("run %d missing %q", run+1, row)
 					}
-				}
-				if got := readTextFile(t, legacyPath); got != personalProfile {
-					t.Fatalf("user-owned legacy profile changed: %q", got)
 				}
 				if run == 0 {
 					if result.NoOp || result.FilesChanged == 0 {
@@ -2448,18 +2435,18 @@ func TestRunSyncPreservesCompletePersistedState(t *testing.T) {
 	before := state.InstallState{
 		InstalledAgents: []string{"codex", "claude-code"},
 		ClaudeModelAssignments: map[string]string{
-			"sdd-archive": "haiku",
+			"jd-fix-agent": "haiku",
 		},
 		ClaudePhaseAssignments: map[string]state.ClaudePhaseAssignmentState{
-			"sdd-verify": {Model: "opus", Effort: "high"},
+			"odd-verify": {Model: "opus", Effort: "high"},
 		},
 		CodexModelAssignments: map[string]string{
-			"sdd-apply": "medium",
+			"odd-worker": "medium",
 		},
 		CodexOrchestratorAssignment: &state.CodexOrchestratorAssignmentState{Model: "gpt-5.6-sol", Effort: "low"},
 		CodexServiceTier:            "priority",
-		CodexCarrilModelAssignments: map[string]string{"sdd-strong": "gpt-5.5", "sdd-mid": "gpt-5.5", "sdd-cheap": "gpt-5.4-mini"},
-		CodexPhaseModelAssignments:  map[string]string{"sdd-apply": "gpt-5.6-terra"},
+		CodexCarrilModelAssignments: map[string]string{"odd-verify": "gpt-5.5", "odd-worker": "gpt-5.5", "odd-explorer": "gpt-5.4-mini"},
+		CodexPhaseModelAssignments:  map[string]string{"odd-worker": "gpt-5.6-terra"},
 		LastUpdateCheck:             &lastUpdate,
 	}
 	writer, err := managedAssetDigest()
@@ -2512,14 +2499,11 @@ func TestRunSyncPreservesCompletePersistedState(t *testing.T) {
 }
 
 // TestRunSync_RestoresCodexEffortAssignments verifies that RunSync reads
-// persisted CodexModelAssignments into ODD routing without reviving SDD profiles.
+// persisted CodexModelAssignments into ODD routing.
 func TestRunSync_RestoresCodexEffortAssignments(t *testing.T) {
 	efforts := map[string]string{
-		"sdd-propose": "xhigh", "sdd-design": "xhigh", "sdd-verify": "xhigh",
 		"jd-judge-a": "xhigh", "jd-judge-b": "xhigh", "default": "xhigh",
-		"sdd-apply": "high", "jd-fix-agent": "high",
-		"sdd-explore": "low", "sdd-spec": "low", "sdd-tasks": "low",
-		"sdd-archive": "low", "sdd-onboard": "low",
+		"jd-fix-agent": "high",
 		"odd-explorer": "low", "odd-worker": "xhigh", "odd-verify": "high",
 	}
 	home := setupCodexSyncHome(t, nil, efforts)
@@ -2552,27 +2536,18 @@ func TestRunSync_RestoresCodexEffortAssignments(t *testing.T) {
 			t.Errorf("persisted ODD effort missing %q", row)
 		}
 	}
-	for _, name := range []string{"sdd-strong.config.toml", "sdd-mid.config.toml", "sdd-cheap.config.toml"} {
-		if _, err := os.Stat(filepath.Join(home, ".codex", name)); !os.IsNotExist(err) {
-			t.Errorf("retired profile %s unexpectedly generated: %v", name, err)
-		}
-	}
 }
 
-// TestRunSync_DefaultPreservesReviewWithoutSDDPhaseModels verifies that legacy
-// profile assignments do not force SDD agents into an ordinary sync.
-func TestRunSync_DefaultPreservesReviewWithoutSDDPhaseModels(t *testing.T) {
+// TestRunSync_DefaultKeepsSkillHookAndODDRouting verifies that an ordinary
+// sync with persisted role assignments keeps the skill hook and ODD routing.
+func TestRunSync_DefaultKeepsSkillHookAndODDRouting(t *testing.T) {
 	efforts := map[string]string{
-		"sdd-propose": "xhigh", "sdd-design": "xhigh", "sdd-verify": "xhigh",
 		"jd-judge-a": "xhigh", "jd-judge-b": "xhigh", "default": "xhigh",
-		"sdd-apply": "high", "jd-fix-agent": "high",
-		"sdd-explore": "low", "sdd-spec": "low", "sdd-tasks": "low",
-		"sdd-archive": "low", "sdd-onboard": "low",
+		"jd-fix-agent": "high",
 	}
 	phaseModels := map[string]string{
-		"default":     "gpt-5.4-mini",
-		"sdd-propose": "gpt-5.5",
-		"sdd-apply":   "o3",
+		"default":    "gpt-5.4-mini",
+		"odd-worker": "o3",
 	}
 	home := setupCodexSyncHomeWithPhaseModels(t, nil, efforts, phaseModels)
 
@@ -2605,9 +2580,6 @@ func TestRunSync_DefaultPreservesReviewWithoutSDDPhaseModels(t *testing.T) {
 	text := string(content)
 	if !strings.Contains(text, "Organic Driven Development") {
 		t.Fatal("AGENTS.md missing ODD routing")
-	}
-	if strings.Contains(text, "| `sdd-propose` |") || strings.Contains(text, "| `sdd-apply` |") {
-		t.Fatal("ordinary routing advertised legacy SDD phase models")
 	}
 }
 
