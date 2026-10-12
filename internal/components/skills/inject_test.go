@@ -40,33 +40,6 @@ func TestInjectWritesSkillFilesForClaude(t *testing.T) {
 	}
 }
 
-func TestInjectSkipsSddSkills(t *testing.T) {
-	home := t.TempDir()
-
-	// Retired SDD IDs must not install even when explicitly requested.
-	result, err := Inject(home, claudeAdapter(), []model.SkillID{
-		model.SkillSDDInit,
-		model.SkillSDDApply,
-		model.SkillCreator,
-	})
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-
-	// Only the non-SDD skill (skill-creator) should be written, including its local references.
-	if len(skillFiles(result.Files)) != 2 {
-		t.Fatalf("Inject() files len = %d, want 2 (skill-creator plus local reference)", len(skillFiles(result.Files)))
-	}
-
-	// No retired skill files may be created.
-	for _, id := range []model.SkillID{model.SkillSDDInit, model.SkillSDDApply} {
-		path := filepath.Join(home, ".claude", "skills", string(id), "SKILL.md")
-		if _, statErr := os.Stat(path); statErr == nil {
-			t.Fatalf("skills component must not write retired skill %q", id)
-		}
-	}
-}
-
 // noSkillsAdapter is a mock adapter that does not support skills.
 type noSkillsAdapter struct{}
 

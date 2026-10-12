@@ -200,12 +200,12 @@ func TestParseSyncFlagsDryRun(t *testing.T) {
 }
 
 func TestParseSyncFlagsSkillsCSV(t *testing.T) {
-	flags, err := ParseSyncFlags([]string{"--skills", "sdd-apply,go-testing"})
+	flags, err := ParseSyncFlags([]string{"--skills", "branch-pr,go-testing"})
 	if err != nil {
 		t.Fatalf("ParseSyncFlags() error = %v", err)
 	}
 
-	want := []string{"sdd-apply", "go-testing"}
+	want := []string{"branch-pr", "go-testing"}
 	if !reflect.DeepEqual(flags.Skills, want) {
 		t.Errorf("Skills = %v, want %v", flags.Skills, want)
 	}

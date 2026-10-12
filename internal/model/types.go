@@ -68,17 +68,6 @@ const (
 type SkillID string
 
 const (
-	SkillSDDInit             SkillID = "sdd-init"
-	SkillSDDApply            SkillID = "sdd-apply"
-	SkillSDDVerify           SkillID = "sdd-verify"
-	SkillSDDExplore          SkillID = "sdd-explore"
-	SkillSDDResearch         SkillID = "sdd-research"
-	SkillSDDPropose          SkillID = "sdd-propose"
-	SkillSDDSpec             SkillID = "sdd-spec"
-	SkillSDDDesign           SkillID = "sdd-design"
-	SkillSDDTasks            SkillID = "sdd-tasks"
-	SkillSDDArchive          SkillID = "sdd-archive"
-	SkillSDDOnboard          SkillID = "sdd-onboard"
 	SkillGoTesting           SkillID = "go-testing"
 	SkillCreator             SkillID = "skill-creator"
 	SkillImprover            SkillID = "skill-improver"

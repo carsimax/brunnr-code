@@ -13,21 +13,6 @@ func TestSkillsForPresetMinimalRetainsJudgmentDay(t *testing.T) {
 	}
 }
 
-func TestPresetAndPickerNeverOfferRetiredSDDSkills(t *testing.T) {
-	for _, preset := range []model.PresetID{model.PresetMinimal, model.PresetEcosystemOnly, model.PresetFull, model.PresetCustom, "unknown"} {
-		for _, id := range SkillsForPreset(preset) {
-			if IsSDDSkill(id) {
-				t.Errorf("preset %q offers retired skill %q", preset, id)
-			}
-		}
-	}
-	for _, id := range AllSkillIDs() {
-		if IsSDDSkill(id) {
-			t.Errorf("picker offers retired skill %q", id)
-		}
-	}
-}
-
 func TestSkillsForPresetEcosystemIncludesFrameworks(t *testing.T) {
 	skills := SkillsForPreset(model.PresetEcosystemOnly)
 

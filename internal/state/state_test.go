@@ -56,7 +56,7 @@ func fullyPopulatedInstallState() InstallState {
 		ManagedAssetDigest:       "sha256:managed-assets",
 		SelectionConfigured:      true,
 		Components:               []model.ComponentID{model.ComponentEngram, model.ComponentSDD},
-		Skills:                   []model.SkillID{model.SkillSDDInit, model.SkillWorkUnitCommits},
+		Skills:                   []model.SkillID{model.SkillGoTesting, model.SkillWorkUnitCommits},
 		Preset:                   model.PresetCustom,
 		SDDMode:                  model.SDDModeMulti,
 		StrictTDD:                true,
@@ -234,7 +234,7 @@ func TestLegacySDDDecodesButNeverRestoresActiveSelection(t *testing.T) {
 
 func TestSelectionRoundTripPreservesPresenceAndExplicitEmpty(t *testing.T) {
 	tests := []InstallState{
-		{SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSDD}, Skills: []model.SkillID{model.SkillSDDInit}, Preset: model.PresetCustom, SDDMode: model.SDDModeMulti, StrictTDD: true},
+		{SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSDD}, Skills: []model.SkillID{model.SkillGoTesting}, Preset: model.PresetCustom, SDDMode: model.SDDModeMulti, StrictTDD: true},
 		{SelectionConfigured: true, Components: []model.ComponentID{}, Skills: []model.SkillID{}, Preset: model.PresetCustom},
 		{InstalledAgents: []string{"example-agent"}},
 	}

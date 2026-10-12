@@ -36,7 +36,7 @@ func TestParseInstallFlagsSupportsCSVAndRepeated(t *testing.T) {
 		"--agent", "cursor",
 		"--component", "engram,sdd",
 		"--component", "skills",
-		"--skill", "sdd-apply",
+		"--skill", "go-testing",
 		"--preset", "minimal",
 		"--dry-run",
 	})
