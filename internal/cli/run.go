@@ -88,9 +88,9 @@ var (
 	probeEngramProtocolFlag        = engram.ProbeProtocolFlag
 	probeEngramProtocolFlagCommand = engram.ProbeProtocolFlagCommand
 
-	// AppVersion is the gentle-ai version that will be written into backup manifests.
+	// AppVersion is the brunnr-code version that will be written into backup manifests.
 	// It is set by app.go before any CLI operation so that every backup created during
-	// an install or sync records which version of gentle-ai made it.
+	// an install or sync records which version of brunnr-code made it.
 	// Default "dev" matches the ldflags default in app.Version.
 	AppVersion = "dev"
 )
@@ -231,7 +231,7 @@ func RunPreparedInstall(prepared PreparedInstall, detection system.DetectionResu
 		agentIDs = append(agentIDs, string(a))
 	}
 
-	// When the user ran `gentle-ai install --agent X` (explicit agent flag),
+	// When the user ran `brunnr-code install --agent X` (explicit agent flag),
 	// merge into the existing state so that previously installed agents and
 	// model assignments are preserved. A full install (no --agent flag) keeps
 	// overwrite semantics so the TUI selection is the source of truth.
@@ -409,7 +409,7 @@ func withReadyAgentRunNote(report verify.Report, resolved planner.ResolvedPlan) 
 
 // withFailedVerificationNote replaces the generic verify.VerificationIssuesMessage
 // with one naming the concrete command that retries the install for the
-// agents that were actually resolved this run: `gentle-ai install --agent
+// agents that were actually resolved this run: `brunnr-code install --agent
 // <agent1>,<agent2>`. There is no `repair` case in the CLI dispatcher
 // (internal/app/app.go), so the old generic text named a command that could
 // never succeed -- a false continuation worse than no note at all.
@@ -428,7 +428,7 @@ func withFailedVerificationNote(report verify.Report, resolved planner.ResolvedP
 	for i, agent := range resolved.Agents {
 		names[i] = string(agent)
 	}
-	report.FinalNote = verify.VerificationIssuesMessageForCommand("gentle-ai install --agent " + strings.Join(names, ","))
+	report.FinalNote = verify.VerificationIssuesMessageForCommand("brunnr-code install --agent " + strings.Join(names, ","))
 	return report
 }
 
@@ -891,7 +891,7 @@ func retiredSDDAgentBackupPaths(homeDir string, scope InstallScope, adapters []a
 }
 
 func nativeReviewPreservedAction(path string) string {
-	return fmt.Sprintf("Native review agent %s was preserved, not updated: ownership cannot be verified (missing ledger entry or differing recorded hash). This does not mean you customized the file. Keeping it unchanged is valid. To opt into management, back up this file and verify the backup, remove only this warned file, then rerun your existing gentle-ai install or gentle-ai sync command with the same runtime, scope, and model choices. Gentle AI will not adopt or delete it automatically.", path)
+	return fmt.Sprintf("Native review agent %s was preserved, not updated: ownership cannot be verified (missing ledger entry or differing recorded hash). This does not mean you customized the file. Keeping it unchanged is valid. To opt into management, back up this file and verify the backup, remove only this warned file, then rerun your existing brunnr-code install or brunnr-code sync command with the same runtime, scope, and model choices. Brunnr-Code will not adopt or delete it automatically.", path)
 }
 
 // legacyTriggerRulesSection is the retired managed section that used to carry
@@ -1062,7 +1062,7 @@ type prepareBackupStep struct {
 	source      backup.BackupSource
 	description string
 
-	// appVersion is the gentle-ai version that created this backup.
+	// appVersion is the brunnr-code version that created this backup.
 	// When set, it is written into the manifest as CreatedByVersion.
 	appVersion string
 }
@@ -1103,7 +1103,7 @@ func (s prepareBackupStep) Run() error {
 			if manifest, duplicate, dupErr := backup.DuplicateManifest(s.backupRoot, checksum); dupErr != nil {
 				log.Printf("backup: check duplicate: %v", dupErr)
 			} else if duplicate && manifestTargetsMatch(manifest, s.targets) {
-				rollbackDir, err := os.MkdirTemp("", "gentle-ai-rollback-*")
+				rollbackDir, err := os.MkdirTemp("", "brunnr-code-rollback-*")
 				if err != nil {
 					return fmt.Errorf("create transaction snapshot directory: %w", err)
 				}
@@ -1207,7 +1207,7 @@ func (s agentInstallStep) ID() string {
 	return s.id
 }
 
-// Run installs nothing. Gentle AI never installs an agent runtime; selected
+// Run installs nothing. Brunnr-Code never installs an agent runtime; selected
 // agents are configuration targets regardless of whether their runtime is
 // present, and the step only marks each selected agent in the plan.
 func (s agentInstallStep) Run() error {
@@ -1755,7 +1755,7 @@ func runCommandSequenceWithProgress(commands [][]string, progress pipeline.Progr
 }
 
 // homebrewNoSideEffectEnv are the environment variables executeCommand adds
-// to a brew invocation so gentle-ai's own tap/install/reinstall steps never
+// to a brew invocation so brunnr-code's own tap/install/reinstall steps never
 // trigger Homebrew's slow, network-dependent auto-update or its
 // post-install cache cleanup as a side effect of an unrelated install.
 var homebrewNoSideEffectEnv = []string{
@@ -2058,7 +2058,7 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 			case model.StrategyTOMLFile:
 				if p := adapter.MCPConfigPath(targetDir, "engram"); p != "" {
 					paths = append(paths, p)
-					// Track the gentle-ai files written alongside the Codex config.toml
+					// Track the brunnr-code files written alongside the Codex config.toml
 					// so they are restored on rollback and removed on uninstall.
 					codexHomeDir := filepath.Dir(p)
 					paths = append(paths,
@@ -2339,7 +2339,7 @@ func runPostApplyVerification(input postApplyVerificationInput) verify.Report {
 						}
 						return err
 					}
-					return fmt.Errorf("retired managed file still exists; rerun `gentle-ai sync` to finish retiring it")
+					return fmt.Errorf("retired managed file still exists; rerun `brunnr-code sync` to finish retiring it")
 				},
 			})
 			continue
@@ -2430,7 +2430,7 @@ func engramHealthChecks(state *runtimeState, agentIDs []model.AgentID) []verify.
 // engramInstallCommand names the install continuation for a missing engram
 // binary so the warning that reports it is actionable on its own.
 func engramInstallCommand(agentIDs []model.AgentID) string {
-	return fmt.Sprintf("gentle-ai install --agent %s --components engram", joinAgentIDs(agentIDs))
+	return fmt.Sprintf("brunnr-code install --agent %s --components engram", joinAgentIDs(agentIDs))
 }
 
 func engramPathGuidance(shellPath string) string {
@@ -2492,7 +2492,7 @@ func claudeAliasesToStrings(m map[string]model.ClaudeModelAlias) map[string]stri
 	out := make(map[string]string, len(m))
 	for k, v := range m {
 		// Claude Code owns the main session/orchestrator model; do not persist it
-		// as a Gentle AI model assignment.
+		// as a Brunnr-Code model assignment.
 		if k == "orchestrator" {
 			continue
 		}

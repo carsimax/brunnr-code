@@ -59,7 +59,7 @@ const VerificationIssuesMessage = verificationIssuesMessage
 
 // VerificationIssuesMessageForCommand renders the failure completion line
 // naming exactly the given command that re-runs the failed checks (e.g.
-// "gentle-ai sync" or "gentle-ai install --agent claude-code"). It falls back
+// "brunnr-code sync" or "brunnr-code install --agent claude-code"). It falls back
 // to the generic verificationIssuesMessage when no command is given, so a
 // caller that does not know a concrete retry command never invents one.
 func VerificationIssuesMessageForCommand(command string) string {

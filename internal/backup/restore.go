@@ -103,7 +103,7 @@ func invalidOriginalPathErr(originalPath string, roots []string) error {
 //
 // When Roots is empty, Restore falls back to the single directory returned by
 // UserHomeDirFn — the historical, backward-compatible behavior. This is the
-// correct default for standalone restores (`gentle-ai restore <id>` and the
+// correct default for standalone restores (`brunnr-code restore <id>` and the
 // TUI "restore from list" screen): the backup being restored may be
 // arbitrarily old, and the workspace root that was in effect when it was
 // created is not something the current process can safely rediscover on its
@@ -225,7 +225,7 @@ func (s RestoreService) restoreCompressed(manifest Manifest) error {
 		return fmt.Errorf("resolve restore roots: %w", err)
 	}
 
-	tempDir, err := os.MkdirTemp("", "gentle-ai-restore-*")
+	tempDir, err := os.MkdirTemp("", "brunnr-code-restore-*")
 	if err != nil {
 		return fmt.Errorf("create temp restore dir: %w", err)
 	}

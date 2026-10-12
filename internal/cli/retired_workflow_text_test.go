@@ -65,9 +65,9 @@ var retiredWorkflowLiteralAllowlist = map[string]map[string]string{
 		"sdd-": "legacy Claude model-assignment key prefix",
 	},
 	"internal/tui/screens/codex_model_picker.go": {
-		"sdd-strong": "current Codex preset-matrix key persisted in gentle-ai state; never rendered",
-		"sdd-mid":    "current Codex preset-matrix key persisted in gentle-ai state; never rendered",
-		"sdd-cheap":  "current Codex preset-matrix key persisted in gentle-ai state; never rendered",
+		"sdd-strong": "current Codex preset-matrix key persisted in brunnr-code state; never rendered",
+		"sdd-mid":    "current Codex preset-matrix key persisted in brunnr-code state; never rendered",
+		"sdd-cheap":  "current Codex preset-matrix key persisted in brunnr-code state; never rendered",
 	},
 }
 

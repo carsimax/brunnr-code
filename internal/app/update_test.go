@@ -198,7 +198,7 @@ func TestRunUpgrade_ForwardsParsedArgsOnceWithoutReparsing(t *testing.T) {
 	updateCheckFiltered = func(_ context.Context, _ system.PlatformProfile, filters []string) []update.UpdateResult {
 		checkCalls++
 		checkFilters = filters
-		return []update.UpdateResult{{Tool: update.ToolInfo{Name: "gentle-ai"}, Status: update.UpToDate}}
+		return []update.UpdateResult{{Tool: update.ToolInfo{Name: "brunnr-code"}, Status: update.UpToDate}}
 	}
 
 	var execDryRun, execSkipBackup bool
@@ -236,8 +236,8 @@ func TestRunUpgrade_ForwardsParsedArgsOnceWithoutReparsing(t *testing.T) {
 }
 
 // TestRunUpgrade_NonGentleAIUpgradeDoesNotPrintDoctorAdvisory verifies that
-// upgrading a tool other than gentle-ai (e.g. engram, gga) does NOT trigger
-// the doctor advisory. The advisory is gated on gentle-ai specifically.
+// upgrading a tool other than brunnr-code (e.g. engram, gga) does NOT trigger
+// the doctor advisory. The advisory is gated on brunnr-code specifically.
 func TestRunUpgrade_NonGentleAIUpgradeDoesNotPrintDoctorAdvisory(t *testing.T) {
 	origCheckFiltered := updateCheckFiltered
 	origUpgradeExecuteWithOptions := upgradeExecuteWithOptions

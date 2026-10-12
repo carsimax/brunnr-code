@@ -14,7 +14,7 @@ func TestSkillsForPresetMinimalRetainsJudgmentDay(t *testing.T) {
 }
 
 func TestPresetAndPickerNeverOfferRetiredSDDSkills(t *testing.T) {
-	for _, preset := range []model.PresetID{model.PresetMinimal, model.PresetEcosystemOnly, model.PresetFullGentleman, model.PresetCustom, "unknown"} {
+	for _, preset := range []model.PresetID{model.PresetMinimal, model.PresetEcosystemOnly, model.PresetFull, model.PresetCustom, "unknown"} {
 		for _, id := range SkillsForPreset(preset) {
 			if IsSDDSkill(id) {
 				t.Errorf("preset %q offers retired skill %q", preset, id)
@@ -51,7 +51,7 @@ func TestSkillsForPresetEcosystemIncludesFrameworks(t *testing.T) {
 }
 
 func TestSkillsForPresetFullIncludesAll(t *testing.T) {
-	preset := SkillsForPreset(model.PresetFullGentleman)
+	preset := SkillsForPreset(model.PresetFull)
 	all := AllSkillIDs()
 
 	presetSet := make(map[model.SkillID]bool, len(preset))
@@ -99,7 +99,7 @@ func TestSkillsForPresetExcludesContributorSkills(t *testing.T) {
 		model.SkillWorkUnitCommits,
 		model.SkillCognitiveDoc,
 	}
-	for _, preset := range []model.PresetID{model.PresetFullGentleman, model.PresetEcosystemOnly, "", "unknown"} {
+	for _, preset := range []model.PresetID{model.PresetFull, model.PresetEcosystemOnly, "", "unknown"} {
 		t.Run(string(preset), func(t *testing.T) {
 			present := make(map[model.SkillID]bool)
 			for _, skill := range SkillsForPreset(preset) {
@@ -163,7 +163,7 @@ func TestRequestedBundledSkillsAreInPresetSkillSets(t *testing.T) {
 		model.SkillImprover,
 	}
 
-	for _, preset := range []model.PresetID{model.PresetEcosystemOnly, model.PresetFullGentleman} {
+	for _, preset := range []model.PresetID{model.PresetEcosystemOnly, model.PresetFull} {
 		t.Run(string(preset), func(t *testing.T) {
 			skillSet := make(map[model.SkillID]struct{})
 			for _, skill := range SkillsForPreset(preset) {

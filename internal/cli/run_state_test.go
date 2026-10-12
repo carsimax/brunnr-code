@@ -77,9 +77,9 @@ func TestMergeExplicitAgentInstallStateDropsUnsupportedAgents(t *testing.T) {
 
 func TestMergeExplicitAgentInstallStateMergesOnlyExplicitSelectionField(t *testing.T) {
 	original := state.InstallState{InstalledAgents: []string{"claude-code"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentEngram}, Skills: []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom, SDDMode: model.SDDModeSingle}
-	fresh := state.InstallState{InstalledAgents: []string{"codex"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSDD}, Skills: []model.SkillID{model.SkillSDDInit}, Preset: model.PresetFullGentleman, SDDMode: model.SDDModeMulti}
-	cases := []InstallFlags{{Components: []string{"sdd"}}, {Skills: []string{"sdd-init"}}, {Preset: "full-gentleman"}, {SDDMode: "multi"}}
-	wants := []string{"[sdd]|[comment-writer]|custom|single", "[engram]|[sdd-init]|custom|single", "[engram]|[comment-writer]|full-gentleman|single", "[engram]|[comment-writer]|custom|multi"}
+	fresh := state.InstallState{InstalledAgents: []string{"codex"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSDD}, Skills: []model.SkillID{model.SkillSDDInit}, Preset: model.PresetFull, SDDMode: model.SDDModeMulti}
+	cases := []InstallFlags{{Components: []string{"sdd"}}, {Skills: []string{"sdd-init"}}, {Preset: "full"}, {SDDMode: "multi"}}
+	wants := []string{"[sdd]|[comment-writer]|custom|single", "[engram]|[sdd-init]|custom|single", "[engram]|[comment-writer]|full|single", "[engram]|[comment-writer]|custom|multi"}
 	for i, flags := range cases {
 		home := t.TempDir()
 		if err := state.Write(home, original); err != nil {
@@ -273,12 +273,12 @@ func TestMergeExplicitAgentInstallStateFailsHonestlyOnCorruptState(t *testing.T)
 }
 
 // TestRunInstallFailsHonestlyWhenExistingStateIsCorruptDuringExplicitAgentInstall
-// closes install/sync surface audit finding 2: previously, `gentle-ai install
+// closes install/sync surface audit finding 2: previously, `brunnr-code install
 // --agent X` against a corrupted ~/.gentle-ai/state.json completed the whole
 // pipeline (files written, verification passed) and RunInstall returned
 // (result, nil) -- reported success -- WITHOUT ever calling state.Write. The
 // user believed the install fully completed; state.json stayed corrupted
-// forever, silently breaking every future `gentle-ai sync`.
+// forever, silently breaking every future `brunnr-code sync`.
 func TestRunInstallFailsHonestlyWhenExistingStateIsCorruptDuringExplicitAgentInstall(t *testing.T) {
 	home := t.TempDir()
 	original := osUserHomeDir

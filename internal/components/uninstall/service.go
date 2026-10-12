@@ -277,7 +277,7 @@ func (s *Service) CompleteUninstall() (Result, error) {
 		return result, err
 	}
 
-	result.ManualActions = append(result.ManualActions, "To completely remove gentle-ai from your system, delete the executable (e.g., rm -f $(which gentle-ai))")
+	result.ManualActions = append(result.ManualActions, "To completely remove brunnr-code from your system, delete the executable (e.g., rm -f $(which brunnr-code))")
 	return result, nil
 }
 
@@ -535,7 +535,7 @@ func reportClaudeModuleRetirement(result *Result, paths []string, retired agentg
 			}
 		case statErr == nil:
 			result.ManualActions = append(result.ManualActions, fmt.Sprintf(
-				"Remove manually if no longer needed: %s (orchestrator module modified or not owned by Gentle AI, kept)", path))
+				"Remove manually if no longer needed: %s (orchestrator module modified or not owned by Brunnr-Code, kept)", path))
 		}
 	}
 	return nil
@@ -593,9 +593,9 @@ func failureManualActions(failures []operationFailure, batch []model.AgentID, ho
 		if location == "" {
 			location = homeDir
 		}
-		command := "gentle-ai uninstall --all --yes"
+		command := "brunnr-code uninstall --all --yes"
 		if len(retry) > 0 {
-			command = "gentle-ai uninstall " + strings.Join(retry, " ") + " --yes"
+			command = "brunnr-code uninstall " + strings.Join(retry, " ") + " --yes"
 		}
 		actions = append(actions, fmt.Sprintf(
 			"Uninstall did not complete for %s at %s: %v. Those agents are still recorded in %s. Resolve the file, then rerun `%s`.",
@@ -656,9 +656,7 @@ func (s *Service) componentOperations(adapter agents.Adapter, componentID model.
 			path := adapter.SystemPromptFile(homeDir)
 			targets = append(targets, path)
 			ops = append(ops, rewriteMarkdownFile(path, func(content string) (string, bool) {
-				updated, sectionsChanged := removeMarkdownSections(content, "persona")
-				updated, personaChanged := removeManagedPersonaPreamble(updated)
-				return updated, sectionsChanged || personaChanged
+				return removeMarkdownSections(content, "persona")
 			}))
 		}
 		if adapter.SupportsOutputStyles() {
@@ -968,9 +966,9 @@ func rewriteSkillRegistryHook(path string) operation {
 
 // Only exact installed commands are removed; arbitrary user commands remain intact.
 func managedRetainedHookCommand(cmd string) bool {
-	return cmd == `gentle-ai skill-registry refresh --quiet --no-gitignore --cwd "${CLAUDE_PROJECT_DIR:-$PWD}" || true` ||
-		cmd == `gentle-ai skill-registry refresh --quiet --no-gitignore --cwd "$PWD" || true` ||
-		cmd == "gentle-ai review stop-hook --agent "+string(model.AgentClaudeCode)
+	return cmd == `brunnr-code skill-registry refresh --quiet --no-gitignore --cwd "${CLAUDE_PROJECT_DIR:-$PWD}" || true` ||
+		cmd == `brunnr-code skill-registry refresh --quiet --no-gitignore --cwd "$PWD" || true` ||
+		cmd == "brunnr-code review stop-hook --agent "+string(model.AgentClaudeCode)
 }
 
 // removeSkillRegistryHook removes the managed hook commands. Strict JSON is
@@ -1048,7 +1046,7 @@ func removeSkillRegistryHook(raw []byte) ([]byte, bool, error) {
 			return nil, false, err
 		}
 		if len(kept) > 0 {
-			return nil, false, fmt.Errorf("refuse to remove hooks %v spelled with escapes or holding comments; remove the Gentle AI hooks yourself", kept)
+			return nil, false, fmt.Errorf("refuse to remove hooks %v spelled with escapes or holding comments; remove the Brunnr-Code hooks yourself", kept)
 		}
 		return updated, true, nil
 	}

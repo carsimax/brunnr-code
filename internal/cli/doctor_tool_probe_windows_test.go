@@ -22,9 +22,9 @@ func TestDoctorBatchProbeRefusalsNameRecovery(t *testing.T) {
 			if tt.unsetRoot {
 				t.Setenv("SystemRoot", "")
 			}
-			want := fmt.Sprintf("cannot safely probe batch launcher path %q; move the launcher to a path without expansion characters or quotes, then run 'gentle-ai doctor' again", tt.path)
+			want := fmt.Sprintf("cannot safely probe batch launcher path %q; move the launcher to a path without expansion characters or quotes, then run 'brunnr-code doctor' again", tt.path)
 			if tt.unsetRoot {
-				want = "SystemRoot is unset; restore it to your Windows directory, then run 'gentle-ai doctor' again"
+				want = "SystemRoot is unset; restore it to your Windows directory, then run 'brunnr-code doctor' again"
 			}
 			cmd, err := doctorToolProbeCommand(context.Background(), tt.path, "--version")
 			if cmd != nil || err == nil || err.Error() != want {

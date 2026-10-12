@@ -47,7 +47,7 @@ var snapshotCreator = func(snapshotDir string, paths []string) (backup.Manifest,
 	return backup.NewSnapshotter().Create(snapshotDir, paths)
 }
 
-// AppVersion is the gentle-ai version written into backup manifests created by
+// AppVersion is the brunnr-code version written into backup manifests created by
 // the upgrade executor. Set by app.go before calling Execute so that upgrade
 // backups record the version that created them.
 // Default "dev" matches the ldflags default in app.Version.
@@ -118,11 +118,11 @@ var backupExcludeSubdirs = map[string]bool{
 	"tmp":                         true, // temporary runtime artifacts
 }
 
-// configPathsForBackup returns the explicit Gentle AI-managed file paths that
+// configPathsForBackup returns the explicit Brunnr-Code-managed file paths that
 // the backup snapshot must include before any upgrade execution.
 //
 // This is intentionally NOT a recursive backup of agent config directories.
-// Upgrade backups are rollback artifacts for files Gentle AI may create or
+// Upgrade backups are rollback artifacts for files Brunnr-Code may create or
 // modify, not general-purpose backups of conversations, sessions, caches,
 // sockets, package installs, or other runtime state.
 //
@@ -130,7 +130,7 @@ var backupExcludeSubdirs = map[string]bool{
 // deliberately configured empty selection. Filesystem detection is used only for
 // missing or incidental pre-install state; unreadable state contributes no agent
 // paths. This prevents snapshot bloat from agent config dirs that the user never
-// actually installed via gentle-ai (issue #354: snapshots could reach ~25 GiB
+// actually installed via brunnr-code (issue #354: snapshots could reach ~25 GiB
 // from unmanaged config dirs).
 func configPathsForBackup(homeDir string, diagnostics ...io.Writer) []string {
 	dw := firstWriter(diagnostics...)

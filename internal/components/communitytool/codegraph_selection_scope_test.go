@@ -16,7 +16,7 @@ import (
 // enough to have their prompt files rewritten on every sync.
 
 // selectOnlyCodexWithClaudePresent builds the reported environment: two
-// agents installed on disk, only Codex selected in Gentle AI.
+// agents installed on disk, only Codex selected in Brunnr-Code.
 func selectOnlyCodexWithClaudePresent(t *testing.T) (home, codexDir, claudePrompt string) {
 	t.Helper()
 	home = t.TempDir()

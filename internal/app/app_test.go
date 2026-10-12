@@ -136,7 +136,7 @@ func TestListBackupsWithSourceMetadata(t *testing.T) {
 	}
 }
 
-// TestRunArgsRestoreListIsDispatched verifies that `gentle-ai restore --list`
+// TestRunArgsRestoreListIsDispatched verifies that `brunnr-code restore --list`
 // is correctly dispatched through RunArgs and produces a meaningful response
 // (either a backup list or a "no backups" message — never "unknown command").
 func TestRunArgsRestoreListIsDispatched(t *testing.T) {
@@ -320,7 +320,7 @@ func TestRunArgsRestoreHelpBypassesSystemDetection(t *testing.T) {
 			}
 			out := buf.String()
 			for _, want := range []string{
-				"gentle-ai restore [--list | latest | <id>] [--yes]",
+				"brunnr-code restore [--list | latest | <id>] [--yes]",
 				"list available backups without restoring",
 				"skip confirmation prompt",
 			} {
@@ -573,7 +573,7 @@ func TestTuiSyncSelectionPreservesCustomPermissionExclusion(t *testing.T) {
 	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"codex"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSkills}, Skills: []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom}); err != nil {
 		t.Fatal(err)
 	}
-	selection := model.Selection{Agents: []model.AgentID{model.AgentCodex}, Components: []model.ComponentID{model.ComponentPermission}, Preset: model.PresetFullGentleman}
+	selection := model.Selection{Agents: []model.AgentID{model.AgentCodex}, Components: []model.ComponentID{model.ComponentPermission}, Preset: model.PresetFull}
 	loadPersistedAssignments(home, &selection)
 	if selection.HasComponent(model.ComponentPermission) || !reflect.DeepEqual(selection.Skills, []model.SkillID{model.SkillCommentWriter}) || selection.Preset != model.PresetCustom {
 		t.Fatalf("TUI sync replaced custom selection: %#v", selection)
@@ -603,7 +603,7 @@ func TestTUIExecutePersistsConfiguredSelection(t *testing.T) {
 
 func buildAppCandidateBinary(t *testing.T) string {
 	t.Helper()
-	binary := filepath.Join(t.TempDir(), "gentle-ai")
+	binary := filepath.Join(t.TempDir(), "brunnr-code")
 	if runtime.GOOS == "windows" {
 		binary += ".exe"
 	}
@@ -1143,7 +1143,7 @@ func TestPersistAssignmentsNoOpWhenEmpty(t *testing.T) {
 	}
 }
 
-// TestVersionBeforeSystemGuards verifies that `gentle-ai version` returns the
+// TestVersionBeforeSystemGuards verifies that `brunnr-code version` returns the
 // version string without going through system detection or platform guards.
 func TestVersionBeforeSystemGuards(t *testing.T) {
 	var buf bytes.Buffer
@@ -1151,8 +1151,8 @@ func TestVersionBeforeSystemGuards(t *testing.T) {
 	if err != nil {
 		t.Fatalf("version should not fail: %v", err)
 	}
-	if !strings.Contains(buf.String(), "gentle-ai") {
-		t.Error("version output should contain 'gentle-ai'")
+	if !strings.Contains(buf.String(), "brunnr-code") {
+		t.Error("version output should contain 'brunnr-code'")
 	}
 }
 
@@ -1177,15 +1177,15 @@ func TestHelpCommand(t *testing.T) {
 }
 
 // TestUnknownCommandSuggestsHelp verifies that an unrecognised command returns
-// an error whose message suggests running 'gentle-ai help'.
+// an error whose message suggests running 'brunnr-code help'.
 func TestUnknownCommandSuggestsHelp(t *testing.T) {
 	var buf bytes.Buffer
 	err := RunArgs([]string{"notacommand"}, &buf)
 	if err == nil {
 		t.Fatal("unknown command should return error")
 	}
-	if !strings.Contains(err.Error(), "gentle-ai help") {
-		t.Error("unknown command error should suggest 'gentle-ai help'")
+	if !strings.Contains(err.Error(), "brunnr-code help") {
+		t.Error("unknown command error should suggest 'brunnr-code help'")
 	}
 }
 

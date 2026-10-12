@@ -16,7 +16,7 @@ type InjectionResult struct {
 
 // TargetPath returns the file path that permission injection creates or updates
 // for the adapter, or an empty string when the agent has no supported
-// permission injection target. Codex has no target: gentle-ai relies on Codex's
+// permission injection target. Codex has no target: brunnr-code relies on Codex's
 // built-in default permissions and does not write its permissions config at all.
 func TargetPath(homeDir string, adapter agents.Adapter) string {
 	if agentOverlay(adapter.Agent()) == nil {
@@ -67,7 +67,7 @@ func agentOverlay(id model.AgentID) []byte {
 	case model.AgentClaudeCode:
 		return claudeCodeOverlayJSON
 	case model.AgentCodex:
-		// Codex relies on its built-in default permissions. gentle-ai writes
+		// Codex relies on its built-in default permissions. brunnr-code writes
 		// nothing to Codex's permissions config — not a profile, and not the
 		// legacy cleanup that used to strip one. Codex refuses to load a config
 		// that defines a [permissions.*] profile without default_permissions,

@@ -144,9 +144,9 @@ func runUninstallWithInput(args []string, stdout io.Writer, stdin io.Reader) (co
 
 func promptUninstallConfirm(flags UninstallFlags, stdout io.Writer, stdin io.Reader) (bool, error) {
 	if flags.All {
-		_, _ = fmt.Fprintln(stdout, "This will remove gentle-ai managed configuration from all supported agents.")
+		_, _ = fmt.Fprintln(stdout, "This will remove brunnr-code managed configuration from all supported agents.")
 	} else {
-		_, _ = fmt.Fprintf(stdout, "This will remove gentle-ai managed configuration from: %s\n", strings.Join(agentLabelsFromStrings(flags.Agents), ", "))
+		_, _ = fmt.Fprintf(stdout, "This will remove brunnr-code managed configuration from: %s\n", strings.Join(agentLabelsFromStrings(flags.Agents), ", "))
 	}
 	if len(flags.Components) > 0 {
 		_, _ = fmt.Fprintf(stdout, "Components: %s\n", strings.Join(flags.Components, ", "))

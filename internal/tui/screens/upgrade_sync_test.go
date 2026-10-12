@@ -100,7 +100,7 @@ func TestRenderUpgradeSync_CombinedResult(t *testing.T) {
 func TestRenderUpgradeSync_LongManualHintUsesWidth(t *testing.T) {
 	longHint := "Windows binary distribution is temporarily unavailable. Install/update from source with Go 1.25.10+:\n  go install github.com/gentleman-programming/gentle-ai/v3/cmd/gentle-ai@v1.1.0"
 	report := &upgrade.UpgradeReport{Results: []upgrade.ToolUpgradeResult{
-		{ToolName: "gentle-ai", Status: upgrade.UpgradeSkipped, ManualHint: longHint},
+		{ToolName: "brunnr-code", Status: upgrade.UpgradeSkipped, ManualHint: longHint},
 	}}
 
 	out := stripANSI(RenderUpgradeSyncWithWidth(nil, report, nil, nil, nil, false, true, 0, 0, 80))

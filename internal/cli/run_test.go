@@ -32,7 +32,7 @@ type failAfterThemeStep struct {
 func (s failAfterThemeStep) ID() string { return "test:fail-after-theme" }
 func (s failAfterThemeStep) Run() error {
 	data, err := os.ReadFile(s.selected)
-	if err != nil || !bytes.Contains(data, []byte(`"theme":"gentleman"`)) {
+	if err != nil || !bytes.Contains(data, []byte(`"theme":"brunnr"`)) {
 		return errors.New("theme write was not observed before failure")
 	}
 	*s.observed = true
@@ -42,7 +42,7 @@ func (s failAfterThemeStep) Run() error {
 func assertThemeSelectedOnly(t *testing.T, selected, decoy string) {
 	t.Helper()
 	data, err := os.ReadFile(selected)
-	if err != nil || !bytes.Contains(data, []byte(`"theme":"gentleman"`)) || !bytes.Contains(data, []byte(`"user":true`)) || !bytes.Contains(data, []byte("// project settings")) {
+	if err != nil || !bytes.Contains(data, []byte(`"theme":"brunnr"`)) || !bytes.Contains(data, []byte(`"user":true`)) || !bytes.Contains(data, []byte("// project settings")) {
 		t.Fatalf("selected JSONC theme not installed: %s, %v", data, err)
 	}
 	data, err = os.ReadFile(decoy)

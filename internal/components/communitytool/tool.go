@@ -176,7 +176,7 @@ func InstallWithHome(id model.CommunityToolID, workspaceDir string, homeDir stri
 			targets = nil
 			droppedBlindTargets = true
 			result.ManualActions = append(result.ManualActions, fmt.Sprintf(
-				"CodeGraph %s is older than the %s target contract Gentle AI is written against, so agent targets were left to CodeGraph's own detection. Run `npm install -g @colbymchenry/codegraph@latest` (or `pnpm add -g @colbymchenry/codegraph@latest`) and rerun Gentle AI to get explicit target selection.",
+				"CodeGraph %s is older than the %s target contract Brunnr-Code is written against, so agent targets were left to CodeGraph's own detection. Run `npm install -g @colbymchenry/codegraph@latest` (or `pnpm add -g @colbymchenry/codegraph@latest`) and rerun Brunnr-Code to get explicit target selection.",
 				installed, codeGraphUpstreamVersion))
 		}
 	}
@@ -491,10 +491,10 @@ func detectCodeGraphPackageManager(detector Detector) (string, error) {
 	if _, err := detector.LookPath("pnpm"); err == nil {
 		globalBin, binErr := codeGraphPnpmGlobalBin()
 		if binErr != nil {
-			return "", fmt.Errorf("CodeGraph installation found pnpm, but pnpm global installs are not ready. Run `pnpm setup`, restart your shell, then rerun Gentle AI: %w", binErr)
+			return "", fmt.Errorf("CodeGraph installation found pnpm, but pnpm global installs are not ready. Run `pnpm setup`, restart your shell, then rerun Brunnr-Code: %w", binErr)
 		}
 		if globalBin == "" {
-			return "", fmt.Errorf("CodeGraph installation found pnpm, but `pnpm bin -g` returned an empty global binary directory. Run `pnpm setup`, restart your shell, then rerun Gentle AI")
+			return "", fmt.Errorf("CodeGraph installation found pnpm, but `pnpm bin -g` returned an empty global binary directory. Run `pnpm setup`, restart your shell, then rerun Brunnr-Code")
 		}
 		return "pnpm", nil
 	}

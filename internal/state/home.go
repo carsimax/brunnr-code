@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 )
 
-// HomeEnv names the folder that replaces ~/.gentle-ai for Gentle AI's own
+// HomeEnv names the folder that replaces ~/.gentle-ai for Brunnr-Code's own
 // state: state.json, the managed-assets manifest and journal, and install
-// backups. A caller that bundles Gentle AI sets it to keep
+// backups. A caller that bundles Brunnr-Code sets it to keep
 // that state inside its own prefix. It must be absolute.
 const HomeEnv = "GENTLE_AI_HOME"
 
-// Dir returns Gentle AI's state folder: the absolute HomeEnv value when set,
+// Dir returns Brunnr-Code's state folder: the absolute HomeEnv value when set,
 // otherwise <homeDir>/.gentle-ai. A relative value is rejected by
 // ValidateHomeEnv at startup and never used here.
 func Dir(homeDir string) string {

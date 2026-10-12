@@ -44,7 +44,7 @@ func CodeGraphGuidanceMarkdown() string {
 		"",
 		"- Prefer the `codegraph_explore` MCP tool when it is available; it returns relevant source, call paths, and blast-radius context in one call.",
 		"- If the MCP tool is unavailable, invoke the upstream CLI directly. Agents may use its read-only intelligence commands: `codegraph status`, `codegraph query`, `codegraph explore`, `codegraph node`, `codegraph files`, `codegraph callers`, `codegraph callees`, `codegraph impact`, and `codegraph affected`.",
-		"- Do not use `gentle-ai codegraph` as a general proxy. Its `init` command exists only to validate the project root before initialization; intelligence queries belong to the upstream CLI.",
+		"- Do not use `brunnr-code codegraph` as a general proxy. Its `init` command exists only to validate the project root before initialization; intelligence queries belong to the upstream CLI.",
 		"- Never run or recommend destructive or administrative lifecycle commands: `codegraph uninit`, `codegraph install`, `codegraph uninstall`, or `codegraph upgrade`. Reserve `codegraph index` for explicit index-corruption recovery, never routine use.",
 		"",
 		"Required order for structural/codebase questions:",
@@ -53,7 +53,7 @@ func CodeGraphGuidanceMarkdown() string {
 		"   If the explicit initialization target is not a Git root, stop CodeGraph initialization and explain that local Git initialization is required (`git -C <cwd> init`); never retry initialization against the parent. Do not initialize Git merely to answer a structural/codebase question.",
 		"2. Confirm the root is a real project/workspace. Do not ask the user before initializing CodeGraph in a real project. Do not initialize CodeGraph in `$HOME`, temporary directories, or non-project folders.",
 		"3. Check for `<project-root>/.codegraph/` before any broad Read/Glob/Grep filesystem exploration.",
-		"4. If `.codegraph/` is missing and CodeGraph is enabled/available, immediately run `gentle-ai codegraph init --cwd <project-root>` once.",
+		"4. If `.codegraph/` is missing and CodeGraph is enabled/available, immediately run `brunnr-code codegraph init --cwd <project-root>` once.",
 		"5. Missing .codegraph/ is the trigger to initialize, not a reason to skip CodeGraph. Do not fall back just because `.codegraph/` is missing; a missing index is the trigger to lazy-initialize, not a reason to skip CodeGraph.",
 		"6. MCP auto-sync requires a running daemon with an active file watcher. CLI intelligence commands read the existing index as-is and do not auto-sync. Before CLI intelligence reads, run `codegraph sync -q <project-root>`, including after edits. If sync fails, do not treat the existing index as current; explain the failure and fall back to normal filesystem tools. The presence of `.codegraph/` alone does not guarantee freshness. For MCP, run `codegraph sync -q <project-root>` when the watcher is disabled or stale files do not refresh normally.",
 		"7. Use `codegraph_explore` after initialization, or the read-only upstream CLI commands when MCP tools are absent.",
@@ -507,7 +507,7 @@ func hasCodeGraphGuidance(path string) bool {
 	}
 	content := strings.ToLower(string(data))
 	return strings.Contains(content, "gentle-ai:"+codeGraphGuidanceSectionID) ||
-		(strings.Contains(content, "codegraph") && strings.Contains(content, "gentle-ai codegraph init --cwd <project-root>"))
+		(strings.Contains(content, "codegraph") && strings.Contains(content, "brunnr-code codegraph init --cwd <project-root>"))
 }
 
 func codeGraphGuidancePath(homeDir string, adapter agents.Adapter) string {

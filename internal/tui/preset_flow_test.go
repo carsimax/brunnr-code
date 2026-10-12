@@ -27,7 +27,7 @@ func TestPresetSelectionNextScreenFlowMatrix(t *testing.T) {
 		preset model.PresetID
 		want   Screen
 	}{
-		{"full Codex", []model.AgentID{model.AgentCodex}, model.PresetFullGentleman, ScreenDependencyTree},
+		{"full Codex", []model.AgentID{model.AgentCodex}, model.PresetFull, ScreenDependencyTree},
 		{"ecosystem Codex", []model.AgentID{model.AgentCodex}, model.PresetEcosystemOnly, ScreenDependencyTree},
 		{"minimal Codex", []model.AgentID{model.AgentCodex}, model.PresetMinimal, ScreenDependencyTree},
 		{"custom Codex", []model.AgentID{model.AgentCodex}, model.PresetCustom, ScreenDependencyTree},
@@ -112,7 +112,7 @@ func TestInstallNavigationRoundTrips(t *testing.T) {
 		reverse    []Screen
 	}{
 		{"minimal Codex", model.AgentCodex, model.PresetMinimal, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
-		{"full Codex", model.AgentCodex, model.PresetFullGentleman, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
+		{"full Codex", model.AgentCodex, model.PresetFull, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
 		{"custom Codex Skills", model.AgentCodex, model.PresetCustom, []model.ComponentID{model.ComponentSDD, model.ComponentSkills}, []Screen{ScreenSkillPicker}, []Screen{ScreenDependencyTree}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -218,9 +218,9 @@ Toggle components with enter or space.
   [ ] permissions
     Security-first defaults and guardrails
   [ ] theme
-    Visual polish: Gentleman color theme
+    Visual polish: Brunnr color theme
   [ ] claude-theme
-    Visual polish: Gentleman and Gentleman Cute theme assets
+    Visual polish: Brunnr and Brunnr Cute theme assets
 
   Continue
   Back
@@ -251,7 +251,7 @@ Review Skills
 
 Foundation Skills
   [x] Go Testing
-  [x] Gentle AI Bench
+  [x] Brunnr-Code Bench
   [x] Skill Creator
   [x] Skill Improver
   [x] Branch & PR

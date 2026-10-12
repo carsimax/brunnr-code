@@ -40,7 +40,7 @@ func TestRunDoctor_AgentConfigDirectories(t *testing.T) {
 					t.Fatalf("missing exact state result %q:\n%s", want, output)
 				}
 				if !present {
-					if !strings.Contains(output, "Run 'gentle-ai sync' to restore missing config files") {
+					if !strings.Contains(output, "Run 'brunnr-code sync' to restore missing config files") {
 						t.Fatalf("missing sync remedy:\n%s", output)
 					}
 					if _, err := os.Lstat(dir); !os.IsNotExist(err) {
@@ -78,10 +78,10 @@ func TestRunDoctor_AgentConfigSpecialCases(t *testing.T) {
 				t.Fatalf("doctor reported a removed agent:\n%s", output)
 			}
 			if tt.name == "unsupported and missing" {
-				if !strings.Contains(output, "       Remedy: Run 'gentle-ai sync' to restore missing config files\n") {
+				if !strings.Contains(output, "       Remedy: Run 'brunnr-code sync' to restore missing config files\n") {
 					t.Fatalf("missing sync remedy for absent managed config:\n%s", output)
 				}
-			} else if strings.Contains(output, "gentle-ai sync") {
+			} else if strings.Contains(output, "brunnr-code sync") {
 				t.Fatalf("unexpected sync remedy:\n%s", output)
 			}
 		})
@@ -103,7 +103,7 @@ func runDoctorAgentConfigFixture(t *testing.T, home, payload string) string {
 	availableBytesFn = func(string) (int64, error) { return 1024 * 1024 * 1024, nil }
 	pathDirsFn = func() []string { return []string{filepath.Join(home, "bin")} }
 	osUserHomeDirDoctor = func() (string, error) { return home, nil }
-	osExecutableDoctor = func() (string, error) { return filepath.Join(home, "bin", "gentle-ai"), nil }
+	osExecutableDoctor = func() (string, error) { return filepath.Join(home, "bin", "brunnr-code"), nil }
 	t.Setenv(engramHealthEnvVar, "https://engram.example.test")
 	httpGetFn = func(string, time.Duration) (int, error) { return 200, nil }
 	statePath := filepath.Join(home, ".gentle-ai", "state.json")

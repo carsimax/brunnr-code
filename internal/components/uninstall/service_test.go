@@ -176,7 +176,7 @@ func TestCompleteUninstallKeepsExecutableRemovalAction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "To completely remove gentle-ai from your system, delete the executable (e.g., rm -f $(which gentle-ai))"
+	want := "To completely remove brunnr-code from your system, delete the executable (e.g., rm -f $(which brunnr-code))"
 	if !slices.Contains(result.ManualActions, want) {
 		t.Fatalf("ManualActions = %v, want %q", result.ManualActions, want)
 	}
@@ -210,8 +210,8 @@ func TestPartialUninstallClaudeThemeRemovesOnlyThemeAssets(t *testing.T) {
 	svc.snapshotter = stubSnapshotter{}
 
 	managed := []string{
-		filepath.Join(homeDir, ".claude", "themes", "gentleman.json"),
-		filepath.Join(homeDir, ".claude", "themes", "gentleman-cute.json"),
+		filepath.Join(homeDir, ".claude", "themes", "brunnr.json"),
+		filepath.Join(homeDir, ".claude", "themes", "brunnr-cute.json"),
 	}
 	for _, path := range managed {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -749,7 +749,7 @@ func TestFullAgentClaudeRemovesSkillRegistryHook(t *testing.T) {
       {
         "matcher": "",
         "hooks": [
-          {"type": "command", "command": "gentle-ai skill-registry refresh --quiet --no-gitignore --cwd \"${CLAUDE_PROJECT_DIR:-$PWD}\" || true"},
+          {"type": "command", "command": "brunnr-code skill-registry refresh --quiet --no-gitignore --cwd \"${CLAUDE_PROJECT_DIR:-$PWD}\" || true"},
           {"type": "command", "command": "echo keep"}
         ]
       }
@@ -797,7 +797,7 @@ func TestFullAgentClaudeRemovesSkillRegistryHook(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(raw)
-	if strings.Contains(text, "gentle-ai skill-registry refresh") {
+	if strings.Contains(text, "brunnr-code skill-registry refresh") {
 		t.Fatalf("managed hook should be removed:\n%s", text)
 	}
 	if !strings.Contains(text, "echo keep") || !strings.Contains(text, "echo pre") || !strings.Contains(text, "echo subagent keep") || !strings.Contains(text, "echo stop keep") {
@@ -827,7 +827,7 @@ func TestFullAgentClaudeRemovesReviewAndPreflightHooks(t *testing.T) {
       {
         "matcher": "",
         "hooks": [
-          {"type": "command", "command": "gentle-ai review stop-hook --agent claude-code", "timeout": 60},
+          {"type": "command", "command": "brunnr-code review stop-hook --agent claude-code", "timeout": 60},
           {"type": "command", "command": "echo keep"}
         ]
       }
@@ -836,7 +836,7 @@ func TestFullAgentClaudeRemovesReviewAndPreflightHooks(t *testing.T) {
       {
         "matcher": "startup|resume|clear|compact",
         "hooks": [
-          {"type": "command", "command": "gentle-ai review stop-hook --agent claude-code", "timeout": 30},
+          {"type": "command", "command": "brunnr-code review stop-hook --agent claude-code", "timeout": 30},
           {"type": "command", "command": "echo custom session-start"}
         ]
       }
@@ -848,14 +848,14 @@ func TestFullAgentClaudeRemovesReviewAndPreflightHooks(t *testing.T) {
       },
       {
         "matcher": "Agent",
-        "hooks": [{"type": "command", "command": "gentle-ai sdd-preflight-hook --agent claude-code"}]
+        "hooks": [{"type": "command", "command": "brunnr-code sdd-preflight-hook --agent claude-code"}]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "AskUserQuestion",
         "hooks": [
-          {"type": "command", "command": "gentle-ai sdd-preflight-hook --agent claude-code"},
+          {"type": "command", "command": "brunnr-code sdd-preflight-hook --agent claude-code"},
           {"type": "command", "command": "echo post keep"}
         ]
       }
@@ -863,7 +863,7 @@ func TestFullAgentClaudeRemovesReviewAndPreflightHooks(t *testing.T) {
     "SessionEnd": [
       {
         "matcher": "",
-        "hooks": [{"type": "command", "command": "gentle-ai sdd-preflight-hook --agent claude-code"}]
+        "hooks": [{"type": "command", "command": "brunnr-code sdd-preflight-hook --agent claude-code"}]
       }
     ]
   }
@@ -889,7 +889,7 @@ func TestFullAgentClaudeRemovesReviewAndPreflightHooks(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(raw)
-	if strings.Contains(text, "gentle-ai review stop-hook") || strings.Count(text, "gentle-ai sdd-preflight-hook") != 3 {
+	if strings.Contains(text, "brunnr-code review stop-hook") || strings.Count(text, "brunnr-code sdd-preflight-hook") != 3 {
 		t.Fatalf("review hooks should be removed; unmarked legacy hooks preserved:\n%s", text)
 	}
 	if !strings.Contains(text, "echo keep") || !strings.Contains(text, "echo pre") || !strings.Contains(text, "echo post keep") || !strings.Contains(text, "echo custom session-start") {
@@ -919,7 +919,7 @@ func TestFullAgentCodexRemovesSkillRegistryHook(t *testing.T) {
       {
         "matcher": "startup|resume|clear|compact",
         "hooks": [
-          {"type": "command", "command": "gentle-ai skill-registry refresh --quiet --no-gitignore --cwd \"$PWD\" || true"},
+          {"type": "command", "command": "brunnr-code skill-registry refresh --quiet --no-gitignore --cwd \"$PWD\" || true"},
           {"type": "command", "command": "echo keep"}
         ]
       }
@@ -953,7 +953,7 @@ func TestFullAgentCodexRemovesSkillRegistryHook(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(raw)
-	if strings.Contains(text, "gentle-ai skill-registry refresh") {
+	if strings.Contains(text, "brunnr-code skill-registry refresh") {
 		t.Fatalf("managed hook should be removed:\n%s", text)
 	}
 	if !strings.Contains(text, "echo keep") || !strings.Contains(text, "echo pre") {

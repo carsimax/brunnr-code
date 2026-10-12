@@ -58,12 +58,12 @@ func issue3557SymlinkSkip(sandbox *Sandbox) string {
 
 func issue3557VerifyDoctor(sandbox *Sandbox, observation Observation) error {
 	if observation.ExitCode != 0 {
-		return fmt.Errorf("gentle-ai doctor exited %d: %s", observation.ExitCode, firstLine(observation.Stderr))
+		return fmt.Errorf("brunnr-code doctor exited %d: %s", observation.ExitCode, firstLine(observation.Stderr))
 	}
 	if strings.Contains(observation.Stdout, "gentle-ai sync") {
 		return fmt.Errorf("doctor recommended the unrunnable sync recovery: %s", observation.Stdout)
 	}
-	for _, want := range []string{sandbox.Scratch["issue-3557-config"], "inspect", "gentle-ai doctor"} {
+	for _, want := range []string{sandbox.Scratch["issue-3557-config"], "inspect", "brunnr-code doctor"} {
 		if !strings.Contains(observation.Stdout, want) {
 			return fmt.Errorf("doctor output missing %q: %s", want, observation.Stdout)
 		}

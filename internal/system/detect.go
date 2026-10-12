@@ -33,7 +33,7 @@ const (
 	LinuxDistroFedora  = "fedora"
 )
 
-// linuxPackageManagers is the ordered list of package managers gentle-ai
+// linuxPackageManagers is the ordered list of package managers brunnr-code
 // probes on PATH to decide whether a Linux machine is usable. What makes a
 // machine usable is a manager that answers, not membership in a list of
 // distributions somebody has to keep editing: every distribution that is

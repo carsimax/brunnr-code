@@ -7,16 +7,16 @@ import (
 )
 
 func TestRunArgsCodeGraphHelp(t *testing.T) {
-	const want = `gentle-ai codegraph — Initialize a project's CodeGraph index
+	const want = `brunnr-code codegraph — Initialize a project's CodeGraph index
 
 USAGE
-  gentle-ai codegraph init --cwd <project-root>
+  brunnr-code codegraph init --cwd <project-root>
 
 OPTIONS
   --cwd <project-root>  Existing Git project directory (required for initialization)
   --help, -h            Show this help without initializing an index
 
-Running 'gentle-ai codegraph' or 'gentle-ai codegraph init' without arguments shows this help.
+Running 'brunnr-code codegraph' or 'brunnr-code codegraph init' without arguments shows this help.
 Only 'init --cwd <project-root>' is supported; other CodeGraph commands are not forwarded.
 `
 	for _, args := range [][]string{

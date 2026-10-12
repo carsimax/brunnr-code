@@ -22,7 +22,7 @@ var (
 	codeGraphTempDir     = os.TempDir
 )
 
-// RunCodeGraph exposes the safe, Gentle-AI-owned initialization boundary used
+// RunCodeGraph exposes the safe, Brunnr-Code-owned initialization boundary used
 // by generated agent guidance. It intentionally accepts no raw CodeGraph args.
 func RunCodeGraph(args []string, stdout io.Writer) error {
 	if len(args) == 0 ||
@@ -32,7 +32,7 @@ func RunCodeGraph(args []string, stdout io.Writer) error {
 		return nil
 	}
 	if len(args) != 3 || args[0] != "init" || args[1] != "--cwd" || strings.TrimSpace(args[2]) == "" {
-		return fmt.Errorf("usage: gentle-ai codegraph init --cwd <project-root>")
+		return fmt.Errorf("usage: brunnr-code codegraph init --cwd <project-root>")
 	}
 	root, err := canonicalCodeGraphProjectRoot(args[2])
 	if err != nil {
@@ -45,16 +45,16 @@ func RunCodeGraph(args []string, stdout io.Writer) error {
 	return nil
 }
 
-const codeGraphHelp = `gentle-ai codegraph — Initialize a project's CodeGraph index
+const codeGraphHelp = `brunnr-code codegraph — Initialize a project's CodeGraph index
 
 USAGE
-  gentle-ai codegraph init --cwd <project-root>
+  brunnr-code codegraph init --cwd <project-root>
 
 OPTIONS
   --cwd <project-root>  Existing Git project directory (required for initialization)
   --help, -h            Show this help without initializing an index
 
-Running 'gentle-ai codegraph' or 'gentle-ai codegraph init' without arguments shows this help.
+Running 'brunnr-code codegraph' or 'brunnr-code codegraph init' without arguments shows this help.
 Only 'init --cwd <project-root>' is supported; other CodeGraph commands are not forwarded.
 `
 

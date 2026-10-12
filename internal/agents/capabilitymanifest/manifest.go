@@ -1,5 +1,5 @@
 // Package capabilitymanifest owns the canonical, provider-neutral capability
-// facts advertised by Gentle AI agent adapters.
+// facts advertised by Brunnr-Code agent adapters.
 package capabilitymanifest
 
 import (
@@ -58,7 +58,7 @@ type AgentCapabilityManifest struct {
 }
 
 // AgentFeatureClaims describes adapter integration mechanisms. FileSubAgents
-// means the adapter consumes Gentle AI's file-based subagent projection; it
+// means the adapter consumes Brunnr-Code's file-based subagent projection; it
 // does not infer whether the runtime can perform some other form of delegation.
 type AgentFeatureClaims struct {
 	OutputStyles  bool `json:"outputStyles"`

@@ -12,7 +12,7 @@ import (
 )
 
 // CodexModelPreset represents a named effort-tier preset for Codex per-phase
-// reasoning_effort assignments. Efforts are Gentle AI workload policy, not Codex defaults.
+// reasoning_effort assignments. Efforts are Brunnr-Code workload policy, not Codex defaults.
 type CodexModelPreset string
 
 const (

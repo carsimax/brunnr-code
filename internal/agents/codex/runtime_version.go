@@ -13,7 +13,7 @@ const (
 	// at or above this version satisfies GPT-5.6 profiles.
 	MinimumGPT56RuntimeVersion = "0.144.0"
 	// codexUpdateCommand advises the latest release rather than pinning to
-	// the floor above. gentle-ai no longer installs anything on the user's
+	// the floor above. brunnr-code no longer installs anything on the user's
 	// behalf (see agentInstallStep in internal/cli/run.go), so this string is
 	// advice a human reads and runs themselves — pinning it to the exact
 	// floor value would go stale the moment a newer Codex ships and would
@@ -86,7 +86,7 @@ func ValidateGPT56Runtime() error {
 // stream. codexOutputRE is anchored with ^...$ and Go does not enable multiline
 // mode by default, so matching the whole output at once found nothing whenever
 // any extra line was present — even when the version was the first line — and
-// gentle-ai then told users with a satisfying version to downgrade (#1794).
+// brunnr-code then told users with a satisfying version to downgrade (#1794).
 //
 // Each line is matched on its own instead, and the whole line must be exactly
 // `codex[-cli] [v]<version>`. That keeps the parser closed against a

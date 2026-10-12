@@ -13,7 +13,7 @@ func RenderCommunityTools(selected []model.CommunityToolID, cursor int, statuses
 	var b strings.Builder
 	b.WriteString(styles.TitleStyle.Render("Community Tools"))
 	b.WriteString("\n\n")
-	b.WriteString(styles.SubtextStyle.Render("Optional cross-agent tools Gentle AI can install and wire for you."))
+	b.WriteString(styles.SubtextStyle.Render("Optional cross-agent tools Brunnr-Code can install and wire for you."))
 	b.WriteString("\n\n")
 
 	if loading {

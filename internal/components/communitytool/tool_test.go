@@ -197,8 +197,8 @@ func TestCodeGraphGuidanceContainsLazyInitAndUsageRules(t *testing.T) {
 		"Do not initialize CodeGraph in `$HOME`, temporary directories, or non-project folders",
 		"<project-root>/.codegraph/",
 		"before any broad Read/Glob/Grep filesystem exploration",
-		"immediately run `gentle-ai codegraph init --cwd <project-root>`",
-		"gentle-ai codegraph init --cwd <project-root>",
+		"immediately run `brunnr-code codegraph init --cwd <project-root>`",
+		"brunnr-code codegraph init --cwd <project-root>",
 		"codegraph_explore",
 		"call paths, and blast-radius context",
 		"invoke the upstream CLI directly",
@@ -211,7 +211,7 @@ func TestCodeGraphGuidanceContainsLazyInitAndUsageRules(t *testing.T) {
 		"`codegraph callees`",
 		"`codegraph impact`",
 		"`codegraph affected`",
-		"Do not use `gentle-ai codegraph` as a general proxy",
+		"Do not use `brunnr-code codegraph` as a general proxy",
 		"Never run or recommend destructive or administrative lifecycle commands",
 		"`codegraph uninit`",
 		"`codegraph install`",
@@ -324,7 +324,7 @@ func TestCodeGraphGuidanceInjectsForRepresentativeAgents(t *testing.T) {
 			t.Fatalf("ReadFile(%q) error = %v", path, err)
 		}
 		text := string(content)
-		if !strings.Contains(text, "<!-- gentle-ai:codegraph-guidance -->") || !strings.Contains(text, "gentle-ai codegraph init --cwd <project-root>") {
+		if !strings.Contains(text, "<!-- gentle-ai:codegraph-guidance -->") || !strings.Contains(text, "brunnr-code codegraph init --cwd <project-root>") {
 			t.Fatalf("%q missing CodeGraph guidance:\n%s", path, text)
 		}
 	}
@@ -374,7 +374,7 @@ func TestDetectStatusReportsCLIAndPerAgentWiring(t *testing.T) {
 	mustWrite(t, filepath.Join(home, ".claude", "CLAUDE.md"), strings.Join([]string{
 		"existing Claude guidance",
 		"<!-- gentle-ai:codegraph-guidance -->",
-		"CodeGraph guidance with `gentle-ai codegraph init --cwd <project-root>`",
+		"CodeGraph guidance with `brunnr-code codegraph init --cwd <project-root>`",
 		"<!-- /gentle-ai:codegraph-guidance -->",
 	}, "\n"))
 

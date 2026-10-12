@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// codexModelCatalog is Gentle AI's curated selectable Codex model catalog for
+// codexModelCatalog is Brunnr-Code's curated selectable Codex model catalog for
 // per-phase custom assignments. It is a UI/configuration catalog, not a runtime
 // availability probe; the Codex CLI remains the source of truth at execution
 // time. Order is intentional: newest/most-capable first.
@@ -44,7 +44,7 @@ func ValidCodexReviewModel(id string) bool {
 	return true
 }
 
-// CodexAvailableModels returns Gentle AI's curated selectable Codex model
+// CodexAvailableModels returns Brunnr-Code's curated selectable Codex model
 // catalog for per-phase Custom picker assignments. The slice is a copy —
 // mutations do not affect the canonical catalog.
 func CodexAvailableModels() []string {
@@ -171,7 +171,7 @@ func DiscoverCodexModels(ctx context.Context) CodexModelCatalog {
 	return discovered
 }
 
-// capabilities keeps only efforts Gentle AI can route, in canonical order, and
+// capabilities keeps only efforts Brunnr-Code can route, in canonical order, and
 // service tiers that are safe request values. "default" is Codex's explicit
 // standard-routing sentinel, not a tier.
 func (entry codexCatalogModel) capabilities() (CodexModelCapabilities, bool) {
@@ -391,7 +391,7 @@ func RenderCodexODDAssignments(phaseModels map[string]string, efforts map[string
 }
 
 // CodexOrchestratorAssignment is the explicit top-level Codex session model
-// selected by a Gentle AI preset. It is separate from delegated SDD carriles.
+// selected by a Brunnr-Code preset. It is separate from delegated SDD carriles.
 type CodexOrchestratorAssignment struct {
 	Model  string
 	Effort CodexEffort
@@ -513,7 +513,7 @@ type CodexTierGroup struct {
 // fallback in RenderCodexPhaseEfforts and the nil-input fallback in
 // resolveProfileAssignments agree on the same canonical tier values:
 //
-// These efforts are Gentle AI workload policy, not Codex defaults.
+// These efforts are Brunnr-Code workload policy, not Codex defaults.
 //
 //	Carril      LowCost  Recommended  Powerful
 //	sdd-strong  medium   medium       xhigh

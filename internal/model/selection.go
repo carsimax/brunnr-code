@@ -14,7 +14,7 @@ type Selection struct {
 	CodexOrchestratorAssignment      *CodexOrchestratorAssignment     // non-nil = apply curated top-level Codex model/effort
 	ClearCodexOrchestratorAssignment bool                             // true = clear persisted curated assignment while preserving config.toml
 	CodexServiceTier                 string                           // global config.toml service_tier ("" = standard); written only when it differs from CodexManagedServiceTier
-	CodexManagedServiceTier          string                           // service_tier Gentle AI previously wrote (from state); retired on standard only while config still holds it
+	CodexManagedServiceTier          string                           // service_tier Brunnr-Code previously wrote (from state); retired on standard only while config still holds it
 	CodexCarrilModelAssignments      map[string]string                // key = carril profile (sdd-strong|sdd-mid|sdd-cheap); value = model id
 	CodexPhaseModelAssignments       map[string]string                // key = phase name; value = model id (Custom per-phase picker only)
 	CommunityTools                   []CommunityToolID                // optional cross-agent community tools/plugins

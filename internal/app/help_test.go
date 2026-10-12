@@ -120,7 +120,7 @@ func TestHelpDocumentsUserControlledReviewModeKillSwitch(t *testing.T) {
 		"asks per candidate",
 		"nothing is granted for later candidates",
 		"'not now' applies to that candidate only",
-		"gentle-ai review mode disable",
+		"brunnr-code review mode disable",
 		"[--locale <en|es>]",
 	} {
 		if !strings.Contains(output, want) {

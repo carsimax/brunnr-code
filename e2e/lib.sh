@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lib.sh — shared test helpers for gentle-ai E2E tests
+# lib.sh — shared test helpers for brunnr-code E2E tests
 # Sourced by e2e_test.sh; never executed directly.
 #
 # Deliberately NO `set -e` here: `source` shares shell options with the
@@ -85,7 +85,7 @@ cleanup_test_env() {
 
 # setup_fake_engram_binary — install a deterministic local engram shim for E2E.
 #
-# Full Docker E2E validates gentle-ai's agent/config injection behavior, not the
+# Full Docker E2E validates brunnr-code's agent/config injection behavior, not the
 # external Engram release CDN. The real installer skips the network download when
 # an `engram` binary already exists on PATH, so this shim keeps coverage of the
 # install pipeline while avoiding flaky GitHub API/rate-limit failures.
@@ -370,7 +370,7 @@ assert_md5_match() {
 }
 
 # assert_no_duplicate_section FILE SECTION_ID LABEL
-# Checks that the gentle-ai section marker appears exactly once (no duplicates).
+# Checks that the brunnr-code section marker appears exactly once (no duplicates).
 assert_no_duplicate_section() {
     local file="$1"
     local section_id="$2"

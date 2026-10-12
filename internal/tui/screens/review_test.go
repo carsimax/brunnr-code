@@ -17,7 +17,7 @@ import (
 func TestRenderReviewShowsSkillNames(t *testing.T) {
 	payload := planner.ReviewPayload{
 		Agents: []model.AgentID{model.AgentClaudeCode},
-		Preset: model.PresetFullGentleman,
+		Preset: model.PresetFull,
 		Components: []planner.ComponentAction{
 			{ID: model.ComponentSkills, Action: "selected"},
 		},
@@ -40,7 +40,7 @@ func TestRenderReviewShowsSkillNames(t *testing.T) {
 func TestRenderReviewHidesSkillsSectionWhenEmpty(t *testing.T) {
 	payload := planner.ReviewPayload{
 		Agents: []model.AgentID{model.AgentClaudeCode},
-		Preset: model.PresetFullGentleman,
+		Preset: model.PresetFull,
 		// No Skills field.
 	}
 

@@ -6,30 +6,16 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// logoLines contains the ASCII art for the Gentle-AI neon rose logo.
+// logoLines contains the ASCII "BRUNNR-CODE" wordmark.
 var logoLines = []string{
-	"             ⣠⣾⣷⣶⣦⣤⣤⣄⣠⣄⣀  ⢀⣀⣀",
-	"          ⢀⣴⣿⣿⠿⣋⣭⣭⣯⣭⣍⣭⣿⣟⠛⠛⠿⠿⣿⣷⣄",
-	"      ⢀⣴⣾⡟⢻⣿⡟⠁⣼⣿⠏⣵⢻⣿⣻⣿⣿⢿⡻⣿⣿⣶⡌⢿⣿⣷⣦⣤⡄",
-	"   ⣤⣶⣾⣿⣿⠏ ⠈⢿⣄ ⢹⣏⠠⠟⣾⣿⣿⣿⣿⣿⠷⣏⣼⠟⢡⣿⡟⠋⢻⣿⣿⡄",
-	"   ⠈⣿⣿⣿⣿⡆   ⣽⢧⡘⠈⠳⣦⣍⠛⠛⢦⣉⣴⣛⣫⣭⣴⡟⠋  ⣾⣿⣿⡿",
-	"   ⢀⠹⣿⣿⣿⣷⣤⡄ ⠋ ⠙⢆ ⣠⠴⠟⠛⣛⣛⣛⠟⠋⠁⠺⡇ ⣀⣴⣿⣿⡟⠁",
-	"   ⠈⣀⠈⠛⠷⠿⣿⣿⣷⣤⣀ ⢠⠋   ⠈⠉⠉    ⣠⣴⣥⠾⠛⠉⣰⣿⣷",
-	"          ⠹⣯⣝⠛⠛⠷⢶⣤⣤⣀   ⢀⡠⠖⠋⠉⢉⣀⣀⣴⣾⣿⠿⠟⠃ ⠠⠦",
-	"⠁       ⠖  ⠘⠻⢿⣦⣄⡀  ⠉⠛⢦⠠⢊⠤⠴⢒⣛⣛⣩⣽⡿⠟⠁⢀⡀",
-	"⠲⠶⣦⠴⠶⠶⠶⠶⡶⠶⢶⣤⣄⡀⠨⠭⠽⠟⣓⢦⣀⠈⢇⡥⠖⠛⠋⠉⠉⠉    ⠈  ⢠⡤",
-	"  ⠈⢷ ⠐⠂⢤⣽⣄ ⠰⡎⠙⠳⣄⡀ ⠈⢣⠘⢦⠋⣀⡬⠟⠛⠛⠉⢀⣀⣀⣠⡤⠄⠃",
-	"   ⠈⢳⣀⡒⠉⠉⣉⠙⡲⣽⣄ ⣏⠳⡄ ⠘⡇ ⡾⠁ ⢀⡤⠖⣻⣿⡏⢡⡎ ⠰⠄",
-	"     ⠛⠻⢦⣄⣉⡁⣀⣀⣈⣙⣺⣌⡇⢠⢀⡇⡾  ⣴⣿⡷⠊ ⢲⣠⠟",
-	"          ⠈⠉    ⠈⠳⡄⣸⢱⠇⢀⣰⣯⣭⣥⠭⠾⠛⠃",
-	"                  ⡷⠡⡯⢖⠉   ⢠⠤",
-	"                ⡠⢊⡴⠤⠂⠃ ⠒",
-	"             ⢀⡴⢪⠔⣉⠔⠋",
-	"               ⠐⠈",
+	" ___  ___  _   _  _  _  _  _  ___        ___   ___   ___   ___",
+	"| _ )| _ \\| | | || \\| || \\| || _ \\ ___  / __| / _ \\ |   \\ | __|",
+	"| _ \\|   /| |_| || .` || .` ||   /|___|| (__ | (_) || |) || _|",
+	"|___/|_|_\\ \\___/ |_|\\_||_|\\_||_|_\\      \\___| \\___/ |___/ |___|",
 }
 
 // gradientColors defines the top-to-bottom gradient for the logo.
-// Distributed across rows: neon rose → lavender → blue → teal → green.
+// Distributed across rows: mauve → lavender → blue → teal → green.
 var gradientColors = []lipgloss.Color{
 	ColorMauve,    // band 1
 	ColorLavender, // band 2

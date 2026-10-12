@@ -160,7 +160,7 @@ func TestInjectClaudeWritesUserConfigAndIsIdempotent(t *testing.T) {
 
 // TestInjectClaudeSettingsInertBlockCleanup: the inert settings.json block is
 // removed when it only holds the managed context7 entry, and left untouched
-// when it carries servers gentle-ai does not manage.
+// when it carries servers brunnr-code does not manage.
 func TestInjectClaudeSettingsInertBlockCleanup(t *testing.T) {
 	cases := []struct {
 		name           string

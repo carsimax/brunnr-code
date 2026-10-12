@@ -85,7 +85,7 @@ func validCodexServiceTier(tier string) string {
 }
 
 // readPersistedCodexServiceTier returns the Codex service tier state recorded
-// as written by Gentle AI, or nil when state cannot be read.
+// as written by Brunnr-Code, or nil when state cannot be read.
 var readPersistedCodexServiceTier = func() *string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -679,15 +679,15 @@ func NewModel(detection system.DetectionResult, version string, installState ...
 		s = installState[0]
 	}
 	agents := preselectedAgents(detection, s)
-	components := componentsForPreset(model.PresetFullGentleman)
+	components := componentsForPreset(model.PresetFull)
 
 	selection := model.Selection{
 		Agents:                 agents,
-		Preset:                 model.PresetFullGentleman,
+		Preset:                 model.PresetFull,
 		Components:             components,
 		ClaudeModelAssignments: installStateClaudeAssignments(s.ClaudeModelAssignments),
 		ClaudePhaseAssignments: installStateClaudePhaseAssignments(s.ClaudePhaseAssignments),
-		// The persisted tier is both the pre-selection and what Gentle manages.
+		// The persisted tier is both the pre-selection and what Brunnr-Code manages.
 		CodexServiceTier:        validCodexServiceTier(s.CodexServiceTier),
 		CodexManagedServiceTier: validCodexServiceTier(s.CodexServiceTier),
 	}
@@ -903,7 +903,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Err != nil {
 			m.Progress.AppendLog("FAILED: save global RDD mode — %s", msg.Err)
 			m.Execution.ManualActions = append(m.Execution.ManualActions,
-				"RDD mode was not saved. Retry with `gentle-ai review mode enable --scope global` or `gentle-ai review mode disable --scope global`.")
+				"RDD mode was not saved. Retry with `brunnr-code review mode enable --scope global` or `brunnr-code review mode disable --scope global`.")
 		}
 		return m, nil
 	case ReviewStoreResetDoneMsg:
@@ -2680,7 +2680,7 @@ func (m Model) startUninstall() tea.Cmd {
 			}
 			if isHomebrewManagedBinary(execPath) {
 				result.ManualActions = append(result.ManualActions,
-					"Homebrew-managed install detected. Run 'brew uninstall gentle-ai' to remove the executable cleanly.")
+					"Homebrew-managed install detected. Run 'brew uninstall brunnr-code' to remove the executable cleanly.")
 			} else if removeErr := osRemoveFn(execPath); removeErr != nil {
 				return UninstallDoneMsg{Result: result, Err: fmt.Errorf("uninstall succeeded but failed to remove binary at %q: %w", execPath, removeErr)}
 			}
@@ -3445,7 +3445,7 @@ func (m *Model) buildDependencyPlan() {
 	m.DependencyPlan = resolved
 }
 
-// agentsToManage returns the canonical list of agents gentle-ai should manage.
+// agentsToManage returns the canonical list of agents brunnr-code should manage.
 // A persisted selection is authoritative, including a deliberately configured
 // empty selection. Only state without an install selection falls back to detected
 // agents, then to the first-install catalog default.

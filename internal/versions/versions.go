@@ -3,7 +3,7 @@
 // by the customManager defined in renovate.json — keep them in the exact form
 // `// renovate: datasource=<ds> depName=<name>` immediately above each const.
 //
-// Agent runtime pins live nowhere here: gentle-ai no longer installs agent
+// Agent runtime pins live nowhere here: brunnr-code no longer installs agent
 // runtimes on the user's behalf (see agentInstallStep in internal/cli/run.go),
 // and the display-only refusal commands advise "latest" instead, since a
 // human runs them and a frozen version goes stale as soon as a newer release

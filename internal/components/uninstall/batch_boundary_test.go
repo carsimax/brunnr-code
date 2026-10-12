@@ -170,7 +170,7 @@ func TestPartialUninstallCommitsSucceededAgentsWhenAnotherAgentFails(t *testing.
 	claudeSettings := filepath.Join(home, ".claude", "settings.json")
 	codexPrompt := filepath.Join(home, ".codex", "AGENTS.md")
 
-	writeBatchFile(t, claudeSettings, `{"theme":"gentleman",`)
+	writeBatchFile(t, claudeSettings, `{"theme":"brunnr",`)
 	writeBatchFile(t, codexPrompt, "user instructions\n<!-- gentle-ai:persona -->\nmanaged\n<!-- /gentle-ai:persona -->\n")
 	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code", "codex"}}); err != nil {
 		t.Fatal(err)

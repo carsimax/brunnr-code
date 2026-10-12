@@ -7,7 +7,7 @@
 // the same directory when a lookup of both reports the same device and inode
 // (os.SameFile). Nothing here compares path strings to decide identity.
 //
-// This is the only rule that is correct on every volume gentle-ai runs on,
+// This is the only rule that is correct on every volume brunnr-code runs on,
 // because every property that makes two different spellings name one directory
 // is decided by the filesystem during lookup and is not recoverable from the
 // strings:

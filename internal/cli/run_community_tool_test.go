@@ -123,7 +123,7 @@ func TestNativeReviewCodeGraphGuidanceMarkdownOnlyWhenSelected(t *testing.T) {
 				mustWriteFile(t, filepath.Join(home, ".claude", "CLAUDE.md"), []byte(strings.Join([]string{
 					"existing Claude guidance",
 					"<!-- gentle-ai:codegraph-guidance -->",
-					"CodeGraph guidance with `gentle-ai codegraph init --cwd <project-root>`",
+					"CodeGraph guidance with `brunnr-code codegraph init --cwd <project-root>`",
 					"<!-- /gentle-ai:codegraph-guidance -->",
 				}, "\n")))
 			},
@@ -171,7 +171,7 @@ func TestNativeReviewCodeGraphGuidanceMarkdownOnlyWhenSelected(t *testing.T) {
 				}
 				return
 			}
-			if !strings.Contains(got, "gentle-ai codegraph init --cwd <project-root>") {
+			if !strings.Contains(got, "brunnr-code codegraph init --cwd <project-root>") {
 				t.Fatalf("CodeGraph guidance missing search-order rule:\n%s", got)
 			}
 		})

@@ -15,12 +15,6 @@ type jsonPath []string
 
 const maxManagedFileSize = 16 << 20
 
-var managedPersonaFingerprints = []string{
-	"## Personality",
-	"Senior Architect",
-	"## Rules",
-}
-
 func removeMarkdownSections(content string, sectionIDs ...string) (string, bool) {
 	updated := content
 	changed := false
@@ -32,43 +26,6 @@ func removeMarkdownSections(content string, sectionIDs ...string) (string, bool)
 		}
 	}
 	return updated, changed
-}
-
-func removeManagedPersonaPreamble(content string) (string, bool) {
-	normalized := strings.ReplaceAll(content, "\r\n", "\n")
-	markerIdx := strings.Index(normalized, "<!-- gentle-ai:")
-
-	prefix := normalized
-	suffix := ""
-	if markerIdx >= 0 {
-		prefix = normalized[:markerIdx]
-		suffix = normalized[markerIdx:]
-	}
-
-	if strings.TrimSpace(prefix) == "" || !looksLikeManagedPersonaPrefix(prefix) {
-		return content, false
-	}
-
-	if markerIdx < 0 {
-		return content, false
-	}
-
-	suffix = strings.TrimLeft(suffix, "\n")
-	return suffix, true
-}
-
-func looksLikeManagedPersonaPrefix(prefix string) bool {
-	if strings.Contains(prefix, "name: Gentle AI Persona") && strings.Contains(prefix, "description: Teaching-oriented persona") {
-		return true
-	}
-
-	for _, fingerprint := range managedPersonaFingerprints {
-		if !strings.Contains(prefix, fingerprint) {
-			return false
-		}
-	}
-
-	return true
 }
 
 func removeJSONPaths(raw []byte, paths ...jsonPath) ([]byte, bool, error) {

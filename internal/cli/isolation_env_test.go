@@ -26,7 +26,7 @@ func TestBackupRootsHonorGentleAIHome(t *testing.T) {
 			want := filepath.Join(home, ".gentle-ai", "backups")
 			t.Setenv(state.HomeEnv, "")
 			if tt.override {
-				override := filepath.Join(t.TempDir(), "gentle-ai")
+				override := filepath.Join(t.TempDir(), "brunnr-code")
 				t.Setenv(state.HomeEnv, override)
 				want = filepath.Join(override, "backups")
 			}

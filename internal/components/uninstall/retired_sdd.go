@@ -79,7 +79,7 @@ func retireSDDAgents(agent model.AgentID, dir string, removed, actions *[]string
 	case !info.IsDir():
 		for _, path := range legacyassets.RetiredSDDAgentPaths(agent, dir) {
 			if _, err := os.Stat(path); err == nil {
-				*actions = append(*actions, fmt.Sprintf("%s is not a real directory (for example a symlink), so Gentle AI did not inspect or remove the retired SDD agents behind it. SDD was retired in v4.0.0 and those agents are no longer maintained; if you no longer need them, move or delete them yourself.", dir))
+				*actions = append(*actions, fmt.Sprintf("%s is not a real directory (for example a symlink), so Brunnr-Code did not inspect or remove the retired SDD agents behind it. SDD was retired in v4.0.0 and those agents are no longer maintained; if you no longer need them, move or delete them yourself.", dir))
 				break
 			}
 		}

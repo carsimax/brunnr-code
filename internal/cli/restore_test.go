@@ -286,7 +286,7 @@ func TestRunRestore_BooleanFlagValues(t *testing.T) {
 	label := "install — " + time.Date(2026, 3, 20, 10, 0, 0, 0, time.UTC).Local().Format("2006-01-02 15:04")
 	complete := "restore complete — restored backup backup-000 (" + label + ")\n"
 	prompt := "Restore backup backup-000 (" + label + ")?\nThis will overwrite your current configuration. Type 'yes' to confirm: "
-	const usage = "usage: gentle-ai restore [--list | latest | <id>] [--yes]"
+	const usage = "usage: brunnr-code restore [--list | latest | <id>] [--yes]"
 	listing := "Available backups (1):\n  [1] backup-000  " + label + "\n"
 	for _, test := range []struct {
 		name      string
@@ -346,7 +346,7 @@ func TestRunRestore_BooleanFlagValues(t *testing.T) {
 func TestRunRestore_EndOfFlagsAndExtraArguments(t *testing.T) {
 	label := "install — " + time.Date(2026, 3, 20, 10, 0, 0, 0, time.UTC).Local().Format("2006-01-02 15:04")
 	prompt := "Restore backup backup-000 (" + label + ")?\nThis will overwrite your current configuration. Type 'yes' to confirm: "
-	const usage = "usage: gentle-ai restore [--list | latest | <id>] [--yes]"
+	const usage = "usage: brunnr-code restore [--list | latest | <id>] [--yes]"
 	for _, test := range []struct {
 		name    string
 		args    []string
@@ -360,7 +360,7 @@ func TestRunRestore_EndOfFlagsAndExtraArguments(t *testing.T) {
 		{name: "extra targets in list mode", args: []string{"--list", "latest", "backup-000"}, wantErr: usage},
 		{name: "target after terminator requires confirmation", args: []string{"--", "latest"}, wantOut: prompt, wantErr: "confirmation: no confirmation provided (use --yes to skip prompt)"},
 		{name: "terminator after target requires confirmation", args: []string{"latest", "--"}, wantOut: prompt, wantErr: "confirmation: no confirmation provided (use --yes to skip prompt)"},
-		{name: "list after terminator is a target", args: []string{"--", "--list"}, wantErr: "backup \"--list\" not found — use `gentle-ai restore --list` to see available backups"},
+		{name: "list after terminator is a target", args: []string{"--", "--list"}, wantErr: "backup \"--list\" not found — use `brunnr-code restore --list` to see available backups"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			home := setupRestoreHome(t, 1)
@@ -416,7 +416,7 @@ func TestRunRestore_InvalidFlagsDoNotRestore(t *testing.T) {
 					t.Fatal(err)
 				}
 				err := RunRestoreWithFnAndInput(args, restorer, &out, strings.NewReader("yes\n"))
-				wantErr := "parse restore flags: " + test.err + " — run `gentle-ai restore --help` for the supported flags:\n" + strings.TrimSuffix(help.String(), "\n")
+				wantErr := "parse restore flags: " + test.err + " — run `brunnr-code restore --help` for the supported flags:\n" + strings.TrimSuffix(help.String(), "\n")
 				if err == nil || err.Error() != wantErr {
 					t.Errorf("error = %v, want %q", err, wantErr)
 				}

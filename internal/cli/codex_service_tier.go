@@ -10,7 +10,7 @@ import (
 )
 
 // restoreCodexServiceTier selects the tier state recorded as written, which is
-// also the tier Gentle AI manages. Invalid persisted values are dropped and
+// also the tier Brunnr-Code manages. Invalid persisted values are dropped and
 // never used to edit config.toml.
 func restoreCodexServiceTier(selection *model.Selection, persisted state.InstallState) {
 	tier := persisted.CodexServiceTier

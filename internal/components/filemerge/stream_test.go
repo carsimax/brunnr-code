@@ -95,7 +95,7 @@ func TestWriteStreamAtomicReportsTheDigestOfTheFileOnDisk(t *testing.T) {
 // TestWriteStreamAtomicPreservesRequestedMode covers the executable case the
 // binary installers rely on.
 func TestWriteStreamAtomicPreservesRequestedMode(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "gentle-ai")
+	path := filepath.Join(t.TempDir(), "brunnr-code")
 
 	if _, err := WriteStreamAtomic(path, strings.NewReader("#!/bin/sh\n"), 0o755); err != nil {
 		t.Fatalf("WriteStreamAtomic: %v", err)

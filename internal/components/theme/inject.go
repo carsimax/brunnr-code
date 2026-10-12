@@ -16,7 +16,7 @@ type InjectionResult struct {
 	Files   []string
 }
 
-var themeOverlayJSON = []byte("{\n  \"theme\": \"gentleman\"\n}\n")
+var themeOverlayJSON = []byte("{\n  \"theme\": \"brunnr\"\n}\n")
 
 type claudeTheme struct {
 	Name      string            `json:"name"`
@@ -32,16 +32,16 @@ func palette(pairs ...string) map[string]string {
 	return colors
 }
 
-var gentlemanClaudeTheme = claudeTheme{
-	Name: "gentleman", Base: "dark",
+var brunnrClaudeTheme = claudeTheme{
+	Name: "brunnr", Base: "dark",
 	Overrides: palette(
 		"diffAdded", "#3F4A2D", "diffRemoved", "#5C3838", "diffAddedWord", "#76946A", "diffRemovedWord", "#C34043",
 		"chromeYellow", "#DCA561", "briefLabelYou", "#DCA561", "rainbow_yellow", "#DCA561", "yellow_FOR_SUBAGENTS_ONLY", "#DCA561",
 	),
 }
 
-var gentlemanCuteClaudeTheme = claudeTheme{
-	Name: "Gentleman Cute", Base: "dark",
+var brunnrCuteClaudeTheme = claudeTheme{
+	Name: "Brunnr Cute", Base: "dark",
 	Overrides: palette(
 		"claude", "#F095C8", "claudeShimmer", "#FFB1DD", "text", "#F6EFF3", "inactive", "#A78E9B", "subtle", "#76616B", "suggestion", "#FFB1DD",
 		"permission", "#F095C8", "promptBorder", "#F095C8", "planMode", "#A9C7EE", "autoAccept", "#FF81CC", "bashBorder", "#E0C27A",
@@ -79,7 +79,7 @@ func InjectVisualThemes(homeDir string, adapter agents.Adapter) (InjectionResult
 	var values []any
 	switch adapter.Agent() {
 	case model.AgentClaudeCode:
-		values = []any{gentlemanClaudeTheme, gentlemanCuteClaudeTheme}
+		values = []any{brunnrClaudeTheme, brunnrCuteClaudeTheme}
 	}
 
 	result := InjectionResult{Files: make([]string, 0, len(paths))}
@@ -108,7 +108,7 @@ func VisualThemePaths(homeDir string, adapter agents.Adapter) []string {
 	default:
 		return nil
 	}
-	return []string{filepath.Join(root, "gentleman.json"), filepath.Join(root, "gentleman-cute.json")}
+	return []string{filepath.Join(root, "brunnr.json"), filepath.Join(root, "brunnr-cute.json")}
 }
 
 func mergeJSONFile(path string, overlay []byte) (filemerge.WriteResult, error) {

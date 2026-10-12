@@ -54,13 +54,13 @@ func TestInjectMergesThemeOverlayIntoAdapterSettings(t *testing.T) {
 	if err := json.Unmarshal(data, &root); err != nil {
 		t.Fatalf("Unmarshal(settings) error = %v", err)
 	}
-	if root.Theme != "gentleman" {
-		t.Fatalf("theme = %q, want gentleman", root.Theme)
+	if root.Theme != "brunnr" {
+		t.Fatalf("theme = %q, want brunnr", root.Theme)
 	}
 	if got := root.Permissions["allow"]; len(got) != 1 || got[0] != "Bash(go test ./...)" {
 		t.Fatalf("permissions.allow = %#v, want preserved existing permission", got)
 	}
-	if _, err := os.Stat(filepath.Join(home, ".claude", "themes", "gentleman.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(home, ".claude", "themes", "brunnr.json")); !os.IsNotExist(err) {
 		t.Fatalf("Inject() should not write Claude custom theme file; stat error = %v", err)
 	}
 }
@@ -84,13 +84,13 @@ func TestInjectVisualThemesIsIdempotentForClaude(t *testing.T) {
 		t.Fatalf("InjectVisualThemes() second changed = true")
 	}
 
-	path := filepath.Join(home, ".claude", "themes", "gentleman.json")
+	path := filepath.Join(home, ".claude", "themes", "brunnr.json")
 	if _, err := os.Stat(path); err != nil {
 		t.Fatalf("expected Claude theme file %q: %v", path, err)
 	}
 }
 
-func TestInjectVisualThemesPreservesGentlemanClaudeTheme(t *testing.T) {
+func TestInjectVisualThemesPreservesBrunnrClaudeTheme(t *testing.T) {
 	home := t.TempDir()
 
 	result, err := InjectVisualThemes(home, claudeAdapter())
@@ -98,9 +98,9 @@ func TestInjectVisualThemesPreservesGentlemanClaudeTheme(t *testing.T) {
 		t.Fatalf("InjectVisualThemes() error = %v", err)
 	}
 
-	themePath := filepath.Join(home, ".claude", "themes", "gentleman.json")
+	themePath := filepath.Join(home, ".claude", "themes", "brunnr.json")
 	if len(result.Files) != 2 || result.Files[0] != themePath {
-		t.Fatalf("files = %#v, want Gentleman first at %q", result.Files, themePath)
+		t.Fatalf("files = %#v, want Brunnr first at %q", result.Files, themePath)
 	}
 
 	data, err := os.ReadFile(themePath)
@@ -117,8 +117,8 @@ func TestInjectVisualThemesPreservesGentlemanClaudeTheme(t *testing.T) {
 		t.Fatalf("Unmarshal(theme) error = %v", err)
 	}
 
-	if root.Name != "gentleman" || root.Base != "dark" {
-		t.Fatalf("theme identity = %q/%q, want gentleman/dark", root.Name, root.Base)
+	if root.Name != "brunnr" || root.Base != "dark" {
+		t.Fatalf("theme identity = %q/%q, want brunnr/dark", root.Name, root.Base)
 	}
 	expected := map[string]string{
 		"diffAdded":                 "#3F4A2D",
@@ -143,8 +143,8 @@ func TestInjectVisualThemesPreservesGentlemanClaudeTheme(t *testing.T) {
 }
 
 const (
-	gentlemanClaudeFixture = `{"name":"gentleman","base":"dark","overrides":{"diffAdded":"#3F4A2D","diffRemoved":"#5C3838","diffAddedWord":"#76946A","diffRemovedWord":"#C34043","chromeYellow":"#DCA561","briefLabelYou":"#DCA561","rainbow_yellow":"#DCA561","yellow_FOR_SUBAGENTS_ONLY":"#DCA561"}}`
-	cuteClaudeFixture      = `{"name":"Gentleman Cute","base":"dark","overrides":{"claude":"#F095C8","claudeShimmer":"#FFB1DD","text":"#F6EFF3","inactive":"#A78E9B","subtle":"#76616B","suggestion":"#FFB1DD","permission":"#F095C8","promptBorder":"#F095C8","planMode":"#A9C7EE","autoAccept":"#FF81CC","bashBorder":"#E0C27A","remember":"#E0C27A","success":"#B4E7C7","merged":"#B4E7C7","error":"#FF718F","warning":"#F2B86D","diffAdded":"#1A2420","diffRemoved":"#2D151F","diffAddedWord":"#2D5A45","diffRemovedWord":"#7A2948","userMessageBackground":"#241822","userMessageBackgroundHover":"#342230","selectionBg":"#563040","memoryBackgroundColor":"#1A1218","bashMessageBackgroundColor":"#151316"}}`
+	brunnrClaudeFixture = `{"name":"brunnr","base":"dark","overrides":{"diffAdded":"#3F4A2D","diffRemoved":"#5C3838","diffAddedWord":"#76946A","diffRemovedWord":"#C34043","chromeYellow":"#DCA561","briefLabelYou":"#DCA561","rainbow_yellow":"#DCA561","yellow_FOR_SUBAGENTS_ONLY":"#DCA561"}}`
+	cuteClaudeFixture   = `{"name":"Brunnr Cute","base":"dark","overrides":{"claude":"#F095C8","claudeShimmer":"#FFB1DD","text":"#F6EFF3","inactive":"#A78E9B","subtle":"#76616B","suggestion":"#FFB1DD","permission":"#F095C8","promptBorder":"#F095C8","planMode":"#A9C7EE","autoAccept":"#FF81CC","bashBorder":"#E0C27A","remember":"#E0C27A","success":"#B4E7C7","merged":"#B4E7C7","error":"#FF718F","warning":"#F2B86D","diffAdded":"#1A2420","diffRemoved":"#2D151F","diffAddedWord":"#2D5A45","diffRemovedWord":"#7A2948","userMessageBackground":"#241822","userMessageBackgroundHover":"#342230","selectionBg":"#563040","memoryBackgroundColor":"#1A1218","bashMessageBackgroundColor":"#151316"}}`
 )
 
 func TestInjectVisualThemesWritesExpectedAssets(t *testing.T) {
@@ -175,15 +175,15 @@ func TestInjectVisualThemesWritesExpectedAssets(t *testing.T) {
 		path, fixture string
 		value         any
 	}{
-		{filepath.Join(home, ".claude", "themes", "gentleman.json"), gentlemanClaudeFixture, &claudeTheme{}},
-		{filepath.Join(home, ".claude", "themes", "gentleman-cute.json"), cuteClaudeFixture, &claudeTheme{}},
+		{filepath.Join(home, ".claude", "themes", "brunnr.json"), brunnrClaudeFixture, &claudeTheme{}},
+		{filepath.Join(home, ".claude", "themes", "brunnr-cute.json"), cuteClaudeFixture, &claudeTheme{}},
 	} {
 		got, err := os.ReadFile(tt.path)
 		if err != nil || !bytes.Equal(got, indentedJSON(t, tt.fixture, tt.value)) {
 			t.Fatalf("%s bytes mismatch: %v", tt.path, err)
 		}
 	}
-	cute := gentlemanCuteClaudeTheme
+	cute := brunnrCuteClaudeTheme
 	for _, key := range []string{"background", "backgroundFullscreen", "backgroundUser", "backgroundHover", "backgroundSelection", "backgroundMemory", "backgroundBash", "shimmer"} {
 		if _, exists := cute.Overrides[key]; exists {
 			t.Fatalf("Claude Cute contains invalid override %q", key)

@@ -27,7 +27,7 @@ var additionalSkillLabels = map[model.SkillID]string{
 	model.SkillWorkUnitCommits:     "Work Unit Commits",
 	model.SkillRDDDefectWorkflow:   "RDD Defect Workflow",
 	model.SkillSystemicIssueTriage: "Systemic Issue Triage",
-	model.SkillGentleAIBench:       "Gentle AI Bench",
+	model.SkillGentleAIBench:       "Brunnr-Code Bench",
 }
 
 // SkillPickerOptions returns the action buttons shown after the skill checkboxes.

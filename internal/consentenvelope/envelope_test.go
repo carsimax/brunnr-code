@@ -9,10 +9,10 @@ func validCore() Core {
 		Value:    "Deciding here keeps authority with the human.",
 		Evidence: []string{},
 		Choices: []Choice{
-			{Answer: "granted", Label: "Grant", Effect: "Grants once.", Invocation: "gentle-ai example --consent granted"},
-			{Answer: "declined", Label: "Decline", Effect: "Stays blocked.", Invocation: "gentle-ai example --consent declined"},
+			{Answer: "granted", Label: "Grant", Effect: "Grants once.", Invocation: "brunnr-code example --consent granted"},
+			{Answer: "declined", Label: "Decline", Effect: "Stays blocked.", Invocation: "brunnr-code example --consent declined"},
 		},
-		OffPath: OffPath{Note: "The documented alternative.", Command: "gentle-ai example off"},
+		OffPath: OffPath{Note: "The documented alternative.", Command: "brunnr-code example off"},
 	}
 }
 

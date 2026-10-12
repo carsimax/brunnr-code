@@ -52,7 +52,7 @@ func TestBackupRootFollowsGentleAIHome(t *testing.T) {
 		t.Fatalf("default BackupRootFn() = %q, %v", got, err)
 	}
 
-	override := filepath.Join(t.TempDir(), "gentle-ai")
+	override := filepath.Join(t.TempDir(), "brunnr-code")
 	t.Setenv(state.HomeEnv, override)
 	applyStateHome()
 	if got, err := backup.BackupRootFn(); err != nil || got != filepath.Join(override, "backups") {

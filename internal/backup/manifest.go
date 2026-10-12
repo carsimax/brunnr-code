@@ -60,7 +60,7 @@ type Manifest struct {
 	// not counted. Optional: omitted when zero for backward-compatibility.
 	FileCount int `json:"file_count,omitempty"`
 
-	// CreatedByVersion is the gentle-ai version that created this backup.
+	// CreatedByVersion is the brunnr-code version that created this backup.
 	// Optional: omitted when empty for backward-compatibility with old manifests.
 	CreatedByVersion string `json:"created_by_version,omitempty"`
 

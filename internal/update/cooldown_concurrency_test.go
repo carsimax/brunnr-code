@@ -208,7 +208,7 @@ func awaitSignal(t *testing.T, ctx context.Context, signal <-chan struct{}, mess
 
 func buildCandidateBinary(t *testing.T) string {
 	t.Helper()
-	binaryName := "gentle-ai"
+	binaryName := "brunnr-code"
 	if runtime.GOOS == "windows" {
 		binaryName += ".exe"
 	}
@@ -223,9 +223,9 @@ func buildCandidateBinary(t *testing.T) string {
 	started := time.Now()
 	if output, err := command.CombinedOutput(); err != nil {
 		if ctx.Err() != nil {
-			t.Fatalf("build candidate gentle-ai binary timed out (budget %s, elapsed %s): %v; command error: %v\n%s", buildTimeout, time.Since(started), ctx.Err(), err, output)
+			t.Fatalf("build candidate brunnr-code binary timed out (budget %s, elapsed %s): %v; command error: %v\n%s", buildTimeout, time.Since(started), ctx.Err(), err, output)
 		}
-		t.Fatalf("build candidate gentle-ai binary failed after %s: %v\n%s", time.Since(started), err, output)
+		t.Fatalf("build candidate brunnr-code binary failed after %s: %v\n%s", time.Since(started), err, output)
 	}
 	return binary
 }

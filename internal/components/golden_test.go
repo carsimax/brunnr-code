@@ -33,7 +33,7 @@ func TestGoldenConfigs(t *testing.T) {
 	}
 
 	presets := []presetMapping{
-		{Preset: "full-gentleman", Skills: toStringSlice(skills.SkillsForPreset("full-gentleman"))},
+		{Preset: "full", Skills: toStringSlice(skills.SkillsForPreset("full"))},
 		{Preset: "ecosystem-only", Skills: toStringSlice(skills.SkillsForPreset("ecosystem-only"))},
 		{Preset: "minimal", Skills: toStringSlice(skills.SkillsForPreset("minimal"))},
 	}

@@ -9,7 +9,7 @@ import (
 
 func PresetOptions() []model.PresetID {
 	return []model.PresetID{
-		model.PresetFullGentleman,
+		model.PresetFull,
 		model.PresetEcosystemOnly,
 		model.PresetMinimal,
 		model.PresetCustom,
@@ -19,14 +19,14 @@ func PresetOptions() []model.PresetID {
 var presetDescriptions = map[model.PresetID]string{
 	model.PresetMinimal:       "Just Engram persistent memory across sessions",
 	model.PresetEcosystemOnly: "Memory + skills + docs",
-	model.PresetFullGentleman: "Dev Stack plus managed themes and logo polish",
+	model.PresetFull:          "Dev Stack plus managed themes and logo polish",
 	model.PresetCustom:        "Choose each component manually: memory, persona, themes, logo, and more",
 }
 
 var presetLabels = map[model.PresetID]string{
 	model.PresetMinimal:       "Memory Only",
 	model.PresetEcosystemOnly: "Dev Stack",
-	model.PresetFullGentleman: "Dev Stack + Polish",
+	model.PresetFull:          "Dev Stack + Polish",
 	model.PresetCustom:        "Custom",
 }
 

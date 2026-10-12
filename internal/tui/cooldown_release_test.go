@@ -80,7 +80,7 @@ func TestCooldownReleaseRefreshOnUpgradeEntry(t *testing.T) {
 			if calls != 1 || !m.UpdateCheckDone || !update.HasUpdates(m.UpdateResults) {
 				t.Fatalf("fresh check not offered: calls=%d model=%+v", calls, m)
 			}
-			if cursor == 1 && (!strings.Contains(m.View(), "gentle-ai") || !strings.Contains(m.View(), "2.0.0")) {
+			if cursor == 1 && (!strings.Contains(m.View(), "brunnr-code") || !strings.Contains(m.View(), "2.0.0")) {
 				t.Fatal("upgrade target not rendered")
 			}
 			if cursor == 3 && !strings.Contains(m.View(), "Updates available") {

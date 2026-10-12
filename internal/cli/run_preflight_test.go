@@ -54,7 +54,7 @@ func (errNotFound) Error() string { return "not found" }
 // These four tests used to prove that a missing npm blocked the pipeline
 // with a clear, actionable error before `npm install -g …` ran and surfaced
 // a cryptic "exec: npm: executable file not found" (the Windows regression
-// this file was originally written for). gentle-ai no longer runs that
+// this file was originally written for). brunnr-code no longer runs that
 // command at all for non-Pi agents — the refusal in agentInstallStep prints
 // it instead — so there is nothing left to preflight here, and no exec to
 // crash: the cryptic-error scenario these guarded against cannot happen

@@ -113,7 +113,7 @@ func TestParseSyncFlagsAgentsRepeated(t *testing.T) {
 }
 
 // TestRunSyncRejectsUnsupportedAgent closes install/sync surface audit
-// finding 3: `gentle-ai sync --agent cluade` (a typo) previously printed
+// finding 3: `brunnr-code sync --agent cluade` (a typo) previously printed
 // "All managed assets are already up to date. No files changed." — the user
 // believed they synced, but asAgentIDs silently converted the typo into an
 // AgentID nothing ever matches, so DiscoverAgents-equivalent resolution
@@ -225,7 +225,7 @@ func TestParseSyncFlagsUnknownFlagReturnsError(t *testing.T) {
 // pointer to how to discover the real flags. The fix captures the FlagSet's
 // own canonical usage text (derived from the registered flags themselves,
 // not a hand-written list) instead of discarding it, and names
-// `gentle-ai sync --help`.
+// `brunnr-code sync --help`.
 func TestParseSyncFlagsMistypedFlagNamesTheSupportedFlags(t *testing.T) {
 	_, err := ParseSyncFlags([]string{"-sdd", "single"})
 	if err == nil {
@@ -235,8 +235,8 @@ func TestParseSyncFlagsMistypedFlagNamesTheSupportedFlags(t *testing.T) {
 	if !strings.Contains(msg, "flag provided but not defined: -sdd") {
 		t.Fatalf("error = %q, want it to preserve the original flag package error", msg)
 	}
-	if !strings.Contains(msg, "gentle-ai sync --help") {
-		t.Fatalf("error = %q, want it to point at `gentle-ai sync --help`", msg)
+	if !strings.Contains(msg, "brunnr-code sync --help") {
+		t.Fatalf("error = %q, want it to point at `brunnr-code sync --help`", msg)
 	}
 	if strings.Contains(msg, "-sdd-mode") || strings.Contains(msg, "-sdd-profile-strategy") || strings.Contains(msg, "-profile-phase") {
 		t.Fatalf("usage advertises retired flags: %q", msg)
@@ -246,7 +246,7 @@ func TestParseSyncFlagsMistypedFlagNamesTheSupportedFlags(t *testing.T) {
 	}
 }
 
-// TestParseSyncFlagsHelpFlagRendersUsage proves `gentle-ai sync --help` now
+// TestParseSyncFlagsHelpFlagRendersUsage proves `brunnr-code sync --help` now
 // actually surfaces the supported flags instead of the bare
 // "flag: help requested" text it produced before (the FlagSet's usage output
 // was being discarded via ioDiscard{}).
@@ -264,7 +264,7 @@ func TestParseSyncFlagsHelpFlagRendersUsage(t *testing.T) {
 }
 
 // TestParseSyncFlagsPositionalArgumentNamesTheAgentFlag closes install/sync
-// surface audit finding 5: `gentle-ai sync claude` (a positional agent name
+// surface audit finding 5: `brunnr-code sync claude` (a positional agent name
 // instead of a flag) produced only `unexpected sync argument "claude"` with
 // no pointer to the correct --agent form.
 func TestParseSyncFlagsPositionalArgumentNamesTheAgentFlag(t *testing.T) {
@@ -562,7 +562,7 @@ func TestComponentSyncStepSkipsEngramBinaryInstall(t *testing.T) {
 // threads the detected engram binary version into engram.InjectOptions.Version
 // (internal/cli/run.go), so a verified Claude Code install renders the SLIM
 // engram-protocol CLAUDE.md section. The sync path built InjectOptions WITHOUT
-// Version, so every `gentle-ai sync` silently re-inflated the slim section
+// Version, so every `brunnr-code sync` silently re-inflated the slim section
 // back to the full (~6.7 KB) one. Sync must detect the version identically
 // (resolveEngramVersion) and keep the installed slim section byte-identical.
 func TestComponentSyncStepPreservesSlimEngramProtocol(t *testing.T) {
@@ -739,8 +739,8 @@ func TestRunSyncRefreshesPersistedVisualComponents(t *testing.T) {
 	// regardless of which components are persisted, so a first sync of a
 	// purely visual selection still delivers it (issue #1794).
 	wantFiles := []string{
-		filepath.Join(home, ".claude", "themes", "gentleman.json"),
-		filepath.Join(home, ".claude", "themes", "gentleman-cute.json"),
+		filepath.Join(home, ".claude", "themes", "brunnr.json"),
+		filepath.Join(home, ".claude", "themes", "brunnr-cute.json"),
 		filepath.Join(home, ".claude", "agents", "jd-fix-agent.md"),
 		filepath.Join(home, ".claude", "agents", "jd-judge-a.md"),
 		filepath.Join(home, ".claude", "agents", "jd-judge-b.md"),
@@ -1089,7 +1089,7 @@ func TestCodeGraphGuidanceSyncStepRepairsCodexConfigOnlyGuidance(t *testing.T) {
 		t.Fatalf("ReadFile(%q) error = %v", agentsPath, err)
 	}
 	text := string(body)
-	for _, want := range []string{"<!-- gentle-ai:codegraph-guidance -->", "immediately run `gentle-ai codegraph init --cwd <project-root>`"} {
+	for _, want := range []string{"<!-- gentle-ai:codegraph-guidance -->", "immediately run `brunnr-code codegraph init --cwd <project-root>`"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("Codex AGENTS.md missing managed CodeGraph guidance %q:\n%s", want, text)
 		}
@@ -1829,7 +1829,7 @@ func TestRunSyncRestoresConfiguredSelectionAndExplicitOverrides(t *testing.T) {
 		t.Fatal(err)
 	}
 	result, err := RunSync([]string{"--dry-run"})
-	if err != nil || result.Selection.Preset != model.PresetFullGentleman || !result.Selection.HasComponent(model.ComponentSkills) {
+	if err != nil || result.Selection.Preset != model.PresetFull || !result.Selection.HasComponent(model.ComponentSkills) {
 		t.Fatalf("legacy sync selection = %#v, err = %v", result.Selection, err)
 	}
 }
@@ -2229,7 +2229,7 @@ func TestRunSyncRegeneratesPersonaBlockBetweenMarkers(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(home, ".claude"), 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
-	// Write a stale managed persona block — what an older version of gentle-ai
+	// Write a stale managed persona block — what an older version of brunnr-code
 	// would have emitted. The sync must replace this with the v1.26 directive.
 	stalePersona := "# pre-existing notes by user\n\n" +
 		"<!-- gentle-ai:persona -->\n" +

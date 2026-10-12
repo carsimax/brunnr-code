@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Dockerfile.ubuntu — E2E test image for gentle-ai on Ubuntu 22.04
+# Dockerfile.ubuntu — E2E test image for brunnr-code on Ubuntu 22.04
 # Builds the binary from source and runs the E2E test suite as a non-root user.
 FROM ubuntu:22.04
 
@@ -31,12 +31,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
 # ---------------------------------------------------------------------------
 # Agent runtimes the E2E suite drives through the real install pipeline
 # ---------------------------------------------------------------------------
-# Gentle-AI itself no longer installs agent runtimes (agentInstallStep in
+# Brunnr-Code itself no longer installs agent runtimes (agentInstallStep in
 # internal/cli/run.go refuses instead — see PR #2450/#2458). This suite
 # exercises the install pipeline end to end for these agents, so the test
 # image provisions what it needs to test, same as any other test dependency
 # — the same reasoning already applied to the organic-runtime-e2e job in
-# .github/workflows/ci.yml. Each runtime advises "latest" in gentle-ai's own
+# .github/workflows/ci.yml. Each runtime advises "latest" in brunnr-code's own
 # display-only refusal text (see each adapter's InstallCommand), so there is
 # no pin to reuse here.
 RUN npm install --global @anthropic-ai/claude-code@latest && \

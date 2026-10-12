@@ -74,9 +74,9 @@ func TestNativeReviewPreservedAction(t *testing.T) {
 				"Keeping it unchanged is valid",
 				"back up this file and verify the backup",
 				"remove only this warned file",
-				"rerun your existing gentle-ai install or gentle-ai sync command",
+				"rerun your existing brunnr-code install or brunnr-code sync command",
 				"same runtime, scope, and model choices",
-				"Gentle AI will not adopt or delete it automatically",
+				"Brunnr-Code will not adopt or delete it automatically",
 			} {
 				if !strings.Contains(got, want) {
 					t.Errorf("action missing %q: %s", want, got)
@@ -334,7 +334,7 @@ func TestComponentPathsSDDCodexIncludesHooksJSONOnlyForCodex(t *testing.T) {
 }
 
 // TestComponentPathsPermissionsCodexContributesNoPaths pins that the
-// Permission component claims nothing under ~/.codex. gentle-ai does not write
+// Permission component claims nothing under ~/.codex. brunnr-code does not write
 // Codex's permissions config — not a profile, and not the legacy cleanup that
 // used to strip one — so there is no injection target to verify and nothing to
 // snapshot for rollback. A path reappearing here would mean something started
@@ -744,7 +744,7 @@ func TestComponentPathsVisualThemesMatchSelectedAdapter(t *testing.T) {
 		agent model.AgentID
 		want  []string
 	}{
-		{model.AgentClaudeCode, []string{filepath.Join(home, ".claude", "themes", "gentleman.json"), filepath.Join(home, ".claude", "themes", "gentleman-cute.json")}},
+		{model.AgentClaudeCode, []string{filepath.Join(home, ".claude", "themes", "brunnr.json"), filepath.Join(home, ".claude", "themes", "brunnr-cute.json")}},
 	} {
 		paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, resolveAdapters([]model.AgentID{tt.agent}), model.ComponentClaudeTheme)
 		if len(paths) != len(tt.want) {

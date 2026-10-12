@@ -134,7 +134,7 @@ func TestCheckOneTool_OK(t *testing.T) {
 }
 
 // TestCheckOneTool_ShadowedWindowsExt reproduces the Windows bug: binaries on
-// disk carry an executable extension (e.g. gentle-ai.exe / gentle-ai.cmd), so a
+// disk carry an executable extension (e.g. brunnr-code.exe / brunnr-code.cmd), so a
 // bare-name scan misses them and shadowing is reported as [ok]. With PATHEXT
 // extensions the duplicate copies are detected and a warning is produced.
 func TestCheckOneTool_ShadowedWindowsExt(t *testing.T) {
@@ -152,7 +152,7 @@ func TestCheckOneTool_ShadowedWindowsExt(t *testing.T) {
 
 	dir1 := t.TempDir()
 	dir2 := t.TempDir()
-	for _, p := range []string{filepath.Join(dir1, "gentle-ai.exe"), filepath.Join(dir2, "gentle-ai.cmd")} {
+	for _, p := range []string{filepath.Join(dir1, "brunnr-code.exe"), filepath.Join(dir2, "brunnr-code.cmd")} {
 		f, err := os.Create(p)
 		if err != nil {
 			t.Fatal(err)
@@ -160,9 +160,9 @@ func TestCheckOneTool_ShadowedWindowsExt(t *testing.T) {
 		_ = f.Close()
 	}
 
-	lookPathFn = func(string) (string, error) { return filepath.Join(dir1, "gentle-ai.exe"), nil }
+	lookPathFn = func(string) (string, error) { return filepath.Join(dir1, "brunnr-code.exe"), nil }
 
-	got := checkOneTool("gentle-ai", []string{dir1, dir2})
+	got := checkOneTool("brunnr-code", []string{dir1, dir2})
 
 	if got.Status != CheckStatusWarn {
 		t.Fatalf("expected warn for extensioned shadow, got %s: %s", got.Status, got.Detail)
@@ -627,7 +627,7 @@ func TestCheckEngramReachable_MissingRelativeWindowsExecutableWarns(t *testing.T
 }
 
 // TestCheckEngramReachable_StdioDefault_NoHTTPListener is matrix cell (a) of
-// #2078: a default install. gentle-ai only ever configures Engram as a stdio
+// #2078: a default install. brunnr-code only ever configures Engram as a stdio
 // MCP server (engram mcp --tools=agent, written by
 // internal/components/engram/inject.go); it never configures an HTTP
 // transport. With the stdio transport healthy and no HTTP listener anywhere,
@@ -826,22 +826,22 @@ func TestRunDoctor_IntegrationAllMocked(t *testing.T) {
 	pathDirsFn = func() []string { pathSnapshots++; return []string{"/usr/local/bin"} }
 	osUserHomeDirDoctor = func() (string, error) { return homeDir, nil }
 	// organic-dx Phase 3f task 3f.5 added an invoked-executable clause to the
-	// gentle-ai tool check; this integration test is about RunDoctor's overall
+	// brunnr-code tool check; this integration test is about RunDoctor's overall
 	// rendering shape, not that feature, so it mocks the invoked executable to
 	// match the PATH-resolved copy exactly (the common case) to keep the
 	// expected output byte-identical to before that feature landed. The new
 	// feature has its own dedicated tests in doctor_invoked_binary_test.go.
-	osExecutableDoctor = func() (string, error) { return "/usr/local/bin/gentle-ai", nil }
+	osExecutableDoctor = func() (string, error) { return "/usr/local/bin/brunnr-code", nil }
 
 	var buf bytes.Buffer
 	if err := RunDoctor(context.Background(), &buf); err != nil {
 		t.Fatalf("RunDoctor returned error: %v", err)
 	}
 
-	want := fmt.Sprintf(`gentle-ai doctor — system health check
+	want := fmt.Sprintf(`brunnr-code doctor — system health check
 =======================================
 
-  [ok]  tool:gentle-ai                 gentle-ai found at /usr/local/bin/gentle-ai; invoked executable: /usr/local/bin/gentle-ai (version dev)
+  [ok]  tool:brunnr-code               brunnr-code found at /usr/local/bin/brunnr-code; invoked executable: /usr/local/bin/brunnr-code (version dev)
   [ok]  tool:engram                    engram found at /usr/local/bin/engram
   [ok]  tool:claude                    claude found at /usr/local/bin/claude
   [ok]  state:json                     state file OK — 1 agent(s) installed: claude-code
@@ -939,19 +939,19 @@ func TestCheckToolBinaries_AgentNotInState_NotReported(t *testing.T) {
 	}
 
 	// Core tools must still be required.
-	var sawGentleAI, sawEngram, sawCodex bool
+	var sawSelf, sawEngram, sawCodex bool
 	for _, r := range results {
 		switch r.Name {
-		case "tool:gentle-ai":
-			sawGentleAI = true
+		case "tool:brunnr-code":
+			sawSelf = true
 		case "tool:engram":
 			sawEngram = true
 		case "tool:codex":
 			sawCodex = true
 		}
 	}
-	if !sawGentleAI || !sawEngram || !sawCodex {
-		t.Errorf("expected core+codex checks present; got sawGentleAI=%v sawEngram=%v sawCodex=%v", sawGentleAI, sawEngram, sawCodex)
+	if !sawSelf || !sawEngram || !sawCodex {
+		t.Errorf("expected core+codex checks present; got sawSelf=%v sawEngram=%v sawCodex=%v", sawSelf, sawEngram, sawCodex)
 	}
 }
 
@@ -972,7 +972,7 @@ func TestCheckToolBinaries_StateMissing_ChecksCoreOnly(t *testing.T) {
 	for _, r := range results {
 		required[string(r.Name)] = struct{}{}
 	}
-	for _, core := range []string{"tool:gentle-ai", "tool:engram"} {
+	for _, core := range []string{"tool:brunnr-code", "tool:engram"} {
 		if _, ok := required[core]; !ok {
 			t.Errorf("expected %s in core-only output, got %+v", core, required)
 		}
@@ -986,7 +986,7 @@ func TestCheckToolBinaries_StateMissing_ChecksCoreOnly(t *testing.T) {
 
 // TestCheckOneTool_DirectoryWithToolName_NotCountedAsDuplicate verifies that
 // a directory whose name happens to match a tool (e.g. an existing
-// $HOME/gentle-ai/ on PATH) is not treated as a duplicate binary copy by
+// $HOME/brunnr-code/ on PATH) is not treated as a duplicate binary copy by
 // the doctor (#709).
 func TestCheckOneTool_DirectoryWithToolName_NotCountedAsDuplicate(t *testing.T) {
 	stubDoctorToolProbe(t)
@@ -1004,18 +1004,18 @@ func TestCheckOneTool_DirectoryWithToolName_NotCountedAsDuplicate(t *testing.T) 
 	dirWithFile := t.TempDir()
 	dirWithDir := t.TempDir()
 
-	if err := os.WriteFile(filepath.Join(dirWithFile, "gentle-ai"), []byte("fake"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(dirWithFile, "brunnr-code"), []byte("fake"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Mkdir(filepath.Join(dirWithDir, "gentle-ai"), 0o755); err != nil {
+	if err := os.Mkdir(filepath.Join(dirWithDir, "brunnr-code"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
 	lookPathFn = func(string) (string, error) {
-		return filepath.Join(dirWithFile, "gentle-ai"), nil
+		return filepath.Join(dirWithFile, "brunnr-code"), nil
 	}
 
-	got := checkOneTool("gentle-ai", []string{dirWithFile, dirWithDir})
+	got := checkOneTool("brunnr-code", []string{dirWithFile, dirWithDir})
 
 	if got.Status != CheckStatusPass {
 		t.Fatalf("expected pass when only one real binary exists; got %s: %s", got.Status, got.Detail)
@@ -1050,16 +1050,16 @@ func TestCheckOneTool_FileWithoutExecBit_NotCountedAsDuplicate(t *testing.T) {
 	dir2 := t.TempDir()
 
 	// One executable copy, one non-executable copy.
-	if err := os.WriteFile(filepath.Join(dir1, "gentle-ai"), []byte("#!/bin/sh\nexit 0"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(dir1, "brunnr-code"), []byte("#!/bin/sh\nexit 0"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir2, "gentle-ai"), []byte("not executable"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir2, "brunnr-code"), []byte("not executable"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	lookPathFn = func(string) (string, error) { return filepath.Join(dir1, "gentle-ai"), nil }
+	lookPathFn = func(string) (string, error) { return filepath.Join(dir1, "brunnr-code"), nil }
 
-	got := checkOneTool("gentle-ai", []string{dir1, dir2})
+	got := checkOneTool("brunnr-code", []string{dir1, dir2})
 
 	if got.Status != CheckStatusPass {
 		t.Fatalf("expected pass when second copy lacks the execute bit; got %s: %s", got.Status, got.Detail)
@@ -1146,7 +1146,7 @@ func TestRunDoctor_OnlySelectedAgentsAreRequired(t *testing.T) {
 func TestRenderDoctorReportDoesNotRenderRemedyMetadata(t *testing.T) {
 	var buf bytes.Buffer
 	renderDoctorReport(&buf, DoctorReport{Checks: []CheckResult{{Name: doctor.CheckDiskSpace, Status: CheckStatusFail, Detail: "cleanup needed", Remedy: doctor.NewRemedy(doctor.RemedyFreeDiskSpace, "Free disk space")}}})
-	want := "gentle-ai doctor — system health check\n=======================================\n\n  [xx]  disk:space                     cleanup needed\n       Remedy: Free disk space\n\nSummary: 0 passed, 1 failed, 0 warnings\nStatus:  unhealthy\n"
+	want := "brunnr-code doctor — system health check\n=======================================\n\n  [xx]  disk:space                     cleanup needed\n       Remedy: Free disk space\n\nSummary: 0 passed, 1 failed, 0 warnings\nStatus:  unhealthy\n"
 	if got := buf.String(); got != want {
 		t.Fatalf("rendered report mismatch\ngot:\n%s\nwant:\n%s", got, want)
 	}
@@ -1205,10 +1205,10 @@ func TestCheckStateJSON_AgentConfigDirDanglingSymlink(t *testing.T) {
 	if !strings.Contains(got.Detail, configDir) {
 		t.Fatalf("detail must identify dangling managed path %q, got %q", configDir, got.Detail)
 	}
-	if !strings.Contains(got.Detail, "inspect") || !strings.Contains(got.Detail, "gentle-ai doctor") {
+	if !strings.Contains(got.Detail, "inspect") || !strings.Contains(got.Detail, "brunnr-code doctor") {
 		t.Fatalf("detail must provide manual inspection and doctor rerun guidance, got %q", got.Detail)
 	}
-	if strings.Contains(got.Detail, "gentle-ai sync") {
+	if strings.Contains(got.Detail, "brunnr-code sync") {
 		t.Fatalf("dangling config symlink must not recommend sync, got %q", got.Detail)
 	}
 	info, err := os.Lstat(configDir)
@@ -1261,17 +1261,17 @@ func TestRunDoctor_DanglingConfigSymlinkIsReadOnly(t *testing.T) {
 	httpGetFn = func(string, time.Duration) (int, error) { return 200, nil }
 	pathDirsFn = func() []string { return []string{"/usr/local/bin"} }
 	osUserHomeDirDoctor = func() (string, error) { return homeDir, nil }
-	osExecutableDoctor = func() (string, error) { return "/usr/local/bin/gentle-ai", nil }
+	osExecutableDoctor = func() (string, error) { return "/usr/local/bin/brunnr-code", nil }
 	t.Setenv(engramHealthEnvVar, "https://engram.example.test")
 
 	var output bytes.Buffer
 	if err := RunDoctor(context.Background(), &output); err != nil {
 		t.Fatalf("RunDoctor returned error: %v", err)
 	}
-	if strings.Contains(output.String(), "gentle-ai sync") {
+	if strings.Contains(output.String(), "brunnr-code sync") {
 		t.Fatalf("Doctor must not recommend sync for a dangling config symlink, got:\n%s", output.String())
 	}
-	for _, want := range []string{configDir, "inspect", "gentle-ai doctor"} {
+	for _, want := range []string{configDir, "inspect", "brunnr-code doctor"} {
 		if !strings.Contains(output.String(), want) {
 			t.Fatalf("Doctor output missing %q:\n%s", want, output.String())
 		}
@@ -1368,12 +1368,12 @@ func TestCheckStateJSON_DanglingAndAbsentConfigDirsSuppressSync(t *testing.T) {
 	if got.Remedy != nil {
 		t.Fatalf("mixed dangling/absent config dirs must suppress sync, got %+v", got.Remedy)
 	}
-	for _, want := range []string{configDir, "genuinely absent config dirs: claude-code", "inspect or repair", "gentle-ai doctor"} {
+	for _, want := range []string{configDir, "genuinely absent config dirs: claude-code", "inspect or repair", "brunnr-code doctor"} {
 		if !strings.Contains(got.Detail, want) {
 			t.Fatalf("mixed result missing %q: %s", want, got.Detail)
 		}
 	}
-	if strings.Contains(got.Detail, "gentle-ai sync") {
+	if strings.Contains(got.Detail, "brunnr-code sync") {
 		t.Fatalf("mixed dangling/absent result must not recommend sync: %s", got.Detail)
 	}
 }

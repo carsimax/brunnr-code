@@ -1,4 +1,4 @@
-// Package managedownership holds the hash ledger Gentle AI uses to prove it
+// Package managedownership holds the hash ledger Brunnr-Code uses to prove it
 // owns the exact bytes of a file it installed. It depends only on the standard
 // library so any installer can share it without an import cycle.
 package managedownership
@@ -15,7 +15,7 @@ import (
 // Version is the only ownership ledger version Read accepts.
 const Version = 1
 
-// Ledger maps a managed file name to the SHA-256 of the bytes Gentle AI
+// Ledger maps a managed file name to the SHA-256 of the bytes Brunnr-Code
 // installed under that name.
 type Ledger struct {
 	Version int               `json:"version"`

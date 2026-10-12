@@ -77,9 +77,9 @@ func NormalizeInstallFlags(flags InstallFlags, detection system.DetectionResult)
 			}
 			agents := strings.Join(agentNames, ",")
 			if scope != ScopeGlobal {
-				return InstallInput{}, fmt.Errorf("--claude-orchestrator-modules requires --scope global, got %q; rerun gentle-ai install --agent %s --scope global --claude-orchestrator-modules", scope, agents)
+				return InstallInput{}, fmt.Errorf("--claude-orchestrator-modules requires --scope global, got %q; rerun brunnr-code install --agent %s --scope global --claude-orchestrator-modules", scope, agents)
 			}
-			return InstallInput{}, fmt.Errorf("--claude-orchestrator-modules requires the claude-code agent in the selection; rerun gentle-ai install --agent %s --scope global --claude-orchestrator-modules", agents)
+			return InstallInput{}, fmt.Errorf("--claude-orchestrator-modules requires the claude-code agent in the selection; rerun brunnr-code install --agent %s --scope global --claude-orchestrator-modules", agents)
 		}
 	}
 
@@ -108,7 +108,7 @@ func validateInstallModifierConsumers(flags InstallFlags, selection model.Select
 			}
 		}
 		if !found {
-			return fmt.Errorf("%s requires component %s in the resolved install plan; rerun gentle-ai install with --component %s added to your existing component list, or remove %s", modifier.flag, modifier.consumer, modifier.consumer, modifier.flag)
+			return fmt.Errorf("%s requires component %s in the resolved install plan; rerun brunnr-code install with --component %s added to your existing component list, or remove %s", modifier.flag, modifier.consumer, modifier.consumer, modifier.flag)
 		}
 	}
 	return nil
@@ -116,11 +116,11 @@ func validateInstallModifierConsumers(flags InstallFlags, selection model.Select
 
 func normalizePreset(value string) (model.PresetID, error) {
 	if strings.TrimSpace(value) == "" {
-		return model.PresetFullGentleman, nil
+		return model.PresetFull, nil
 	}
 
 	switch model.PresetID(value) {
-	case model.PresetFullGentleman, model.PresetEcosystemOnly, model.PresetMinimal, model.PresetCustom:
+	case model.PresetFull, model.PresetEcosystemOnly, model.PresetMinimal, model.PresetCustom:
 		return model.PresetID(value), nil
 	default:
 		return "", fmt.Errorf("unsupported preset %q", value)
@@ -220,7 +220,7 @@ func defaultAgentsFromDetection(detection system.DetectionResult) []model.AgentI
 // by internal/app/app.go's default agent list -- so it can never drift from
 // a hand-written list (install/sync surface audit finding 3: an unknown
 // value like `cluade` previously converted silently and was later dropped
-// without any error, so `gentle-ai sync --agent cluade` reported success
+// without any error, so `brunnr-code sync --agent cluade` reported success
 // having synced nothing).
 func asAgentIDs(values []string) ([]model.AgentID, error) {
 	supported := catalog.AllAgents()

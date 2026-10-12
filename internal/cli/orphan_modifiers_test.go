@@ -15,8 +15,8 @@ func TestRunInstallRejectsOrphanModifiers(t *testing.T) {
 		args []string
 		want string
 	}{
-		{"skill", []string{"--skill", "go-testing"}, "--skill/--skills requires component skills in the resolved install plan; rerun gentle-ai install with --component skills added to your existing component list, or remove --skill/--skills"},
-		{"skills", []string{"--skills", "go-testing"}, "--skill/--skills requires component skills in the resolved install plan; rerun gentle-ai install with --component skills added to your existing component list, or remove --skill/--skills"},
+		{"skill", []string{"--skill", "go-testing"}, "--skill/--skills requires component skills in the resolved install plan; rerun brunnr-code install with --component skills added to your existing component list, or remove --skill/--skills"},
+		{"skills", []string{"--skills", "go-testing"}, "--skill/--skills requires component skills in the resolved install plan; rerun brunnr-code install with --component skills added to your existing component list, or remove --skill/--skills"},
 	} {
 		for _, dryRun := range []bool{true, false} {
 			name := tc.name + "/real"

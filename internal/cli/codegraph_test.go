@@ -32,7 +32,7 @@ func TestRunCodeGraphHelpAndInvalidArgumentsDoNotInitialize(t *testing.T) {
 			if err := RunCodeGraph(args, &output); err != nil {
 				t.Fatalf("RunCodeGraph(%v) error = %v", args, err)
 			}
-			if !strings.Contains(output.String(), "USAGE\n  gentle-ai codegraph init --cwd <project-root>\n") {
+			if !strings.Contains(output.String(), "USAGE\n  brunnr-code codegraph init --cwd <project-root>\n") {
 				t.Fatalf("missing help in stdout: %q", output.String())
 			}
 		})
@@ -45,7 +45,7 @@ func TestRunCodeGraphHelpAndInvalidArgumentsDoNotInitialize(t *testing.T) {
 		t.Run("invalid/"+strings.Join(args, " "), func(t *testing.T) {
 			var output bytes.Buffer
 			err := RunCodeGraph(args, &output)
-			if err == nil || err.Error() != "usage: gentle-ai codegraph init --cwd <project-root>" {
+			if err == nil || err.Error() != "usage: brunnr-code codegraph init --cwd <project-root>" {
 				t.Fatalf("error = %v, want exact usage error", err)
 			}
 			if output.Len() != 0 {

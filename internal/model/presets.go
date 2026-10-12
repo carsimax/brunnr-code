@@ -24,7 +24,7 @@ func ComponentsForPreset(preset PresetID) []ComponentID {
 		components = []ComponentID{ComponentEngram, ComponentSkills, ComponentContext7}
 	case PresetCustom:
 		return nil
-	default: // full-gentleman
+	default: // full
 		components = []ComponentID{
 			ComponentEngram,
 			ComponentSkills,

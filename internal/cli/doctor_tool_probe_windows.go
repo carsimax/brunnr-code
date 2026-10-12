@@ -22,11 +22,11 @@ func doctorToolProbeCommand(ctx context.Context, path, arg string) (*exec.Cmd, e
 	// cmd expands percent variables even inside quotes. Refuse ambiguous paths
 	// rather than executing a different command than the PATH-resolved launcher.
 	if strings.ContainsAny(path, "%!\r\n\"") {
-		return nil, fmt.Errorf("cannot safely probe batch launcher path %q; move the launcher to a path without expansion characters or quotes, then run 'gentle-ai doctor' again", path)
+		return nil, fmt.Errorf("cannot safely probe batch launcher path %q; move the launcher to a path without expansion characters or quotes, then run 'brunnr-code doctor' again", path)
 	}
 	root := os.Getenv("SystemRoot")
 	if root == "" {
-		return nil, fmt.Errorf("SystemRoot is unset; restore it to your Windows directory, then run 'gentle-ai doctor' again")
+		return nil, fmt.Errorf("SystemRoot is unset; restore it to your Windows directory, then run 'brunnr-code doctor' again")
 	}
 	shell := filepath.Join(root, "System32", "cmd.exe")
 	cmd := exec.CommandContext(ctx, shell)

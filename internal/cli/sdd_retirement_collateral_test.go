@@ -34,10 +34,10 @@ var v370SharedReferences = []string{
 	"review-ledger-contract.md", "skill-resolver.md",
 }
 
-func installFullGentleman(t *testing.T, agent model.AgentID) string {
+func installFullPreset(t *testing.T, agent model.AgentID) string {
 	t.Helper()
 	home := installTestHome(t)
-	if _, err := RunInstall([]string{"--agent", string(agent), "--preset", "full-gentleman"}, system.DetectionResult{}); err != nil {
+	if _, err := RunInstall([]string{"--agent", string(agent), "--preset", "full"}, system.DetectionResult{}); err != nil {
 		t.Fatalf("install %s: %v", agent, err)
 	}
 	return home
@@ -50,7 +50,7 @@ func installFullGentleman(t *testing.T, agent model.AgentID) string {
 func TestInstallLeavesNoDanglingSharedReferences(t *testing.T) {
 	for _, agent := range skillRuntimes {
 		t.Run(string(agent), func(t *testing.T) {
-			home := installFullGentleman(t, agent)
+			home := installFullPreset(t, agent)
 			adapter, err := agents.NewAdapter(agent)
 			if err != nil {
 				t.Fatal(err)
@@ -130,9 +130,9 @@ func readJSONObject(t *testing.T, path string) map[string]any {
 }
 
 // TestUninstallRemovesRestoredSharedFiles proves uninstall removes only the
-// restored shared files gentle-ai owns and keeps user-authored neighbors.
+// restored shared files brunnr-code owns and keeps user-authored neighbors.
 func TestUninstallRemovesRestoredSharedFiles(t *testing.T) {
-	home := installFullGentleman(t, model.AgentClaudeCode)
+	home := installFullPreset(t, model.AgentClaudeCode)
 	adapter, err := agents.NewAdapter(model.AgentClaudeCode)
 	if err != nil {
 		t.Fatal(err)
@@ -171,7 +171,7 @@ func TestInstallRefreshesSharedReferencesInCompatibilityRoot(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := RunInstall([]string{"--agent", "claude-code", "--preset", "full-gentleman"}, system.DetectionResult{}); err != nil {
+	if _, err := RunInstall([]string{"--agent", "claude-code", "--preset", "full"}, system.DetectionResult{}); err != nil {
 		t.Fatal(err)
 	}
 	for _, name := range v370SharedReferences {
@@ -203,7 +203,7 @@ func TestInstallRefreshesSharedReferencesInCompatibilityRoot(t *testing.T) {
 func TestUninstallRemovesEmptiedSkillsDirectory(t *testing.T) {
 	for _, keepUserFile := range []bool{false, true} {
 		t.Run(fmt.Sprintf("user file %v", keepUserFile), func(t *testing.T) {
-			home := installFullGentleman(t, model.AgentClaudeCode)
+			home := installFullPreset(t, model.AgentClaudeCode)
 			adapter, err := agents.NewAdapter(model.AgentClaudeCode)
 			if err != nil {
 				t.Fatal(err)

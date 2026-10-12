@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# e2e_test.sh — End-to-end tests for gentle-ai installer
+# e2e_test.sh — End-to-end tests for brunnr-code installer
 #
 # Test tiers (controlled by environment variables):
 #   (default)            Tier 1: binary existence + dry-run tests (fast, no side-effects)
@@ -22,7 +22,7 @@ source "$SCRIPT_DIR/lib.sh"
 # ---------------------------------------------------------------------------
 BINARY="$(resolve_binary)"
 if [ -z "$BINARY" ]; then
-    echo "ERROR: gentle-ai binary not found. Build it first."
+    echo "ERROR: brunnr-code binary not found. Build it first."
     exit 1
 fi
 log_info "Using binary: $BINARY"
@@ -69,7 +69,7 @@ test_version_command() {
 
     output=$($BINARY version 2>&1) || true
 
-    if echo "$output" | grep -q "gentle-ai"; then
+    if echo "$output" | grep -q "brunnr-code"; then
         log_pass "Version command returns binary name"
     else
         log_fail "Version command failed: $output"
@@ -161,11 +161,11 @@ test_dry_run_preset_ecosystem() {
 }
 
 test_dry_run_preset_full() {
-    log_test "Dry-run with --preset full-gentleman"
+    log_test "Dry-run with --preset full"
 
-    output=$($BINARY install --preset full-gentleman --dry-run 2>&1) || true
+    output=$($BINARY install --preset full --dry-run 2>&1) || true
 
-    assert_output_contains "$output" "Preset: full-gentleman" "Shows full-gentleman preset"
+    assert_output_contains "$output" "Preset: full" "Shows full preset"
 }
 
 test_dry_run_preset_custom() {
@@ -210,9 +210,9 @@ test_preset_ecosystem_components() {
 
 
 test_preset_full_components() {
-    log_test "Preset full-gentleman includes core and optional Gentleman components"
+    log_test "Preset full includes core and optional components"
 
-    output=$($BINARY install --preset full-gentleman --agent claude-code --dry-run 2>&1) || true
+    output=$($BINARY install --preset full --agent claude-code --dry-run 2>&1) || true
 
     local components_line
     components_line=$(echo "$output" | grep "Components order:")
@@ -222,13 +222,13 @@ test_preset_full_components() {
     assert_output_contains "$components_line" "context7" "Full includes context7"
     assert_output_contains "$components_line" "persona" "Full includes persona"
     assert_output_contains "$components_line" "permissions" "Full includes permissions"
-    assert_output_contains "$components_line" "claude-theme" "Full includes Claude Gentleman theme"
+    assert_output_contains "$components_line" "claude-theme" "Full includes Claude Brunnr theme"
 }
 
 test_dry_run_full_preset_persona_before_engram() {
     log_test "Dry-run: persona appears before engram in component order"
 
-    output=$($BINARY install --preset full-gentleman --agent claude-code --dry-run 2>&1) || true
+    output=$($BINARY install --preset full --agent claude-code --dry-run 2>&1) || true
 
     local components_line
     components_line=$(echo "$output" | grep "Components order:")
@@ -257,7 +257,7 @@ test_preset_no_legacy_theme_in_any_preset() {
     log_test "Presets exclude the unsafe generic theme component"
 
     local full_order_str=""
-    for preset in minimal ecosystem-only full-gentleman; do
+    for preset in minimal ecosystem-only full; do
         output=$($BINARY install --preset "$preset" --agent claude-code --dry-run 2>&1) || true
         local components_line
         components_line=$(echo "$output" | grep "Components order:")
@@ -269,16 +269,16 @@ test_preset_no_legacy_theme_in_any_preset() {
         else
             log_pass "Preset '$preset' excludes unsafe generic theme component"
         fi
-        if [ "$preset" = "full-gentleman" ]; then
+        if [ "$preset" = "full" ]; then
             full_order_str=$order_str
         fi
     done
 
     for component in claude-theme; do
         if echo "$full_order_str" | tr ',' '\n' | grep -qx "$component"; then
-            log_pass "Preset 'full-gentleman' includes safe visual component '$component'"
+            log_pass "Preset 'full' includes safe visual component '$component'"
         else
-            log_fail "Preset 'full-gentleman' must include safe visual component '$component'"
+            log_fail "Preset 'full' must include safe visual component '$component'"
         fi
     done
 }
@@ -455,10 +455,10 @@ test_cc_skills_minimal() {
 }
 
 test_cc_skills_full() {
-    log_test "Claude Code: skills injection (full-gentleman = 7 foundation skills)"
+    log_test "Claude Code: skills injection (full = 7 foundation skills)"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --component skills --preset full-gentleman 2>&1; then
+    if $BINARY install --agent claude-code --component skills --preset full 2>&1; then
         local skills_dir="$HOME/.claude/skills"
         assert_dir_exists "$skills_dir" "Claude skills directory"
 
@@ -587,7 +587,7 @@ test_cc_theme_injection() {
         local settings="$HOME/.claude/settings.json"
         assert_file_exists "$settings" "Claude settings.json"
         assert_file_contains "$settings" '"theme"' "Has theme key"
-        assert_file_contains "$settings" 'gentleman' "Has gentleman theme"
+        assert_file_contains "$settings" 'brunnr' "Has brunnr theme"
         assert_valid_json "$settings" "settings.json is valid JSON"
     else
         log_fail "theme install command failed"
@@ -597,11 +597,11 @@ test_cc_theme_injection() {
 # --- Category 4: Full preset integration ---
 
 test_full_preset_claude_code() {
-    log_test "Full-gentleman preset: Claude Code (all components coexist)"
+    log_test "Full preset: Claude Code (all components coexist)"
     cleanup_test_env
 
     # Exercise independent injection components without invoking package downloads.
-    if $BINARY install --agent claude-code --component engram --component persona --component skills --component context7 --component permissions --component theme --preset full-gentleman 2>&1; then
+    if $BINARY install --agent claude-code --component engram --component persona --component skills --component context7 --component permissions --component theme --preset full 2>&1; then
         local claude_md="$HOME/.claude/CLAUDE.md"
         local settings="$HOME/.claude/settings.json"
 
@@ -710,7 +710,7 @@ test_content_skills_are_real() {
     log_test "Content validation: skill files contain real instructions"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component skills --preset full-gentleman 2>&1 || true
+    $BINARY install --agent claude-code --component skills --preset full 2>&1 || true
 
     local skills_dir="$HOME/.claude/skills"
     if [ -d "$skills_dir" ]; then
@@ -864,7 +864,7 @@ test_idempotent_full_claude() {
     log_test "Idempotency: full injection-only on Claude Code"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component persona --component context7 --component permissions --component theme --preset full-gentleman 2>&1 || true
+    $BINARY install --agent claude-code --component persona --component context7 --component permissions --component theme --preset full 2>&1 || true
     local first_md_hash
     first_md_hash=$(md5sum "$HOME/.claude/CLAUDE.md" 2>/dev/null | cut -d' ' -f1)
     # Snapshot settings.json for semantic comparison (engram setup may reorder
@@ -872,7 +872,7 @@ test_idempotent_full_claude() {
     # serialization). Byte-exact hashing would false-fail on harmless reorder.
     cp "$HOME/.claude/settings.json" /tmp/gai_settings_run1.json 2>/dev/null || true
 
-    $BINARY install --agent claude-code --component persona --component context7 --component permissions --component theme --preset full-gentleman 2>&1 || true
+    $BINARY install --agent claude-code --component persona --component context7 --component permissions --component theme --preset full 2>&1 || true
     local second_md_hash
     second_md_hash=$(md5sum "$HOME/.claude/CLAUDE.md" 2>/dev/null | cut -d' ' -f1)
 
@@ -970,7 +970,7 @@ test_integrity_full_preset_all_skills_nonempty() {
     log_test "Integrity: full preset — every SKILL.md is non-empty"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --component skills --preset full-gentleman 2>&1; then
+    if $BINARY install --agent claude-code --component skills --preset full 2>&1; then
         local skill_dir="$HOME/.claude/skills"
         assert_file_count "$skill_dir" "SKILL.md" 8 "Full preset installs 8 foundation skills"
         local all_ok=true

@@ -110,9 +110,9 @@ func (e *PartialSyncError) Error() string {
 // error and the TUI manual actions.
 func (s SyncSkippedAgent) Action() string {
 	if s.Part != "" {
-		return fmt.Sprintf("%s %s were skipped: %s; then re-run `gentle-ai sync`", s.Agent, s.Part, s.Reason)
+		return fmt.Sprintf("%s %s were skipped: %s; then re-run `brunnr-code sync`", s.Agent, s.Part, s.Reason)
 	}
-	return fmt.Sprintf("%s was skipped: %s; then re-run `gentle-ai sync`", s.Agent, s.Reason)
+	return fmt.Sprintf("%s was skipped: %s; then re-run `brunnr-code sync`", s.Agent, s.Reason)
 }
 
 // finishPartialSync attaches skipped agents to a sync result and turns an
@@ -158,9 +158,9 @@ func ParseSyncFlags(args []string) (SyncFlags, error) {
 		}
 		usageText = strings.TrimRight(usageText, "\n")
 		if usageText != "" {
-			return SyncFlags{}, fmt.Errorf("%w — run `gentle-ai sync --help` for the supported flags:\n%s", err, usageText)
+			return SyncFlags{}, fmt.Errorf("%w — run `brunnr-code sync --help` for the supported flags:\n%s", err, usageText)
 		}
-		return SyncFlags{}, fmt.Errorf("%w — run `gentle-ai sync --help` for the supported flags", err)
+		return SyncFlags{}, fmt.Errorf("%w — run `brunnr-code sync --help` for the supported flags", err)
 	}
 	fs.Visit(func(f *flag.Flag) {
 		switch f.Name {
@@ -176,7 +176,7 @@ func ParseSyncFlags(args []string) (SyncFlags, error) {
 	})
 
 	if opts.strictTDDSet {
-		return SyncFlags{}, fmt.Errorf("--strict-tdd is retired: ODD uses applicable test-first development by default; rerun `gentle-ai sync` without --strict-tdd (retain any other flags)")
+		return SyncFlags{}, fmt.Errorf("--strict-tdd is retired: ODD uses applicable test-first development by default; rerun `brunnr-code sync` without --strict-tdd (retain any other flags)")
 	}
 
 	if fs.NArg() > 0 {
@@ -188,7 +188,7 @@ func ParseSyncFlags(args []string) (SyncFlags, error) {
 
 func PrintSyncHelp(w io.Writer) {
 	fmt.Fprint(w, `USAGE
-  gentle-ai sync [flags]
+  brunnr-code sync [flags]
 
 FLAGS
   --agent, --agents <list>           Agents to sync
@@ -218,11 +218,8 @@ FLAGS
 // This is the reusable managed-asset sync contract. A future `upgrade --sync`
 // flow can call this function to get the same managed-only selection semantics.
 func BuildSyncSelection(flags SyncFlags, agentIDs []model.AgentID) model.Selection {
-	// Order matters: Persona must run BEFORE Engram/MCP because those
-	// components inject content with substrings (e.g. "## Personality",
-	// "Senior Architect") that overlap with persona's legacy-block fingerprints.
-	// Running persona last would cause its StripLegacyPersonaBlock pass to
-	// detect the just-written managed sections as legacy and strip them.
+	// Persona runs first so its marker section precedes the sections that
+	// Engram/MCP inject afterwards.
 	components := []model.ComponentID{
 		model.ComponentPersona,
 		model.ComponentEngram,
@@ -249,9 +246,9 @@ func BuildSyncSelection(flags SyncFlags, agentIDs []model.AgentID) model.Selecti
 		Components: components,
 		SDDMode:    sddMode,
 		Skills:     skillIDs,
-		// Preset is set to full-gentleman so selectedSkillIDs() returns the
+		// Preset is set to full so selectedSkillIDs() returns the
 		// correct default skill set when no explicit skills are provided.
-		Preset: model.PresetFullGentleman,
+		Preset: model.PresetFull,
 		// Persona is left as zero-value here. RunSync resolves it from state.json
 		// when present. A missing persona field resolves to neutral; invalid state
 		// is rejected so sync cannot silently reactivate regional persona behavior.
@@ -260,7 +257,7 @@ func BuildSyncSelection(flags SyncFlags, agentIDs []model.AgentID) model.Selecti
 
 // installOrderedComponents returns the selected components in the order the
 // install planner applies them. Persisted state records components in
-// selection order (persona last for full-gentleman), and components write the
+// selection order (persona last for full), and components write the
 // same files: persona replaces the whole prompt for FileReplace agents, and
 // Engram re-appends its MCP block after Context7. Applying them in a different
 // order than install makes the first sync rewrite what install just wrote.
@@ -383,7 +380,7 @@ func newSyncRuntimeWithScope(homeDir string, selection model.Selection, scope In
 	backupRoot := state.BackupsDir(homeDir)
 	state := &runtimeState{}
 	if scope == ScopeWorkspace {
-		snapshotDir, err := os.MkdirTemp("", "gentle-ai-rollback-*")
+		snapshotDir, err := os.MkdirTemp("", "brunnr-code-rollback-*")
 		if err != nil {
 			return nil, fmt.Errorf("create workspace sync snapshot directory: %w", err)
 		}
@@ -1040,7 +1037,7 @@ func (s componentSyncStep) Run() error {
 	case model.ComponentPersona:
 		// Sync regenerates the persona block between
 		// <!-- gentle-ai:persona --> markers and (when supported) refreshes
-		// the Gentleman output-style overlay.
+		// the managed output-style overlay.
 		for _, adapter := range adapters {
 			targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)
 			res, err := injectSyncPersona(targetDir, adapter)
@@ -1429,7 +1426,7 @@ func persistSyncManagedAssetState(homeDir string, selection model.Selection, wri
 			latest = state.InstallState{}
 		} else if err != nil {
 			return fmt.Errorf(
-				"read install state for managed asset provenance: %w; run `gentle-ai install` to rewrite %s",
+				"read install state for managed asset provenance: %w; run `brunnr-code install` to rewrite %s",
 				err, state.Path(homeDir))
 		}
 
@@ -1543,7 +1540,7 @@ func RunSync(args []string) (SyncResult, error) {
 	}
 
 	// Restore Codex effort and carril model assignments from state so that
-	// `gentle-ai sync` preserves the user's per-phase effort and per-carril
+	// `brunnr-code sync` preserves the user's per-phase effort and per-carril
 	// model choices instead of falling back to canonical defaults every time.
 	// This mirrors the TUI path (loadPersistedAssignments in app.go).
 	if len(selection.CodexModelAssignments) == 0 && len(persistedState.CodexModelAssignments) > 0 {
@@ -1659,7 +1656,7 @@ func RenderSyncReport(result SyncResult) string {
 	}
 
 	if result.NoOp {
-		fmt.Fprintln(&b, "gentle-ai sync — no managed sync actions needed")
+		fmt.Fprintln(&b, "brunnr-code sync — no managed sync actions needed")
 		if len(result.Agents) == 0 {
 			fmt.Fprintln(&b, "No agents were discovered or specified. Nothing to sync.")
 		} else {
@@ -1677,7 +1674,7 @@ func RenderSyncReport(result SyncResult) string {
 	}
 
 	if result.DryRun {
-		fmt.Fprintln(&b, "gentle-ai sync — dry-run")
+		fmt.Fprintln(&b, "brunnr-code sync — dry-run")
 		fmt.Fprintf(&b, "Agents: %s\n", joinAgentIDs(result.Agents))
 
 		compParts := make([]string, 0, len(result.Selection.Components))
@@ -1696,7 +1693,7 @@ func RenderSyncReport(result SyncResult) string {
 		return strings.TrimRight(b.String(), "\n")
 	}
 
-	fmt.Fprintln(&b, "gentle-ai sync — managed sync executed")
+	fmt.Fprintln(&b, "brunnr-code sync — managed sync executed")
 	fmt.Fprintf(&b, "Agents synced: %s\n", joinAgentIDs(result.Agents))
 	renderSyncSkippedAgents(&b, result.SkippedAgents)
 
@@ -1760,8 +1757,8 @@ func renderSyncManualActions(b *strings.Builder, actions []string) {
 
 // withFailedSyncVerificationNote replaces the generic
 // verify.VerificationIssuesMessage with one naming the concrete command that
-// retries a failed sync: `gentle-ai sync`. Unlike the install path, sync has
-// no per-agent retry command -- rerunning `gentle-ai sync` re-applies every
+// retries a failed sync: `brunnr-code sync`. Unlike the install path, sync has
+// no per-agent retry command -- rerunning `brunnr-code sync` re-applies every
 // discovered/persisted agent, so no agent list is needed.
 //
 // It is scoped to exactly the generic failure text so it never clobbers a
@@ -1771,7 +1768,7 @@ func withFailedSyncVerificationNote(report verify.Report) verify.Report {
 	if report.Ready || report.FinalNote != verify.VerificationIssuesMessage {
 		return report
 	}
-	report.FinalNote = verify.VerificationIssuesMessageForCommand("gentle-ai sync")
+	report.FinalNote = verify.VerificationIssuesMessageForCommand("brunnr-code sync")
 	return report
 }
 
@@ -1817,7 +1814,7 @@ func runPostSyncVerificationScoped(homeDir, workspaceDir string, scope InstallSc
 							}
 							return err
 						}
-						return fmt.Errorf("retired managed file still exists; rerun `gentle-ai sync` to finish retiring it")
+						return fmt.Errorf("retired managed file still exists; rerun `brunnr-code sync` to finish retiring it")
 					},
 				})
 				continue

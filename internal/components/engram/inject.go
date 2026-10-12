@@ -20,7 +20,7 @@ type InjectionResult struct {
 	Changed bool
 	Files   []string
 	// CodexServiceTier is non-nil only when this injection wrote a new Codex
-	// service_tier or retired the managed one; it is the tier Gentle AI owns
+	// service_tier or retired the managed one; it is the tier Brunnr-Code owns
 	// afterwards ("" = none). Callers record it as the managed tier; nil keeps
 	// the previously recorded value.
 	CodexServiceTier *string
@@ -93,7 +93,7 @@ type InjectOptions struct {
 	// CodexServiceTier writes the top-level service_tier when it is a new,
 	// non-empty selection (different from CodexManagedServiceTier).
 	CodexServiceTier string
-	// CodexManagedServiceTier is the service_tier Gentle AI previously wrote.
+	// CodexManagedServiceTier is the service_tier Brunnr-Code previously wrote.
 	// With no CodexServiceTier selected it is removed only while config.toml
 	// still holds exactly that value; any other user value is left untouched.
 	CodexManagedServiceTier string
@@ -154,10 +154,10 @@ func injectWithOptions(configHomeDir, promptDir string, adapter agents.Adapter, 
 			break
 		}
 		// Engram v1.10.3+ writes an absolute path for the command field when
-		// `engram setup <agent>` is invoked. gentle-ai's Inject() runs after
+		// `engram setup <agent>` is invoked. brunnr-code's Inject() runs after
 		// engram setup, so we must preserve any absolute command path already
 		// present instead of silently overwriting it with the relative "engram".
-		// See: https://github.com/Gentleman-Programming/gentle-ai/issues (engram absolute path regression)
+		// See: https://github.com/carsimax/brunnr-code/issues (engram absolute path regression)
 		mcpPath := adapter.MCPConfigPath(configHomeDir, "engram")
 		cmd := stableEngramCommandForMergedConfig(mcpPath, adapter.Agent())
 		content := buildSeparateMCPContent(mcpPath, engramServerJSONWithCmd(cmd))
@@ -343,7 +343,7 @@ func upsertCodexTableKeyBeforeMCPServers(content, section, key, rawValue string)
 func injectClaudeUserConfig(homeDir string, adapter agents.Adapter) (InjectionResult, error) {
 	// The plugin and direct MCP entry expose the same Engram tools. When the
 	// plugin is enabled, suppress direct registration without deleting any
-	// existing entry: matching config shape is not proof that gentle-ai owns it.
+	// existing entry: matching config shape is not proof that brunnr-code owns it.
 	if claudeEngramPluginEnabled(homeDir) {
 		return InjectionResult{}, nil
 	}
@@ -531,7 +531,7 @@ func executableFromCommandValue(command any) (string, bool) {
 // Code).
 //
 // Engram v1.10.3+ writes an absolute command path when `engram setup` is run.
-// gentle-ai runs Inject() after setup, so we must not overwrite that absolute
+// brunnr-code runs Inject() after setup, so we must not overwrite that absolute
 // path with the relative "engram" string from defaultEngramServerJSON.
 //
 // Logic:
@@ -592,14 +592,14 @@ func managedLegacyClaudeEngramCommand(content []byte) (string, bool) {
 }
 
 // IsManagedLegacyClaudeConfig reports whether content has the exact legacy
-// standalone Engram server shape emitted by Gentle AI.
+// standalone Engram server shape emitted by Brunnr-Code.
 func IsManagedLegacyClaudeConfig(content []byte) bool {
 	_, ok := managedLegacyClaudeEngramCommand(content)
 	return ok
 }
 
 // RemoveManagedLegacyClaudeConfig removes only the exact standalone shape
-// emitted by Gentle AI. Its parent is removed only when the same real directory
+// emitted by Brunnr-Code. Its parent is removed only when the same real directory
 // remains empty after that managed file is deleted; symlinks are never unlinked.
 func RemoveManagedLegacyClaudeConfig(path string) (bool, error) {
 	info, err := os.Lstat(path)
@@ -701,7 +701,7 @@ func validServiceTier(tier string) string {
 }
 
 // rootCodexServiceTierLine finds the root-scope line that is byte-for-byte the
-// service_tier assignment Gentle AI writes for tier. Lines inside multiline
+// service_tier assignment Brunnr-Code writes for tier. Lines inside multiline
 // strings are content, not assignments, and never match.
 func rootCodexServiceTierLine(content, tier string) (int, bool) {
 	if tier == "" {

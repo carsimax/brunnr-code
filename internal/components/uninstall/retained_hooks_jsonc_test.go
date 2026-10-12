@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	jsoncManagedStop = `"Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "gentle-ai review stop-hook --agent claude-code"}]}]`
-	jsoncMixedStop   = `"Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "gentle-ai review stop-hook --agent claude-code"}, {"type": "command", "command": "echo keep"}]}]`
+	jsoncManagedStop = `"Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "brunnr-code review stop-hook --agent claude-code"}]}]`
+	jsoncMixedStop   = `"Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "brunnr-code review stop-hook --agent claude-code"}, {"type": "command", "command": "echo keep"}]}]`
 )
 
 // applyClaudeSettingsRewrite runs the full-agent uninstall rewrites planned

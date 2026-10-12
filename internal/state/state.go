@@ -40,7 +40,7 @@ type InstallState struct {
 	Preset                 model.PresetID      `json:"preset,omitempty"`
 	SDDMode                model.SDDModeID     `json:"sdd_mode,omitempty"`
 	StrictTDD              bool                `json:"-"` // decoded only for legacy compatibility; never persisted or used for routing
-	// CommunityTools records optional tools explicitly selected in the Gentle AI
+	// CommunityTools records optional tools explicitly selected in the Brunnr-Code
 	// installer. Configured distinguishes a completed empty selection from legacy
 	// state files that predate persistence of this choice.
 	CommunityTools           []string `json:"community_tools,omitempty"`
@@ -48,7 +48,7 @@ type InstallState struct {
 
 	// ClaudeModelAssignments maps SDD phase names (e.g. "sdd-explore") to a
 	// Claude model alias ("fable", "opus", "sonnet", "haiku"). Persisted so that
-	// `gentle-ai sync` preserves the user's model choices instead of falling
+	// `brunnr-code sync` preserves the user's model choices instead of falling
 	// back to the "balanced" preset every time.
 	ClaudeModelAssignments map[string]string `json:"claude_model_assignments,omitempty"`
 
@@ -57,21 +57,21 @@ type InstallState struct {
 	ClaudePhaseAssignments map[string]ClaudePhaseAssignmentState `json:"claude_phase_assignments,omitempty"`
 
 	// CodexModelAssignments maps SDD phase names to a Codex reasoning_effort value
-	// (low|medium|high|xhigh). Persisted so that `gentle-ai sync` preserves the
+	// (low|medium|high|xhigh). Persisted so that `brunnr-code sync` preserves the
 	// user's per-phase effort preset instead of falling back to Recommended.
 	CodexModelAssignments map[string]string `json:"codexModelAssignments,omitempty"`
 
 	// CodexOrchestratorAssignment is optional so legacy state preserves the user's top-level Codex configuration.
 	CodexOrchestratorAssignment *CodexOrchestratorAssignmentState `json:"codexOrchestratorAssignment,omitempty"`
 
-	// CodexServiceTier is the top-level config.toml service_tier Gentle AI wrote
-	// (for example "priority" for Fast). Empty means Gentle AI manages none, so
+	// CodexServiceTier is the top-level config.toml service_tier Brunnr-Code wrote
+	// (for example "priority" for Fast). Empty means Brunnr-Code manages none, so
 	// a user-set service_tier is never touched.
 	CodexServiceTier string `json:"codexServiceTier,omitempty"`
 
 	// CodexCarrilModelAssignments maps the three carril profile names
 	// (sdd-strong|sdd-mid|sdd-cheap) to OpenAI subscription model IDs
-	// (e.g. "gpt-5.6-sol", "gpt-5.6-luna"). Persisted so that `gentle-ai sync`
+	// (e.g. "gpt-5.6-sol", "gpt-5.6-luna"). Persisted so that `brunnr-code sync`
 	// regenerates profile files with the user's chosen model per tier.
 	// Absent/empty = resolve to DefaultCarrilModels at runtime (backward-compat).
 	CodexCarrilModelAssignments map[string]string `json:"codexCarrilModelAssignments,omitempty"`

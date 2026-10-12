@@ -9,7 +9,7 @@ import (
 
 func TestSkillPickerCanonicalRowsAndActions(t *testing.T) {
 	skills := AllSkillsOrdered()
-	labels := []string{"Judgment Day", "Go Testing", "Gentle AI Bench", "Skill Creator", "Skill Improver", "Branch & PR", "Issue Creation", "Skill Registry", "Chained PR", "Cognitive Doc Design", "Comment Writer", "Work Unit Commits", "RDD Defect Workflow", "Systemic Issue Triage"}
+	labels := []string{"Judgment Day", "Go Testing", "Brunnr-Code Bench", "Skill Creator", "Skill Improver", "Branch & PR", "Issue Creation", "Skill Registry", "Chained PR", "Cognitive Doc Design", "Comment Writer", "Work Unit Commits", "RDD Defect Workflow", "Systemic Issue Triage"}
 	if len(skills) != len(labels) {
 		t.Fatalf("canonical skills = %d, want %d", len(skills), len(labels))
 	}

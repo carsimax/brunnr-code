@@ -137,7 +137,7 @@ func TestInjectClaudeCodeUsesBypassPermissions(t *testing.T) {
 	}
 }
 
-// TestInjectCodexNeverWritesConfig pins the decision that gentle-ai writes
+// TestInjectCodexNeverWritesConfig pins the decision that brunnr-code writes
 // nothing to Codex's permissions configuration — neither a profile nor the
 // legacy migration that used to strip one. Codex refuses to load a config that
 // defines a [permissions.*] profile without default_permissions, so a cleanup

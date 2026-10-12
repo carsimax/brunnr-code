@@ -150,7 +150,7 @@ var refusalRatchetMarkerRegexp = regexp.MustCompile(`^refusal:by-design\s+([a-z-
 // refusalRatchetNamedContinuationRegexp matches an explicit runnable
 // continuation. Requiring a lowercase letter directly after "gentle-ai "
 // excludes prose that mentions the product name without naming a command.
-var refusalRatchetNamedContinuationRegexp = regexp.MustCompile(`gentle-ai [a-z][a-z-]*`)
+var refusalRatchetNamedContinuationRegexp = regexp.MustCompile(`(?:gentle-ai|brunnr-code) [a-z][a-z-]*`)
 
 // refusalRatchetErrorMethodOrigin labels a refusal returned from an
 // `Error() string` method. It sits in the same slot as the constructor name so

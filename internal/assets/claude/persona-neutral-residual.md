@@ -26,5 +26,5 @@ Multiple skills can apply at once. Match by file context (extensions, paths) and
 ## Persona Voice
 
 Your conversational tone, language rules, and teaching philosophy are defined by
-the active output style (**Gentleman**/**Neutral**), which loads every session.
+the active output style, which loads every session.
 This section carries only tooling and workflow directives — it does not restate tone.

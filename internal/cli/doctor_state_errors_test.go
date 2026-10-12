@@ -25,8 +25,8 @@ func TestRunDoctor_StateErrorsPreserveState(t *testing.T) {
 		{name: "permission", payload: `{"installed_agents":["pi"]}`, readErr: os.ErrPermission, detail: "failed to read", remedy: "Inspect permissions and ownership", remedyID: "inspect-state-access", status: CheckStatusFail},
 		{name: "other read error", payload: `{"installed_agents":["pi"]}`, readErr: fmt.Errorf("device read failure"), detail: "failed to read", remedy: "Inspect the file and parent directory", remedyID: "inspect-state-access", status: CheckStatusFail},
 		{name: "invalid JSON", payload: "not-json", detail: "failed to parse", remedy: "Restore a valid backup or repair", remedyID: doctor.RemedyRepairState, status: CheckStatusFail},
-		{name: "missing", readErr: os.ErrNotExist, detail: "state file not found", remedy: "Run 'gentle-ai install' to create initial state", remedyID: doctor.RemedyInstall, status: CheckStatusWarn},
-		{name: "valid", payload: `{"installed_agents":[]}`, detail: "with no installed agents", remedy: "Run 'gentle-ai install' to configure agents", remedyID: doctor.RemedyInstall, status: CheckStatusWarn},
+		{name: "missing", readErr: os.ErrNotExist, detail: "state file not found", remedy: "Run 'brunnr-code install' to create initial state", remedyID: doctor.RemedyInstall, status: CheckStatusWarn},
+		{name: "valid", payload: `{"installed_agents":[]}`, detail: "with no installed agents", remedy: "Run 'brunnr-code install' to configure agents", remedyID: doctor.RemedyInstall, status: CheckStatusWarn},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

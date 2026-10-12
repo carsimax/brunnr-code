@@ -23,12 +23,12 @@ func outputStyleOverlayJSON(name string) []byte {
 }
 
 // Inject performs a full Neutral persona injection: the marker-bound markdown
-// block and the Claude Code output-style overlay. Used by `gentle-ai install`.
+// block and the Claude Code output-style overlay. Used by `brunnr-code install`.
 func Inject(homeDir string, adapter agents.Adapter) (InjectionResult, error) {
 	return injectInternal(homeDir, adapter)
 }
 
-// InjectForSync regenerates the persona assets that `gentle-ai sync` is
+// InjectForSync regenerates the persona assets that `brunnr-code sync` is
 // allowed to touch. It writes:
 //   - The marker-bound persona block in the agent's prompt file (markdown).
 //   - The Neutral output-style file + outputStyle settings overlay (Claude
@@ -55,16 +55,8 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 			return InjectionResult{}, err
 		}
 
-		// Auto-heal: strip any legacy free-text Gentleman persona block that was
-		// written before the marker-based injection system existed. This is safe
-		// for StrategyMarkdownSections because InjectMarkdownSection preserves
-		// all existing marker sections — only the unmarked free-text preamble is
-		// removed, and StripLegacyPersonaBlock requires ALL three fingerprints
-		// to be present in the pre-marker zone before stripping.
-		healed := filemerge.StripLegacyPersonaBlock(existing)
-
-		// Also strip legacy Agent Teams Lite block (standalone ATL installer leftover).
-		healed = filemerge.StripLegacyATLBlock(healed)
+		// Strip the legacy Agent Teams Lite block (standalone ATL installer leftover).
+		healed := filemerge.StripLegacyATLBlock(existing)
 
 		updated := filemerge.InjectMarkdownSection(healed, "persona", content)
 
@@ -90,8 +82,7 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 				return InjectionResult{}, err
 			}
 
-			healed := stripExactLegacyPersonaAsset(existing)
-			healed = filemerge.StripLegacyATLBlock(healed)
+			healed := filemerge.StripLegacyATLBlock(existing)
 			updated := injectPersonaBeforeManagedSections(healed, content)
 
 			writeResult, err := filemerge.WriteFileAtomic(promptPath, []byte(updated), 0o644)
@@ -155,58 +146,6 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 	}
 
 	return InjectionResult{Changed: changed, Files: files}, nil
-}
-
-// shouldStripManagedLegacyPersona returns true ONLY when the existing file
-// already contains a <!-- gentle-ai:persona --> section. That is the strongest
-// evidence that the pre-marker persona content is stale legacy text written by
-// an older installer, not user-authored content that happens to share headings.
-//
-// We intentionally do NOT trigger on ATL markers, engram markers, sdd markers,
-// or any other managed marker — their presence does not prove that the
-// pre-marker content is installer-owned.
-// isExactLegacyPersonaAsset returns true when the file content is an exact
-// match of the Neutral persona asset. This handles
-// the case where an old installer wrote the asset as the entire file with no
-// markers — we can safely replace it because there is zero user content.
-func isExactLegacyPersonaAsset(existing string) bool {
-	trimmed := strings.TrimSpace(existing)
-	if trimmed == "" {
-		return false
-	}
-	return trimmed == strings.TrimSpace(assets.MustRead("generic/persona-neutral.md"))
-}
-
-// stripExactLegacyPersonaAsset removes installer-owned legacy persona content
-// from existing when it is byte-for-byte one of the known legacy persona
-// assets. Two safe cases are handled:
-//
-//  1. The whole file is the legacy asset (no markers at all) — the old
-//     installer owned the entire file, so it can be replaced wholesale.
-//  2. The pre-marker zone (content before the first <!-- gentle-ai: -->
-//     marker) is exactly the legacy asset, followed by managed sections that
-//     later install steps appended (engram, SDD). Only the installer-owned
-//     zone is removed; every marker section is preserved. This migrates the
-//     markerless persona prose written by installers up to v1.43.2
-//     (issue #981).
-//
-// Anything else — including user content that merely resembles the persona —
-// is returned unchanged.
-func stripExactLegacyPersonaAsset(existing string) string {
-	if strings.TrimSpace(existing) == "" {
-		return existing
-	}
-	firstMarkerIdx := strings.Index(existing, "<!-- gentle-ai:")
-	if firstMarkerIdx < 0 {
-		if isExactLegacyPersonaAsset(existing) {
-			return ""
-		}
-		return existing
-	}
-	if isExactLegacyPersonaAsset(existing[:firstMarkerIdx]) {
-		return existing[firstMarkerIdx:]
-	}
-	return existing
 }
 
 func injectPersonaBeforeManagedSections(existing, content string) string {
@@ -281,7 +220,7 @@ var osReadFile = func(path string) ([]byte, error) {
 }
 
 // preserveManagedSections checks whether the existing file content has
-// gentle-ai managed sections (SDD orchestrator, engram protocol, etc.) and
+// brunnr-code managed sections (SDD orchestrator, engram protocol, etc.) and
 // returns new content that preserves those sections while replacing only the
 // persona text before them. Returns ("", false) when no preservation is needed
 // (empty file or no managed markers found).

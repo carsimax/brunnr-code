@@ -34,7 +34,7 @@ func TestHelpRequestPrintsDerivedUsageAndSucceeds(t *testing.T) {
 				"list",
 				"yes",
 				"list available backups without restoring",
-				"gentle-ai restore [--list | latest | <id>] [--yes]",
+				"brunnr-code restore [--list | latest | <id>] [--yes]",
 			},
 		},
 	} {
@@ -75,7 +75,7 @@ func TestRestoreAnswersHelpAndRejectsUnknownFlagAfterPositional(t *testing.T) {
 			}
 			for _, want := range []string{
 				"list available backups without restoring",
-				"gentle-ai restore [--list | latest | <id>] [--yes]",
+				"brunnr-code restore [--list | latest | <id>] [--yes]",
 			} {
 				if !strings.Contains(output, want) {
 					t.Fatalf("restore backup-001 %s usage omits %q:\n%s", flagName, want, output)
@@ -115,7 +115,7 @@ func TestRestoreHelpAnswersBeforeHomeResolution(t *testing.T) {
 				t.Fatalf("restore %s usage omits the Codex root scope: %s", flagName, output)
 			}
 			for _, want := range []string{
-				"gentle-ai restore [--list | latest | <id>] [--yes]",
+				"brunnr-code restore [--list | latest | <id>] [--yes]",
 				"list available backups without restoring",
 			} {
 				if !strings.Contains(output, want) {

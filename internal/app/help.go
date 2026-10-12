@@ -6,15 +6,15 @@ import (
 )
 
 func printHelp(w io.Writer, version string) {
-	fmt.Fprintf(w, `gentle-ai — Gentle-AI: Ecosystem, Frameworks, Workflows (%s)
+	fmt.Fprintf(w, `brunnr-code — Brunnr-Code: Ecosystem, Frameworks, Workflows (%s)
 
 USAGE
-  gentle-ai                     Launch interactive TUI
-  gentle-ai <command> [flags]
+  brunnr-code                   Launch interactive TUI
+  brunnr-code <command> [flags]
 
 COMMANDS
   install      Configure AI coding agents on this machine
-  uninstall    Remove Gentle AI managed files from this machine
+  uninstall    Remove Brunnr-Code managed files from this machine
   sync         Sync agent configs and skills to current version
   codegraph init --cwd <project-root>
                Initialize a project's CodeGraph index; codegraph [init] --help shows local help
@@ -43,7 +43,7 @@ COMMANDS
                'review start' asks per candidate before a review that would do work;
                accepting covers that candidate only and nothing is granted for later candidates,
                'not now' applies to that candidate only and persists nothing, turning reviews
-               off for good needs a deliberate 'gentle-ai review mode disable', and a session
+               off for good needs a deliberate 'brunnr-code review mode disable', and a session
                without a terminal reviews the change and says so instead of asking
 
 COMPATIBILITY COMMANDS
@@ -69,7 +69,7 @@ COMPATIBILITY COMMANDS
 FLAGS
   --help, -h    Show global help; every review subcommand also supports help
 
-Run 'gentle-ai help' for this message.
-Documentation: https://github.com/Gentleman-Programming/gentle-ai
+Run 'brunnr-code help' for this message.
+Documentation: https://github.com/carsimax/brunnr-code
 `, version)
 }

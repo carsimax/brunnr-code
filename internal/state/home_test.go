@@ -27,7 +27,7 @@ func TestDirDefaultsToDotGentleAIUnderHome(t *testing.T) {
 
 func TestHomeEnvRoutesStateAndManifestFiles(t *testing.T) {
 	home := t.TempDir()
-	override := filepath.Join(t.TempDir(), "gentle-ai")
+	override := filepath.Join(t.TempDir(), "brunnr-code")
 	t.Setenv(HomeEnv, override)
 
 	if got := Dir(home); got != override {

@@ -9,7 +9,7 @@ import (
 )
 
 func TestRenderDependencyTreeGenericEmptyPlanKeepsExistingCopy(t *testing.T) {
-	selection := model.Selection{Preset: model.PresetFullGentleman}
+	selection := model.Selection{Preset: model.PresetFull}
 
 	out := RenderDependencyTree(planner.ResolvedPlan{}, selection, 0)
 

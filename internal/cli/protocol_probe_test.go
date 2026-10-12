@@ -45,7 +45,7 @@ func pinGoCachesBeforeHomeIsolation() {
 // run_integration_test.go).
 //
 // It does the same for claude's own
-// LookPathOverride: since gentle-ai now refuses instead of installing a
+// LookPathOverride: since brunnr-code now refuses instead of installing a
 // missing agent runtime (agentInstallStep in run.go), the many tests in this
 // package whose real target is protocol forwarding, engram provisioning,
 // workspace resolution, or config injection — not install/detection
@@ -99,7 +99,7 @@ func TestMain(m *testing.M) {
 	// developer's existing caches before HOME moves, so tests that build the
 	// real CLI (TestCursorJudgmentDayCLISmoke) never need the network.
 	pinGoCachesBeforeHomeIsolation()
-	testHome, err := os.MkdirTemp("", "gentle-ai-cli-test-home-*")
+	testHome, err := os.MkdirTemp("", "brunnr-code-cli-test-home-*")
 	if err != nil {
 		panic(err)
 	}

@@ -14,8 +14,8 @@ var mvpComponents = []Component{
 	{ID: model.ComponentContext7, Name: "Context7", Description: "Latest framework and library docs"},
 	{ID: model.ComponentPersona, Name: "Persona", Description: "Managed agent behavior and conversation tone"},
 	{ID: model.ComponentPermission, Name: "Permissions", Description: "Security-first defaults and guardrails"},
-	{ID: model.ComponentTheme, Name: "Gentleman Theme", Description: "Visual polish: Gentleman color theme"},
-	{ID: model.ComponentClaudeTheme, Name: "Gentleman Visual Themes", Description: "Visual polish: Gentleman and Gentleman Cute theme assets"},
+	{ID: model.ComponentTheme, Name: "Brunnr Theme", Description: "Visual polish: Brunnr color theme"},
+	{ID: model.ComponentClaudeTheme, Name: "Brunnr Visual Themes", Description: "Visual polish: Brunnr and Brunnr Cute theme assets"},
 }
 
 func MVPComponents() []Component {

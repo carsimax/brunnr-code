@@ -96,11 +96,11 @@ func TestClaudeModuleOptInRejectsWorkspaceAndNonClaudeBeforeWriting(t *testing.T
 			if err == nil || !strings.Contains(err.Error(), claudeModulesFlag) || !strings.Contains(err.Error(), tt.want) {
 				t.Fatalf("RunInstall(%q) error = %v, want a %s rejection naming %q", tt.args, err, claudeModulesFlag, tt.want)
 			}
-			wantCommand := "gentle-ai install --agent " + tt.agents + " --scope global --claude-orchestrator-modules"
+			wantCommand := "brunnr-code install --agent " + tt.agents + " --scope global --claude-orchestrator-modules"
 			if !strings.Contains(err.Error(), wantCommand) {
 				t.Errorf("rejection must preserve selected installation targets in %q: %v", wantCommand, err)
 			}
-			flags, parseErr := ParseInstallFlags(strings.Fields(strings.TrimPrefix(wantCommand, "gentle-ai install ")))
+			flags, parseErr := ParseInstallFlags(strings.Fields(strings.TrimPrefix(wantCommand, "brunnr-code install ")))
 			if parseErr != nil {
 				t.Fatalf("parse corrected install command: %v", parseErr)
 			}

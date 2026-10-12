@@ -65,7 +65,7 @@ func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 
 	want := model.Selection{
 		Agents: []model.AgentID{model.AgentClaudeCode, model.AgentCodex},
-		Preset: model.PresetFullGentleman,
+		Preset: model.PresetFull,
 		Components: []model.ComponentID{
 			model.ComponentEngram,
 			model.ComponentSkills,
@@ -82,7 +82,7 @@ func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 }
 
 func TestDefaultInstallPresetsAndPickerExcludeLegacySDD(t *testing.T) {
-	for _, preset := range []model.PresetID{model.PresetFullGentleman, model.PresetEcosystemOnly, model.PresetMinimal} {
+	for _, preset := range []model.PresetID{model.PresetFull, model.PresetEcosystemOnly, model.PresetMinimal} {
 		for _, component := range model.ComponentsForPreset(preset) {
 			if component == model.ComponentSDD {
 				t.Errorf("preset %s selected legacy SDD", preset)
@@ -111,7 +111,7 @@ func TestNormalizeInstallFlagsAcceptsBundledSkills(t *testing.T) {
 	}
 }
 
-func TestNormalizeInstallFlagsCustomAcceptsOptionalGentlemanInstallables(t *testing.T) {
+func TestNormalizeInstallFlagsCustomAcceptsOptionalInstallables(t *testing.T) {
 	input, err := NormalizeInstallFlags(InstallFlags{
 		Preset:     string(model.PresetCustom),
 		Components: []string{string(model.ComponentClaudeTheme)},

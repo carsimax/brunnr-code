@@ -14,7 +14,7 @@ import (
 
 // TestEngramStepsForwardCodexServiceTier covers both install and sync engram
 // steps: a new selection is written, and choosing standard retires exactly
-// the tier Gentle AI previously wrote.
+// the tier Brunnr-Code previously wrote.
 func TestEngramStepsForwardCodexServiceTier(t *testing.T) {
 	t.Cleanup(codex.SetRuntimeVersionCommandForTest("codex-cli 0.144.0", nil))
 	restoreCommand, restoreLookPath := runCommand, cmdLookPath

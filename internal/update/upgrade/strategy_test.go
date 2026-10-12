@@ -175,7 +175,7 @@ func TestEffectiveMethod(t *testing.T) {
 		},
 		{
 			name:    "brew profile without package ownership respects declared method",
-			tool:    update.ToolInfo{Name: "gentle-ai", InstallMethod: update.InstallBinary},
+			tool:    update.ToolInfo{Name: "brunnr-code", InstallMethod: update.InstallBinary},
 			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
 			want:    update.InstallBinary,
 		},
@@ -202,33 +202,33 @@ func TestEffectiveMethod(t *testing.T) {
 }
 
 func TestHomebrewPackageInstalledWithRequiresActiveBrewPath(t *testing.T) {
-	brewPrefix := filepath.Join(t.TempDir(), "opt", "gentle-ai")
-	brewBin := filepath.Join(brewPrefix, "bin", "gentle-ai")
-	nonBrewBin := filepath.Join(t.TempDir(), "gentle-ai")
+	brewPrefix := filepath.Join(t.TempDir(), "opt", "brunnr-code")
+	brewBin := filepath.Join(brewPrefix, "bin", "brunnr-code")
+	nonBrewBin := filepath.Join(t.TempDir(), "brunnr-code")
 
 	run := func(name string, args ...string) *exec.Cmd {
 		if name != "brew" {
 			return mockCmd("false")
 		}
-		if len(args) >= 3 && args[0] == "list" && args[1] == "--formula" && args[2] == "gentle-ai" {
+		if len(args) >= 3 && args[0] == "list" && args[1] == "--formula" && args[2] == "brunnr-code" {
 			return mockCmd("true")
 		}
-		if len(args) == 2 && args[0] == "--prefix" && args[1] == "gentle-ai" {
+		if len(args) == 2 && args[0] == "--prefix" && args[1] == "brunnr-code" {
 			return mockCmd("echo", brewPrefix)
 		}
 		return mockCmd("false")
 	}
 
-	if !homebrewPackageInstalledWith(run, func(string) (string, error) { return brewBin, nil }, "gentle-ai") {
+	if !homebrewPackageInstalledWith(run, func(string) (string, error) { return brewBin, nil }, "brunnr-code") {
 		t.Fatal("expected brew-owned active path to be treated as Homebrew installed")
 	}
-	if homebrewPackageInstalledWith(run, func(string) (string, error) { return nonBrewBin, nil }, "gentle-ai") {
+	if homebrewPackageInstalledWith(run, func(string) (string, error) { return nonBrewBin, nil }, "brunnr-code") {
 		t.Fatal("expected shadowing non-brew active path to avoid Homebrew")
 	}
-	if homebrewPackageInstalledWith(func(string, ...string) *exec.Cmd { return mockCmd("false") }, func(string) (string, error) { return brewBin, nil }, "gentle-ai") {
+	if homebrewPackageInstalledWith(func(string, ...string) *exec.Cmd { return mockCmd("false") }, func(string) (string, error) { return brewBin, nil }, "brunnr-code") {
 		t.Fatal("expected brew list failure to avoid Homebrew")
 	}
-	if homebrewPackageInstalledWith(func(string, ...string) *exec.Cmd { return mockCmd("true") }, func(string) (string, error) { return "", errors.New("not found") }, "gentle-ai") {
+	if homebrewPackageInstalledWith(func(string, ...string) *exec.Cmd { return mockCmd("true") }, func(string) (string, error) { return "", errors.New("not found") }, "brunnr-code") {
 		t.Fatal("expected active path lookup failure to avoid Homebrew")
 	}
 }
@@ -262,7 +262,7 @@ func TestBrewUpgrade_RunsUpdateBeforeUpgrade(t *testing.T) {
 		return mockCmd("echo", "ok")
 	}
 
-	err := brewUpgrade(context.Background(), update.UpdateResult{Tool: update.ToolInfo{Name: "gentle-ai"}}, update.HomebrewFormula)
+	err := brewUpgrade(context.Background(), update.UpdateResult{Tool: update.ToolInfo{Name: "brunnr-code"}}, update.HomebrewFormula)
 	if err != nil {
 		t.Fatalf("brewUpgrade: unexpected error: %v", err)
 	}
@@ -300,10 +300,10 @@ func TestBrewUpgrade_UpdateFailureIsNonFatal(t *testing.T) {
 			}
 		}
 		// brew upgrade succeeds.
-		return mockCmd("echo", "Upgraded gentle-ai")
+		return mockCmd("echo", "Upgraded brunnr-code")
 	}
 
-	err := brewUpgrade(context.Background(), update.UpdateResult{Tool: update.ToolInfo{Name: "gentle-ai"}}, update.HomebrewFormula)
+	err := brewUpgrade(context.Background(), update.UpdateResult{Tool: update.ToolInfo{Name: "brunnr-code"}}, update.HomebrewFormula)
 	// brew update failed but brew upgrade succeeded → overall success.
 	if err != nil {
 		t.Errorf("expected success when brew update fails but brew upgrade succeeds, got: %v", err)
@@ -389,22 +389,22 @@ func TestBrewUpgrade_FormulaToolUsesFormulaTrust(t *testing.T) {
 		return mockCmd("echo", "ok")
 	}
 
-	if err := brewUpgrade(context.Background(), update.UpdateResult{Tool: update.ToolInfo{Name: "gentle-ai"}}, update.HomebrewFormula); err != nil {
+	if err := brewUpgrade(context.Background(), update.UpdateResult{Tool: update.ToolInfo{Name: "brunnr-code"}}, update.HomebrewFormula); err != nil {
 		t.Fatalf("brewUpgrade: unexpected error: %v", err)
 	}
 
-	if len(trustArgs) != 2 || trustArgs[0] != "--formula" || trustArgs[1] != "gentleman-programming/tap/gentle-ai" {
-		t.Fatalf("brew trust args = %v, want [--formula gentleman-programming/tap/gentle-ai]", trustArgs)
+	if len(trustArgs) != 2 || trustArgs[0] != "--formula" || trustArgs[1] != "gentleman-programming/tap/brunnr-code" {
+		t.Fatalf("brew trust args = %v, want [--formula gentleman-programming/tap/brunnr-code]", trustArgs)
 	}
 }
 
 func TestHomebrewFailureAdviceTapTrust(t *testing.T) {
-	output := `Error: Refusing to load formula gentleman-programming/tap/gentle-ai from untrusted tap.
-Run brew trust --formula gentleman-programming/tap/gentle-ai to trust it.`
-	advice := homebrewFailureAdvice("gentle-ai", output)
+	output := `Error: Refusing to load formula gentleman-programming/tap/brunnr-code from untrusted tap.
+Run brew trust --formula gentleman-programming/tap/brunnr-code to trust it.`
+	advice := homebrewFailureAdvice("brunnr-code", output)
 	for _, want := range []string{
-		"brew trust --formula gentleman-programming/tap/gentle-ai",
-		"brew upgrade --formula gentle-ai",
+		"brew trust --formula gentleman-programming/tap/brunnr-code",
+		"brew upgrade --formula brunnr-code",
 	} {
 		if !strings.Contains(advice, want) {
 			t.Fatalf("tap trust advice missing %q:\n%s", want, advice)
@@ -432,7 +432,7 @@ Run brew trust --cask gentleman-programming/tap/engram to trust it.`
 func TestHomebrewFailureAdviceBubblewrap(t *testing.T) {
 	output := `Error: Bubblewrap is installed but cannot create a rootless sandbox.
 Homebrew's Linux sandbox requires rootless Bubblewrap and unprivileged user namespaces.`
-	advice := homebrewFailureAdvice("gentle-ai", output)
+	advice := homebrewFailureAdvice("brunnr-code", output)
 	if strings.Contains(strings.ToLower(advice), "preferred fix") {
 		t.Fatalf("bubblewrap advice must not frame host policy changes as preferred defaults:\n%s", advice)
 	}
@@ -441,7 +441,7 @@ Homebrew's Linux sandbox requires rootless Bubblewrap and unprivileged user name
 		"sudo sysctl -w kernel.unprivileged_userns_clone=1",
 		"sudo sysctl -w user.max_user_namespaces=28633",
 		"sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true",
-		"HOMEBREW_NO_SANDBOX_LINUX=1 brew upgrade --formula gentle-ai",
+		"HOMEBREW_NO_SANDBOX_LINUX=1 brew upgrade --formula brunnr-code",
 	} {
 		if !strings.Contains(advice, want) {
 			t.Fatalf("bubblewrap advice missing %q:\n%s", want, advice)

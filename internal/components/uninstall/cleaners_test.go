@@ -53,57 +53,6 @@ func TestRemoveMarkdownSections_RemovesOnlyManagedBlock(t *testing.T) {
 	}
 }
 
-func TestRemoveManagedPersonaPreamble_PreservesManagedSuffix(t *testing.T) {
-	input := strings.Join([]string{
-		"---",
-		"name: Gentle AI Persona",
-		"description: Teaching-oriented persona with SDD orchestration and Engram protocol",
-		"applyTo: \"**\"",
-		"---",
-		"",
-		"## Personality",
-		"Senior Architect mentor persona.",
-		"",
-		"## Rules",
-		"Be direct.",
-		"",
-		"<!-- gentle-ai:sdd-orchestrator -->",
-		"SDD stays.",
-		"<!-- /gentle-ai:sdd-orchestrator -->",
-	}, "\n") + "\n"
-
-	updated, changed := removeManagedPersonaPreamble(input)
-	if !changed {
-		t.Fatal("removeManagedPersonaPreamble() changed = false, want true")
-	}
-	if strings.Contains(updated, "name: Gentle AI Persona") || strings.Contains(updated, "## Personality") {
-		t.Fatalf("managed persona preamble still present:\n%s", updated)
-	}
-	if !strings.HasPrefix(updated, "<!-- gentle-ai:sdd-orchestrator -->") {
-		t.Fatalf("managed suffix was not preserved at file start:\n%s", updated)
-	}
-}
-
-func TestRemoveManagedPersonaPreamble_WithoutMarkerDoesNotDeleteContent(t *testing.T) {
-	input := strings.Join([]string{
-		"---",
-		"name: Gentle AI Persona",
-		"description: Teaching-oriented persona with SDD orchestration and Engram protocol",
-		"---",
-		"",
-		"## Personality",
-		"Senior Architect mentor persona.",
-	}, "\n")
-
-	updated, changed := removeManagedPersonaPreamble(input)
-	if changed {
-		t.Fatal("removeManagedPersonaPreamble() changed = true, want false without explicit marker")
-	}
-	if updated != input {
-		t.Fatalf("content was modified without explicit marker:\n%s", updated)
-	}
-}
-
 func TestRemoveMarkdownSections_RemovesSlimResidualPersonaViaMarkerNotFingerprint(t *testing.T) {
 	// A slim (post-canonical-channel) persona section no longer contains
 	// "## Personality" or "Senior Architect" — only "## Rules" and the
@@ -141,7 +90,7 @@ func TestRemoveMarkdownSections_RemovesSlimResidualPersonaViaMarkerNotFingerprin
 
 func TestRemoveJSONPaths_RemovesOnlyManagedKeys(t *testing.T) {
 	input := []byte(`{
-  "theme": "gentleman",
+  "theme": "brunnr",
   "permission": {
     "bash": {
       "*": "allow"

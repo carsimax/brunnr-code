@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestComponentsForPresetFullGentlemanUsesInstallSafeVisualInventory(t *testing.T) {
-	got := ComponentsForPreset(PresetFullGentleman)
+func TestComponentsForPresetFullUsesInstallSafeVisualInventory(t *testing.T) {
+	got := ComponentsForPreset(PresetFull)
 
 	if slices.Contains(got, ComponentTheme) {
 		t.Fatalf("ComponentsForPreset() includes generic ComponentTheme: %v", got)
@@ -22,7 +22,7 @@ func TestComponentsForPresetFullGentlemanUsesInstallSafeVisualInventory(t *testi
 // a choice: every managed preset installs the (Neutral) persona component, and
 // only the custom preset leaves component selection to the user.
 func TestComponentsForPresetAlwaysInstallsNeutralPersona(t *testing.T) {
-	for _, preset := range []PresetID{PresetFullGentleman, PresetEcosystemOnly, PresetMinimal} {
+	for _, preset := range []PresetID{PresetFull, PresetEcosystemOnly, PresetMinimal} {
 		if got := ComponentsForPreset(preset); !slices.Contains(got, ComponentPersona) {
 			t.Errorf("ComponentsForPreset(%q) = %v, want it to include %q", preset, got, ComponentPersona)
 		}
@@ -40,7 +40,7 @@ func TestVisualPolishComponentsReturnsCompleteManagedCleanupInventory(t *testing
 }
 
 func TestExistingPresetsDoNotImplyCommunityTools(t *testing.T) {
-	for _, preset := range []PresetID{PresetFullGentleman, PresetEcosystemOnly, PresetMinimal, PresetCustom} {
+	for _, preset := range []PresetID{PresetFull, PresetEcosystemOnly, PresetMinimal, PresetCustom} {
 		t.Run(string(preset), func(t *testing.T) {
 			selection := Selection{
 				Preset:     preset,

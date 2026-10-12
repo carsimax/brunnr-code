@@ -343,7 +343,7 @@ func TestInjectClaudePreservesAbsoluteCommandFromEngramSetup(t *testing.T) {
 }
 
 // TestInjectClaudeSkipsMCPServersEngramWhenPluginEnabled reproduces issue
-// #4188: gentle-ai sync must not add mcpServers.engram to ~/.claude.json
+// #4188: brunnr-code sync must not add mcpServers.engram to ~/.claude.json
 // when the Engram plugin is already enabled via
 // ~/.claude/settings.json's enabledPlugins["engram@engram"], because the
 // plugin already exposes the same 18 tools under a different prefix.
@@ -379,7 +379,7 @@ func TestInjectClaudeSkipsMCPServersEngramWhenPluginEnabled(t *testing.T) {
 // TestInjectClaudePreservesIdenticalManualRegistrationsWhenPluginEnabled
 // verifies that sync never infers ownership from an Engram registration's
 // shape. A user can author exactly the same registry and legacy entries that
-// gentle-ai would write, so plugin detection must only suppress new writes.
+// brunnr-code would write, so plugin detection must only suppress new writes.
 func TestInjectClaudePreservesIdenticalManualRegistrationsWhenPluginEnabled(t *testing.T) {
 	home := t.TempDir()
 	mockEngramLookPath(t, "/opt/homebrew/bin/engram", "")

@@ -57,7 +57,7 @@ func Run() error {
 	return RunArgs(os.Args[1:], os.Stdout)
 }
 
-const nonInteractiveTUIError = "gentle-ai requires both stdin and stdout to be terminals (TTYs); use --version, gentle-ai update, or --help for non-interactive use"
+const nonInteractiveTUIError = "brunnr-code requires both stdin and stdout to be terminals (TTYs); use --version, brunnr-code update, or --help for non-interactive use"
 
 func RunArgs(args []string, stdout io.Writer) error {
 	if len(args) == 0 && (!isattyFn(os.Stdin.Fd()) || !isattyFn(os.Stdout.Fd())) {
@@ -65,7 +65,7 @@ func RunArgs(args []string, stdout io.Writer) error {
 	}
 
 	// Propagate the build-time version to the CLI and upgrade layers so backup
-	// manifests record which version of gentle-ai created them.
+	// manifests record which version of brunnr-code created them.
 	cli.AppVersion = Version
 	upgrade.AppVersion = Version
 
@@ -74,7 +74,7 @@ func RunArgs(args []string, stdout io.Writer) error {
 	if len(args) > 0 {
 		switch args[0] {
 		case "version", "--version", "-v":
-			_, _ = fmt.Fprintf(stdout, "gentle-ai %s\n", Version)
+			_, _ = fmt.Fprintf(stdout, "brunnr-code %s\n", Version)
 			return nil
 		case "help", "--help", "-h":
 			printHelp(stdout, Version)
@@ -259,7 +259,7 @@ func RunArgs(args []string, stdout io.Writer) error {
 	case "doctor":
 		return cli.RunDoctor(context.Background(), stdout)
 	default:
-		return fmt.Errorf("unknown command %q — run 'gentle-ai help' for available commands", args[0])
+		return fmt.Errorf("unknown command %q — run 'brunnr-code help' for available commands", args[0])
 	}
 }
 
@@ -286,7 +286,7 @@ func hasHelpFlag(args []string) bool {
 
 func runSkillRegistry(args []string, stdout io.Writer) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: gentle-ai skill-registry <refresh|list> [flags]")
+		return fmt.Errorf("usage: brunnr-code skill-registry <refresh|list> [flags]")
 	}
 	switch args[0] {
 	case "refresh":
@@ -437,7 +437,7 @@ func runUpdate(ctx context.Context, profile system.PlatformProfile, stdout io.Wr
 	return nil
 }
 
-// runUpgrade handles the `gentle-ai upgrade [--dry-run] [tool...]` command.
+// runUpgrade handles the `brunnr-code upgrade [--dry-run] [tool...]` command.
 //
 // This command:
 //   - Checks for available updates for managed tools (engram)

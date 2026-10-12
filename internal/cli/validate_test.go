@@ -47,7 +47,7 @@ func TestAsAgentIDsAcceptsEverySupportedAgent(t *testing.T) {
 }
 
 // TestNormalizeInstallFlagsRejectsUnsupportedAgent proves the install path
-// (`gentle-ai install --agent <typo>`) rejects an unknown agent instead of
+// (`brunnr-code install --agent <typo>`) rejects an unknown agent instead of
 // silently resolving to an empty agent list.
 func TestNormalizeInstallFlagsRejectsUnsupportedAgent(t *testing.T) {
 	_, err := NormalizeInstallFlags(InstallFlags{Agents: []string{"cluade"}}, system.DetectionResult{})

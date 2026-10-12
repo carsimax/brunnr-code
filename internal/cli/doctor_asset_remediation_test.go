@@ -34,10 +34,10 @@ func TestRunDoctor_AssetVersionRemediation(t *testing.T) {
 	pathDirsFn = func() []string { return nil }
 	availableBytesFn = func(string) (int64, error) { return 1024 * 1024 * 1024, nil }
 
-	simple := filepath.ToSlash(filepath.Join(home, "pinned", "gentle-ai"))
-	spaces := filepath.Join(home, "pinned build", "gentle-ai")
-	apostrophe := filepath.Join(home, "user's build", "gentle-ai")
-	other := filepath.Join(home, "homebrew", "gentle-ai")
+	simple := filepath.ToSlash(filepath.Join(home, "pinned", "brunnr-code"))
+	spaces := filepath.Join(home, "pinned build", "brunnr-code")
+	apostrophe := filepath.Join(home, "user's build", "brunnr-code")
+	other := filepath.Join(home, "homebrew", "brunnr-code")
 	for _, tc := range []struct {
 		name, invoked, pathCopy, goos, want string
 		execErr                             error
@@ -49,7 +49,7 @@ func TestRunDoctor_AssetVersionRemediation(t *testing.T) {
 		{name: "POSIX apostrophe", invoked: apostrophe, pathCopy: other, goos: "linux", want: "'" + strings.ReplaceAll(apostrophe, "'", `'\''`) + "' sync"},
 		{name: "Windows spaces", invoked: spaces, pathCopy: other, goos: "windows", want: "\"" + spaces + "\" sync"},
 		{name: "lookup failure", pathCopy: other, execErr: errors.New("unavailable"), goos: "linux"},
-		{name: "relative identity", invoked: "gentle-ai", pathCopy: other, goos: "linux"},
+		{name: "relative identity", invoked: "brunnr-code", pathCopy: other, goos: "linux"},
 		{name: "multiline identity", invoked: simple + "\nunsafe", pathCopy: other, goos: "linux"},
 		{name: "matching assets", invoked: simple, pathCopy: simple, goos: "linux", matching: true},
 	} {
@@ -64,7 +64,7 @@ func TestRunDoctor_AssetVersionRemediation(t *testing.T) {
 			}
 			osExecutableDoctor = func() (string, error) { return tc.invoked, tc.execErr }
 			lookPathFn = func(name string) (string, error) {
-				if name == "gentle-ai" {
+				if name == "brunnr-code" {
 					return tc.pathCopy, nil
 				}
 				return filepath.Join(home, name), nil
@@ -82,13 +82,13 @@ func TestRunDoctor_AssetVersionRemediation(t *testing.T) {
 			}
 			want := "installed assets match running binary version (" + AppVersion + ")"
 			if !tc.matching {
-				want = "installed assets were configured by gentle-ai v0.9.0, but running binary is " + AppVersion
+				want = "installed assets were configured by brunnr-code v0.9.0, but running binary is " + AppVersion
 				if tc.want == "" {
 					want += " — cannot determine the absolute invoked executable path; run sync using the absolute path of this running build to update installed assets"
 				} else {
 					want += " — run `" + tc.want + "` to update installed assets"
 					if tc.invoked != tc.pathCopy {
-						want += "; gentle-ai on PATH resolves to " + tc.pathCopy + ", which differs from the running executable; use the invoked path above"
+						want += "; brunnr-code on PATH resolves to " + tc.pathCopy + ", which differs from the running executable; use the invoked path above"
 					}
 				}
 			}
