@@ -2264,7 +2264,7 @@ func TestInstallerPlanBackReturnsToPreset(t *testing.T) {
 }
 
 // TestPresetConfirmEntersDependencyTreeForPickerAgents ensures the ODD installer
-// bypasses retired phase-model pickers for Codex and Kiro.
+// bypasses retired phase-model pickers for Codex.
 func TestPresetConfirmEntersDependencyTreeForPickerAgents(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -2323,7 +2323,7 @@ func TestPresetConfirmCustomEntersDependencyTreeComponentPicker(t *testing.T) {
 // makeDetectionWithAgents builds a DetectionResult with the specified agents
 // marked as Exists=true. All other agents are absent.
 func makeDetectionWithAgents(present ...string) system.DetectionResult {
-	known := []string{"claude-code", "gemini-cli", "cursor", "vscode-copilot", "codex", "antigravity", "windsurf", "qwen-code", "hermes"}
+	known := []string{"claude-code", "codex"}
 	presentSet := make(map[string]bool, len(present))
 	for _, p := range present {
 		presentSet[p] = true
@@ -3950,9 +3950,9 @@ func TestCodexPicker_EscBackNavToPreset(t *testing.T) {
 	}
 }
 
-// TestCodexPicker_EscBackNavToClaudeWhenClaudeSelectedNoKiro verifies that
-// stale installer picker escape remains safe without Kiro.
-func TestCodexPicker_EscBackNavToClaudeWhenClaudeSelectedNoKiro(t *testing.T) {
+// TestCodexPicker_EscBackNavToClaudeWhenClaudeSelected verifies that
+// stale installer picker escape remains safe.
+func TestCodexPicker_EscBackNavToClaudeWhenClaudeSelected(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenCodexModelPicker
 	m.ModelConfigMode = false
@@ -3969,10 +3969,10 @@ func TestCodexPicker_EscBackNavToClaudeWhenClaudeSelectedNoKiro(t *testing.T) {
 	}
 }
 
-// TestCodexPicker_EscBackNavToPresetWhenNeitherClaudeNorKiro verifies that
+// TestCodexPicker_EscBackNavToPresetWithoutClaude verifies that
 // pressing Esc from ScreenCodexModelPicker goes back to ScreenPreset when
-// neither Claude nor Kiro is in the flow.
-func TestCodexPicker_EscBackNavToPresetWhenNeitherClaudeNorKiro(t *testing.T) {
+// Claude is not in the flow.
+func TestCodexPicker_EscBackNavToPresetWithoutClaude(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenCodexModelPicker
 	m.ModelConfigMode = false
@@ -3985,7 +3985,7 @@ func TestCodexPicker_EscBackNavToPresetWhenNeitherClaudeNorKiro(t *testing.T) {
 	state := updated.(Model)
 
 	if state.Screen != ScreenPreset {
-		t.Fatalf("CodexPicker esc (no Claude, no Kiro): screen = %v, want ScreenPreset", state.Screen)
+		t.Fatalf("CodexPicker esc (no Claude): screen = %v, want ScreenPreset", state.Screen)
 	}
 }
 
@@ -5954,21 +5954,6 @@ func TestPickerBackRowRegression(t *testing.T) {
 	}{
 		{
 			name: "Configure models Codex Back returns to ModelConfig",
-			setup: func(t *testing.T) Model {
-				m := NewModel(system.DetectionResult{}, "dev")
-				m.Screen = ScreenCodexModelPicker
-				m.ModelConfigMode = true
-				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				m.Selection.Components = components
-				m.Selection.Preset = model.PresetFullGentleman
-				m.CodexModelPicker = screens.NewCodexModelPickerState()
-				m.Cursor = codexBackRow
-				return m
-			},
-			wantScreen: ScreenModelConfig,
-		},
-		{
-			name: "Configure models Codex Back with Kiro returns to ModelConfig",
 			setup: func(t *testing.T) Model {
 				m := NewModel(system.DetectionResult{}, "dev")
 				m.Screen = ScreenCodexModelPicker

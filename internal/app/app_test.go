@@ -1018,7 +1018,7 @@ func TestPersistAssignmentsPreservesInstalledAgents(t *testing.T) {
 func TestPersistAssignmentsClearsNonPhaseAssignmentMaps(t *testing.T) {
 	home := t.TempDir()
 	if err := state.Write(home, state.InstallState{
-		InstalledAgents: []string{"example-agent", "codex", "kiro", "claude-code"},
+		InstalledAgents: []string{"example-agent", "codex", "claude-code"},
 		ClaudeModelAssignments: map[string]string{
 			"sdd-apply": "sonnet",
 		},
@@ -1051,7 +1051,7 @@ func TestPersistAssignmentsClearsNonPhaseAssignmentMaps(t *testing.T) {
 	if got.CodexCarrilModelAssignments != nil {
 		t.Fatalf("CodexCarrilModelAssignments = %#v, want nil", got.CodexCarrilModelAssignments)
 	}
-	if len(got.InstalledAgents) != 4 {
+	if len(got.InstalledAgents) != 3 {
 		t.Fatalf("InstalledAgents = %#v, want preserved agents", got.InstalledAgents)
 	}
 }

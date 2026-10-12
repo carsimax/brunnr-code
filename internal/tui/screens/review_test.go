@@ -121,19 +121,3 @@ func TestRenderReviewSummarizesPersonaConversationAndArtifacts(t *testing.T) {
 		})
 	}
 }
-
-// ─── Conductor review note (PR #5060 review) ───────────────────────────────
-
-// TestRenderReviewHidesNotesForWritableAgents keeps the review screen free of
-// notes for writable agents: a payload without AgentNotes must render none.
-func TestRenderReviewHidesNotesForWritableAgents(t *testing.T) {
-	payload := planner.ReviewPayload{
-		Agents: []model.AgentID{model.AgentClaudeCode},
-	}
-
-	out := RenderReview(payload, 0, "")
-
-	if strings.Contains(out, "Conductor-specific") {
-		t.Fatalf("RenderReview() showed a Conductor note without one selected; output:\n%s", out)
-	}
-}

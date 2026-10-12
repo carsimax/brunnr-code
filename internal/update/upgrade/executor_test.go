@@ -803,8 +803,7 @@ func TestExecute_SuccessfulSnapshotHasNoWarning(t *testing.T) {
 
 // TestConfigPathsForBackup_CoversRegistryAgentsNotInOldList verifies that
 // configPathsForBackup covers managed paths for agents from the full registry,
-// not just the previous hardcoded 4-agent list (claude, gemini, cursor,
-// and one more). codex (~/.codex) was NOT in the old hardcoded list.
+// not just a previous hardcoded agent list. codex (~/.codex) was NOT in the old hardcoded list.
 func TestConfigPathsForBackup_CoversRegistryAgentsNotInOldList(t *testing.T) {
 	homeDir := t.TempDir()
 
@@ -878,8 +877,8 @@ func TestConfigPathsForBackup_GGAExtrasAreIncluded(t *testing.T) {
 
 // TestEnumerateFilesInDir_ExcludesSubdirs verifies that enumerateFilesInDir skips
 // directories whose base name appears in the excludeDirNames set at ANY depth.
-// This is critical for agents like Gemini where heavy runtime dirs
-// (browser_recordings/) are nested 2+ levels deep (e.g. ~/.gemini/antigravity/browser_recordings/).
+// This is critical for agents whose heavy runtime dirs
+// (browser_recordings/) are nested 2+ levels deep (e.g. ~/.runtime/state/browser_recordings/).
 func TestEnumerateFilesInDir_ExcludesSubdirs(t *testing.T) {
 	root := t.TempDir()
 
@@ -907,9 +906,9 @@ func TestEnumerateFilesInDir_ExcludesSubdirs(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	// Excluded subdir at depth 2 — simulates ~/.gemini/antigravity/browser_recordings/.
+	// Excluded subdir at depth 2 — simulates ~/.runtime/state/browser_recordings/.
 	// Must also be skipped.
-	nestedExcludedFile := filepath.Join(root, "antigravity", "browser_recordings", "video.dat")
+	nestedExcludedFile := filepath.Join(root, "state", "browser_recordings", "video.dat")
 	if err := os.MkdirAll(filepath.Dir(nestedExcludedFile), 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
@@ -917,8 +916,8 @@ func TestEnumerateFilesInDir_ExcludesSubdirs(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	// Config file NEXT TO excluded dir inside antigravity — must be included.
-	nestedConfigFile := filepath.Join(root, "antigravity", "config.toml")
+	// Config file NEXT TO excluded dir inside state — must be included.
+	nestedConfigFile := filepath.Join(root, "state", "config.toml")
 	if err := os.WriteFile(nestedConfigFile, []byte(`[settings]`), 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
@@ -1123,7 +1122,7 @@ func TestConfigPathsForBackup_ExcludesRuntimeDirs(t *testing.T) {
 // not just directly under the walked root. For example, mcp/cache/data.json is
 // excluded because "cache" matches the exclude list even at depth 2. This is the
 // accepted tradeoff — we skip all dirs named "cache" regardless of nesting to
-// ensure heavy runtime dirs like ~/.gemini/antigravity/browser_recordings/ are
+// ensure heavy runtime dirs like browser_recordings/ are
 // always excluded without requiring path-specific rules.
 func TestEnumerateFilesInDir_ExcludesNestedSameNameDir(t *testing.T) {
 	root := t.TempDir()
@@ -1259,15 +1258,15 @@ func TestEnumerateFilesInDir_CaseInsensitiveExclude(t *testing.T) {
 // lists a subset of agents, configPathsForBackup backs up only those agents'
 // config paths — NOT all detected config dirs.
 //
-// Scenario: state.json has 1 agent (claude-code); filesystem also has gemini-cli.
-// Backup must include claude-code paths but NOT gemini-cli paths.
+// Scenario: state.json has 1 agent (claude-code); filesystem also has codex.
+// Backup must include claude-code paths but NOT codex paths.
 func TestConfigPathsForBackup_StateWinsOverFilesystem(t *testing.T) {
 	homeDir := t.TempDir()
 
 	// Create both agent config dirs on disk (simulates filesystem detection).
 	claudeDir := filepath.Join(homeDir, ".claude")
-	geminiDir := filepath.Join(homeDir, ".gemini")
-	for _, dir := range []string{claudeDir, geminiDir} {
+	codexDir := filepath.Join(homeDir, ".codex")
+	for _, dir := range []string{claudeDir, codexDir} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatalf("mkdir %s: %v", dir, err)
 		}
@@ -1277,10 +1276,10 @@ func TestConfigPathsForBackup_StateWinsOverFilesystem(t *testing.T) {
 	if err := os.WriteFile(claudeSettings, []byte(`{}`), 0o644); err != nil {
 		t.Fatalf("write %s: %v", claudeSettings, err)
 	}
-	// Write a gemini config file that should NOT be backed up (not in state).
-	geminiSettings := filepath.Join(geminiDir, "settings.json")
-	if err := os.WriteFile(geminiSettings, []byte(`{}`), 0o644); err != nil {
-		t.Fatalf("write %s: %v", geminiSettings, err)
+	// Write a codex config file that should NOT be backed up (not in state).
+	codexSettings := filepath.Join(codexDir, "config.toml")
+	if err := os.WriteFile(codexSettings, []byte(`{}`), 0o644); err != nil {
+		t.Fatalf("write %s: %v", codexSettings, err)
 	}
 
 	// Write state.json with only claude-code — this is the user's explicit selection.
@@ -1296,9 +1295,9 @@ func TestConfigPathsForBackup_StateWinsOverFilesystem(t *testing.T) {
 		pathSet[p] = struct{}{}
 	}
 
-	// Gemini settings must NOT appear in backup — not in state.json.
-	if _, ok := pathSet[geminiSettings]; ok {
-		t.Errorf("configPathsForBackup included gemini-cli settings %q which is not in state.json; state.json should be the source of truth", geminiSettings)
+	// Codex config must NOT appear in backup — not in state.json.
+	if _, ok := pathSet[codexSettings]; ok {
+		t.Errorf("configPathsForBackup included codex config %q which is not in state.json; state.json should be the source of truth", codexSettings)
 	}
 }
 

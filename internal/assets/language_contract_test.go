@@ -44,7 +44,7 @@ func TestManagedDirectReplyAssetsEnforceEnglishNoCodeSwitching(t *testing.T) {
 	}{
 		{name: "claude gentleman output style", path: "claude/output-style-gentleman.md"},
 		{name: "claude neutral output style", path: "claude/output-style-neutral.md"},
-		// Claude and Kimi personas are residuals (Decision 1) — evaluate the
+		// Claude personas are residuals (Decision 1) — evaluate the
 		// combined persona-residual + output-style channel, not the persona
 		// file alone.
 		{name: "claude gentleman persona", path: "claude/persona-gentleman.md", combineWith: "claude/output-style-gentleman.md"},
@@ -128,10 +128,7 @@ func TestSupportedAgentODDLanguageMatrix(t *testing.T) {
 		path  string
 	}{
 		{agent: "claude-code", path: "claude/orchestrator.md"},
-		{agent: "vscode-copilot", path: "generic/orchestrator.md"},
 		{agent: "codex", path: "codex/orchestrator.md"},
-		{agent: "openclaw", path: "generic/orchestrator.md"},
-		{agent: "trae-ide", path: "generic/orchestrator.md"},
 	}
 
 	for _, tc := range tests {
@@ -195,9 +192,9 @@ func TestCommentWriterLanguageContractSources(t *testing.T) {
 }
 
 func TestGentlemanPersonaKeepsDirectConversationVoice(t *testing.T) {
-	// Claude and Kimi personas are residuals (Decision 1) — the direct-
+	// Claude personas are residuals (Decision 1) — the direct-
 	// conversation voice now lives exclusively in the output style; evaluate
-	// the combined persona-residual + output-style channel for those two.
+	// the combined persona-residual + output-style channel for them.
 	tests := []struct {
 		path        string
 		combineWith string

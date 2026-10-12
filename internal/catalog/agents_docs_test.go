@@ -10,8 +10,8 @@ import (
 	"testing"
 )
 
-// The docs inventory includes every catalog agent, Conductor too: docs/agents.md
-// lists it as detection/catalog-only, and the README badge counts it.
+// The docs inventory includes every catalog agent: docs/agents.md lists it,
+// and the README badge counts it.
 
 func readRepoDoc(t *testing.T, name string) string {
 	t.Helper()

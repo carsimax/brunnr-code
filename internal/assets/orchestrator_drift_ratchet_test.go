@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// #3817: ODD orchestrators are hand-maintained across four runtimes. Keep
+// #3817: ODD orchestrators are hand-maintained across three assets. Keep
 // ceilings for retained shared sections at their current variant counts; the
 // lossless-prompt section's common safety anchors remain checked on every
 // runtime below. Removing a section is an inventory change; new uncoordinated

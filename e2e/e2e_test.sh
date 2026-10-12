@@ -682,56 +682,6 @@ test_cc_theme_injection() {
     fi
 }
 
-# --- Category 4: Qwen Code injection ---
-
-test_qwen_engram_injection() {
-    log_test "Qwen: engram injection (settings.json)"
-    cleanup_test_env
-
-    if $BINARY install --agent qwen-code --component engram 2>&1; then
-        local settings="$HOME/.qwen/settings.json"
-        assert_file_exists "$settings" "Qwen settings.json"
-        assert_file_contains "$settings" '"mcp"' "Has mcp key"
-        assert_file_contains "$settings" '"engram"' "Has engram MCP entry"
-        assert_file_contains "$settings" '"command"' "Has command key"
-        assert_valid_json "$settings" "settings.json is valid JSON"
-    else
-        log_fail "Qwen engram install command failed"
-    fi
-}
-
-test_qwen_engram_idempotency() {
-    log_test "Qwen: engram injection is idempotent"
-    cleanup_test_env
-
-    local settings="$HOME/.qwen/settings.json"
-
-    # First run — the install's exit code is irrelevant here (e.g. transient
-    # npm failure); we assert on the resulting file.
-    $BINARY install --agent qwen-code --component engram > /dev/null 2>&1 || true
-    if [ ! -f "$settings" ]; then
-        log_fail "Qwen settings.json missing after first install"
-        return
-    fi
-    local checksum1
-    checksum1=$(md5sum "$settings" | cut -d' ' -f1)
-
-    # Second run
-    $BINARY install --agent qwen-code --component engram > /dev/null 2>&1 || true
-    if [ ! -f "$settings" ]; then
-        log_fail "Qwen settings.json missing after second install"
-        return
-    fi
-    local checksum2
-    checksum2=$(md5sum "$settings" | cut -d' ' -f1)
-
-    if [ "$checksum1" = "$checksum2" ]; then
-        log_pass "Qwen settings.json is idempotent"
-    else
-        log_fail "Qwen settings.json changed between runs"
-    fi
-}
-
 # --- Category 4: Full preset integration ---
 
 test_full_preset_claude_code() {
@@ -924,24 +874,6 @@ test_idempotent_engram_claude() {
         fi
     else
         log_fail "CLAUDE.md not found"
-    fi
-}
-
-# ─── Gemini parity tests ─────────────────────────────────────────────────────
-
-test_gemini_engram_tools_flag() {
-    log_test "Gemini: engram injection uses --tools=agent"
-    cleanup_test_env
-
-    if $BINARY install --agent gemini-cli --component engram 2>&1; then
-        local settings="$HOME/.gemini/settings.json"
-        assert_file_exists "$settings" "Gemini settings.json"
-        assert_file_contains "$settings" '"mcpServers"' "Has mcpServers key"
-        assert_file_contains "$settings" '"engram"' "Has engram entry"
-        assert_file_contains "$settings" '"--tools=agent"' "Engram args include --tools=agent"
-        assert_valid_json "$settings" "settings.json is valid JSON"
-    else
-        log_fail "Gemini engram install command failed"
     fi
 }
 
@@ -1161,27 +1093,6 @@ test_gga_reinstall_is_idempotent() {
         fi
     else
         log_skip "GGA first install failed (expected — binary install may require network)"
-    fi
-}
-
-# --- Category 11: Windsurf persona and memory coexistence ---
-
-test_windsurf_persona_and_engram_content() {
-    log_test "Windsurf: persona and Engram coexist in global_rules.md"
-    cleanup_test_env
-
-    # Windsurf is a desktop app — signal its presence without a live agent.
-    mkdir -p "$HOME/.codeium/windsurf"
-
-    if $BINARY install --agent windsurf --component persona --component engram --persona gentleman 2>&1; then
-        local rules="$HOME/.codeium/windsurf/memories/global_rules.md"
-        assert_file_exists "$rules" "global_rules.md exists"
-        assert_file_contains "$rules" "Senior Architect" "Persona injected"
-        assert_file_contains "$rules" "gentle-ai:engram-protocol" "Engram protocol marker present"
-        assert_file_contains "$rules" "gentle-ai:agent-routing" "ODD routing marker present"
-        assert_file_size_min "$rules" 2000 "global_rules.md has substantial content"
-    else
-        log_fail "Windsurf persona+Engram install command failed"
     fi
 }
 
@@ -1457,8 +1368,7 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
     test_idempotent_skills_claude
     test_idempotent_full_claude
 
-    # Category 6b: Gemini/Codex engram parity
-    test_gemini_engram_tools_flag
+    # Category 6b: Codex engram parity
     test_codex_engram_injection
     test_codex_engram_idempotent
 
@@ -1475,15 +1385,8 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
     # Category 7: Injection integrity (issue #4 regression guard)
     test_integrity_full_preset_all_skills_nonempty
 
-    # Category 11: Windsurf persona + memory remain independent of SDD
-    test_windsurf_persona_and_engram_content
-
     # Category 12: Codex context7 by-design skip
     test_codex_context7_in_toml
-
-    # Category 13: Qwen integration
-    test_qwen_engram_injection
-    test_qwen_engram_idempotency
 else
     log_skip "Tier 2 tests (set RUN_FULL_E2E=1 to enable)"
 fi

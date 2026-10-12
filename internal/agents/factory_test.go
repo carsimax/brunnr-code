@@ -25,7 +25,7 @@ func TestDefaultRegistrySupportedAgentsMatchesFactoryAgents(t *testing.T) {
 }
 
 func TestFactoryRejectsRemovedAgents(t *testing.T) {
-	for _, id := range []model.AgentID{"openclaw", "cursor", "gemini-cli", "kimi", "windsurf"} {
+	for _, id := range []model.AgentID{"opencode", "pi", "openclaw", "cursor", "gemini-cli", "kimi", "windsurf"} {
 		_, err := NewAdapter(id)
 		if !errors.Is(err, ErrAgentNotSupported) {
 			t.Fatalf("NewAdapter(%q) error = %v, want ErrAgentNotSupported", id, err)

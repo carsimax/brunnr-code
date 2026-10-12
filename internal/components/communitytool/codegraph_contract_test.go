@@ -194,7 +194,7 @@ func TestCodeGraphRollbackAfterGuidanceAndPostconditionFailures(t *testing.T) {
 
 func TestCodeGraphSnapshotRoundTripIsIdempotent(t *testing.T) {
 	home := t.TempDir()
-	path := filepath.Join(home, ".kiro", "settings", "mcp.json")
+	path := filepath.Join(home, ".claude", "settings", "mcp.json")
 	mustWrite(t, path, `{"mcpServers":{"sibling":{"command":"x"}}}`)
 	if err := os.Chmod(path, 0o640); err != nil {
 		t.Fatal(err)

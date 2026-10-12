@@ -553,7 +553,7 @@ func TestRetiredSDDLedgerGuidanceAbsentFromDistributedAssets(t *testing.T) {
 }
 
 func TestGentlemanLanguageInstructionsDoNotBiasEnglishSessions(t *testing.T) {
-	// Claude and Kimi have an active output-style channel — their persona
+	// Claude has an active output-style channel — its persona
 	// section is a residual and no longer carries language content on its
 	// own; the guardrail contract must be evaluated over the COMBINED
 	// persona-residual + output-style channel (design.md Decision 1;
@@ -564,8 +564,8 @@ func TestGentlemanLanguageInstructionsDoNotBiasEnglishSessions(t *testing.T) {
 		combineWith    string // "" when the persona file alone still carries language content
 		languagePhrase string // exact per-path phrase asserting the "match current language" guardrail
 	}{
-		// Claude/Kimi no longer carry "REPLY ONLY" in the persona residual —
-		// their combined channel exposes the output style's own Language
+		// Claude no longer carries "REPLY ONLY" in the persona residual —
+		// its combined channel exposes the output style's own Language
 		// Rules opener instead (JD-019).
 		{path: "claude/persona-gentleman.md", combineWith: "claude/output-style-gentleman.md", languagePhrase: "Always match the user's current language in your reply."},
 		{path: "generic/persona-gentleman.md", languagePhrase: "Match the user's current language in your REPLY ONLY"},

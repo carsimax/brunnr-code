@@ -143,8 +143,8 @@ func TestMergeAgents(t *testing.T) {
 		{
 			name:      "empty existing state gets new agent",
 			existing:  InstallState{},
-			newAgents: []string{"pi"},
-			wantIDs:   []string{"pi"},
+			newAgents: []string{"third-agent"},
+			wantIDs:   []string{"third-agent"},
 		},
 		{
 			name:      "existing single agent plus new agent appended",
@@ -154,15 +154,15 @@ func TestMergeAgents(t *testing.T) {
 		},
 		{
 			name:      "duplicate agent is deduped",
-			existing:  InstallState{InstalledAgents: []string{"example-agent", "vscode-copilot", "codex"}},
+			existing:  InstallState{InstalledAgents: []string{"example-agent", "another-agent", "codex"}},
 			newAgents: []string{"example-agent"},
-			wantIDs:   []string{"example-agent", "vscode-copilot", "codex"},
+			wantIDs:   []string{"example-agent", "another-agent", "codex"},
 		},
 		{
 			name:      "existing multiple agents plus new agent appended",
-			existing:  InstallState{InstalledAgents: []string{"example-agent", "vscode-copilot", "codex"}},
-			newAgents: []string{"pi"},
-			wantIDs:   []string{"example-agent", "vscode-copilot", "codex", "pi"},
+			existing:  InstallState{InstalledAgents: []string{"example-agent", "another-agent", "codex"}},
+			newAgents: []string{"third-agent"},
+			wantIDs:   []string{"example-agent", "another-agent", "codex", "third-agent"},
 		},
 		{
 			name: "model_assignments preserved across merge",
@@ -173,8 +173,8 @@ func TestMergeAgents(t *testing.T) {
 				ClaudeModelAssignments:   existingClaude,
 				Persona:                  "gentleman",
 			},
-			newAgents: []string{"pi"},
-			wantIDs:   []string{"example-agent", "pi"},
+			newAgents: []string{"third-agent"},
+			wantIDs:   []string{"example-agent", "third-agent"},
 		},
 	}
 
@@ -349,8 +349,8 @@ func TestPersonaPresenceDistinguishesOmittedAndExplicitEmpty(t *testing.T) {
 		stateJSON   string
 		wantPresent bool
 	}{
-		{name: "omitted", stateJSON: `{"installed_agents":["pi"]}`, wantPresent: false},
-		{name: "explicit empty", stateJSON: `{"installed_agents":["pi"],"persona":""}`, wantPresent: true},
+		{name: "omitted", stateJSON: `{"installed_agents":["codex"]}`, wantPresent: false},
+		{name: "explicit empty", stateJSON: `{"installed_agents":["codex"],"persona":""}`, wantPresent: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			home := t.TempDir()
@@ -386,7 +386,7 @@ func TestReadRejectsAmbiguousPersistedPersona(t *testing.T) {
 		{name: "duplicate neutral then unknown", stateJSON: `{"persona":"neutral","persona":"unknown"}`, wantErr: `duplicate "persona" keys`},
 		{name: "duplicate valid values", stateJSON: `{"persona":"neutral","persona":"gentleman"}`, wantErr: `duplicate "persona" keys`},
 		{name: "duplicate via unicode escape", stateJSON: `{"persona":"unknown","pers\u006fna":"neutral"}`, wantErr: `duplicate "persona" keys`},
-		{name: "case variant alone", stateJSON: `{"installed_agents":["pi"],"Persona":""}`, wantErr: `"Persona" must be spelled "persona"`},
+		{name: "case variant alone", stateJSON: `{"installed_agents":["codex"],"Persona":""}`, wantErr: `"Persona" must be spelled "persona"`},
 		{name: "case variant before canonical", stateJSON: `{"PERSONA":"unknown","persona":"neutral"}`, wantErr: `"PERSONA" must be spelled "persona"`},
 		{name: "case variant after canonical", stateJSON: `{"persona":"unknown","Persona":"neutral"}`, wantErr: `"Persona" must be spelled "persona"`},
 		{name: "unicode fold variant", stateJSON: `{"persona":"unknown","per\u017fona":"neutral"}`, wantErr: "must be spelled"},
@@ -440,9 +440,9 @@ func TestReadAcceptsUnambiguousPersistedPersona(t *testing.T) {
 		wantPersona string
 		wantPresent bool
 	}{
-		{name: "canonical", stateJSON: `{"installed_agents":["pi"],"persona":"neutral"}`, wantPersona: "neutral", wantPresent: true},
+		{name: "canonical", stateJSON: `{"installed_agents":["codex"],"persona":"neutral"}`, wantPersona: "neutral", wantPresent: true},
 		{name: "canonical escaped", stateJSON: `{"pers\u006fna":"custom"}`, wantPersona: "custom", wantPresent: true},
-		{name: "missing legacy field", stateJSON: `{"installed_agents":["pi"]}`},
+		{name: "missing legacy field", stateJSON: `{"installed_agents":["codex"]}`},
 		{name: "empty object", stateJSON: `{}`},
 		{name: "explicit null value", stateJSON: `{"persona":null}`, wantPresent: true},
 		{name: "nested persona keys", stateJSON: `{"claude_model_assignments":{"persona":"a","Persona":"b"},"persona":"gentleman"}`, wantPersona: "gentleman", wantPresent: true},
@@ -549,7 +549,7 @@ func TestWriteOverwrite(t *testing.T) {
 		t.Fatalf("Write() first error = %v", err)
 	}
 
-	if err := Write(home, InstallState{InstalledAgents: []string{"example-agent", "gemini-cli"}}); err != nil {
+	if err := Write(home, InstallState{InstalledAgents: []string{"example-agent", "another-agent"}}); err != nil {
 		t.Fatalf("Write() second error = %v", err)
 	}
 
@@ -558,7 +558,7 @@ func TestWriteOverwrite(t *testing.T) {
 		t.Fatalf("Read() error = %v", err)
 	}
 
-	want := []string{"example-agent", "gemini-cli"}
+	want := []string{"example-agent", "another-agent"}
 	if !reflect.DeepEqual(s.InstalledAgents, want) {
 		t.Errorf("InstalledAgents after overwrite = %v, want %v", s.InstalledAgents, want)
 	}

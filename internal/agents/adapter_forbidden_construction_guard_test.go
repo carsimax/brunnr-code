@@ -59,6 +59,7 @@ var adapterForbiddenConstructionPatterns = []struct {
 // adapter dispatch surfaces this guard covers.
 var adapterForbiddenConstructionPackageDirs = []string{
 	filepath.Join("claude"),
+	filepath.Join("codex"),
 }
 
 // TestAdapterForbiddenConstructionGuardCatchesKnownShapes unit-tests the
@@ -88,7 +89,7 @@ func dispatch() []string { return []string{"review", "--expected-revision", "abc
 		},
 		{
 			name: "declares a lineage identity field",
-			src: `package pi
+			src: `package codex
 
 type dispatchRequest struct {
 	LineageID string

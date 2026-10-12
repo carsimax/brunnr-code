@@ -40,12 +40,12 @@ func TestInstallerFailureRollbackReturnsControl(t *testing.T) {
 	labels := []string{
 		"prepare:check-dependencies", "prepare:backup-snapshot",
 		"apply:rollback-restore",
-		"agent:claude-code", "agent:codex", "agent:hermes",
+		"agent:claude-code", "agent:codex",
 		"community-tool:codegraph", "component:claude-theme",
 		"component:context7", "component:persona", "component:engram",
 		"component:gga", "component:permissions",
 		"component:sdd", "component:skills", "agent-guidance:claude-code",
-		"agent-guidance:codex", "agent-guidance:hermes",
+		"agent-guidance:codex",
 		"component:compatibility-skills-refresh",
 	}
 	rollbackIDs := []string{

@@ -32,9 +32,7 @@ RUN curl -fsSL https://rpm.nodesource.com/setup_lts.x | bash - && \
 # display-only refusal text (see each adapter's InstallCommand), so there is
 # no pin to reuse here.
 RUN npm install --global @anthropic-ai/claude-code@latest && \
-    npm install --global @openai/codex@latest && \
-    npm install --global @google/gemini-cli@latest && \
-    npm install --global @qwen-code/qwen-code@latest
+    npm install --global @openai/codex@latest
 
 # ---------------------------------------------------------------------------
 # Install Go (match go.mod version)

@@ -10,9 +10,8 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
 
-// The fixtures under testdata/v3.7.0 are real v3.7.0 renders: the Claude and
-// Kiro files are that release's golden outputs, and the Cursor and Kimi files
-// are that release's assets plus the managed blocks the renderer appended.
+// The fixtures under testdata/v3.7.0 are real v3.7.0 renders: the Claude
+// files are that release's golden outputs.
 func releasedRender(t *testing.T, name string) string {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join("testdata", "v3.7.0", name))

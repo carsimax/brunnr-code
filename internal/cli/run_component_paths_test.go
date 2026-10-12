@@ -60,7 +60,7 @@ func TestNativeReviewPreservedAction(t *testing.T) {
 		}
 	}
 	for _, path := range []string{
-		"/fixture/.kiro/agents/jd-judge-a.md",
+		"/fixture/.claude/agents/jd-judge-a.md",
 		"/fixture with spaces/.claude/agents/jd-judge-a.md",
 		`C:\fixture with spaces\agents\jd-judge-a.md`,
 	} {

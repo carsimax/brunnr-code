@@ -37,9 +37,7 @@ RUN echo 'DisableSandbox' >> /etc/pacman.conf && \
 # display-only refusal text (see each adapter's InstallCommand), so there is
 # no pin to reuse here.
 RUN npm install --global @anthropic-ai/claude-code@latest && \
-    npm install --global @openai/codex@latest && \
-    npm install --global @google/gemini-cli@latest && \
-    npm install --global @qwen-code/qwen-code@latest
+    npm install --global @openai/codex@latest
 
 # ---------------------------------------------------------------------------
 # Create non-root test user with passwordless sudo
