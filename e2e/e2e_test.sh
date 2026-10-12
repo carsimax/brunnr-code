@@ -197,13 +197,12 @@ test_preset_ecosystem_components() {
 
     output=$($BINARY install --preset ecosystem-only --agent claude-code --dry-run 2>&1) || true
 
-    # ecosystem-only includes engram, skills, context7 and the Neutral persona.
+    # ecosystem-only includes engram, skills and the Neutral persona.
     local components_line
     components_line=$(echo "$output" | grep "Components order:")
 
     assert_output_contains "$components_line" "engram" "Ecosystem includes engram"
     assert_output_contains "$components_line" "skills" "Ecosystem includes skills"
-    assert_output_contains "$components_line" "context7" "Ecosystem includes context7"
     assert_output_contains "$components_line" "persona" "Ecosystem includes persona"
     assert_output_not_contains "$components_line" "permissions" "Ecosystem excludes permissions"
 }
@@ -219,7 +218,6 @@ test_preset_full_components() {
 
     assert_output_contains "$components_line" "engram" "Full includes engram"
     assert_output_contains "$components_line" "skills" "Full includes skills"
-    assert_output_contains "$components_line" "context7" "Full includes context7"
     assert_output_contains "$components_line" "persona" "Full includes persona"
     assert_output_contains "$components_line" "permissions" "Full includes permissions"
     assert_output_contains "$components_line" "claude-theme" "Full includes Claude Brunnr theme"
@@ -305,7 +303,6 @@ test_preset_custom_explicit_components() {
     assert_output_contains "$components_line" "engram" "Custom + explicit components includes engram"
     assert_output_contains "$components_line" "skills" "Custom + explicit components includes skills"
     assert_output_not_contains "$components_line" "persona" "Custom + explicit components excludes persona"
-    assert_output_not_contains "$components_line" "context7" "Custom + explicit components excludes context7"
 }
 
 # --- Category 1f: Individual component flags ---
@@ -320,12 +317,6 @@ test_dry_run_component_skills() {
     log_test "Dry-run with --component skills"
     output=$($BINARY install --agent claude-code --component skills --dry-run 2>&1) || true
     assert_output_contains "$output" "skills" "Shows skills component"
-}
-
-test_dry_run_component_context7() {
-    log_test "Dry-run with --component context7"
-    output=$($BINARY install --agent claude-code --component context7 --dry-run 2>&1) || true
-    assert_output_contains "$output" "context7" "Shows context7 component"
 }
 
 test_dry_run_component_persona() {
@@ -544,26 +535,6 @@ test_cc_custom_no_skills_flag_installs_nothing() {
     fi
 }
 
-test_cc_context7_injection() {
-    log_test "Claude Code: context7 injection (~/.claude.json user MCP registry)"
-    cleanup_test_env
-
-    if $BINARY install --agent claude-code --component context7 2>&1; then
-        # Claude Code only reads user-scope MCP servers from ~/.claude.json;
-        # the settings.json mcpServers block earlier versions wrote is inert
-        # and no longer written (issue #1868, PR #1909).
-        local registry="$HOME/.claude.json"
-        assert_file_exists "$registry" "Claude user MCP registry (~/.claude.json)"
-        assert_file_contains "$registry" '"mcpServers"' "user registry has mcpServers key"
-        assert_file_contains "$registry" '"context7"' "user registry has context7 server"
-        assert_file_contains "$registry" 'context7-mcp' "user registry points to context7-mcp"
-        assert_valid_json "$registry" "user registry is valid JSON"
-        assert_file_not_exists "$HOME/.claude/mcp/context7.json" "legacy context7 MCP file is not written"
-    else
-        log_fail "context7 install command failed"
-    fi
-}
-
 test_cc_permissions_injection() {
     log_test "Claude Code: permissions injection"
     cleanup_test_env
@@ -601,7 +572,7 @@ test_full_preset_claude_code() {
     cleanup_test_env
 
     # Exercise independent injection components without invoking package downloads.
-    if $BINARY install --agent claude-code --component engram --component persona --component skills --component context7 --component permissions --component theme --preset full 2>&1; then
+    if $BINARY install --agent claude-code --component engram --component persona --component skills --component permissions --component theme --preset full 2>&1; then
         local claude_md="$HOME/.claude/CLAUDE.md"
         local settings="$HOME/.claude/settings.json"
 
@@ -624,8 +595,7 @@ test_full_preset_claude_code() {
         local registry="$HOME/.claude.json"
         assert_file_exists "$registry" "Claude user MCP registry (~/.claude.json)"
         assert_file_contains "$registry" '"mcpServers"' "Has MCP servers"
-        assert_file_contains "$registry" '"context7"' "Has context7 MCP"
-        assert_file_contains "$registry" 'context7-mcp' "Context7 MCP uses pinned package"
+        assert_file_contains "$registry" '"engram"' "Has Engram MCP"
         assert_valid_json "$registry" "user registry is valid JSON"
 
         # Skills
@@ -669,17 +639,17 @@ test_ecosystem_both_agents() {
     log_test "Ecosystem preset: both agents"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --agent codex --component engram --component skills --component context7 --preset ecosystem-only 2>&1; then
+    if $BINARY install --agent claude-code --agent codex --component engram --component skills --preset ecosystem-only 2>&1; then
         # Claude Code
         assert_file_exists "$HOME/.claude/CLAUDE.md" "Claude CLAUDE.md"
         assert_file_contains "$HOME/.claude/CLAUDE.md" "brunnr-code:agent-routing" "Claude has ODD routing"
-        assert_file_contains "$HOME/.claude.json" '"context7"' "Claude context7 MCP"
+        assert_file_contains "$HOME/.claude.json" '"engram"' "Claude Engram MCP"
         assert_file_count_min "$HOME/.claude/skills" "SKILL.md" 8 "Claude foundation skills"
 
         # Codex
         assert_file_contains "$HOME/.codex/AGENTS.md" "brunnr-code:agent-routing" "Codex has ODD routing"
         assert_file_count_min "$HOME/.codex/skills" "SKILL.md" 8 "Codex foundation skills"
-        assert_file_contains "$HOME/.codex/config.toml" "context7" "Codex context7"
+        assert_file_contains "$HOME/.codex/config.toml" "[mcp_servers.engram]" "Codex Engram MCP"
 
         log_pass "Ecosystem preset: both agents have matching components"
     else
@@ -737,7 +707,6 @@ test_content_mcp_json_valid() {
     log_test "Content validation: MCP JSON files are parseable"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component context7 2>&1 || true
     $BINARY install --agent claude-code --component engram 2>&1 || true
 
     # Claude Code reads user-scoped MCP servers from ~/.claude.json. The legacy
@@ -745,9 +714,7 @@ test_content_mcp_json_valid() {
     local registry="$HOME/.claude.json"
     assert_file_exists "$registry" "Claude user MCP registry"
     assert_valid_json "$registry" "Claude user MCP registry is valid JSON"
-    assert_file_contains "$registry" '"context7"' "Registry has Context7 server"
     assert_file_contains "$registry" '"engram"' "Registry has Engram server"
-    assert_file_not_exists "$HOME/.claude/mcp/context7.json" "legacy Context7 MCP file is not written"
     assert_file_not_exists "$HOME/.claude/mcp/engram.json" "legacy Engram MCP file is not written"
 }
 
@@ -864,7 +831,7 @@ test_idempotent_full_claude() {
     log_test "Idempotency: full injection-only on Claude Code"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component persona --component context7 --component permissions --component theme --preset full 2>&1 || true
+    $BINARY install --agent claude-code --component persona --component permissions --component theme --preset full 2>&1 || true
     local first_md_hash
     first_md_hash=$(md5sum "$HOME/.claude/CLAUDE.md" 2>/dev/null | cut -d' ' -f1)
     # Snapshot settings.json for semantic comparison (engram setup may reorder
@@ -872,7 +839,7 @@ test_idempotent_full_claude() {
     # serialization). Byte-exact hashing would false-fail on harmless reorder.
     cp "$HOME/.claude/settings.json" /tmp/gai_settings_run1.json 2>/dev/null || true
 
-    $BINARY install --agent claude-code --component persona --component context7 --component permissions --component theme --preset full 2>&1 || true
+    $BINARY install --agent claude-code --component persona --component permissions --component theme --preset full 2>&1 || true
     local second_md_hash
     second_md_hash=$(md5sum "$HOME/.claude/CLAUDE.md" 2>/dev/null | cut -d' ' -f1)
 
@@ -926,43 +893,15 @@ test_edge_multiple_agents_same_component() {
     log_test "Edge case: multiple agents with same component"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --agent codex --component context7 2>&1; then
-        # Both agents should have context7
-        assert_file_contains "$HOME/.claude.json" '"context7"' "Claude context7"
-        assert_file_contains "$HOME/.codex/config.toml" "context7" "Codex context7"
+    if $BINARY install --agent claude-code --agent codex --component engram 2>&1; then
+        # Both agents should register the Engram MCP server
+        assert_file_contains "$HOME/.claude.json" '"engram"' "Claude Engram MCP"
+        assert_file_contains "$HOME/.codex/config.toml" "[mcp_servers.engram]" "Codex Engram MCP"
     else
-        log_fail "Multiple agents + context7 install command failed"
+        log_fail "Multiple agents + engram install command failed"
     fi
 }
 
-
-# --- Category 12: Codex context7 TOML injection ---
-
-test_codex_context7_in_toml() {
-    log_test "Codex: context7 component writes [mcp_servers.context7] into config.toml (TOML strategy)"
-    cleanup_test_env
-
-    $BINARY install --agent codex --component context7 2>&1 || true
-
-    local config_toml="$HOME/.codex/config.toml"
-    assert_file_exists "$config_toml" "Codex config.toml created by context7"
-    assert_file_contains "$config_toml" "[mcp_servers.context7]" "Codex config.toml has [mcp_servers.context7] block"
-    assert_file_contains "$config_toml" "https://mcp.context7.com/mcp" "Codex context7 block uses remote MCP URL"
-    assert_file_not_contains "$config_toml" "context7-mcp" "Codex context7 block does not use local npx package"
-
-    # Idempotent: re-running must not duplicate the block.
-    $BINARY install --agent codex --component context7 2>&1 || true
-    local count
-    # `grep -c` prints "0" AND exits 1 on zero matches, so `|| echo 0` would
-    # yield the two-line string "0\n0" and break the numeric comparison below.
-    count=$(grep -c "\[mcp_servers.context7\]" "$config_toml" 2>/dev/null || true)
-    count=${count:-0}
-    if [ "$count" -eq 1 ]; then
-        log_pass "Codex context7 block is idempotent (exactly 1 entry)"
-    else
-        log_fail "Codex context7 block duplicated ($count entries)"
-    fi
-}
 
 # --- Category 7: Injection integrity (guards against issue #4 regression) ---
 
@@ -1157,10 +1096,9 @@ test_preset_no_legacy_theme_in_any_preset
 test_preset_custom_no_components
 test_preset_custom_explicit_components
 
-# Category 1f: Individual component flags (all 8)
+# Category 1f: Individual component flags
 test_dry_run_component_engram
 test_dry_run_component_skills
-test_dry_run_component_context7
 test_dry_run_component_persona
 test_dry_run_component_permissions
 test_dry_run_component_theme
@@ -1182,7 +1120,6 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
     test_cc_skills_ecosystem
     test_cc_custom_skills_with_flag
     test_cc_custom_no_skills_flag_installs_nothing
-    test_cc_context7_injection
     test_cc_permissions_injection
     test_cc_theme_injection
 
@@ -1212,9 +1149,6 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
 
     # Category 7: Injection integrity (issue #4 regression guard)
     test_integrity_full_preset_all_skills_nonempty
-
-    # Category 12: Codex context7 by-design skip
-    test_codex_context7_in_toml
 else
     log_skip "Tier 2 tests (set RUN_FULL_E2E=1 to enable)"
 fi
