@@ -737,7 +737,7 @@ max_threads = 2
 func TestRemoveTOMLTableKeys_RemovesOnlyTargetSectionKeys(t *testing.T) {
 	input := `model = "gpt-5"
 
-[permissions.gentle-dev.filesystem.":workspace_roots"]
+[permissions.example-profile.filesystem.":workspace_roots"]
 "**/.git" = "write"
 "**/.git/**" = "write"
 ".git/**" = "write"
@@ -746,7 +746,7 @@ func TestRemoveTOMLTableKeys_RemovesOnlyTargetSectionKeys(t *testing.T) {
 [other]
 "**/.git" = "write"
 `
-	result := RemoveTOMLTableKeys(input, `permissions.gentle-dev.filesystem.":workspace_roots"`, []string{
+	result := RemoveTOMLTableKeys(input, `permissions.example-profile.filesystem.":workspace_roots"`, []string{
 		`"**/.git"`,
 		`"**/.git/**"`,
 	})
@@ -769,12 +769,12 @@ func TestRemoveTOMLTableKeys_RemovesOnlyTargetSectionKeys(t *testing.T) {
 }
 
 func TestRemoveTOMLTableKeys_Idempotent(t *testing.T) {
-	input := `[permissions.gentle-dev.filesystem.":workspace_roots"]
+	input := `[permissions.example-profile.filesystem.":workspace_roots"]
 "**/.git" = "write"
 ".git/**" = "write"
 `
-	first := RemoveTOMLTableKeys(input, `permissions.gentle-dev.filesystem.":workspace_roots"`, []string{`"**/.git"`})
-	second := RemoveTOMLTableKeys(first, `permissions.gentle-dev.filesystem.":workspace_roots"`, []string{`"**/.git"`})
+	first := RemoveTOMLTableKeys(input, `permissions.example-profile.filesystem.":workspace_roots"`, []string{`"**/.git"`})
+	second := RemoveTOMLTableKeys(first, `permissions.example-profile.filesystem.":workspace_roots"`, []string{`"**/.git"`})
 
 	if first != second {
 		t.Fatalf("RemoveTOMLTableKeys is not idempotent:\nfirst:\n%s\nsecond:\n%s", first, second)

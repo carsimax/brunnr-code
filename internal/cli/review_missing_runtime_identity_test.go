@@ -10,7 +10,7 @@ import (
 )
 
 // The documented negotiated lifecycle route in
-// internal/assets/claude/commands/gentle-sdd-apply.md declares no runtime
+// a command asset that declares no runtime
 // identity. A read-only STATUS creates no authority, tier, budget, or
 // collection state, so it has nothing to fail closed over: an undeclared
 // identity is the manual/non-agent compatibility path that

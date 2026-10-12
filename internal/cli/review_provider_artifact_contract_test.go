@@ -277,8 +277,8 @@ func TestManagedAssetsContinuationSchemaRuleIsExercised(t *testing.T) {
 		t.Fatal("failure.schema.json accepted a continuation on an unrelated failure code")
 	}
 	for _, command := range []string{
-		"'/tmp/gentle\nai' sync --agent codex",
-		"\"C:\\\\gentle\r-ai.exe\" sync --agent codex",
+		"'/tmp/brunnr\ncode' sync --agent codex",
+		"\"C:\\\\brunnr\r-code.exe\" sync --agent codex",
 	} {
 		multilineCommand := decodeJSONObjectCopy(t, startOutput.Bytes())
 		multilineContinuation := multilineCommand["continuation"].(map[string]any)
@@ -328,8 +328,8 @@ func TestManagedAssetsContinuationSchemaRuleIsExercised(t *testing.T) {
 		t.Fatal("status-v9.schema.json accepted a continuation attached to an unrelated stop reason code")
 	}
 	for _, command := range []string{
-		"'/tmp/gentle\nai' sync --agent codex",
-		"\"C:\\\\gentle\r-ai.exe\" sync --agent codex",
+		"'/tmp/brunnr\ncode' sync --agent codex",
+		"\"C:\\\\brunnr\r-code.exe\" sync --agent codex",
 	} {
 		multilineCommand := decodeJSONObjectCopy(t, stopOutput.Bytes())
 		multilineTransition := multilineCommand["next_transition"].(map[string]any)

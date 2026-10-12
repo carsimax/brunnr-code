@@ -36,7 +36,7 @@ func TestRunInstallRejectsRetiredSDDCommands(t *testing.T) {
 	if _, err := RunInstall([]string{"--agents", "claude-code", "--components", "sdd"}, system.DetectionResult{}); err == nil {
 		t.Fatal("install accepted a retired SDD component")
 	}
-	if _, err := os.Stat(filepath.Join(home, ".claude", "commands", "gentle-sdd-init.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(home, ".claude", "commands", "sdd-init.md")); !os.IsNotExist(err) {
 		t.Fatalf("retired SDD command installed: %v", err)
 	}
 }
@@ -70,7 +70,7 @@ func TestRunSyncPreservesUserEditedLegacyClaudeCommandWithoutReinstallingSDD(t *
 	if containsPath(result.ChangedFiles, legacy) {
 		t.Errorf("ChangedFiles reports untouched legacy command %q", legacy)
 	}
-	if _, err := os.Stat(filepath.Join(home, ".claude", "commands", "gentle-sdd-init.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(home, ".claude", "commands", "sdd-init.md")); !os.IsNotExist(err) {
 		t.Errorf("sync installed a retired SDD command: %v", err)
 	}
 	if _, err := os.Stat(custom); err != nil {

@@ -72,7 +72,7 @@ func agentOverlay(id model.AgentID) []byte {
 		// legacy cleanup that used to strip one. Codex refuses to load a config
 		// that defines a [permissions.*] profile without default_permissions,
 		// so a cleanup removing the pointer while a user profile survived left
-		// Codex unable to start (#1794). An old gentle-dev profile stays until
+		// Codex unable to start (#1794). A user-defined profile stays until
 		// its owner removes it.
 		return nil
 	default:

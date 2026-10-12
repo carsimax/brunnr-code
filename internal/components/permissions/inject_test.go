@@ -16,21 +16,21 @@ func claudeAdapter() agents.Adapter { return claude.NewAdapter() }
 func codexAdapter() agents.Adapter  { return codex.NewAdapter() }
 
 // codexInjectedLegacyConfig mirrors a config.toml produced by the retired
-// gentle-dev permission profile injection, wrapped in user-authored content.
+// example-profile permission profile injection, wrapped in user-authored content.
 const codexInjectedLegacyConfig = `model = "gpt-5.5"
 approval_policy = "on-request"
-default_permissions = "gentle-dev"
+default_permissions = "example-profile"
 
-[permissions.gentle-dev]
+[permissions.example-profile]
 description = "Comfortable local development profile with workspace writes, network access, and read-only access to Git and Nix/Home Manager metadata."
 
-[permissions.gentle-dev.network]
+[permissions.example-profile.network]
 enabled = true
 
-[permissions.gentle-dev.network.domains]
+[permissions.example-profile.network.domains]
 "*" = "allow"
 
-[permissions.gentle-dev.filesystem]
+[permissions.example-profile.filesystem]
 glob_scan_max_depth = 6
 ":minimal" = "read"
 "~/.config/git" = "read"
@@ -41,17 +41,17 @@ glob_scan_max_depth = 6
 ":tmpdir" = "write"
 ":slash_tmp" = "write"
 
-[permissions.gentle-dev.filesystem.":root"]
+[permissions.example-profile.filesystem.":root"]
 "." = "read"
 
-[permissions.gentle-dev.filesystem.":workspace_roots"]
+[permissions.example-profile.filesystem.":workspace_roots"]
 "." = "write"
 ".git/**" = "write"
 "**/.env" = "deny"
 "**/*.pem" = "deny"
 "**/*.key" = "deny"
 
-[permissions.gentle-dev.workspace_roots]
+[permissions.example-profile.workspace_roots]
 "~" = true
 
 [mcp_servers.engram]
@@ -142,7 +142,7 @@ func TestInjectClaudeCodeUsesBypassPermissions(t *testing.T) {
 // legacy migration that used to strip one. Codex refuses to load a config that
 // defines a [permissions.*] profile without default_permissions, so a cleanup
 // that removed the pointer while a profile survived stopped Codex from starting
-// at all (#1794). Whoever still carries an old gentle-dev profile keeps it.
+// at all (#1794). Whoever still carries an old example-profile profile keeps it.
 //
 // Byte equality alone is not the assertion: an atomic rewrite that happens to
 // produce identical bytes is still a write. Every fixture is backdated so the
@@ -154,12 +154,12 @@ func TestInjectCodexNeverWritesConfig(t *testing.T) {
 		name    string
 		content string
 	}{
-		{name: "user reported blocker", content: "approval_policy = \"on-request\"\ndefault_permissions = \"gentle-dev\"\n\n[permissions.gentle-dev]\nnetwork.enabled = true\n"},
+		{name: "user reported blocker", content: "approval_policy = \"on-request\"\ndefault_permissions = \"example-profile\"\n\n[permissions.example-profile]\nnetwork.enabled = true\n"},
 		{name: "fully injected legacy profile", content: codexInjectedLegacyConfig},
-		{name: "residual generated profile", content: "model = \"gpt-5.5\"\n\n[permissions.gentle-dev]\n\n[permissions.gentle-dev.workspace_roots]\n"},
-		{name: "user owned gentle-dev content", content: "approval_policy = \"never\"\ndefault_permissions = \"gentle-dev\"\n\n[permissions.custom]\ndescription = \"user profile\"\n\n[permissions.gentle-dev] # user-owned\nuser_note = \"keep\"\n"},
-		{name: "quoted gentle-dev forms", content: "permissions.\"gentle-dev\".workspace_roots.\"~\" = true\n"},
-		{name: "dotted user value", content: "default_permissions = \"gentle-dev\"\npermissions.gentle-dev.custom_flag = true\n"},
+		{name: "residual generated profile", content: "model = \"gpt-5.5\"\n\n[permissions.example-profile]\n\n[permissions.example-profile.workspace_roots]\n"},
+		{name: "user owned example-profile content", content: "approval_policy = \"never\"\ndefault_permissions = \"example-profile\"\n\n[permissions.custom]\ndescription = \"user profile\"\n\n[permissions.example-profile] # user-owned\nuser_note = \"keep\"\n"},
+		{name: "quoted example-profile forms", content: "permissions.\"example-profile\".workspace_roots.\"~\" = true\n"},
+		{name: "dotted user value", content: "default_permissions = \"example-profile\"\npermissions.example-profile.custom_flag = true\n"},
 	}
 
 	for _, tt := range tests {

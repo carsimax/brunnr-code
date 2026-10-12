@@ -26,7 +26,7 @@ recorded in:
 
 ## Why frozen rather than deleted now (D3's rejected alternative)
 
-A pinned adapter release (e.g. a version-pinned gentle-pi) may still call
+A pinned adapter release (e.g. a version-pinned external adapter) may still call
 v1 mid-upgrade. Deleting v1 in this wave would break such a consumer
 without warning. The wave's own explicit scope boundary (proposal "Out of
 scope") is: no new verb, no new contract version, no behavior change for
@@ -37,7 +37,7 @@ alongside it.
 ## Support horizon (open question, tracked not resolved here)
 
 The design's own "Open Questions" section records this as unresolved at
-Wave 7 time: *"D3: the declared support horizon for a pinned gentle-pi
+Wave 7 time: *"D3: the declared support horizon for a pinned external adapter
 consuming contracts/review-integration/v1."* This freeze marker does not
 resolve that horizon — it only records that until it is declared and
 proven satisfied by a later, separate change, this directory stays exactly

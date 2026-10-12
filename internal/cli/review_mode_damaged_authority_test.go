@@ -14,15 +14,15 @@ import (
 // pointing outside the repository, so every ancestor walk over it refuses.
 func damageReviewAuthorityTree(t *testing.T, repo string) {
 	t.Helper()
-	gentle := filepath.Join(repo, ".git", "brunnr-code")
-	if err := os.MkdirAll(gentle, 0o700); err != nil {
+	stateRoot := filepath.Join(repo, ".git", "brunnr-code")
+	if err := os.MkdirAll(stateRoot, 0o700); err != nil {
 		t.Fatal(err)
 	}
 	elsewhere := filepath.Join(t.TempDir(), "elsewhere")
 	if err := os.MkdirAll(elsewhere, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	authority := filepath.Join(gentle, "review-transactions")
+	authority := filepath.Join(stateRoot, "review-transactions")
 	if err := os.RemoveAll(authority); err != nil {
 		t.Fatal(err)
 	}

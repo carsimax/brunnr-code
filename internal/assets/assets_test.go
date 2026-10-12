@@ -23,7 +23,7 @@ func TestODDOnlyEmbeddedInventory(t *testing.T) {
 		parts := strings.Split(path, "/")
 		name := entry.Name()
 		for _, part := range parts {
-			if strings.HasPrefix(part, "sdd-") || strings.HasPrefix(part, "gentle-sdd-") || part == "sdd" || part == "openspec-convention.md" {
+			if strings.HasPrefix(part, "sdd-") || part == "sdd" || part == "openspec-convention.md" {
 				// Existing orchestrators are mixed ODD/RDD assets; their
 				// SDD content must be rewritten, not removed wholesale.
 				if name != "sdd-orchestrator.md" {

@@ -90,7 +90,7 @@ func (s failAfterPluginRegistrationStep) Run() error {
 		}
 	}
 	if _, err := os.Stat(s.logoPath); err != nil {
-		return fmt.Errorf("Gentle Logo was not written before rollback control: %w", err)
+		return fmt.Errorf("Logo plugin was not written before rollback control: %w", err)
 	}
 	return errors.New("late plugin rollback control")
 }

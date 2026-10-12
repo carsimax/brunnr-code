@@ -342,7 +342,7 @@ func TestCodexProviderAdapterUsesPinnedLocalRuntime(t *testing.T) {
 	harness.git("add", "--", "internal/provider/candidate.go")
 	harness.git("commit", "-qm", "feat: committed Codex correction candidate")
 	const lineage = "codex-loopback-egress-proof"
-	statusPayload := harness.gentle(
+	statusPayload := harness.run(
 		"review", "status", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2",
 		"--agent", "codex", "--lineage", lineage, "--base-ref", baseTree, "--committed-only", "--next-transition",
 	)
@@ -351,7 +351,7 @@ func TestCodexProviderAdapterUsesPinnedLocalRuntime(t *testing.T) {
 		t.Fatalf("decode committed Codex START: %v\n%s", err, statusPayload)
 	}
 	start := negotiated.NextTransition.Execute
-	stdout, stderr, err := harness.gentleAllowFailure(
+	stdout, stderr, err := harness.runAllowFailure(
 		"review", "start", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2",
 		"--target", start.argument("target"), "--projection", start.argument("projection"), "--base-ref", baseTree, "--committed-only",
 		"--lineage", lineage, "--agent", "codex", "--consent", "granted", "--focus", "reliability",
@@ -363,7 +363,7 @@ func TestCodexProviderAdapterUsesPinnedLocalRuntime(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout), &started); err != nil || started.State != "reviewing" || len(started.SelectedLenses) != 1 {
 		t.Fatalf("committed Codex START = %#v, %v\n%s", started, err, stdout)
 	}
-	statusPayload = harness.gentle(
+	statusPayload = harness.run(
 		"review", "status", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2",
 		"--agent", "codex", "--lineage", lineage, "--base-ref", baseTree, "--committed-only", "--next-transition",
 	)
@@ -508,7 +508,7 @@ exec "$BRUNNR_CODE_RUNTIME_TRACE_BINARY" -ff -o "$BRUNNR_CODE_RUNTIME_TRACE_LOG"
 			t.Fatalf("Codex committed correction continuation omitted %q: %#v", token, terminal.StatusContinuation)
 		}
 	}
-	continuationPayload := harness.gentle(continuationArguments...)
+	continuationPayload := harness.run(continuationArguments...)
 	var correction organicProviderStatusResult
 	if err := json.Unmarshal(continuationPayload, &correction); err != nil {
 		t.Fatalf("decode returned Codex correction STATUS: %v\n%s", err, continuationPayload)
@@ -836,7 +836,7 @@ func organicProviderStart(t *testing.T, harness *organicHarness, lineage, agent 
 		t.Fatalf("provider START transition = %#v", status.NextTransition)
 	}
 	transition := status.NextTransition.Execute
-	stdout, stderr, err := harness.gentleAllowFailure("review", "start", "--cwd", harness.repo.worktree,
+	stdout, stderr, err := harness.runAllowFailure("review", "start", "--cwd", harness.repo.worktree,
 		"--contract", "brunnr-code.review-integration/v2", "--target", transition.argument("target"), "--projection", transition.argument("projection"),
 		"--lineage", lineage, "--agent", agent, "--consent", "granted", "--focus", "reliability")
 	if err != nil {
@@ -907,7 +907,7 @@ func (execute organicProviderExecute) argument(name string) string {
 
 func organicProviderStatus(t *testing.T, harness *organicHarness, lineage, agent string) organicProviderStatusResult {
 	t.Helper()
-	payload := harness.gentle("review", "status", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2", "--agent", agent, "--lineage", lineage, "--next-transition", "--projection", "workspace")
+	payload := harness.run("review", "status", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2", "--agent", agent, "--lineage", lineage, "--next-transition", "--projection", "workspace")
 	var status organicProviderStatusResult
 	if err := json.Unmarshal(payload, &status); err != nil {
 		t.Fatalf("decode provider status: %v\n%s", err, payload)
@@ -1397,7 +1397,7 @@ func TestOrganicBoundedCorrectionAllowsExactlyOne(t *testing.T) {
 	}
 	planArguments = append(planArguments, "--correction-lines", "2")
 	var forecast organicFinalizeResult
-	payload := harness.gentle(planArguments...)
+	payload := harness.run(planArguments...)
 	if err := json.Unmarshal(payload, &forecast); err != nil {
 		t.Fatalf("decode correction plan capture: %v\n%s", err, payload)
 	}
@@ -1407,7 +1407,7 @@ func TestOrganicBoundedCorrectionAllowsExactlyOne(t *testing.T) {
 
 	// The one forecast is immutable. Repeating it must fail before a second
 	// correction route exists, rather than reviving a retired FINALIZE path.
-	if _, _, err := harness.gentleAllowFailure(planArguments...); err == nil {
+	if _, _, err := harness.runAllowFailure(planArguments...); err == nil {
 		t.Fatal("a second correction plan was accepted after the one bounded forecast")
 	}
 
@@ -1508,7 +1508,7 @@ func TestOrganicKillSwitchStopsAtTheDeliveryBoundary(t *testing.T) {
 	// switch's, and it must name its deciding source.
 	harness.writeFiles(map[string]string{"docs/disabled-attempt.md": organicLines("pending while disabled", 3)})
 	harness.git("add", "--", "docs/disabled-attempt.md")
-	_, stderr, err := harness.gentleAllowFailure("review", "start", "--cwd", harness.repo.worktree, "--lineage", "organic-killed")
+	_, stderr, err := harness.runAllowFailure("review", "start", "--cwd", harness.repo.worktree, "--lineage", "organic-killed")
 	if err == nil {
 		t.Fatal("review start succeeded while receipt-driven development was disabled")
 	}
@@ -1724,7 +1724,7 @@ func TestOrganicTerminalAuthoritySurvivesWithdrawalAndReplaysWithoutEffect(t *te
 	}
 	harness.assertInvalidatedUnmanagedGate(harness.gate("post-apply"))
 
-	if _, _, err := harness.gentleAllowFailure("review", "finalize", "--cwd", harness.repo.worktree, "--lineage", lineage); err == nil {
+	if _, _, err := harness.runAllowFailure("review", "finalize", "--cwd", harness.repo.worktree, "--lineage", lineage); err == nil {
 		t.Fatal("terminal finalize replay reused burned authority")
 	}
 	if _, err := os.Stat(filepath.Join(harness.commonDir(), "brunnr-code", "review-transactions", "v2", lineage)); !os.IsNotExist(err) {
@@ -1736,7 +1736,7 @@ func TestOrganicTerminalAuthoritySurvivesWithdrawalAndReplaysWithoutEffect(t *te
 	}
 	harness.writeFiles(map[string]string{"docs/withdrawn-successor.md": organicLines("withdrawn successor", 4)})
 	harness.git("add", "--", "docs/withdrawn-successor.md")
-	if _, _, err := harness.gentleAllowFailure("review", "start", "--cwd", harness.repo.worktree, "--lineage", "organic-withdrawal-successor"); err == nil {
+	if _, _, err := harness.runAllowFailure("review", "start", "--cwd", harness.repo.worktree, "--lineage", "organic-withdrawal-successor"); err == nil {
 		t.Fatal("a fresh review started after the authorization was withdrawn")
 	}
 	withdrawn := harness.gate("post-apply")
@@ -1831,7 +1831,7 @@ func organicEnvironment(home string) []string {
 	return environment
 }
 
-func (harness *organicHarness) gentle(arguments ...string) []byte {
+func (harness *organicHarness) run(arguments ...string) []byte {
 	harness.t.Helper()
 	stdout, stderr, err := runOrganicCommand(harness.t, organicBinary, harness.repo.worktree, harness.environment(), arguments...)
 	if err != nil {
@@ -1840,7 +1840,7 @@ func (harness *organicHarness) gentle(arguments ...string) []byte {
 	return []byte(stdout)
 }
 
-func (harness *organicHarness) gentleAllowFailure(arguments ...string) (string, string, error) {
+func (harness *organicHarness) runAllowFailure(arguments ...string) (string, string, error) {
 	harness.t.Helper()
 	return runOrganicCommand(harness.t, organicBinary, harness.repo.worktree, harness.environment(), arguments...)
 }
@@ -1869,7 +1869,7 @@ func (harness *organicHarness) startReview(lineage string, extra ...string) (org
 		arguments = append(arguments, "--lineage", lineage)
 	}
 	arguments = append(arguments, extra...)
-	stdout, stderr, err := harness.gentleAllowFailure(arguments...)
+	stdout, stderr, err := harness.runAllowFailure(arguments...)
 	if err != nil {
 		harness.t.Fatalf("review start %v: %v\nstdout:\n%s\nstderr:\n%s", arguments, err, stdout, stderr)
 	}
@@ -1963,7 +1963,7 @@ func organicApprovedAcknowledgementStatus(t *testing.T, harness *organicHarness,
 		"--lineage", lineage, "--next-transition",
 	}
 	arguments = append(arguments, selectors...)
-	payload := harness.gentle(arguments...)
+	payload := harness.run(arguments...)
 	var status organicProviderStatusResult
 	if err := json.Unmarshal(payload, &status); err != nil {
 		t.Fatalf("decode approved acknowledgement STATUS: %v\n%s", err, payload)
@@ -2034,17 +2034,17 @@ func (harness *organicHarness) assertReviewAcknowledgedAndBurned(lineage string,
 		wrongToken = strings.Repeat("1", 64)
 	}
 	wrong[len(wrong)-1] = "--token=" + wrongToken
-	if _, _, err := harness.gentleAllowFailure(wrong...); err == nil {
+	if _, _, err := harness.runAllowFailure(wrong...); err == nil {
 		harness.t.Fatal("wrong acknowledgement binding burned authority")
 	}
 	afterWrong := organicApprovedAcknowledgementStatus(harness.t, harness, lineage, finalized.statusSelectors...)
 	assertSameOrganicAcknowledgement(harness.t, finalized.Acknowledgement, afterWrong)
 
 	exact := append([]string{"review", "acknowledge-approved"}, tokens...)
-	if _, stderr, err := harness.gentleAllowFailure(exact...); err != nil {
+	if _, stderr, err := harness.runAllowFailure(exact...); err != nil {
 		harness.t.Fatalf("exact acknowledgement failed: %v\n%s", err, stderr)
 	}
-	if _, _, err := harness.gentleAllowFailure(exact...); err == nil {
+	if _, _, err := harness.runAllowFailure(exact...); err == nil {
 		harness.t.Fatal("replayed acknowledgement recreated or burned authority")
 	}
 	authority := filepath.Join(harness.commonDir(), "brunnr-code", "review-transactions", "v2", lineage)
@@ -2082,7 +2082,7 @@ func (harness *organicHarness) captureReviewerResult(lineage string, started org
 		"--target", started.targetIdentity(), "--lens", lens, "--order", strconv.Itoa(order),
 	}
 	var preflight organicCapturePreflight
-	if err := json.Unmarshal(harness.gentle(append(binding, "--preflight")...), &preflight); err != nil {
+	if err := json.Unmarshal(harness.run(append(binding, "--preflight")...), &preflight); err != nil {
 		harness.t.Fatalf("decode capture-result preflight for %s: %v", lens, err)
 	}
 	paths := make([]string, len(preflight.ChangedPathManifest))
@@ -2092,7 +2092,7 @@ func (harness *organicHarness) captureReviewerResult(lineage string, started org
 	result.SubjectHash = preflight.ArtifactSubject.SubjectHash
 	result.Inspection = &organicInspection{Status: "completed", Paths: paths}
 	input := harness.writeJSON(fmt.Sprintf("reviewer-%d.json", order), result)
-	return harness.gentleAllowFailure(append(binding, "--input", input)...)
+	return harness.runAllowFailure(append(binding, "--input", input)...)
 }
 
 // corroborateRefuter submits the one refuter batch a severe candidate-caused
@@ -2196,7 +2196,7 @@ func (harness *organicHarness) gate(gate string, extra ...string) organicGateRes
 	harness.t.Helper()
 	arguments := append([]string{"review", "validate", "--cwd", harness.repo.worktree, "--gate", gate}, extra...)
 	var result organicGateResult
-	payload := harness.gentle(arguments...)
+	payload := harness.run(arguments...)
 	if err := json.Unmarshal(payload, &result); err != nil {
 		harness.t.Fatalf("decode review validate: %v\n%s", err, payload)
 	}
@@ -2208,7 +2208,7 @@ func (harness *organicHarness) gate(gate string, extra ...string) organicGateRes
 func (harness *organicHarness) gateAllowFailure(gate string, extra ...string) organicGateResult {
 	harness.t.Helper()
 	arguments := append([]string{"review", "validate", "--cwd", harness.repo.worktree, "--gate", gate}, extra...)
-	stdout, _, _ := harness.gentleAllowFailure(arguments...)
+	stdout, _, _ := harness.runAllowFailure(arguments...)
 	var result organicGateResult
 	decoder := json.NewDecoder(strings.NewReader(stdout))
 	if err := decoder.Decode(&result); err != nil {
@@ -2219,7 +2219,7 @@ func (harness *organicHarness) gateAllowFailure(gate string, extra ...string) or
 
 func (harness *organicHarness) disableReview() organicModeResult {
 	harness.t.Helper()
-	payload := harness.gentle("review", "mode", "disable", "--cwd", harness.repo.worktree, "--scope", "clone", "--json")
+	payload := harness.run("review", "mode", "disable", "--cwd", harness.repo.worktree, "--scope", "clone", "--json")
 	var mode organicModeResult
 	if err := json.Unmarshal(payload, &mode); err != nil {
 		harness.t.Fatalf("decode review mode: %v\n%s", err, payload)
@@ -2232,7 +2232,7 @@ func (harness *organicHarness) disableReview() organicModeResult {
 // Only global enable persists `on`; clone enable merely clears a local OFF.
 func (harness *organicHarness) enableReviewGlobally() organicModeResult {
 	harness.t.Helper()
-	payload := harness.gentle("review", "mode", "enable", "--cwd", harness.repo.worktree, "--scope", "global", "--json")
+	payload := harness.run("review", "mode", "enable", "--cwd", harness.repo.worktree, "--scope", "global", "--json")
 	var mode organicModeResult
 	if err := json.Unmarshal(payload, &mode); err != nil {
 		harness.t.Fatalf("decode review mode: %v\n%s", err, payload)
@@ -2249,7 +2249,7 @@ func (harness *organicHarness) enableReviewGlobally() organicModeResult {
 // because a repository-scoped source may only ever disable.
 func (harness *organicHarness) enableReview() organicModeResult {
 	harness.t.Helper()
-	payload := harness.gentle("review", "mode", "enable", "--cwd", harness.repo.worktree, "--scope", "clone", "--json")
+	payload := harness.run("review", "mode", "enable", "--cwd", harness.repo.worktree, "--scope", "clone", "--json")
 	var mode organicModeResult
 	if err := json.Unmarshal(payload, &mode); err != nil {
 		harness.t.Fatalf("decode review mode: %v\n%s", err, payload)
@@ -2295,7 +2295,7 @@ func (harness *organicHarness) runNamedReviewStart(tokens []string, extra ...str
 	if len(tokens) < 2 || tokens[0] != "review" || tokens[1] != "start" {
 		harness.t.Fatalf("named continuation is %v, want brunnr-code review start", tokens)
 	}
-	payload := harness.gentle(append(append([]string{}, tokens...), extra...)...)
+	payload := harness.run(append(append([]string{}, tokens...), extra...)...)
 	var started organicStartResult
 	if err := json.Unmarshal(payload, &started); err != nil {
 		harness.t.Fatalf("decode named review start: %v\n%s", err, payload)
@@ -2732,7 +2732,7 @@ type organicCorrectionStatus struct {
 
 func harnessCorrectionStatus(t *testing.T, harness *organicHarness, lineage string) organicCorrectionStatus {
 	t.Helper()
-	payload := harness.gentle(
+	payload := harness.run(
 		"review", "status", "--cwd", harness.repo.worktree, "--lineage", lineage,
 		"--contract", "brunnr-code.review-integration/v2", "--next-transition",
 	)

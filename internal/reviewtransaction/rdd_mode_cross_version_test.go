@@ -438,11 +438,11 @@ func legacyCloneModeRootForTest(t *testing.T, ctx context.Context, repo string) 
 // shared ancestor is a regular file, so every walk over it refuses.
 func damageCloneModeLegacyTreeForTest(t *testing.T, repo string) {
 	t.Helper()
-	gentle := filepath.Join(repo, ".git", "brunnr-code")
-	if err := os.MkdirAll(gentle, 0o700); err != nil {
+	stateRoot := filepath.Join(repo, ".git", "brunnr-code")
+	if err := os.MkdirAll(stateRoot, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	authority := filepath.Join(gentle, rddModeLegacySwitchDirectory)
+	authority := filepath.Join(stateRoot, rddModeLegacySwitchDirectory)
 	if err := os.RemoveAll(authority); err != nil {
 		t.Fatal(err)
 	}

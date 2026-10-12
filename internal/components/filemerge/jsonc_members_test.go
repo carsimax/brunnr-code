@@ -6,12 +6,12 @@ import (
 )
 
 func TestRemoveJSONCMembersNestedPathAndCompactJSON(t *testing.T) {
-	raw := `{"agent":{"gentle-orchestrator":{"permission":{"task":{"*":"deny","sdd-apply":"allow","jd-judge-a":"allow","sdd-verify":"allow"}}}}}`
-	got, kept, err := RemoveJSONCMembers([]byte(raw), []string{"agent", "gentle-orchestrator", "permission", "task"}, []string{"sdd-apply", "sdd-verify"}, false)
+	raw := `{"agent":{"example-orchestrator":{"permission":{"task":{"*":"deny","sdd-apply":"allow","jd-judge-a":"allow","sdd-verify":"allow"}}}}}`
+	got, kept, err := RemoveJSONCMembers([]byte(raw), []string{"agent", "example-orchestrator", "permission", "task"}, []string{"sdd-apply", "sdd-verify"}, false)
 	if err != nil || len(kept) != 0 {
 		t.Fatalf("kept = %v, err = %v", kept, err)
 	}
-	if want := `{"agent":{"gentle-orchestrator":{"permission":{"task":{"*":"deny","jd-judge-a":"allow"}}}}}`; string(got) != want {
+	if want := `{"agent":{"example-orchestrator":{"permission":{"task":{"*":"deny","jd-judge-a":"allow"}}}}}`; string(got) != want {
 		t.Fatalf("nested removal = %s", got)
 	}
 	got, _, err = RemoveJSONCMembers([]byte(`{"agents":{"only":{}}, "x": 1}`), []string{"agents"}, []string{"only"}, true)

@@ -75,8 +75,6 @@ func stringSliceContains(items []string, want string) bool {
 	return false
 }
 
-const engramInitCommandForTest = "npm exec --yes --package gentle-engram@latest -- pi-engram init"
-
 func TestCodexODDAssignmentInstallRoutingStep(t *testing.T) {
 	home := t.TempDir()
 	step := agentRoutingGuidanceStep{

@@ -222,11 +222,11 @@ func TestPartialUninstallClaudeThemeRemovesOnlyThemeAssets(t *testing.T) {
 		}
 	}
 	preserved := map[string]string{
-		filepath.Join(homeDir, ".claude", "settings.json"):                   `{"theme":"active","outputStyle":"custom"}`,
-		filepath.Join(homeDir, ".claude", "CLAUDE.md"):                       "# persona\n",
-		filepath.Join(homeDir, ".claude", "output-styles", "custom.md"):      "# output style\n",
-		filepath.Join(homeDir, ".claude", "commands", "gentle-sdd-apply.md"): "# SDD asset\n",
-		filepath.Join(homeDir, ".claude", "themes", "custom.json"):           `{"theme":"custom"}`,
+		filepath.Join(homeDir, ".claude", "settings.json"):              `{"theme":"active","outputStyle":"custom"}`,
+		filepath.Join(homeDir, ".claude", "CLAUDE.md"):                  "# persona\n",
+		filepath.Join(homeDir, ".claude", "output-styles", "custom.md"): "# output style\n",
+		filepath.Join(homeDir, ".claude", "commands", "sdd-apply.md"):   "# SDD asset\n",
+		filepath.Join(homeDir, ".claude", "themes", "custom.json"):      `{"theme":"custom"}`,
 	}
 	for path, content := range preserved {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

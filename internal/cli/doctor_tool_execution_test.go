@@ -16,8 +16,8 @@ import (
 // The isolated subprocess is this test binary, before Go parses --version.
 // This avoids dependencies on a shell sleep command or installed real tools.
 func init() {
-	if os.Getenv("GENTLE_DOCTOR_HANG_HELPER") == "1" {
-		if path := os.Getenv("GENTLE_DOCTOR_PID_FILE"); path != "" {
+	if os.Getenv("BRUNNR_DOCTOR_HANG_HELPER") == "1" {
+		if path := os.Getenv("BRUNNR_DOCTOR_PID_FILE"); path != "" {
 			_ = os.WriteFile(path, []byte(strconv.Itoa(os.Getpid())), 0o600)
 		}
 		time.Sleep(time.Minute)
@@ -84,8 +84,8 @@ func TestRunDoctorToolExecution(t *testing.T) {
 					t.Fatal(err)
 				}
 				script = string(data)
-				t.Setenv("GENTLE_DOCTOR_HANG_HELPER", "1")
-				t.Setenv("GENTLE_DOCTOR_PID_FILE", pidFile)
+				t.Setenv("BRUNNR_DOCTOR_HANG_HELPER", "1")
+				t.Setenv("BRUNNR_DOCTOR_PID_FILE", pidFile)
 				if tt.launcher {
 					target := filepath.Join(bin, "hanging-child")
 					if runtime.GOOS == "windows" {

@@ -41,15 +41,15 @@ func TestInjectCodexServiceTierWritesSelectedTier(t *testing.T) {
 	}
 }
 
-func TestInjectCodexStandardRetiresOnlyTheTierGentleWrote(t *testing.T) {
+func TestInjectCodexStandardRetiresOnlyTheTierBrunnrWrote(t *testing.T) {
 	const tail = "\n[profiles.fast]\nservice_tier = \"priority\"\n"
 	tests := []struct {
 		name, seed, managed string
 		wantTier            string // "" = top-level key absent
 	}{
 		{"managed value still present is removed", "model = \"m\"\nservice_tier = \"priority\"\n" + tail, "priority", ""},
-		{"user changed the value after Gentle wrote it", "model = \"m\"\nservice_tier = \"flex\"\n" + tail, "priority", `service_tier = "flex"`},
-		{"user tier Gentle never managed", "model = \"m\"\nservice_tier = \"priority\"\n" + tail, "", `service_tier = "priority"`},
+		{"user changed the value after Brunnr-Code wrote it", "model = \"m\"\nservice_tier = \"flex\"\n" + tail, "priority", `service_tier = "flex"`},
+		{"user tier Brunnr-Code never managed", "model = \"m\"\nservice_tier = \"priority\"\n" + tail, "", `service_tier = "priority"`},
 		{"user tier with inline comment is not exact", "model = \"m\"\nservice_tier = \"priority\" # mine\n" + tail, "priority", `service_tier = "priority" # mine`},
 		// An unchanged selection (selected == managed) never rewrites a user edit.
 		{"unchanged selection keeps a user edit", "model = \"m\"\nservice_tier = \"flex\"\n" + tail, "priority", `service_tier = "flex"`},
@@ -117,10 +117,10 @@ func TestInjectCodexIgnoresInvalidServiceTiers(t *testing.T) {
 	}
 }
 
-// TestInjectCodexReportsTheTierGentleOwnsAfterWrite pins the value callers
+// TestInjectCodexReportsTheTierBrunnrOwnsAfterWrite pins the value callers
 // record as managed: only a tier this injection wrote or retired. An
 // unchanged selection reports nothing, so the recorded value stays.
-func TestInjectCodexReportsTheTierGentleOwnsAfterWrite(t *testing.T) {
+func TestInjectCodexReportsTheTierBrunnrOwnsAfterWrite(t *testing.T) {
 	const unchanged = "<nil>"
 	tests := []struct {
 		name, seed       string
