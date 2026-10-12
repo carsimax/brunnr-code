@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a single-maintainer fork of upstream `gentle-ai`. It has been reduced to two agents: **Claude Code and Codex**. It is being rebranded to `brunnr-code` (see `odd/tasks/brunnr-code-rename.md`). The Go module is `github.com/carsimax/brunnr-code`, the entrypoint is `cmd/brunnr-code`, and `.goreleaser.yaml` and `scripts/install.sh` ship the binary as `brunnr-code`. Env vars, schema IDs, state dirs and CLI prose still carry the upstream name until the later rename tasks land. Feature history and decisions are recorded in `odd/tasks/*.md`.
+This is a single-maintainer fork of upstream Gentle AI, rebranded as **Brunnr-Code** and reduced to two agents: **Claude Code and Codex**. The Go module is `github.com/carsimax/brunnr-code`, the entrypoint is `cmd/brunnr-code`, and `.goreleaser.yaml` and `scripts/install.sh` ship the binary as `brunnr-code`. Env vars use `BRUNNR_CODE_*`, state lives in `~/.brunnr-code` and `<git-common-dir>/brunnr-code/`, and schema IDs use the `brunnr-code.` prefix. Feature history and decisions are recorded in `odd/tasks/*.md`.
 
 What the removal of other agents left behind, by design:
 
