@@ -171,7 +171,7 @@ func homebrewFailureAdvice(toolName string, output string, detected ...update.Ho
 			flag = "--formula"
 			artifact = "formula"
 		}
-		return fmt.Sprintf("Homebrew requires explicit trust for external taps. Trust only this Brunnr-Code %s, then retry:\n  brew trust %s %s\n  brew upgrade %s %s", artifact, flag, ref, flag, toolName)
+		return fmt.Sprintf("Homebrew requires explicit trust for external taps. Trust only this Engram %s, then retry:\n  brew trust %s %s\n  brew upgrade %s %s", artifact, flag, ref, flag, toolName)
 	}
 
 	if strings.Contains(lower, "bubblewrap is installed but cannot create a rootless sandbox") ||
