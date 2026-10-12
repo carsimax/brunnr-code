@@ -2,21 +2,13 @@ package styles
 
 import "github.com/charmbracelet/lipgloss"
 
-// Rose Pine color palette.
+// The TUI uses only the terminal's base ANSI colors so it inherits each
+// user's terminal theme. Plain text keeps the terminal default foreground.
 var (
-	ColorBase     = lipgloss.Color("#191724")
-	ColorSurface  = lipgloss.Color("#1f1d2e")
-	ColorOverlay  = lipgloss.Color("#6e6a86")
-	ColorText     = lipgloss.Color("#e0def4")
-	ColorSubtext  = lipgloss.Color("#908caa")
-	ColorLavender = lipgloss.Color("#c4a7e7")
-	ColorGreen    = lipgloss.Color("#9ccfd8")
-	ColorPeach    = lipgloss.Color("#f6c177")
-	ColorRed      = lipgloss.Color("#eb6f92")
-	ColorBlue     = lipgloss.Color("#31748f")
-	ColorMauve    = lipgloss.Color("#ebbcba")
-	ColorYellow   = lipgloss.Color("#f1ca93")
-	ColorTeal     = lipgloss.Color("#9ccfd8")
+	ColorAccent  = lipgloss.Color("4")
+	ColorSuccess = lipgloss.Color("2")
+	ColorWarning = lipgloss.Color("3")
+	ColorError   = lipgloss.Color("1")
 )
 
 // Cursor is the prefix used for the currently focused item.
@@ -24,53 +16,35 @@ const Cursor = "▸ "
 
 // Pre-built reusable styles.
 var (
-	TitleStyle = lipgloss.NewStyle().
-			Foreground(ColorLavender).
-			Bold(true)
+	TitleStyle = lipgloss.NewStyle().Bold(true)
 
-	HeadingStyle = lipgloss.NewStyle().
-			Foreground(ColorMauve).
-			Bold(true)
+	HeadingStyle = lipgloss.NewStyle().Bold(true)
 
-	HelpStyle = lipgloss.NewStyle().
-			Foreground(ColorSubtext)
+	HelpStyle = lipgloss.NewStyle().Faint(true)
 
-	SubtextStyle = lipgloss.NewStyle().
-			Foreground(ColorSubtext)
+	SubtextStyle = lipgloss.NewStyle().Faint(true)
 
 	SelectedStyle = lipgloss.NewStyle().
-			Foreground(ColorLavender).
+			Foreground(ColorAccent).
 			Bold(true)
 
-	UnselectedStyle = lipgloss.NewStyle().
-			Foreground(ColorText)
+	UnselectedStyle = lipgloss.NewStyle()
 
-	SuccessStyle = lipgloss.NewStyle().
-			Foreground(ColorGreen)
+	SuccessStyle = lipgloss.NewStyle().Foreground(ColorSuccess)
 
-	ErrorStyle = lipgloss.NewStyle().
-			Foreground(ColorRed)
+	ErrorStyle = lipgloss.NewStyle().Foreground(ColorError)
 
-	WarningStyle = lipgloss.NewStyle().
-			Foreground(ColorYellow)
+	WarningStyle = lipgloss.NewStyle().Foreground(ColorWarning)
 
+	// FrameStyle keeps an uncolored border: it groups the screen content and
+	// the welcome layout measures its frame size.
 	FrameStyle = lipgloss.NewStyle().
 			Border(lipgloss.DoubleBorder()).
-			BorderForeground(ColorLavender).
 			Padding(1, 2)
 
-	PanelStyle = lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder()).
-			BorderForeground(ColorOverlay).
-			Padding(0, 1)
+	ProgressFilled = lipgloss.NewStyle().Foreground(ColorSuccess)
 
-	ProgressFilled = lipgloss.NewStyle().
-			Foreground(ColorGreen)
+	ProgressEmpty = lipgloss.NewStyle().Faint(true)
 
-	ProgressEmpty = lipgloss.NewStyle().
-			Foreground(ColorOverlay)
-
-	PercentStyle = lipgloss.NewStyle().
-			Foreground(ColorPeach).
-			Bold(true)
+	PercentStyle = lipgloss.NewStyle().Bold(true)
 )
