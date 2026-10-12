@@ -249,8 +249,7 @@
     },
     {
       "destinationProof": [
-        "internal/components/reviewassets/reviewassets_test.go",
-        "internal/providercontractbundle/review_execution_contract_test.go"
+        "internal/components/reviewassets/reviewassets_test.go"
       ],
       "path": "internal/components/sdd/boundedreview.go"
     },

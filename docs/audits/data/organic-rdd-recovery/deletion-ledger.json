@@ -414,8 +414,7 @@
     {
       "destinationPath": "internal/components/reviewassets/contract.go",
       "destinationProof": [
-        "internal/components/reviewassets/reviewassets_test.go",
-        "internal/providercontractbundle/review_execution_contract_test.go"
+        "internal/components/reviewassets/reviewassets_test.go"
       ],
       "earlyDeviation": false,
       "noRetainedInvariant": false,
