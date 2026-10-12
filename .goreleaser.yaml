@@ -6,7 +6,7 @@ version: 2
 project_name: brunnr-code
 
 builds:
-  - main: ./cmd/gentle-ai
+  - main: ./cmd/brunnr-code
     binary: brunnr-code
     env:
       - CGO_ENABLED=0

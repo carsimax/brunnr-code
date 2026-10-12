@@ -220,7 +220,7 @@ func buildCandidateBinary(t *testing.T) string {
 	const buildTimeout = 2 * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), buildTimeout)
 	defer cancel()
-	command := exec.CommandContext(ctx, "go", "build", "-o", binary, "./cmd/gentle-ai")
+	command := exec.CommandContext(ctx, "go", "build", "-o", binary, "./cmd/brunnr-code")
 	command.Dir = repositoryRoot(t)
 	started := time.Now()
 	if output, err := command.CombinedOutput(); err != nil {

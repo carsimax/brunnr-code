@@ -2862,7 +2862,7 @@ func buildOrganicBinary(workspace string) (string, error) {
 	path := filepath.Join(workspace, name)
 	ctx, cancel := context.WithTimeout(context.Background(), organicSetupTimeout)
 	defer cancel()
-	command := organicCommandContext(ctx, "go", "build", "-trimpath", "-o", path, "./cmd/gentle-ai")
+	command := organicCommandContext(ctx, "go", "build", "-trimpath", "-o", path, "./cmd/brunnr-code")
 	command.Dir = moduleRoot
 	command.Env = os.Environ()
 	if output, err := command.CombinedOutput(); err != nil {

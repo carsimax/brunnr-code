@@ -30,7 +30,7 @@ export LC_ALL=C
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 baseline="${repo_root}/.deadcode-baseline.txt"
-target="${DEADCODE_TARGET:-./cmd/gentle-ai}"
+target="${DEADCODE_TARGET:-./cmd/brunnr-code}"
 tool="golang.org/x/tools/cmd/deadcode@v0.30.0"
 
 cd "${repo_root}"

@@ -611,7 +611,7 @@ func buildAppCandidateBinary(t *testing.T) string {
 	defer cancel()
 	// This fixture tests runtime state, not VCS metadata. Avoid consulting
 	// ambient repository ancestry when building from a linked worktree.
-	command := exec.CommandContext(ctx, "go", "build", "-buildvcs=false", "-o", binary, "../../cmd/gentle-ai")
+	command := exec.CommandContext(ctx, "go", "build", "-buildvcs=false", "-o", binary, "../../cmd/brunnr-code")
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build candidate binary: %v\n%s", err, output)
 	}

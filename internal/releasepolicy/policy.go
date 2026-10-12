@@ -558,7 +558,7 @@ before:
     - mkdir -p .goreleaser-provenance
     - go run ./internal/releaseprovenancecmd --out .goreleaser-provenance/manifest.json --config .goreleaser.yaml --goreleaser-version v2.15.2
 builds:
-  - main: ./cmd/gentle-ai
+  - main: ./cmd/brunnr-code
     binary: gentle-ai
     env:
       - CGO_ENABLED=0

@@ -68,7 +68,7 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/root/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -o /usr/local/bin/gentle-ai ./cmd/gentle-ai
+    go build -o /usr/local/bin/brunnr-code ./cmd/brunnr-code
 
 # ---------------------------------------------------------------------------
 # Prepare test environment

@@ -5,14 +5,14 @@ repo_root="$(git rev-parse --show-toplevel)"
 tmp_root="$(mktemp -d)"
 trap 'rm -rf "$tmp_root"' EXIT
 
-binary="$tmp_root/gentle-ai"
+binary="$tmp_root/brunnr-code"
 outside="$tmp_root/outside-repository"
 result="$tmp_root/capabilities.json"
 mkdir -p "$outside"
 
 (
   cd "$repo_root"
-  go build -o "$binary" ./cmd/gentle-ai
+  go build -o "$binary" ./cmd/brunnr-code
 )
 (
   cd "$outside"

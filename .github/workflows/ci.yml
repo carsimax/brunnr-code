@@ -66,8 +66,8 @@ jobs:
 
       - name: Run benchmark evidence
         run: |
-          go build -trimpath -o "$RUNNER_TEMP/gentle-ai" ./cmd/gentle-ai
-          "$RUNNER_TEMP/gentle-ai-bench" run --binary "$RUNNER_TEMP/gentle-ai" --out "$RUNNER_TEMP/bench-portable.json"
+          go build -trimpath -o "$RUNNER_TEMP/brunnr-code" ./cmd/brunnr-code
+          "$RUNNER_TEMP/gentle-ai-bench" run --binary "$RUNNER_TEMP/brunnr-code" --out "$RUNNER_TEMP/bench-portable.json"
           jq -e '
             def completed_once($id):
               [.journeys[] | select(.id == $id)] as $matches
@@ -88,7 +88,7 @@ jobs:
             completed_once("j4772-committed-correction-dirty-commit") and
             completed_once("j4773-committed-correction-dirty-amend")
           ' "$RUNNER_TEMP/bench-portable.json"
-          "$RUNNER_TEMP/gentle-ai-bench" run --binary "$RUNNER_TEMP/gentle-ai" --only j105-compiled-provider-capture-retries-same-binding --out "$RUNNER_TEMP/bench-provider-capture.json"
+          "$RUNNER_TEMP/gentle-ai-bench" run --binary "$RUNNER_TEMP/brunnr-code" --only j105-compiled-provider-capture-retries-same-binding --out "$RUNNER_TEMP/bench-provider-capture.json"
           jq -e '
             def completed_once($id):
               [.journeys[] | select(.id == $id)] as $matches
@@ -97,7 +97,7 @@ jobs:
           ' "$RUNNER_TEMP/bench-provider-capture.json"
           # #4612 retires SDD attempt transitions; the standalone review-mode
           # transition must still execute exactly once and complete.
-          "$RUNNER_TEMP/gentle-ai-bench" run --binary "$RUNNER_TEMP/gentle-ai" --axis transition --out "$RUNNER_TEMP/bench-transition.json"
+          "$RUNNER_TEMP/gentle-ai-bench" run --binary "$RUNNER_TEMP/brunnr-code" --axis transition --out "$RUNNER_TEMP/bench-transition.json"
           jq -e '
             def completed_once($id):
               [.journeys[] | select(.id == $id)] as $matches
@@ -171,7 +171,7 @@ jobs:
         run: |
           Add-MpPreference -ExclusionPath $env:GITHUB_WORKSPACE -ErrorAction SilentlyContinue
           Add-MpPreference -ExclusionPath $env:RUNNER_TEMP -ErrorAction SilentlyContinue
-          Add-MpPreference -ExclusionProcess 'git.exe','go.exe','gentle-ai.exe' -ErrorAction SilentlyContinue
+          Add-MpPreference -ExclusionProcess 'git.exe','go.exe','gentle-ai.exe','brunnr-code.exe' -ErrorAction SilentlyContinue
 
       - name: Checkout exact event candidate
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd  # v5.0.1
@@ -220,13 +220,13 @@ jobs:
 
       - name: Build native test binary
         shell: pwsh
-        run: go build -trimpath -ldflags="-s -w -X main.version=ci" -o "$env:RUNNER_TEMP\gentle-ai.exe" ./cmd/gentle-ai
+        run: go build -trimpath -ldflags="-s -w -X main.version=ci" -o "$env:RUNNER_TEMP\brunnr-code.exe" ./cmd/brunnr-code
 
       - name: Run Windows release-blocker tests
         shell: pwsh
         timeout-minutes: 10
         env:
-          GENTLE_AI_TEST_BINARY: ${{ runner.temp }}\gentle-ai.exe
+          GENTLE_AI_TEST_BINARY: ${{ runner.temp }}\brunnr-code.exe
           GENTLE_AI_REQUIRE_DISTINCT_WINDOWS_TOKEN_OWNER: "1"
         run: |
           $packages = @('./internal/cli', './internal/reviewtransaction', './internal/components/engram')

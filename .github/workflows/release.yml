@@ -32,7 +32,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Go vet
-        run: go vet ./cmd/gentle-ai/...
+        run: go vet ./cmd/brunnr-code/...
 
       - name: Publish release
         uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3

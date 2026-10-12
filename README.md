@@ -52,7 +52,7 @@ Every command supports `--help`.
 ## Build from source
 
 ```bash
-go build -o brunnr-code ./cmd/gentle-ai
+go build -o brunnr-code ./cmd/brunnr-code
 go test ./...
 ```
 

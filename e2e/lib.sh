@@ -41,29 +41,29 @@ log_info()  { printf "${BLUE}[INFO]${NC}  %s\n" "$1"; }
 # ---------------------------------------------------------------------------
 # Binary resolution
 # ---------------------------------------------------------------------------
-# The binary should be built and placed at /usr/local/bin/gentle-ai inside
-# the Docker container. If not found, fall back to $HOME/gentle-ai or the
+# The binary should be built and placed at /usr/local/bin/brunnr-code inside
+# the Docker container. If not found, fall back to $HOME/brunnr-code or the
 # current directory.
 # Resolution priority (highest → lowest):
-#   1. ./gentle-ai in the current repo directory (freshly built local binary)
-#   2. ~/gentle-ai (explicit copy in home)
-#   3. gentle-ai on PATH (system-installed, e.g. Homebrew)
-# This ensures `go build ./cmd/gentle-ai && bash e2e/e2e_test.sh` always
+#   1. ./brunnr-code in the current repo directory (freshly built local binary)
+#   2. ~/brunnr-code (explicit copy in home)
+#   3. brunnr-code on PATH (system-installed, e.g. Homebrew)
+# This ensures `go build ./cmd/brunnr-code && bash e2e/e2e_test.sh` always
 # tests the locally built binary rather than the installed release version.
 resolve_binary() {
-    # Prefer the locally built binary (./gentle-ai) produced by `go build ./cmd/gentle-ai`.
+    # Prefer the locally built binary (./brunnr-code) produced by `go build ./cmd/brunnr-code`.
     # We check both the current directory and the script's parent directory so
     # the resolver works whether the test is invoked from the repo root or from e2e/.
     local repo_root
     repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-    if [ -x "$repo_root/gentle-ai" ]; then
-        echo "$repo_root/gentle-ai"
-    elif [ -x "./gentle-ai" ]; then
-        echo "./gentle-ai"
-    elif [ -x "$HOME/gentle-ai" ]; then
-        echo "$HOME/gentle-ai"
-    elif command -v gentle-ai >/dev/null 2>&1; then
-        echo "gentle-ai"
+    if [ -x "$repo_root/brunnr-code" ]; then
+        echo "$repo_root/brunnr-code"
+    elif [ -x "./brunnr-code" ]; then
+        echo "./brunnr-code"
+    elif [ -x "$HOME/brunnr-code" ]; then
+        echo "$HOME/brunnr-code"
+    elif command -v brunnr-code >/dev/null 2>&1; then
+        echo "brunnr-code"
     else
         echo ""
     fi

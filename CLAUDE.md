@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a single-maintainer fork of upstream `gentle-ai`. It has been reduced to two agents: **Claude Code and Codex**. It is being rebranded to `brunnr-code` (see `odd/tasks/brunnr-code-rename.md`). The README, `.goreleaser.yaml` and `scripts/install.sh` ship the binary as `brunnr-code`; the Go module path and `cmd/gentle-ai` still carry the upstream name until that rename lands. Feature history and decisions are recorded in `odd/tasks/*.md`.
+This is a single-maintainer fork of upstream `gentle-ai`. It has been reduced to two agents: **Claude Code and Codex**. It is being rebranded to `brunnr-code` (see `odd/tasks/brunnr-code-rename.md`). The Go module is `github.com/carsimax/brunnr-code`, the entrypoint is `cmd/brunnr-code`, and `.goreleaser.yaml` and `scripts/install.sh` ship the binary as `brunnr-code`. Env vars, schema IDs, state dirs and CLI prose still carry the upstream name until the later rename tasks land. Feature history and decisions are recorded in `odd/tasks/*.md`.
 
 What the removal of other agents left behind, by design:
 
@@ -21,7 +21,7 @@ go run ./internal/gofmtcheck                 # format gate (custom gofmt checker
 go test ./...                                # full unit suite; run it after every task
 ./scripts/deadcode-ratchet.sh                # fails only on NEW unreachable funcs vs .deadcode-baseline.txt
 ./scripts/deadcode-ratchet.sh --update       # after deliberately removing dead code
-go build -o brunnr-code ./cmd/gentle-ai         # local build; version via -ldflags "-X main.version=..."
+go build -o brunnr-code ./cmd/brunnr-code         # local build; version via -ldflags "-X main.version=..."
 ```
 
 Single test: `go test -v ./internal/<pkg> -count=1 -run '<Regex>'`
@@ -43,7 +43,7 @@ Other test suites:
 
 The CLI is an installer and configurator. It writes managed configuration, skills, personas, MCP entries and hooks into a coding agent's config directories. It also owns a native code-review workflow.
 
-- **Entry:** `cmd/gentle-ai/main.go` calls `internal/app.RunArgs`. With no arguments it opens the bubbletea TUI (`internal/tui`), which needs a TTY. With arguments it dispatches subcommands such as `install`, `sync`, `doctor`, `restore`, `uninstall`, `update`, `codegraph`, `skill-registry` and `review …` to their implementations in `internal/cli`.
+- **Entry:** `cmd/brunnr-code/main.go` calls `internal/app.RunArgs`. With no arguments it opens the bubbletea TUI (`internal/tui`), which needs a TTY. With arguments it dispatches subcommands such as `install`, `sync`, `doctor`, `restore`, `uninstall`, `update`, `codegraph`, `skill-registry` and `review …` to their implementations in `internal/cli`.
 - **Agent adapters:** `internal/agents` defines the `Adapter` interface: detection, config paths, prompt and MCP strategies, and capability flags. The only implementations are `agents/claude` and `agents/codex`, wired in `factory.go`. Components call adapter methods instead of switching on the agent ID. Shared IDs and strategy types live in `internal/model`.
 - **Install pipeline:** `catalog` (agents, components, skills) → `planner` resolves dependencies into a `ResolvedPlan` → `pipeline.Orchestrator` executes the stages, with rollback.
 - **Components:** `internal/components/*` holds the installable units (engram, mcp, persona, skills, theme, permissions, agenthooks, agentguidance, reviewassets, …). File writes go through `components/filemerge`.

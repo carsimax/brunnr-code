@@ -235,10 +235,10 @@ func TestBuiltBinaryClosedStdinRefusesBeforeBubbleTea(t *testing.T) {
 	}
 	repoRoot := filepath.Join(filepath.Dir(sourceFile), "..", "..")
 	binaryPath := filepath.Join(t.TempDir(), "gentle-ai")
-	build := exec.Command("go", "build", "-o", binaryPath, "./cmd/gentle-ai")
+	build := exec.Command("go", "build", "-o", binaryPath, "./cmd/brunnr-code")
 	build.Dir = repoRoot
 	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("go build ./cmd/gentle-ai: %v\n%s", err, output)
+		t.Fatalf("go build ./cmd/brunnr-code: %v\n%s", err, output)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
