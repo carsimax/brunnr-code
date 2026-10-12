@@ -2,7 +2,6 @@ package update
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -54,16 +53,6 @@ func CheckFiltered(ctx context.Context, profile system.PlatformProfile, toolName
 // checkSingleTool checks a single tool: detects local version, fetches remote, compares.
 func checkSingleTool(ctx context.Context, tool ToolInfo, profile system.PlatformProfile) UpdateResult {
 	result := UpdateResult{Tool: tool}
-	homebrewOwnership := HomebrewNone
-	if profile.PackageManager == "brew" {
-		var err error
-		homebrewOwnership, err = homebrewOwnershipDetector(tool.Name)
-		if err != nil {
-			result.Status = CheckFailed
-			result.Err = fmt.Errorf("detect Homebrew ownership for %s: %w; inspect `brew list --formula --full-name`, `brew list --cask --full-name`, and `command -v %s`", tool.Name, err, tool.Name)
-			return result
-		}
-	}
 
 	// Run local detection and remote fetch concurrently.
 	var wg sync.WaitGroup
@@ -86,7 +75,7 @@ func checkSingleTool(ctx context.Context, tool ToolInfo, profile system.Platform
 	wg.Wait()
 
 	result.InstalledVersion = localVersion
-	result.UpdateHint = updateHintForOwnership(tool, profile, homebrewOwnership)
+	result.UpdateHint = updateHint(tool, profile)
 
 	// Handle fetch failure.
 	if fetchErr != nil {

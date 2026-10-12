@@ -42,7 +42,7 @@ func TestCheckAllWithCooldown_ConcurrentReviewModeDisablePreservesMode(t *testin
 		defer close(actorADone)
 		checkAllWithCooldownReport(
 			ctx,
-			system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
+			system.PlatformProfile{OS: "darwin"},
 			home,
 			6*time.Hour,
 			func() time.Time { return now },
@@ -124,7 +124,7 @@ func TestCheckAllWithCooldown_ContendedPersistenceRejectsReviewModeDisable(t *te
 		defer close(actorADone)
 		checkAllWithCooldownReport(
 			ctx,
-			system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
+			system.PlatformProfile{OS: "darwin"},
 			home,
 			6*time.Hour,
 			func() time.Time { return now },

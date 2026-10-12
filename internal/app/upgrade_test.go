@@ -201,7 +201,7 @@ func TestRenderUpgradeReport_PerToolSemantics_Deterministic(t *testing.T) {
 					OldVersion: "1.0.0",
 					NewVersion: "2.0.0",
 					Status:     upgrade.UpgradeFailed,
-					Err:        errors.New("brew upgrade faketool: exit status 1"),
+					Err:        errors.New("download faketool binary: exit status 1"),
 				},
 			},
 			wantContains:   []string{"faketool", "FAILED", "exit status 1", "[!!]"},

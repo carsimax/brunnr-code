@@ -483,7 +483,7 @@ func ExecuteWithOptions(ctx context.Context, results []update.UpdateResult, prof
 			ToolName:   r.Tool.Name,
 			OldVersion: r.InstalledVersion,
 			NewVersion: r.LatestVersion,
-			Method:     effectiveMethod(r.Tool, profile),
+			Method:     r.Tool.InstallMethod,
 			Status:     UpgradeSkipped,
 			ManualHint: fmt.Sprintf("source build — upgrade manually or install a release binary from https://github.com/Gentleman-Programming/%s/releases", r.Tool.Repo),
 		})
@@ -496,7 +496,7 @@ func ExecuteWithOptions(ctx context.Context, results []update.UpdateResult, prof
 			ToolName:   r.Tool.Name,
 			OldVersion: r.InstalledVersion,
 			NewVersion: r.LatestVersion,
-			Method:     effectiveMethod(r.Tool, profile),
+			Method:     r.Tool.InstallMethod,
 			Status:     UpgradeSkipped,
 			ManualHint: fmt.Sprintf("installed binary was found but its version could not be determined — check `%s` and reinstall if it is a stale source/dev build", detectCommandHint(r.Tool)),
 		})
@@ -504,7 +504,7 @@ func ExecuteWithOptions(ctx context.Context, results []update.UpdateResult, prof
 
 	// Executable tools: run upgrade strategy.
 	for _, r := range executable {
-		method := effectiveMethod(r.Tool, profile)
+		method := r.Tool.InstallMethod
 		msg := fmt.Sprintf("Upgrading %s via %s (%s → %s)", r.Tool.Name, method, r.InstalledVersion, r.LatestVersion)
 		sp := NewSpinner(pw, msg)
 		toolResult := executeOne(ctx, r, profile, dryRun)
@@ -559,7 +559,7 @@ func executeOne(ctx context.Context, r update.UpdateResult, profile system.Platf
 		ToolName:   r.Tool.Name,
 		OldVersion: r.InstalledVersion,
 		NewVersion: r.LatestVersion,
-		Method:     effectiveMethod(r.Tool, profile),
+		Method:     r.Tool.InstallMethod,
 	}
 
 	if dryRun {
@@ -584,14 +584,4 @@ func executeOne(ctx context.Context, r update.UpdateResult, profile system.Platf
 	}
 
 	return base
-}
-
-// effectiveMethod resolves the actual upgrade strategy for a tool on a given
-// platform: Homebrew when Homebrew confirms it owns this specific tool,
-// otherwise the tool's declared InstallMethod.
-func effectiveMethod(tool update.ToolInfo, profile system.PlatformProfile) update.InstallMethod {
-	if profile.PackageManager == "brew" && homebrewPackageInstalled(tool.Name) {
-		return update.InstallBrew
-	}
-	return tool.InstallMethod
 }

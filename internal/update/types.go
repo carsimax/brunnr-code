@@ -19,7 +19,6 @@ const (
 type InstallMethod string
 
 const (
-	InstallBrew   InstallMethod = "brew"
 	InstallBinary InstallMethod = "binary"
 )
 

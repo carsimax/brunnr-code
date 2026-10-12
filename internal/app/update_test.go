@@ -28,7 +28,7 @@ func TestRunUpdate_ReturnsErrorWhenChecksFail(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	err := runUpdate(context.Background(), system.PlatformProfile{OS: "darwin", PackageManager: "brew"}, &buf)
+	err := runUpdate(context.Background(), system.PlatformProfile{OS: "darwin"}, &buf)
 	if err == nil {
 		t.Fatal("runUpdate() error = nil, want non-nil")
 	}
@@ -77,7 +77,7 @@ func TestRunUpgrade_ReturnsErrorBeforeExecutingWhenAllChecksFail(t *testing.T) {
 	// parsed once in RunArgs, not raw CLI args. The check must run with the
 	// forwarded tool filter, and execution must be skipped on check failure.
 	var buf bytes.Buffer
-	err := runUpgrade(context.Background(), upgradeArgs{noBackup: true}, system.DetectionResult{System: system.SystemInfo{Profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}}}, &buf)
+	err := runUpgrade(context.Background(), upgradeArgs{noBackup: true}, system.DetectionResult{System: system.SystemInfo{Profile: system.PlatformProfile{OS: "darwin", Supported: true}}}, &buf)
 	if err == nil {
 		t.Fatal("runUpgrade() error = nil, want non-nil")
 	}
@@ -130,7 +130,7 @@ func TestPartialUpdateChecks(t *testing.T) {
 					return upgrade.UpgradeReport{}
 				}
 				var out bytes.Buffer
-				profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
+				profile := system.PlatformProfile{OS: "darwin", Supported: true}
 				var err error
 				if command == "update" {
 					err = runUpdate(context.Background(), profile, &out)
@@ -214,7 +214,7 @@ func TestRunUpgrade_ForwardsParsedArgsOnceWithoutReparsing(t *testing.T) {
 	setupMockHome(t, home)
 
 	var buf bytes.Buffer
-	err := runUpgrade(context.Background(), upgradeArgs{dryRun: true, noBackup: true, toolFilter: []string{"engram", "faketool"}}, system.DetectionResult{System: system.SystemInfo{Profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}}}, &buf)
+	err := runUpgrade(context.Background(), upgradeArgs{dryRun: true, noBackup: true, toolFilter: []string{"engram", "faketool"}}, system.DetectionResult{System: system.SystemInfo{Profile: system.PlatformProfile{OS: "darwin", Supported: true}}}, &buf)
 	if err != nil {
 		t.Fatalf("runUpgrade() error = %v, want nil", err)
 	}
@@ -264,7 +264,7 @@ func TestRunUpgrade_NonBrunnrCodeUpgradeDoesNotPrintDoctorAdvisory(t *testing.T)
 	}
 
 	var buf bytes.Buffer
-	err := runUpgrade(context.Background(), upgradeArgs{}, system.DetectionResult{System: system.SystemInfo{Profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}}}, &buf)
+	err := runUpgrade(context.Background(), upgradeArgs{}, system.DetectionResult{System: system.SystemInfo{Profile: system.PlatformProfile{OS: "darwin", Supported: true}}}, &buf)
 	if err != nil {
 		t.Fatalf("runUpgrade() error = %v", err)
 	}

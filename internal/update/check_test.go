@@ -485,7 +485,6 @@ func TestResolveGitHubToken_EmptyWhenNoEnvAndNoGh(t *testing.T) {
 // --- TestCheckAll ---
 
 func TestCheckAll(t *testing.T) {
-	mockNoHomebrew(t)
 	// Set up fake GitHub API that returns different versions per repo.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -537,7 +536,7 @@ func TestCheckAll(t *testing.T) {
 	pluginHome := t.TempDir()
 	userHomeDir = func() (string, error) { return pluginHome, nil }
 
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
+	profile := system.PlatformProfile{OS: "darwin", Supported: true}
 	results := CheckAll(context.Background(), profile)
 
 	if len(results) != 1 {
@@ -549,7 +548,6 @@ func TestCheckAll(t *testing.T) {
 }
 
 func TestCheckSingleTool_EngramUsesBinaryReleaseChannel(t *testing.T) {
-	mockNoHomebrew(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
@@ -590,7 +588,7 @@ func TestCheckSingleTool_EngramUsesBinaryReleaseChannel(t *testing.T) {
 		return exec.Command("false")
 	}
 
-	result := checkSingleTool(context.Background(), Tools[0], system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true})
+	result := checkSingleTool(context.Background(), Tools[0], system.PlatformProfile{OS: "darwin", Supported: true})
 	assertResult(t, result, "engram", UpToDate, "1.15.13", "1.15.13")
 	if result.ReleaseURL != "https://github.com/Gentleman-Programming/engram/releases/tag/v1.15.13" {
 		t.Fatalf("ReleaseURL = %q, want binary channel release", result.ReleaseURL)
@@ -663,7 +661,7 @@ func TestCheckFiltered_FetchErrorPreservesCheckFailedForMissingTool(t *testing.T
 	lookPath = func(string) (string, error) { return "", fmt.Errorf("not found") }
 	execCommand = func(name string, args ...string) *exec.Cmd { return mockCmd("false") }
 
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
+	profile := system.PlatformProfile{OS: "darwin", Supported: true}
 	results := CheckFiltered(context.Background(), profile, []string{"engram"})
 
 	if len(results) != 1 {
@@ -677,27 +675,16 @@ func TestCheckFiltered_FetchErrorPreservesCheckFailedForMissingTool(t *testing.T
 // --- TestUpdateHint ---
 
 func TestUpdateHint(t *testing.T) {
-	origHomebrewPackageInstalled := homebrewPackageInstalled
-	t.Cleanup(func() { homebrewPackageInstalled = origHomebrewPackageInstalled })
-
 	tests := []struct {
-		name          string
-		tool          ToolInfo
-		profile       system.PlatformProfile
-		brewInstalled bool
-		want          string
+		name    string
+		tool    ToolInfo
+		profile system.PlatformProfile
+		want    string
 	}{
 		{
-			name:          "engram macOS brew-owned",
-			tool:          ToolInfo{Name: "engram"},
-			profile:       system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
-			brewInstalled: true,
-			want:          "brew upgrade engram",
-		},
-		{
-			name:    "engram macOS non-brew",
+			name:    "engram macOS",
 			tool:    ToolInfo{Name: "engram"},
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
+			profile: system.PlatformProfile{OS: "darwin"},
 			want:    "brunnr-code upgrade (downloads pre-built binary)",
 		},
 		{
@@ -715,54 +702,18 @@ func TestUpdateHint(t *testing.T) {
 		{
 			name:    "unknown tool",
 			tool:    ToolInfo{Name: "unknown"},
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
+			profile: system.PlatformProfile{OS: "darwin"},
 			want:    "",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			homebrewPackageInstalled = func(toolName string) bool {
-				return toolName == tc.tool.Name && tc.brewInstalled
-			}
-
 			got := updateHint(tc.tool, tc.profile)
 			if got != tc.want {
 				t.Fatalf("updateHint(%q, %q) = %q, want %q", tc.tool.Name, tc.profile.OS, got, tc.want)
 			}
 		})
-	}
-}
-
-func TestHomebrewPackageInstalledWithRequiresActiveBrewPath(t *testing.T) {
-	brewPrefix := filepath.Join(t.TempDir(), "opt", "brunnr-code")
-	brewBin := filepath.Join(brewPrefix, "bin", "brunnr-code")
-	nonBrewBin := filepath.Join(t.TempDir(), "brunnr-code")
-
-	run := func(name string, args ...string) *exec.Cmd {
-		if name != "brew" {
-			return mockCmd("false")
-		}
-		if len(args) >= 3 && args[0] == "list" && args[1] == "--formula" && args[2] == "brunnr-code" {
-			return mockCmd("true")
-		}
-		if len(args) == 2 && args[0] == "--prefix" && args[1] == "brunnr-code" {
-			return mockCmd("echo", brewPrefix)
-		}
-		return mockCmd("false")
-	}
-
-	if !homebrewPackageInstalledWith(run, func(string) (string, error) { return brewBin, nil }, "brunnr-code") {
-		t.Fatal("expected brew-owned active path to be treated as Homebrew installed")
-	}
-	if homebrewPackageInstalledWith(run, func(string) (string, error) { return nonBrewBin, nil }, "brunnr-code") {
-		t.Fatal("expected shadowing non-brew active path to avoid Homebrew")
-	}
-	if homebrewPackageInstalledWith(func(string, ...string) *exec.Cmd { return mockCmd("false") }, func(string) (string, error) { return brewBin, nil }, "brunnr-code") {
-		t.Fatal("expected brew list failure to avoid Homebrew")
-	}
-	if homebrewPackageInstalledWith(func(string, ...string) *exec.Cmd { return mockCmd("true") }, func(string) (string, error) { return "", fmt.Errorf("not found") }, "brunnr-code") {
-		t.Fatal("expected active path lookup failure to avoid Homebrew")
 	}
 }
 
@@ -930,7 +881,6 @@ func TestRegistryContents(t *testing.T) {
 // TestCheckAll_DevVersion verifies that "dev" build version results in DevBuild
 // (not VersionUnknown — dev is a well-known sentinel for source-built binaries).
 func TestCheckAll_DevVersion(t *testing.T) {
-	mockNoHomebrew(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -959,7 +909,7 @@ func TestCheckAll_DevVersion(t *testing.T) {
 	lookPath = func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
 	execCommand = func(name string, args ...string) *exec.Cmd { return mockCmd("echo", "engram dev") }
 
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
+	profile := system.PlatformProfile{OS: "darwin", Supported: true}
 	results := CheckAll(context.Background(), profile)
 
 	if len(results) != 1 {
@@ -1008,7 +958,7 @@ func TestCheckFiltered_SubsetOfTools(t *testing.T) {
 		return mockCmd("false")
 	}
 
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
+	profile := system.PlatformProfile{OS: "darwin", Supported: true}
 
 	// Request only "engram" — should return exactly 1 result.
 	results := CheckFiltered(context.Background(), profile, []string{"engram"})
@@ -1043,7 +993,7 @@ func TestCheckFiltered_EmptyFilter(t *testing.T) {
 	lookPath = func(string) (string, error) { return "", fmt.Errorf("not found") }
 	execCommand = func(name string, args ...string) *exec.Cmd { return mockCmd("false") }
 
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
+	profile := system.PlatformProfile{OS: "darwin", Supported: true}
 
 	// nil filter → all tools (same as CheckAll).
 	results := CheckFiltered(context.Background(), profile, nil)
@@ -1076,7 +1026,7 @@ func TestCheckFiltered_UnknownToolIgnored(t *testing.T) {
 	lookPath = func(string) (string, error) { return "", fmt.Errorf("not found") }
 	execCommand = func(name string, args ...string) *exec.Cmd { return mockCmd("false") }
 
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
+	profile := system.PlatformProfile{OS: "darwin", Supported: true}
 
 	results := CheckFiltered(context.Background(), profile, []string{"no-such-tool"})
 	if len(results) != 0 {
@@ -1086,7 +1036,6 @@ func TestCheckFiltered_UnknownToolIgnored(t *testing.T) {
 
 // TestNoUpdatesPath verifies CheckFiltered returns correct statuses when nothing needs updating.
 func TestNoUpdatesPath(t *testing.T) {
-	mockNoHomebrew(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -1154,7 +1103,7 @@ func TestNoUpdatesPath(t *testing.T) {
 	// engram plus a tool that is not installed
 	Tools = []ToolInfo{Tools[0], {Name: "absent", Owner: "example", Repo: "absent", DetectCmd: []string{"absent", "--version"}, InstallMethod: InstallBinary}}
 
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
+	profile := system.PlatformProfile{OS: "darwin", Supported: true}
 
 	results := CheckFiltered(context.Background(), profile, nil)
 	if len(results) != 2 {
@@ -1172,16 +1121,20 @@ func TestNoUpdatesPath(t *testing.T) {
 	}
 }
 
-// --- TestEngramHintNoBrew ---
+// --- TestEngramHintIsBinaryDownload ---
 
-// TestEngramHintNoBrew verifies that on non-brew platforms, engramHint
-// no longer returns "go install..." — it should reflect binary download.
+// TestEngramHintIsBinaryDownload verifies that engramHint never returns
+// "go install..." — it should reflect binary download on every platform.
 // This is the regression test for issue #160.
-func TestEngramHintNoBrew(t *testing.T) {
+func TestEngramHintIsBinaryDownload(t *testing.T) {
 	tests := []struct {
 		name    string
 		profile system.PlatformProfile
 	}{
+		{
+			name:    "macOS",
+			profile: system.PlatformProfile{OS: "darwin"},
+		},
 		{
 			name:    "linux apt",
 			profile: system.PlatformProfile{OS: "linux", PackageManager: "apt"},
@@ -1199,12 +1152,12 @@ func TestEngramHintNoBrew(t *testing.T) {
 
 			// Must NOT contain "go install".
 			if contains(got, "go install") {
-				t.Errorf("engramHint for non-brew should NOT contain 'go install', got %q", got)
+				t.Errorf("engramHint should NOT contain 'go install', got %q", got)
 			}
 
 			// Must NOT be empty (should have some actionable hint).
 			if got == "" {
-				t.Errorf("engramHint for non-brew should not be empty")
+				t.Errorf("engramHint should not be empty")
 			}
 		})
 	}

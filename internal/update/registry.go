@@ -6,13 +6,8 @@ import (
 
 // Tools is the static registry of managed tools that can be checked for updates.
 //
-// InstallMethod controls which non-Homebrew upgrade strategy the executor uses:
-//   - InstallBrew: explicitly managed via Homebrew
+// InstallMethod controls which upgrade strategy the executor uses:
 //   - InstallBinary: downloaded binary from GitHub Releases
-//
-// On platforms where Homebrew is available, the executor selects brew only
-// when Homebrew confirms it owns the specific tool. Otherwise this field is
-// the fallback strategy.
 var Tools = []ToolInfo{
 	{
 		Name:              "engram",
@@ -21,7 +16,7 @@ var Tools = []ToolInfo{
 		DetectCmd:         []string{"engram", "version"},
 		VersionPrefix:     "v",
 		ReleaseTagPattern: `^v[0-9]+\.[0-9]+\.[0-9]+$`,
-		// engram: Homebrew when the package is brew-owned, binary download elsewhere.
+		// engram: binary download from GitHub Releases on every platform.
 		InstallMethod: InstallBinary,
 		// FallbackPaths covers the Windows stale-PATH scenario (and Linux ~/.local/bin
 		// when not yet in PATH): AddToUserPath updates the registry/profile but the

@@ -16,7 +16,7 @@ import (
 // cached/empty result is returned immediately.
 func TestCheckAllWithCooldown_FreshCacheSkipsNetwork(t *testing.T) {
 	home := t.TempDir()
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew"}
+	profile := system.PlatformProfile{OS: "darwin"}
 
 	// Write state with a LastUpdateCheck 1 minute ago (well within 6h TTL).
 	now := time.Date(2026, 6, 14, 12, 0, 0, 0, time.UTC)
@@ -53,7 +53,7 @@ func TestCheckAllWithCooldown_FreshCacheSkipsNetwork(t *testing.T) {
 // LastUpdateCheck is updated in state.
 func TestCheckAllWithCooldown_StaleCacheRefreshes(t *testing.T) {
 	home := t.TempDir()
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew"}
+	profile := system.PlatformProfile{OS: "darwin"}
 
 	// Write state with LastUpdateCheck 7 hours ago (> 6h TTL).
 	now := time.Date(2026, 6, 14, 12, 0, 0, 0, time.UTC)
@@ -98,7 +98,7 @@ func TestCheckAllWithCooldown_StaleCacheRefreshes(t *testing.T) {
 // TestCheckAllWithCooldown_MissingCache first-run always checks.
 func TestCheckAllWithCooldown_MissingCache(t *testing.T) {
 	home := t.TempDir()
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew"}
+	profile := system.PlatformProfile{OS: "darwin"}
 
 	// No state file — first-run scenario.
 	now := time.Date(2026, 6, 14, 12, 0, 0, 0, time.UTC)
@@ -124,7 +124,7 @@ func TestCheckAllWithCooldown_MissingCache(t *testing.T) {
 // LastUpdateCheck timestamp is NOT updated, so the next launch retries.
 func TestCheckAllWithCooldown_FailedCheckDoesNotAdvanceTimestamp(t *testing.T) {
 	home := t.TempDir()
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew"}
+	profile := system.PlatformProfile{OS: "darwin"}
 
 	// Stale cache — will attempt a refresh.
 	now := time.Date(2026, 6, 14, 12, 0, 0, 0, time.UTC)
@@ -168,7 +168,7 @@ func TestCheckAllWithCooldown_FailedCheckDoesNotAdvanceTimestamp(t *testing.T) {
 // is "" (home resolution failed), the check always runs and no state file is
 // written anywhere.
 func TestCheckAllWithCooldown_EmptyHomeDirAlwaysChecks(t *testing.T) {
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew"}
+	profile := system.PlatformProfile{OS: "darwin"}
 	now := time.Date(2026, 6, 14, 12, 0, 0, 0, time.UTC)
 
 	// Ensure the CWD-relative state directory does not pre-exist from a
@@ -206,7 +206,7 @@ func TestCheckAllWithCooldown_EmptyHomeDirAlwaysChecks(t *testing.T) {
 // is "", the cooldown skip does not engage (no state.Read), so the check runs
 // even when a real state file might exist somewhere.
 func TestCheckAllWithCooldown_EmptyHomeDirNoStateRead(t *testing.T) {
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew"}
+	profile := system.PlatformProfile{OS: "darwin"}
 	now := time.Date(2026, 6, 14, 12, 0, 0, 0, time.UTC)
 	recent := now.Add(-1 * time.Minute)
 
@@ -235,7 +235,7 @@ func TestCheckAllWithCooldown_EmptyHomeDirNoStateRead(t *testing.T) {
 // Negative elapsed must be treated as needing a check.
 func TestCheckAllWithCooldown_FutureTimestampAlwaysChecks(t *testing.T) {
 	home := t.TempDir()
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew"}
+	profile := system.PlatformProfile{OS: "darwin"}
 
 	now := time.Date(2026, 6, 14, 12, 0, 0, 0, time.UTC)
 	// LastUpdateCheck is 1 hour IN THE FUTURE relative to now.
@@ -269,7 +269,7 @@ func TestCheckAllWithCooldown_FutureTimestampAlwaysChecks(t *testing.T) {
 // the timestamp write is skipped — existing state must never be clobbered.
 func TestCheckAllWithCooldown_NonMissingReadErrorSkipsWrite(t *testing.T) {
 	home := t.TempDir()
-	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew"}
+	profile := system.PlatformProfile{OS: "darwin"}
 	now := time.Date(2026, 6, 14, 12, 0, 0, 0, time.UTC)
 
 	// Write a corrupt (non-parseable) state file so state.Read returns a

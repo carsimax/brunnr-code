@@ -25,8 +25,8 @@ import (
 
 // --- helpers ---
 
-func brewProfile() system.PlatformProfile {
-	return system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
+func darwinProfile() system.PlatformProfile {
+	return system.PlatformProfile{OS: "darwin", Supported: true}
 }
 
 func linuxProfile() system.PlatformProfile {
@@ -60,7 +60,7 @@ func TestExecute_NoopWhenNothingIsExecutable(t *testing.T) {
 		makeResult("other", update.CheckFailed, "", "", update.InstallBinary),
 	}
 
-	report := Execute(context.Background(), results, brewProfile(), t.TempDir(), false)
+	report := Execute(context.Background(), results, darwinProfile(), t.TempDir(), false)
 
 	if report.BackupID != "" {
 		t.Errorf("BackupID = %q, want empty — no backup should be created when nothing to execute", report.BackupID)
