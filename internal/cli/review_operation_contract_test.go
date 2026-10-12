@@ -58,9 +58,6 @@ func TestNegotiatedReviewOperationsRejectInvalidContractsBeforeMutation(t *testi
 				}
 			}
 			assertArtifactRevision(t, store, fixture.Record.Revision)
-			if _, err := os.Stat(reviewOperationBindingPath(store, "thin")); !os.IsNotExist(err) {
-				t.Fatalf("invalid contract published runtime state: %v", err)
-			}
 		})
 	}
 }
@@ -164,9 +161,4 @@ func readReviewOperationFile(t *testing.T, path string) []byte {
 		t.Fatal(err)
 	}
 	return payload
-}
-
-func reviewOperationBindingPath(store reviewtransaction.CompactStore, change string) string {
-	common := filepath.Dir(filepath.Dir(filepath.Dir(filepath.Dir(store.Dir))))
-	return filepath.Join(common, "brunnr-code", "sdd-runtime", "v1", change, "HEAD")
 }

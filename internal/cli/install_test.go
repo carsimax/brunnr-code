@@ -12,7 +12,7 @@ func TestParseInstallFlagsSupportsCSVAndRepeated(t *testing.T) {
 	flags, err := ParseInstallFlags([]string{
 		"--agent", "claude-code,codex",
 		"--agent", "cursor",
-		"--component", "engram,sdd",
+		"--component", "engram,persona",
 		"--component", "skills",
 		"--skill", "go-testing",
 		"--preset", "minimal",
@@ -26,7 +26,7 @@ func TestParseInstallFlagsSupportsCSVAndRepeated(t *testing.T) {
 		t.Fatalf("agents = %v", flags.Agents)
 	}
 
-	if !reflect.DeepEqual(flags.Components, []string{"engram", "sdd", "skills"}) {
+	if !reflect.DeepEqual(flags.Components, []string{"engram", "persona", "skills"}) {
 		t.Fatalf("components = %v", flags.Components)
 	}
 

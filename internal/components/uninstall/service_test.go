@@ -21,43 +21,10 @@ import (
 	"github.com/carsimax/brunnr-code/internal/statecoord"
 )
 
-func TestRetiredSDDDefaultUninstallSkipsLegacyCleanup(t *testing.T) {
-	for _, kind := range []string{"complete", "partial"} {
-		t.Run(kind, func(t *testing.T) {
-			home := t.TempDir()
-			t.Setenv("HOME", home)
-			legacy := filepath.Join(home, ".claude", "commands", "sdd-custom.md")
-			if err := os.MkdirAll(filepath.Dir(legacy), 0700); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(legacy, []byte("user customized"), 0600); err != nil {
-				t.Fatal(err)
-			}
-			svc, err := NewService(home, t.TempDir(), "dev")
-			if err != nil {
-				t.Fatal(err)
-			}
-			svc.snapshotter = stubSnapshotter{}
-			if kind == "complete" {
-				_, err = svc.CompleteUninstall()
-			} else {
-				_, err = svc.PartialUninstall([]model.AgentID{model.AgentClaudeCode}, nil)
-			}
-			if err != nil {
-				t.Fatalf("default uninstall dispatched retired SDD: %v", err)
-			}
-			if body, err := os.ReadFile(legacy); err != nil || string(body) != "user customized" {
-				t.Fatalf("custom legacy file changed: %q, %v", body, err)
-			}
-		})
-	}
-}
-
 // TestCompleteUninstallPreservesNativeReviewAndJudgmentDayAgents proves native
 // review and Judgment Day agent files survive uninstall without a dedicated
-// retention allowlist: uninstall only inspects the retired SDD agent files
-// of the sub-agents directory, so these permanently-installed native agents
-// (installed unconditionally by reviewassets.InstallNativeAgents,
+// retention allowlist: uninstall does not touch the sub-agents directory, so
+// these permanently-installed native agents (installed unconditionally by reviewassets.InstallNativeAgents,
 // independent of any removable component) are never touched.
 func TestCompleteUninstallPreservesNativeReviewAndJudgmentDayAgents(t *testing.T) {
 	home := t.TempDir()
@@ -158,7 +125,7 @@ func TestPartialUninstallClaudeThemeRemovesOnlyThemeAssets(t *testing.T) {
 		filepath.Join(homeDir, ".claude", "settings.json"):              `{"theme":"active","outputStyle":"custom"}`,
 		filepath.Join(homeDir, ".claude", "CLAUDE.md"):                  "# persona\n",
 		filepath.Join(homeDir, ".claude", "output-styles", "custom.md"): "# output style\n",
-		filepath.Join(homeDir, ".claude", "commands", "sdd-apply.md"):   "# SDD asset\n",
+		filepath.Join(homeDir, ".claude", "commands", "my-command.md"):  "# user command\n",
 		filepath.Join(homeDir, ".claude", "themes", "custom.json"):      `{"theme":"custom"}`,
 	}
 	for path, content := range preserved {

@@ -732,60 +732,9 @@ Keep this text.
 	}
 }
 
-// ─── Codex profile injection tests ───────────────────────────────────────────
+// ─── Codex shared config injection tests ─────────────────────────────────────
 
-func TestInjectCodexPreservesLegacyProfilesWithInstalledCLI(t *testing.T) {
-	validCodexRuntime(t)
-	home := t.TempDir()
-	profileDir := filepath.Join(home, ".codex")
-	if err := os.MkdirAll(profileDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	for _, name := range []string{"sdd-strong.config.toml", "sdd-mid.config.toml", "sdd-cheap.config.toml"} {
-		path := filepath.Join(profileDir, name)
-		if err := os.WriteFile(path, []byte("user-owned profile\n"), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-	result, err := InjectWithOptions(home, codexAdapter(), InjectOptions{CodexCarrilModelAssignments: map[string]string{"sdd-strong": "gpt-6.1-astra"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, name := range []string{"sdd-strong.config.toml", "sdd-mid.config.toml", "sdd-cheap.config.toml"} {
-		path := filepath.Join(profileDir, name)
-		got, err := os.ReadFile(path)
-		if err != nil || string(got) != "user-owned profile\n" {
-			t.Errorf("%s altered: %q, %v", name, got, err)
-		}
-		for _, reported := range result.Files {
-			if reported == path {
-				t.Errorf("retired profile reported as written: %s", path)
-			}
-		}
-	}
-}
-
-func TestInjectCodexDoesNotCreateLegacyProfilesWithInstalledCLI(t *testing.T) {
-	validCodexRuntime(t)
-	home := t.TempDir()
-	result, err := Inject(home, codexAdapter())
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, name := range []string{"sdd-strong.config.toml", "sdd-mid.config.toml", "sdd-cheap.config.toml"} {
-		path := filepath.Join(home, ".codex", name)
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			t.Errorf("retired profile created: %s (%v)", path, err)
-		}
-		for _, reported := range result.Files {
-			if reported == path {
-				t.Errorf("retired profile reported: %s", path)
-			}
-		}
-	}
-}
-
-func TestInjectCodexWithoutCLIUpdatesSharedConfigAndPreservesProfiles(t *testing.T) {
+func TestInjectCodexWithoutCLIUpdatesSharedConfig(t *testing.T) {
 	restore := codex.SetRuntimeVersionCommandForTest("", exec.ErrNotFound)
 	t.Cleanup(restore)
 
@@ -798,17 +747,6 @@ func TestInjectCodexWithoutCLIUpdatesSharedConfigAndPreservesProfiles(t *testing
 	if err := os.WriteFile(configPath, []byte(configBefore), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	profiles := map[string][]byte{
-		"sdd-strong.config.toml": []byte("user strong profile\n"),
-		"sdd-mid.config.toml":    []byte("user mid profile\n"),
-		"sdd-cheap.config.toml":  []byte("user cheap profile\n"),
-	}
-	for name, before := range profiles {
-		if err := os.WriteFile(filepath.Join(home, ".codex", name), before, 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	first, err := Inject(home, codexAdapter())
 	if err != nil {
 		t.Fatalf("Inject(codex) with absent CLI error = %v", err)
@@ -822,12 +760,6 @@ func TestInjectCodexWithoutCLIUpdatesSharedConfigAndPreservesProfiles(t *testing
 	}
 	if !strings.Contains(string(configAfterFirst), "custom = \"preserve\"") || !strings.Contains(string(configAfterFirst), "[mcp_servers.engram]") {
 		t.Fatalf("shared config was not preserved and updated:\n%s", configAfterFirst)
-	}
-	for name, before := range profiles {
-		got, readErr := os.ReadFile(filepath.Join(home, ".codex", name))
-		if readErr != nil || !bytes.Equal(got, before) {
-			t.Fatalf("profile %q changed with absent CLI: got=%q error=%v", name, got, readErr)
-		}
 	}
 
 	second, err := Inject(home, codexAdapter())
@@ -888,27 +820,12 @@ func TestInjectCodexReportsInstructionOnlyRepairsWithoutCLI(t *testing.T) {
 	}
 }
 
-func TestInjectCodexWithoutCLIWritesSharedConfigWithoutCreatingProfiles(t *testing.T) {
+func TestInjectCodexWithoutCLIWritesSharedConfig(t *testing.T) {
 	restore := codex.SetRuntimeVersionCommandForTest("", exec.ErrNotFound)
 	t.Cleanup(restore)
 
 	home := t.TempDir()
 	configPath := filepath.Join(home, ".codex", "config.toml")
-	profiles := []string{
-		filepath.Join(home, ".codex", "sdd-strong.config.toml"),
-		filepath.Join(home, ".codex", "sdd-mid.config.toml"),
-		filepath.Join(home, ".codex", "sdd-cheap.config.toml"),
-	}
-	assertProfilesAbsent := func(stage string) {
-		t.Helper()
-		for _, path := range profiles {
-			if _, err := os.Stat(path); !os.IsNotExist(err) {
-				t.Fatalf("profile %q %s: stat error = %v; want absent", path, stage, err)
-			}
-		}
-	}
-	assertProfilesAbsent("before injection")
-
 	first, err := Inject(home, codexAdapter())
 	if err != nil {
 		t.Fatalf("Inject(codex) with absent CLI error = %v", err)
@@ -933,7 +850,6 @@ func TestInjectCodexWithoutCLIWritesSharedConfigWithoutCreatingProfiles(t *testi
 			t.Fatalf("shared instruction file %q was not written: %v", path, err)
 		}
 	}
-	assertProfilesAbsent("after first injection")
 
 	second, err := Inject(home, codexAdapter())
 	if err != nil {
@@ -942,7 +858,6 @@ func TestInjectCodexWithoutCLIWritesSharedConfigWithoutCreatingProfiles(t *testi
 	if second.Changed {
 		t.Fatal("second Inject(codex) with absent CLI changed = true")
 	}
-	assertProfilesAbsent("after repeated injection")
 }
 
 func TestInjectCodexInvalidRuntimeDoesNotMutateFiles(t *testing.T) {
@@ -962,16 +877,11 @@ func TestInjectCodexInvalidRuntimeDoesNotMutateFiles(t *testing.T) {
 
 			home := t.TempDir()
 			configPath := filepath.Join(home, ".codex", "config.toml")
-			profilePath := filepath.Join(home, ".codex", "sdd-strong.config.toml")
 			const configBefore = "user_setting = \"keep\"\n"
-			const profileBefore = "user profile bytes\n"
 			if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
 				t.Fatal(err)
 			}
 			if err := os.WriteFile(configPath, []byte(configBefore), 0o644); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(profilePath, []byte(profileBefore), 0o644); err != nil {
 				t.Fatal(err)
 			}
 
@@ -980,9 +890,6 @@ func TestInjectCodexInvalidRuntimeDoesNotMutateFiles(t *testing.T) {
 			}
 			if got, err := os.ReadFile(configPath); err != nil || string(got) != configBefore {
 				t.Fatalf("config changed after validation failure: got=%q error=%v", got, err)
-			}
-			if got, err := os.ReadFile(profilePath); err != nil || string(got) != profileBefore {
-				t.Fatalf("profile changed after validation failure: got=%q error=%v", got, err)
 			}
 		})
 	}

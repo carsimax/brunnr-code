@@ -2,16 +2,14 @@ package assets
 
 import (
 	"io/fs"
-	"regexp"
 	"slices"
 	"strings"
 	"testing"
 )
 
-// TestODDOnlyEmbeddedInventory guards every shipped runtime, not just one
-// install layout. Mixed orchestrators are retained and rewritten separately.
-func TestODDOnlyEmbeddedInventory(t *testing.T) {
-	var forbidden []string
+// TestEmbeddedInventoryKeepsOrchestrators guards every shipped runtime, not
+// just one install layout.
+func TestEmbeddedInventoryKeepsOrchestrators(t *testing.T) {
 	orchestrators := map[string]bool{}
 	err := fs.WalkDir(FS, ".", func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -20,20 +18,8 @@ func TestODDOnlyEmbeddedInventory(t *testing.T) {
 		if entry.IsDir() {
 			return nil
 		}
-		parts := strings.Split(path, "/")
-		name := entry.Name()
-		for _, part := range parts {
-			if strings.HasPrefix(part, "sdd-") || part == "sdd" || part == "openspec-convention.md" {
-				// Existing orchestrators are mixed ODD/RDD assets; their
-				// SDD content must be rewritten, not removed wholesale.
-				if name != "sdd-orchestrator.md" {
-					forbidden = append(forbidden, path)
-				}
-				break
-			}
-		}
-		if name == "orchestrator.md" || name == "sdd-orchestrator.md" {
-			orchestrators[parts[0]] = true
+		if entry.Name() == "orchestrator.md" {
+			orchestrators[strings.Split(path, "/")[0]] = true
 		}
 		return nil
 	})
@@ -46,60 +32,6 @@ func TestODDOnlyEmbeddedInventory(t *testing.T) {
 	for _, runtime := range []string{"claude", "codex", "generic"} {
 		if !orchestrators[runtime] {
 			t.Errorf("%s lost its ODD/RDD orchestrator asset", runtime)
-		}
-	}
-	if len(forbidden) != 0 {
-		t.Errorf("embedded inventory still ships SDD-only assets: %s", strings.Join(forbidden, ", "))
-	}
-}
-
-// TestSharedReferencesDoNotAdvertiseSDD checks the content installed under
-// skills/_shared, not only the skill names in the embedded inventory.
-func TestSharedReferencesDoNotAdvertiseSDD(t *testing.T) {
-	entries, err := fs.ReadDir(FS, "skills/_shared")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(entries) == 0 {
-		t.Fatal("no shared references embedded")
-	}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		path := "skills/_shared/" + entry.Name()
-		t.Run(entry.Name(), func(t *testing.T) {
-			for lineNumber, line := range strings.Split(MustRead(path), "\n") {
-				if sharedReferenceInvitesSDD(line) {
-					t.Errorf("%s:%d advertises retired workflow: %s", path, lineNumber+1, line)
-				}
-			}
-		})
-	}
-}
-
-func sharedReferenceInvitesSDD(line string) bool {
-	lower := strings.ToLower(line)
-	// Historical negative controls are evidence, not instructions.
-	if strings.Contains(lower, "historical negative control:") {
-		return false
-	}
-	return regexp.MustCompile(`\bsdd\b|sdd[-/]|openspec|spec-driven`).MatchString(lower)
-}
-
-func TestSharedReferenceNegativeControls(t *testing.T) {
-	for _, tc := range []struct {
-		line string
-		want bool
-	}{
-		{"Historical negative control: do not run sdd-apply or create OpenSpec files.", false},
-		{"<!-- odd-orchestrator-section:Language Domain Contract:start -->", false},
-		{"<!-- sdd-orchestrator-section:Language Domain Contract:start -->", true},
-		{"Run sdd-apply and persist in openspec/.", true},
-		{"Use spec-driven development for this task.", true},
-	} {
-		if got := sharedReferenceInvitesSDD(tc.line); got != tc.want {
-			t.Errorf("sharedReferenceInvitesSDD(%q) = %v, want %v", tc.line, got, tc.want)
 		}
 	}
 }
@@ -118,9 +50,7 @@ func TestClaudeODDOnlyOrchestrator(t *testing.T) {
 		}
 	}
 	for _, forbidden := range []string{
-		"{{BRUNNR_CODE_SDD_SECTION:", "SDD Workflow", "SDD Edit-Authority", "sdd-apply",
-		"sdd-verify", "sdd-orchestrator-workflow.md", "optional SDD", "Optional SDD rule",
-		"sdd-model-assignments", "SDD phase", "OpenSpec", "{{BRUNNR_CODE_RESEARCH_LIFECYCLE}}",
+		"{{BRUNNR_CODE_RESEARCH_LIFECYCLE}}",
 	} {
 		if strings.Contains(content, forbidden) {
 			t.Errorf("Claude orchestrator retains %q", forbidden)
@@ -153,10 +83,7 @@ func TestPrimaryODDOnlyOrchestrator(t *testing.T) {
 				}
 			}
 			for _, forbidden := range []string{
-				"{{BRUNNR_CODE_SDD_SECTION:", "{{BRUNNR_CODE_RESEARCH_LIFECYCLE}}",
-				"SDD Workflow", "SDD Edit-Authority", "SDD Session Preflight", "sdd-apply",
-				"sdd-verify", "sdd-init", "sdd-model-assignments", "optional SDD",
-				"Optional SDD rule", "SDD phase", "OpenSpec", "openspec", "{{CODEX_PHASE_EFFORTS}}",
+				"{{BRUNNR_CODE_RESEARCH_LIFECYCLE}}", "{{CODEX_PHASE_EFFORTS}}",
 			} {
 				if strings.Contains(content, forbidden) {
 					t.Errorf("retains %q", forbidden)
@@ -266,14 +193,10 @@ func TestOrchestratorsProjectOrganicRouting(t *testing.T) {
 			}
 		}
 		for _, forbidden := range []string{
-			"4+ files) | — | ✅ `sdd-explore`",
-			"4+ files) | — | ✅ run as sdd-explore",
-			"multiple files, new logic) | — | ✅ run as sdd-apply",
-			"tests, builds, installs | — | ✅ `sdd-verify`",
 			"Phase boundaries are not optional",
 		} {
 			if strings.Contains(delegation, forbidden) {
-				t.Fatalf("%s general delegation section routes ordinary work through SDD %q", path, forbidden)
+				t.Fatalf("%s general delegation section contains retired wording %q", path, forbidden)
 			}
 		}
 	}
@@ -325,7 +248,6 @@ func TestOrchestratorsRejectDelegationBypassLanguage(t *testing.T) {
 	codex := contents["codex/orchestrator.md"]
 	for _, forbidden := range []string{
 		"## Solo Path (default)",
-		"Run each SDD phase inline, in dependency order, without spawning sub-agents",
 		"fall back to the **Solo path**",
 		"complete it inline",
 	} {
@@ -456,10 +378,6 @@ func TestClaudeEmbeddedAssetLayout(t *testing.T) {
 		t.Fatal("claude embedded assets must not ship a stale engram-protocol.md — content now lives in engram/protocol.md")
 	}
 
-	if seen["commands"] {
-		t.Fatal("claude embedded assets still ship retired SDD commands")
-	}
-
 	agentEntries, err := FS.ReadDir("claude/agents")
 	if err != nil {
 		t.Fatalf("ReadDir(claude/agents) error = %v", err)
@@ -534,11 +452,11 @@ func TestFourRReviewAgentAssets(t *testing.T) {
 	}
 }
 
-func TestRetiredSDDLedgerGuidanceAbsentFromDistributedAssets(t *testing.T) {
+func TestRetiredLedgerGuidanceAbsentFromDistributedAssets(t *testing.T) {
 	paths := []string{"skills/work-unit-commits/SKILL.md"}
 	for _, path := range paths {
 		content := strings.ToLower(MustRead(path))
-		for _, retired := range []string{"sdd-tasks", "sdd relationship", "review ledger contract", "openspec/changes/", "sdd/{change-name}/review-ledger"} {
+		for _, retired := range []string{"review ledger contract"} {
 			if strings.Contains(content, retired) {
 				t.Errorf("%s retains retired guidance %q", path, retired)
 			}
@@ -687,8 +605,6 @@ func TestEmbeddedAssetCount(t *testing.T) {
 		}
 	}
 
-	// Only retained skills with embedded files count; deleted SDD directories
-	// contain no embedded assets.
 	if skillDirs != 14 {
 		t.Fatalf("expected 14 retained skill directories, got %d", skillDirs)
 	}
@@ -717,7 +633,7 @@ func TestEmbeddedAssetCount(t *testing.T) {
 func TestODDOrchestratorsDoNotRequireRetiredRuntimeAttempts(t *testing.T) {
 	for _, path := range allODDOrchestratorAssetPaths(t) {
 		content := MustRead(path)
-		for _, retired := range []string{"sdd-attempt acquire", "sdd-attempt settle", "Native Runtime Attempt Authority"} {
+		for _, retired := range []string{"Native Runtime Attempt Authority"} {
 			if strings.Contains(content, retired) {
 				t.Errorf("%s retains %q", path, retired)
 			}

@@ -702,7 +702,7 @@ func (s *Service) componentOperations(adapter agents.Adapter, componentID model.
 			return nil, nil, fmt.Errorf("read embedded skills: %w", err)
 		}
 		for _, entry := range entries {
-			if !entry.IsDir() || strings.HasPrefix(entry.Name(), "sdd-") || entry.Name() == "_shared" {
+			if !entry.IsDir() || entry.Name() == "_shared" {
 				continue
 			}
 			dirPath := filepath.Join(skillDir, entry.Name())

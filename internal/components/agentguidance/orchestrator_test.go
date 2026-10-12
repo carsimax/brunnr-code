@@ -15,10 +15,9 @@ import (
 )
 
 const (
-	orchestratorOpenMarker       = "<!-- brunnr-code:" + OrchestratorSectionID + " -->"
-	orchestratorCloseMarker      = "<!-- /brunnr-code:" + OrchestratorSectionID + " -->"
-	legacyOrchestratorOpenMarker = "<!-- brunnr-code:sdd-orchestrator -->"
-	routingOpenMarkerForTest     = "<!-- brunnr-code:" + RoutingSectionID + " -->"
+	orchestratorOpenMarker   = "<!-- brunnr-code:" + OrchestratorSectionID + " -->"
+	orchestratorCloseMarker  = "<!-- /brunnr-code:" + OrchestratorSectionID + " -->"
+	routingOpenMarkerForTest = "<!-- brunnr-code:" + RoutingSectionID + " -->"
 )
 
 // orchestratorRuntimes lists every agent whose installed prompt carries the
@@ -88,9 +87,6 @@ func TestInjectRoutingInstallsOrchestratorForEveryRuntime(t *testing.T) {
 			}
 			if got := strings.Count(prompt, orchestratorOpenMarker); got != 1 {
 				t.Fatalf("orchestrator marker count = %d, want 1", got)
-			}
-			if strings.Contains(prompt, legacyOrchestratorOpenMarker) {
-				t.Fatal("installed prompt carries the retired sdd-orchestrator marker")
 			}
 			if strings.Index(prompt, orchestratorOpenMarker) > strings.Index(prompt, routingOpenMarkerForTest) {
 				t.Fatal("orchestrator block must precede the routing block it points to")
@@ -176,10 +172,10 @@ func TestInjectRoutingOrchestratorIsIdempotentForEveryRuntime(t *testing.T) {
 	}
 }
 
-// A v3.7.0 prompt carried the orchestrator under the SDD-owned marker. The
-// upgrade must convert that block in place — never keep it beside a new one —
-// and leave every byte the user wrote outside managed markers untouched.
-func TestInjectRoutingReplacesLegacySDDOrchestratorBlockInPlace(t *testing.T) {
+// A prompt that has a routing block but no orchestrator block gets the
+// orchestrator inserted ahead of routing, leaving every byte the user wrote
+// outside managed markers untouched.
+func TestInjectRoutingInsertsOrchestratorAheadOfExistingRouting(t *testing.T) {
 	t.Parallel()
 
 	for _, agent := range markdownSectionAgents(t) {
@@ -193,7 +189,6 @@ func TestInjectRoutingReplacesLegacySDDOrchestratorBlockInPlace(t *testing.T) {
 			}
 			promptPath := adapter.SystemPromptFile(targetDir)
 			legacy := "USER PREAMBLE\n\n" +
-				legacyOrchestratorOpenMarker + "\n# SDD Workflow\nArtifact Store Mode\n<!-- /brunnr-code:sdd-orchestrator -->\n\n" +
 				"USER MIDDLE\n\n" +
 				routingOpenMarkerForTest + "\nstale routing\n<!-- /brunnr-code:" + RoutingSectionID + " -->\n\n" +
 				"USER EPILOGUE\n"
@@ -209,9 +204,6 @@ func TestInjectRoutingReplacesLegacySDDOrchestratorBlockInPlace(t *testing.T) {
 			}
 			got := readFile(t, promptPath)
 
-			if strings.Contains(got, legacyOrchestratorOpenMarker) || strings.Contains(got, "SDD Workflow") {
-				t.Fatalf("legacy SDD orchestrator block survived the upgrade:\n%s", got)
-			}
 			if count := strings.Count(got, orchestratorOpenMarker); count != 1 {
 				t.Fatalf("orchestrator block count = %d, want 1", count)
 			}
@@ -220,8 +212,8 @@ func TestInjectRoutingReplacesLegacySDDOrchestratorBlockInPlace(t *testing.T) {
 			middle := strings.Index(got, "USER MIDDLE")
 			routing := strings.Index(got, routingOpenMarkerForTest)
 			epilogue := strings.Index(got, "USER EPILOGUE")
-			if preamble != 0 || !(preamble < orchestrator && orchestrator < middle && middle < routing && routing < epilogue) {
-				t.Fatalf("upgrade did not keep the v3.7.0 layout and user text in place:\n%s", got)
+			if preamble != 0 || !(preamble < middle && middle < orchestrator && orchestrator < routing && routing < epilogue) {
+				t.Fatalf("injection did not place the orchestrator ahead of routing with user text in place:\n%s", got)
 			}
 			if info, err := os.Stat(promptPath); err != nil {
 				t.Fatal(err)
@@ -232,9 +224,9 @@ func TestInjectRoutingReplacesLegacySDDOrchestratorBlockInPlace(t *testing.T) {
 	}
 }
 
-// A prompt that already carries the current block and a stale legacy copy (for
-// example, restored from an old backup) converges on exactly one block.
-func TestInjectRoutingDropsLegacyOrchestratorBesideCurrentBlock(t *testing.T) {
+// A prompt that already carries a stale current block converges on exactly one
+// refreshed block.
+func TestInjectRoutingRefreshesStaleOrchestratorBlock(t *testing.T) {
 	t.Parallel()
 
 	targetDir := t.TempDir()
@@ -243,8 +235,7 @@ func TestInjectRoutingDropsLegacyOrchestratorBesideCurrentBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 	promptPath := adapter.SystemPromptFile(targetDir)
-	existing := "USER\n\n" + orchestratorOpenMarker + "\nold current\n" + orchestratorCloseMarker + "\n\n" +
-		legacyOrchestratorOpenMarker + "\nlegacy\n<!-- /brunnr-code:sdd-orchestrator -->\n"
+	existing := "USER\n\n" + orchestratorOpenMarker + "\nold current\n" + orchestratorCloseMarker + "\n"
 	if err := os.MkdirAll(filepath.Dir(promptPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +247,7 @@ func TestInjectRoutingDropsLegacyOrchestratorBesideCurrentBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := readFile(t, promptPath)
-	if strings.Contains(got, legacyOrchestratorOpenMarker) || strings.Contains(got, "old current") {
+	if strings.Contains(got, "old current") {
 		t.Fatalf("stale orchestrator copies survived:\n%s", got)
 	}
 	if count := strings.Count(got, orchestratorOpenMarker); count != 1 || !strings.HasPrefix(got, "USER\n") {

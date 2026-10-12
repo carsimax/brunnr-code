@@ -495,7 +495,7 @@ func TestInstallCodexSkillRegistryHookWithoutSDD(t *testing.T) {
 	}
 }
 
-func TestInstallRoutingGuidanceIsIndependentOfSDDSelection(t *testing.T) {
+func TestInstallRoutingGuidanceIsIndependentOfComponentSelection(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
 		selection model.Selection
@@ -509,9 +509,6 @@ func TestInstallRoutingGuidanceIsIndependentOfSDDSelection(t *testing.T) {
 			prompt := readTextFile(t, systemPromptFileFor(t, home, model.AgentClaudeCode))
 			if !strings.Contains(prompt, routingOpenMarker) || !strings.Contains(prompt, routingCloseMarker) || !strings.Contains(prompt, "Implementation Routing") {
 				t.Fatalf("routing guidance missing from %s:\n%s", tc.name, prompt)
-			}
-			if strings.Contains(prompt, "<!-- brunnr-code:sdd-orchestrator -->") {
-				t.Fatalf("retired SDD orchestration appeared in %s:\n%s", tc.name, prompt)
 			}
 		})
 	}

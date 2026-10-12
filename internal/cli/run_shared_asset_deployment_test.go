@@ -4,7 +4,6 @@ import (
 	"io/fs"
 	"path/filepath"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/carsimax/brunnr-code/internal/assets"
@@ -37,8 +36,8 @@ func embeddedSharedFileNames(t *testing.T) []string {
 }
 
 // Shared files remain embedded as source material; ordinary skills own their
-// installed paths, rather than an implicit SDD-wide shared directory.
-func TestComponentPathsSDDCoversEveryEmbeddedSharedFile(t *testing.T) {
+// installed paths, rather than an implicit shared directory.
+func TestComponentPathsCoverRetainedSharedFiles(t *testing.T) {
 	names := embeddedSharedFileNames(t)
 	for _, retained := range []string{"engram-convention.md", "odd-orchestrator-sections.md", "skill-resolver.md"} {
 		found := false
@@ -49,11 +48,6 @@ func TestComponentPathsSDDCoversEveryEmbeddedSharedFile(t *testing.T) {
 		}
 		if !found {
 			t.Errorf("retained shared source missing: %s", retained)
-		}
-	}
-	for _, name := range names {
-		if strings.HasPrefix(name, "sdd-") || name == "openspec-convention.md" {
-			t.Errorf("retired shared source still embedded: %s", name)
 		}
 	}
 	home := t.TempDir()

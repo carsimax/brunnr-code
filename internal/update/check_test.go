@@ -496,8 +496,6 @@ func TestCheckAll(t *testing.T) {
 		switch {
 		case contains(path, "sub-agent-statusline"):
 			release = githubRelease{TagName: "v0.4.0", HTMLURL: "https://github.com/Joaquinvesapa/sub-agent-statusline/releases/tag/v0.4.0"}
-		case contains(path, "sdd-engram-plugin"):
-			release = githubRelease{TagName: "v1.1.7", HTMLURL: "https://github.com/j0k3r-dev-rgl/sdd-engram-plugin/releases/tag/v1.1.7"}
 		case contains(path, "engram"):
 			release = githubRelease{TagName: "v0.4.0", HTMLURL: "https://github.com/Gentleman-Programming/engram/releases/tag/v0.4.0"}
 		}

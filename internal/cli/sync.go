@@ -1768,9 +1768,6 @@ func runPostSyncVerificationScoped(homeDir, workspaceDir string, scope InstallSc
 			componentAdapters = workspaceScopedAdapters(component, adapters)
 		}
 		paths := syncComponentPathsWithWorkspaceScoped(homeDir, workspaceDir, scope, selection, componentAdapters, component)
-		if component == model.ComponentEngram {
-			paths = verificationComponentPaths(homeDir, workspaceDir, scope, selection, componentAdapters, component)
-		}
 		for _, path := range paths {
 			if workspace && pathUnderHomeOnly(path, homeDir, workspaceDir) {
 				continue

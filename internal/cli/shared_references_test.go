@@ -27,8 +27,8 @@ var skillRuntimes = []model.AgentID{
 	model.AgentClaudeCode, model.AgentCodex,
 }
 
-// v370SharedReferences is the exact non-SDD skills/_shared set v3.7.0
-// installed. odd-orchestrator-sections.md is embedded source material only.
+// v370SharedReferences is the exact skills/_shared set v3.7.0 installed.
+// odd-orchestrator-sections.md is embedded source material only.
 var v370SharedReferences = []string{
 	"README.md", "engram-convention.md", "persistence-contract.md", "research-lifecycle.md",
 	"review-ledger-contract.md", "skill-resolver.md",
@@ -43,10 +43,10 @@ func installFullPreset(t *testing.T, agent model.AgentID) string {
 	return home
 }
 
-// TestInstallLeavesNoDanglingSharedReferences guards the SDD retirement
-// collateral (#4471 T4): every `_shared/*.md` file that installed orchestrator,
-// guidance, or skill text points to must exist in the runtime's skills
-// directory, and no retired SDD-only shared file may be installed.
+// TestInstallLeavesNoDanglingSharedReferences guards (#4471 T4) that every
+// `_shared/*.md` file that installed orchestrator, guidance, or skill text
+// points to exists in the runtime's skills directory, and that exactly the
+// v3.7.0 shared set is installed.
 func TestInstallLeavesNoDanglingSharedReferences(t *testing.T) {
 	for _, agent := range skillRuntimes {
 		t.Run(string(agent), func(t *testing.T) {
@@ -95,15 +95,11 @@ func TestInstallLeavesNoDanglingSharedReferences(t *testing.T) {
 			}
 			var installed []string
 			for _, entry := range entries {
-				name := entry.Name()
-				if strings.HasPrefix(name, "sdd-") || name == "openspec-convention.md" || name == "SKILL.md" {
-					t.Errorf("retired SDD shared file installed: %s", name)
-				}
-				installed = append(installed, name)
+				installed = append(installed, entry.Name())
 			}
 			sort.Strings(installed)
 			if strings.Join(installed, ",") != strings.Join(v370SharedReferences, ",") {
-				t.Errorf("installed _shared = %v, want the v3.7.0 non-SDD set %v", installed, v370SharedReferences)
+				t.Errorf("installed _shared = %v, want the v3.7.0 set %v", installed, v370SharedReferences)
 			}
 			ledger, err := os.ReadFile(filepath.Join(sharedDir, "review-ledger-contract.md"))
 			if err != nil {

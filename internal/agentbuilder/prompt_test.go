@@ -7,15 +7,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/model"
 )
 
-func TestComposePrompt_GenericAgentHasNoRetiredPhaseContext(t *testing.T) {
-	prompt := ComposePrompt("build a css linter", nil)
-	for _, retired := range []string{"<sdd_context>", "New SDD Phase", "sdd-apply"} {
-		if strings.Contains(prompt, retired) {
-			t.Errorf("generic prompt contains retired phase context %q", retired)
-		}
-	}
-}
-
 func TestComposePrompt_InstalledAgentsIncluded(t *testing.T) {
 	agents := []model.AgentID{model.AgentClaudeCode, model.AgentCodex}
 	prompt := ComposePrompt("build an agent", agents)

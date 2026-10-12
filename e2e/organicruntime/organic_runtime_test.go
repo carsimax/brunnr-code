@@ -149,7 +149,7 @@ func runOrganicActor(role string) int {
 	if role == organicActorRoleDelegated {
 		marker = organicDelegatedActorMarker
 		// A delegated worker observes authority read-only. It must not start a
-		// review, select a route, or promote itself into SDD: escalating its own
+		// review, select a route, or promote itself: escalating its own
 		// route is precisely the failure this journey exists to catch.
 		if err := assertOrganicDelegatedWorkerStaysInRoute(repo); err != nil {
 			fmt.Fprintf(os.Stderr, "delegated actor escalated its own route: %v\n", err)
@@ -1251,7 +1251,7 @@ func TestOrganicReviewTierIsSelectedByEvidenceNotSize(t *testing.T) {
 			if approved := harness.approveReview("organic-tier", started); approved.State != organicStateApproved {
 				t.Fatalf("tier %q did not reach approved terminal burn: %#v", test.risk, approved)
 			}
-			harness.assertNoSDDArtifacts()
+			harness.assertNoRetiredArtifacts()
 		})
 	}
 }
@@ -1310,30 +1310,26 @@ func TestOrganicImplementationRoutesReachDelivery(t *testing.T) {
 			harness.assertOnlyMainRef()
 			harness.assertStaleLeaseIsRejected(harness.repo.baseRevision)
 
-			// The route is what this journey selects; SDD is what it must never
-			// select. A delegated worker in particular must not promote itself.
-			harness.assertNoSDDArtifacts()
+			// The route is what this journey selects. A delegated worker in
+			// particular must not promote itself.
+			harness.assertNoRetiredArtifacts()
 		})
 	}
 }
 
-// TestOrganicDirectRouteCreatesNoSDDArtifacts preserves the ODD negative control:
-// direct work and its native review do not create retired workflow artifacts.
-func TestOrganicDirectRouteCreatesNoSDDArtifacts(t *testing.T) {
+// TestOrganicDirectRouteCreatesNoRetiredArtifacts preserves the ODD negative
+// control: direct work and its native review do not create retired workflow
+// artifacts.
+func TestOrganicDirectRouteCreatesNoRetiredArtifacts(t *testing.T) {
 	t.Parallel()
 	harness := newOrganicHarness(t)
 	harness.runActor(organicActorRoleDirect, "docs/direct.md", organicLines("direct line", 8), "docs: implement directly", organicDirectActorMarker)
 
-	started, _ := harness.startReview("organic-direct-no-sdd-artifacts", "--base-ref", "origin/main")
-	if approved := harness.approveReview("organic-direct-no-sdd-artifacts", started); approved.State != organicStateApproved {
+	started, _ := harness.startReview("organic-direct-no-retired-artifacts", "--base-ref", "origin/main")
+	if approved := harness.approveReview("organic-direct-no-retired-artifacts", started); approved.State != organicStateApproved {
 		t.Fatalf("direct route did not approve: %#v", approved)
 	}
-	// Direct and delegated work never create SDD artifacts, prompts, phase
-	// attempts, or synthetic SDD runs.
-	harness.assertNoSDDArtifacts()
-	if _, err := os.Stat(filepath.Join(harness.repo.worktree, "openspec")); !os.IsNotExist(err) {
-		t.Fatalf("declined route created OpenSpec artifacts: %v", err)
-	}
+	harness.assertNoRetiredArtifacts()
 }
 
 // TestOrganicBoundedCorrectionAllowsExactlyOne proves the ordinary review budget:
@@ -1477,7 +1473,7 @@ func TestOrganicFlexibleDeliveryReusesOneReceipt(t *testing.T) {
 	harness.git("checkout", "-q", "main")
 	harness.pushWithLease(harness.repo.baseRevision)
 	harness.assertRemoteBlob(path, body)
-	harness.assertNoSDDArtifacts()
+	harness.assertNoRetiredArtifacts()
 	harness.assertOnlyMainRef()
 }
 
@@ -1550,7 +1546,7 @@ func TestOrganicKillSwitchStopsAtTheDeliveryBoundary(t *testing.T) {
 		t.Fatalf("the remote moved while review was disabled: %s != %s", remote, harness.repo.baseRevision)
 	}
 	harness.assertOnlyMainRef()
-	harness.assertNoSDDArtifacts()
+	harness.assertNoRetiredArtifacts()
 }
 
 // TestOrganicKillSwitchReportsUnmanagedDeliveryOverPriorReceipts proves the
@@ -1607,7 +1603,7 @@ func TestOrganicKillSwitchReportsUnmanagedDeliveryOverPriorReceipts(t *testing.T
 		t.Fatalf("the remote moved while review was disabled: %s != %s", remote, harness.repo.baseRevision)
 	}
 	harness.assertOnlyMainRef()
-	harness.assertNoSDDArtifacts()
+	harness.assertNoRetiredArtifacts()
 }
 
 // TestOrganicKillSwitchReportsUnmanagedDeliveryOverWorkspaceReceipt proves the
@@ -1665,7 +1661,7 @@ func TestOrganicKillSwitchReportsUnmanagedDeliveryOverWorkspaceReceipt(t *testin
 		t.Fatalf("the remote moved while review was disabled: %s != %s", remote, harness.repo.baseRevision)
 	}
 	harness.assertOnlyMainRef()
-	harness.assertNoSDDArtifacts()
+	harness.assertNoRetiredArtifacts()
 }
 
 // TestOrganicKillSwitchReEnableLandsOnTheFreshFullReview drives issue #1877's
@@ -2373,22 +2369,16 @@ func (harness *organicHarness) assertSingleReviewLineage(expected string) {
 	}
 }
 
-// assertNoSDDArtifacts is the proposal's core claim and survives verbatim:
-// direct and delegated work never create SDD, trace, or evaluation state.
-func (harness *organicHarness) assertNoSDDArtifacts() {
+// assertNoRetiredArtifacts is the proposal's core claim: direct and delegated
+// work never create trace or evaluation state.
+func (harness *organicHarness) assertNoRetiredArtifacts() {
 	harness.t.Helper()
-	if name, found := harness.sddArtifact(); found {
-		harness.t.Fatalf("organic implementation created forbidden SDD/trace/evaluation artifact %q", name)
+	if name, found := harness.retiredArtifact(); found {
+		harness.t.Fatalf("organic implementation created forbidden trace/evaluation artifact %q", name)
 	}
 }
 
-func (harness *organicHarness) hasSDDArtifacts() bool {
-	harness.t.Helper()
-	_, found := harness.sddArtifact()
-	return found
-}
-
-func (harness *organicHarness) sddArtifact() (string, bool) {
+func (harness *organicHarness) retiredArtifact() (string, bool) {
 	harness.t.Helper()
 	root := filepath.Join(harness.commonDir(), "brunnr-code")
 	entries, err := os.ReadDir(root)
@@ -2400,7 +2390,7 @@ func (harness *organicHarness) sddArtifact() (string, bool) {
 	}
 	for _, entry := range entries {
 		name := strings.ToLower(entry.Name())
-		if strings.HasPrefix(name, "sdd-") || name == "sdd" || name == "trace" || name == "evaluation" {
+		if name == "trace" || name == "evaluation" {
 			return filepath.Join(root, entry.Name()), true
 		}
 	}

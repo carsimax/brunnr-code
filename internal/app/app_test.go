@@ -360,18 +360,6 @@ func TestHelpFlagSpellings(t *testing.T) {
 	}
 }
 
-func TestRunArgsNativeSDDCommandsNoLongerDispatch(t *testing.T) {
-	for _, command := range []string{"sdd-status", "sdd-continue", "sdd-attempt"} {
-		t.Run(command, func(t *testing.T) {
-			var output bytes.Buffer
-			err := RunArgs([]string{command, "--help"}, &output)
-			if err == nil || !strings.Contains(err.Error(), fmt.Sprintf("unknown command %q", command)) {
-				t.Fatalf("RunArgs(%s --help) error = %v, want unknown command; output = %q", command, err, output.String())
-			}
-		})
-	}
-}
-
 func TestRunArgsDispatchesNativeReviewOperationsBeforePlatformValidation(t *testing.T) {
 	origEnsure := ensureCurrentOSSupported
 	t.Cleanup(func() { ensureCurrentOSSupported = origEnsure })
@@ -1574,16 +1562,6 @@ func TestPartialSyncDoesNotWipeCodexPhaseModelAssignments(t *testing.T) {
 	}
 	if s.CodexPhaseModelAssignments["default"] != "o3" {
 		t.Fatalf("state.CodexPhaseModelAssignments[default] = %q, want %q", s.CodexPhaseModelAssignments["default"], "o3")
-	}
-}
-
-func writeAppSDDStatusFile(t *testing.T, path string, content string) {
-	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatalf("MkdirAll(%s): %v", filepath.Dir(path), err)
-	}
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		t.Fatalf("WriteFile(%s): %v", path, err)
 	}
 }
 

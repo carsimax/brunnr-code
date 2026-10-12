@@ -302,7 +302,7 @@ license: Apache-2.0
 	}
 }
 
-func TestRegenerateExcludesSkillRegistrySharedAndSDD(t *testing.T) {
+func TestRegenerateExcludesSkillRegistryAndShared(t *testing.T) {
 	cwd := t.TempDir()
 	home := t.TempDir()
 	writeSkill(t, filepath.Join(cwd, "skills", "_shared", "SKILL.md"), `---
@@ -314,13 +314,6 @@ name: _shared
 `)
 	writeSkill(t, filepath.Join(cwd, "skills", "skill-registry", "SKILL.md"), `---
 name: skill-registry
----
-
-## Compact Rules
-- no
-`)
-	writeSkill(t, filepath.Join(cwd, "skills", "sdd-apply", "SKILL.md"), `---
-name: sdd-apply
 ---
 
 ## Compact Rules
@@ -341,7 +334,7 @@ name: go-testing
 		t.Fatalf("SkillCount = %d, want 1", result.SkillCount)
 	}
 	registry := readFile(t, filepath.Join(cwd, RegistryRelPath))
-	if !strings.Contains(registry, "go-testing") || strings.Contains(registry, "`sdd-apply`") || strings.Contains(registry, "`skill-registry`") {
+	if !strings.Contains(registry, "go-testing") || strings.Contains(registry, "`skill-registry`") {
 		t.Fatalf("unexpected registry content:\n%s", registry)
 	}
 }

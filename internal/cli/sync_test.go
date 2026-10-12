@@ -50,7 +50,7 @@ func (s markerMigrationFailureStep) Run() error {
 // ─── Phase 1: ParseSyncFlags ───────────────────────────────────────────────
 
 func TestSyncFlagsRetiredOptionsRejectedAndHelpOmitted(t *testing.T) {
-	for _, name := range []string{"sdd-mode", "sdd-profile-strategy", "profile", "profile-phase"} {
+	for _, name := range []string{"profile", "profile-phase"} {
 		t.Run(name, func(t *testing.T) {
 			_, err := ParseSyncFlags([]string{"--" + name, "value"})
 			if err == nil || !strings.Contains(err.Error(), name) {
@@ -60,7 +60,7 @@ func TestSyncFlagsRetiredOptionsRejectedAndHelpOmitted(t *testing.T) {
 	}
 	var help strings.Builder
 	PrintSyncHelp(&help)
-	if strings.Contains(strings.ToLower(help.String()), "sdd") || strings.Contains(help.String(), "--profile") {
+	if strings.Contains(help.String(), "--profile") {
 		t.Fatalf("sync help advertises retired flags: %s", help.String())
 	}
 }
@@ -173,26 +173,26 @@ func TestParseSyncFlagsUnknownFlagReturnsError(t *testing.T) {
 }
 
 // TestParseSyncFlagsMistypedFlagNamesTheSupportedFlags closes install/sync
-// surface audit finding 4: a mistyped flag like `-sdd` (meant to be
-// a retired SDD flag) produced only "flag provided but not defined: -sdd" with the
+// surface audit finding 4: a mistyped flag like `-bogus` produced only
+// "flag provided but not defined: -bogus" with the
 // FlagSet's own usage output suppressed (fs.SetOutput(ioDiscard{})) and no
 // pointer to how to discover the real flags. The fix captures the FlagSet's
 // own canonical usage text (derived from the registered flags themselves,
 // not a hand-written list) instead of discarding it, and names
 // `brunnr-code sync --help`.
 func TestParseSyncFlagsMistypedFlagNamesTheSupportedFlags(t *testing.T) {
-	_, err := ParseSyncFlags([]string{"-sdd", "single"})
+	_, err := ParseSyncFlags([]string{"-bogus", "single"})
 	if err == nil {
-		t.Fatal("ParseSyncFlags() error = nil, want an error for the undefined -sdd flag")
+		t.Fatal("ParseSyncFlags() error = nil, want an error for the undefined -bogus flag")
 	}
 	msg := err.Error()
-	if !strings.Contains(msg, "flag provided but not defined: -sdd") {
+	if !strings.Contains(msg, "flag provided but not defined: -bogus") {
 		t.Fatalf("error = %q, want it to preserve the original flag package error", msg)
 	}
 	if !strings.Contains(msg, "brunnr-code sync --help") {
 		t.Fatalf("error = %q, want it to point at `brunnr-code sync --help`", msg)
 	}
-	if strings.Contains(msg, "-sdd-mode") || strings.Contains(msg, "-sdd-profile-strategy") || strings.Contains(msg, "-profile-phase") {
+	if strings.Contains(msg, "-profile-phase") {
 		t.Fatalf("usage advertises retired flags: %q", msg)
 	}
 	if !strings.Contains(msg, "-strict-tdd") {
@@ -209,7 +209,7 @@ func TestParseSyncFlagsHelpFlagRendersUsage(t *testing.T) {
 	if err == nil {
 		t.Fatal("ParseSyncFlags() error = nil, want flag.ErrHelp wrapped with usage text")
 	}
-	if strings.Contains(err.Error(), "-sdd-mode") || strings.Contains(err.Error(), "-sdd-profile-strategy") || strings.Contains(err.Error(), "-profile-phase") {
+	if strings.Contains(err.Error(), "-profile-phase") {
 		t.Fatalf("help advertises retired flags: %q", err)
 	}
 	if !strings.Contains(err.Error(), "-strict-tdd") {
@@ -599,10 +599,10 @@ func TestComponentSyncStepCodexRuntimeGate(t *testing.T) {
 		commandErr error
 		wantErr    bool
 	}{
-		{name: "missing CLI writes shared config without touching legacy profiles", commandErr: exec.ErrNotFound},
-		{name: "old runtime is rejected without touching legacy profiles", version: "codex-cli 0.143.9", wantErr: true},
-		{name: "minimum runtime writes shared config without touching legacy profiles", version: "codex-cli 0.144.0"},
-		{name: "new runtime writes shared config without touching legacy profiles", version: "codex-cli 0.145.1"},
+		{name: "missing CLI writes shared config", commandErr: exec.ErrNotFound},
+		{name: "old runtime is rejected", version: "codex-cli 0.143.9", wantErr: true},
+		{name: "minimum runtime writes shared config", version: "codex-cli 0.144.0"},
+		{name: "new runtime writes shared config", version: "codex-cli 0.145.1"},
 	}
 
 	for _, tt := range tests {
@@ -614,26 +614,11 @@ func TestComponentSyncStepCodexRuntimeGate(t *testing.T) {
 			if err := os.MkdirAll(codexDir, 0o755); err != nil {
 				t.Fatal(err)
 			}
-			profiles := []string{"sdd-strong.config.toml", "sdd-mid.config.toml", "sdd-cheap.config.toml"}
-			for _, name := range profiles {
-				if err := os.WriteFile(filepath.Join(codexDir, name), []byte("user-content\n"), 0o644); err != nil {
-					t.Fatal(err)
-				}
-			}
 
 			step := componentSyncStep{component: model.ComponentEngram, homeDir: home, agents: []model.AgentID{model.AgentCodex}}
 			err := step.Run()
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("componentSyncStep.Run() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			for _, name := range profiles {
-				content, readErr := os.ReadFile(filepath.Join(codexDir, name))
-				if readErr != nil {
-					t.Fatal(readErr)
-				}
-				if string(content) != "user-content\n" {
-					t.Errorf("sync changed legacy SDD profile %s: %q", name, content)
-				}
 			}
 			if !tt.wantErr {
 				config, readErr := os.ReadFile(filepath.Join(codexDir, "config.toml"))
@@ -2041,9 +2026,6 @@ func TestSyncCodexConvergesWithHooksJSON(t *testing.T) {
 	if !strings.Contains(firstRouting, "Organic Driven Development") {
 		t.Fatal("ODD routing guidance missing")
 	}
-	if _, err := os.Stat(filepath.Join(home, ".claude", "agents", "sdd-apply.md")); !os.IsNotExist(err) {
-		t.Fatalf("SDD-only agent exists or stat failed: %v", err)
-	}
 
 	secondFiles, changed := run()
 	if secondFiles != 0 || len(changed) != 0 {
@@ -2301,20 +2283,6 @@ func TestDedupPathsFiltersEmptyStrings(t *testing.T) {
 	for i, p := range got {
 		if p != want[i] {
 			t.Errorf("dedupPaths[%d] = %q, want %q", i, p, want[i])
-		}
-	}
-}
-
-func TestCodexODDVerificationDoesNotRequireRetiredProfiles(t *testing.T) {
-	home := t.TempDir()
-	selection := model.Selection{Agents: []model.AgentID{model.AgentCodex}, Components: []model.ComponentID{model.ComponentEngram}}
-	adapter, err := agents.NewAdapter(model.AgentCodex)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, path := range verificationComponentPaths(home, "", ScopeGlobal, selection, []agents.Adapter{adapter}, model.ComponentEngram) {
-		if strings.HasSuffix(path, "sdd-strong.config.toml") || strings.HasSuffix(path, "sdd-mid.config.toml") || strings.HasSuffix(path, "sdd-cheap.config.toml") {
-			t.Errorf("active verification requires retired profile %s", path)
 		}
 	}
 }
@@ -2717,7 +2685,7 @@ func TestSyncDeliversRoutingGuidanceWithoutSDDComponent(t *testing.T) {
 	}
 }
 
-func TestSyncRoutingGuidanceIsIndependentOfSDDSelection(t *testing.T) {
+func TestSyncRoutingGuidanceIsIndependentOfComponentSelection(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
 		selection model.Selection
@@ -2731,9 +2699,6 @@ func TestSyncRoutingGuidanceIsIndependentOfSDDSelection(t *testing.T) {
 			prompt := readTextFile(t, systemPromptFileFor(t, home, model.AgentClaudeCode))
 			if !strings.Contains(prompt, routingOpenMarker) || !strings.Contains(prompt, routingCloseMarker) || !strings.Contains(prompt, "Implementation Routing") {
 				t.Fatalf("sync lost routing guidance for %s:\n%s", tc.name, prompt)
-			}
-			if strings.Contains(prompt, "<!-- brunnr-code:sdd-orchestrator -->") {
-				t.Fatalf("sync reintroduced retired SDD instructions for %s:\n%s", tc.name, prompt)
 			}
 		})
 	}

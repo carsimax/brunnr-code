@@ -40,13 +40,11 @@ func writeStale(t *testing.T, path string) {
 	}
 }
 
-func TestCompatibilitySkillsRefreshRetainsOrdinarySkillsWithoutSDD(t *testing.T) {
+func TestCompatibilitySkillsRefreshRetainsOrdinarySkills(t *testing.T) {
 	home := t.TempDir()
 	skillsDir := filepath.Join(home, ".agents", "skills")
 	ordinary := filepath.Join(skillsDir, "go-testing", "SKILL.md")
-	legacy := filepath.Join(skillsDir, "sdd-apply", "SKILL.md")
 	writeStale(t, ordinary)
-	writeStale(t, legacy)
 	selection := model.Selection{Components: []model.ComponentID{model.ComponentSkills}, Skills: []model.SkillID{model.SkillGoTesting}}
 	step := compatibilitySkillsRefreshStep{homeDir: home, components: selection.Components, selection: selection}
 	if err := step.Run(); err != nil {
@@ -55,17 +53,9 @@ func TestCompatibilitySkillsRefreshRetainsOrdinarySkillsWithoutSDD(t *testing.T)
 	if content, err := os.ReadFile(ordinary); err != nil || string(content) == "stale" {
 		t.Fatalf("ordinary skill not refreshed: %v", err)
 	}
-	if content, err := os.ReadFile(legacy); err != nil || string(content) != "stale" {
-		t.Fatalf("legacy skill changed: %q, %v", content, err)
-	}
 	paths, err := compatibilitySkillPaths(skillsDir, selection.Components, selection)
 	if err != nil {
 		t.Fatal(err)
-	}
-	for _, path := range paths {
-		if strings.Contains(path, "sdd-") {
-			t.Errorf("retired compatibility path: %s", path)
-		}
 	}
 	// v3.7.0 refreshed the shared references in the compatibility root; the
 	// skills component owns them again (#4471).
@@ -105,7 +95,7 @@ func TestCompatibilitySkillsRefreshRemovesLegacySharedSkillMarker(t *testing.T) 
 	}
 }
 
-func TestWindowsCompatibilityTransactionKeepsAnchoredRollbackWithoutSDDInjection(t *testing.T) {
+func TestWindowsCompatibilityTransactionKeepsAnchoredRollback(t *testing.T) {
 	_, testFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("runtime.Caller(0) failed")
@@ -116,9 +106,6 @@ func TestWindowsCompatibilityTransactionKeepsAnchoredRollbackWithoutSDDInjection
 		t.Fatalf("ReadFile(%q) error = %v", sourcePath, err)
 	}
 
-	if strings.Contains(string(source), "sdd.InjectSkillDirectoryWithCompatibilityWriter") {
-		t.Fatal("Windows compatibility transaction still injects SDD skills")
-	}
 	const rollbackRemoval = "if _, err := t.writer.Remove(path); err != nil {"
 	if !strings.Contains(string(source), rollbackRemoval) {
 		t.Fatalf("Windows compatibility transaction does not consume the anchored remover changed-state result: missing %q", rollbackRemoval)
@@ -556,8 +543,7 @@ func TestAdapterSkillFilesAreBackupTargets(t *testing.T) {
 				t.Errorf("adapter backup targets missing %q", path)
 			}
 		}
-		// Shared references are owned by the skills component again (#4471);
-		// only retired SDD skill paths must stay out of the snapshot.
+		// Shared references are owned by the skills component again (#4471).
 		for _, name := range embeddedSharedFileNames(t) {
 			if name == "odd-orchestrator-sections.md" {
 				// Internal render source; never installed (v3.7.0 parity).
@@ -566,11 +552,6 @@ func TestAdapterSkillFilesAreBackupTargets(t *testing.T) {
 			path := filepath.Join(home, ".claude", "skills", "_shared", name)
 			if !slices.Contains(targets, path) {
 				t.Errorf("adapter backup targets missing shared reference %q", path)
-			}
-		}
-		for _, path := range targets {
-			if strings.HasPrefix(path, filepath.Join(home, ".claude", "skills")+string(filepath.Separator)) && strings.Contains(path, "sdd-") {
-				t.Errorf("retired skill backup target: %s", path)
 			}
 		}
 	}

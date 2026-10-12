@@ -145,8 +145,9 @@ var storeResetRemovableTargets = []storeResetTarget{
 }
 
 // storeResetPreservedTargets is the complete exclusion list. Two of these are
-// the kill switch, two are state another component owns, and one is a path no
-// brunnr-code code has ever written -- which is itself the reason.
+// the kill switch, one is state another component owns, one is the lease this
+// operation holds, and one is a path no brunnr-code code has ever written --
+// which is itself the reason.
 var storeResetPreservedTargets = []storeResetTarget{
 	{
 		name: "review-mode", parts: []string{"review-mode"},
@@ -155,10 +156,6 @@ var storeResetPreservedTargets = []storeResetTarget{
 	{
 		name: "review-transactions/rar-authority", parts: []string{"review-transactions", "rar-authority"},
 		reason: "holds the pre-#2882 mirror of that same kill switch, still written for installed builds that read only this location",
-	},
-	{
-		name: "sdd-runtime", parts: []string{"sdd-runtime"},
-		reason: "legacy attempt state keyed by change name rather than by review lineage; removing it would lose in-flight attempts",
 	},
 	{
 		name: "defect-reports", parts: []string{"defect-reports"},

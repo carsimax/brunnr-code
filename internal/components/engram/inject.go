@@ -257,9 +257,6 @@ func injectWithOptions(configHomeDir, promptDir string, adapter agents.Adapter, 
 		changed = changed || tomlWrite.Changed
 		files = append(files, configPath)
 		codexServiceTier = changedTier
-
-		// Retired SDD-only profile files, including user-customized copies, are
-		// deliberately neither created nor modified by Engram injection.
 	}
 
 	// 2. Inject Engram memory protocol into system prompt (if supported).

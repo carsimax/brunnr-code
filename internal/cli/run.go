@@ -16,7 +16,6 @@ import (
 
 	"github.com/carsimax/brunnr-code/internal/agents"
 	"github.com/carsimax/brunnr-code/internal/agents/claude"
-	codexagent "github.com/carsimax/brunnr-code/internal/agents/codex"
 	"github.com/carsimax/brunnr-code/internal/backup"
 	"github.com/carsimax/brunnr-code/internal/components/agentguidance"
 	"github.com/carsimax/brunnr-code/internal/components/agenthooks"
@@ -1906,7 +1905,6 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 						filepath.Join(codexHomeDir, "engram-instructions.md"),
 						filepath.Join(codexHomeDir, "engram-compact-prompt.md"),
 					)
-					paths = append(paths, codexagent.SddProfilePaths(codexHomeDir)...)
 				}
 			}
 			if adapter.SystemPromptStrategy() == model.StrategyMarkdownSections {
@@ -2066,35 +2064,6 @@ func componentPathDirScoped(homeDir, workspaceDir string, scope InstallScope, ad
 	}
 }
 
-// verificationComponentPaths excludes retired Codex SDD profiles from active
-// health checks. The shared component path inventory retains them for
-// snapshots and rollback of user-owned files.
-func verificationComponentPaths(homeDir, workspaceDir string, scope InstallScope, selection model.Selection, adapters []agents.Adapter, component model.ComponentID) []string {
-	paths := componentPathsWithWorkspaceScoped(homeDir, workspaceDir, scope, selection, adapters, component)
-	if component != model.ComponentEngram {
-		return paths
-	}
-	excluded := make(map[string]bool)
-	for _, adapter := range adapters {
-		targetDir := componentPathDirScoped(homeDir, workspaceDir, scope, adapter, component)
-		switch adapter.Agent() {
-		case model.AgentCodex:
-			if config := adapter.MCPConfigPath(targetDir, "engram"); config != "" {
-				for _, profile := range codexagent.SddProfilePaths(filepath.Dir(config)) {
-					excluded[profile] = true
-				}
-			}
-		}
-	}
-	active := make([]string, 0, len(paths))
-	for _, path := range paths {
-		if !excluded[path] {
-			active = append(active, path)
-		}
-	}
-	return active
-}
-
 type postApplyVerificationInput struct {
 	HomeDir      string
 	WorkspaceDir string
@@ -2118,7 +2087,7 @@ func runPostApplyVerification(input postApplyVerificationInput) verify.Report {
 			// install command, so its files are not required here.
 			continue
 		}
-		for _, path := range verificationComponentPaths(input.HomeDir, input.WorkspaceDir, input.Scope, input.Selection, adapters, component) {
+		for _, path := range componentPathsWithWorkspaceScoped(input.HomeDir, input.WorkspaceDir, input.Scope, input.Selection, adapters, component) {
 			if path == "" {
 				continue
 			}

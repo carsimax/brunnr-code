@@ -25,18 +25,9 @@ const (
 
 // Excluded skills never appear in the registry. This policy is intentionally
 // hardcoded and applied silently: `_shared` and `skill-registry` are internal
-// plumbing, and `sdd-*` skills belong to the SDD workflow retired in v4.0.0.
-// Install and sync retire the copies Brunnr-Code can prove it wrote, in the
-// global skill roots and, for a workspace-scoped run, in the workspace ones
-// (<workspace>/.claude/skills, for example). They keep edited copies, copies
-// behind symlinked directories, and everything in roots Brunnr-Code does not
-// manage (other project skill directories), so the exclusion keeps those
-// leftovers, which call removed commands, out of delegation. NOTE: a user skill whose name collides with these
-// (e.g. any name starting with `sdd-`) is dropped without warning. Revisit as
-// configuration if that collision ever becomes a real constraint.
+// plumbing.
 var (
 	excludeNames    = map[string]bool{"_shared": true, "skill-registry": true}
-	excludePrefixes = []string{"sdd-"}
 	frontmatterLine = regexp.MustCompile(`^(\w+):\s*(.*)$`)
 )
 
@@ -408,15 +399,7 @@ func readCachedFingerprint(path string) string {
 }
 
 func isExcluded(name string) bool {
-	if excludeNames[name] {
-		return true
-	}
-	for _, prefix := range excludePrefixes {
-		if strings.HasPrefix(name, prefix) {
-			return true
-		}
-	}
-	return false
+	return excludeNames[name]
 }
 
 func fileExists(path string) bool {

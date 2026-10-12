@@ -323,7 +323,6 @@ func TestResetReviewStorePreservesEverythingItDoesNotOwn(t *testing.T) {
 	root := storeResetBrunnrRoot(t, repo)
 	seedStoreResetLineage(t, repo, "review-approved", StateApproved)
 	preserved := map[string]string{
-		"sdd-runtime":      filepath.Join(root, "sdd-runtime", "v1", "some-change", "HEAD"),
 		"defect-reports":   filepath.Join(root, "defect-reports", "operation-outcome-unknown-00ff.md"),
 		"review-artifacts": filepath.Join(root, "review-artifacts", "issue-1107", "notes.md"),
 	}

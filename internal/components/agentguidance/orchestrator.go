@@ -22,11 +22,6 @@ import (
 // two sections together carry the protocol exactly once.
 const OrchestratorSectionID = "orchestrator"
 
-// legacyOrchestratorSectionID is the marker v3.7.0 installed the same
-// orchestrator under, when the retired SDD component owned it. Upgrades convert
-// that block in place so a prompt never carries two orchestrators.
-const legacyOrchestratorSectionID = "sdd-orchestrator"
-
 const (
 	sharedOrchestratorSectionsAsset = "skills/_shared/odd-orchestrator-sections.md"
 	runtimeAgentIDPlaceholder       = "{{BRUNNR_CODE_RUNTIME_AGENT_ID}}"
@@ -345,11 +340,8 @@ func removeSection(content, heading, nextHeading string) string {
 
 // injectOrchestratorSection merges the orchestrator block into existing
 // guidance, keeping the v3.7.0 layout: the orchestrator sits ahead of the
-// routing block it points to, and a legacy SDD-owned block is converted where
-// it stands. Content outside managed markers is never touched.
+// routing block it points to. Content outside managed markers is never touched.
 func injectOrchestratorSection(existing, orchestrator string) string {
-	existing = migrateLegacyOrchestratorSection(existing)
-
 	open := managedOpenMarker(OrchestratorSectionID)
 	if strings.Contains(existing, open) {
 		return filemerge.InjectMarkdownSection(existing, OrchestratorSectionID, orchestrator)
@@ -361,28 +353,6 @@ func injectOrchestratorSection(existing, orchestrator string) string {
 	}
 	block := open + "\n" + strings.TrimRight(orchestrator, "\n") + "\n" + managedCloseMarker(OrchestratorSectionID) + "\n\n"
 	return existing[:routing] + block + existing[routing:]
-}
-
-// migrateLegacyOrchestratorSection renames the first well-formed v3.7.0
-// sdd-orchestrator block to the current marker so the fresh orchestrator is
-// injected in its place, then drops every remaining legacy copy.
-func migrateLegacyOrchestratorSection(existing string) string {
-	legacyOpen := managedOpenMarker(legacyOrchestratorSectionID)
-	legacyClose := managedCloseMarker(legacyOrchestratorSectionID)
-	if !strings.Contains(existing, legacyOpen) && !strings.Contains(existing, legacyClose) {
-		return existing
-	}
-
-	if !strings.Contains(existing, managedOpenMarker(OrchestratorSectionID)) {
-		openIdx := strings.Index(existing, legacyOpen)
-		closeIdx := strings.Index(existing, legacyClose)
-		if openIdx >= 0 && closeIdx > openIdx {
-			existing = existing[:openIdx] + managedOpenMarker(OrchestratorSectionID) +
-				existing[openIdx+len(legacyOpen):closeIdx] + managedCloseMarker(OrchestratorSectionID) +
-				existing[closeIdx+len(legacyClose):]
-		}
-	}
-	return filemerge.InjectMarkdownSection(existing, legacyOrchestratorSectionID, "")
 }
 
 func managedOpenMarker(sectionID string) string  { return "<!-- brunnr-code:" + sectionID + " -->" }

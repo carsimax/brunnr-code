@@ -19,18 +19,6 @@ func TestHelpContainsAllCommands(t *testing.T) {
 	}
 }
 
-func TestHelpDoesNotAdvertiseNativeSDDCommands(t *testing.T) {
-	var buf bytes.Buffer
-	printHelp(&buf, "v1.0.0-test")
-	for _, command := range []string{"sdd-status", "sdd-continue", "sdd-attempt"} {
-		t.Run(command, func(t *testing.T) {
-			if strings.Contains(buf.String(), command) {
-				t.Errorf("help still advertises %q", command)
-			}
-		})
-	}
-}
-
 // TestHelpAdvertisesNoRetiredWorkCommands keeps help and dispatch aligned: the
 // retired remote control-plane commands no longer dispatch, so help must not
 // advertise any of them.
@@ -142,13 +130,5 @@ func TestHelpCommandsHeadingIsAligned(t *testing.T) {
 	printHelp(&buf, "v1.2.3")
 	if !strings.Contains(buf.String(), "\nCOMMANDS\n  install") {
 		t.Fatalf("help output has inconsistent command indentation:\n%s", buf.String())
-	}
-}
-
-func TestHelpDoesNotAdvertiseRetiredVerifyValidator(t *testing.T) {
-	var output bytes.Buffer
-	printHelp(&output, "test")
-	if strings.Contains(output.String(), "sdd-verify-validate") {
-		t.Fatal("help advertises retired report admission")
 	}
 }

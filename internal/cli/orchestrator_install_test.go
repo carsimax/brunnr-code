@@ -11,10 +11,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/model"
 )
 
-const (
-	orchestratorOpenMarker       = "<!-- brunnr-code:orchestrator -->"
-	legacyOrchestratorOpenMarker = "<!-- brunnr-code:sdd-orchestrator -->"
-)
+const orchestratorOpenMarker = "<!-- brunnr-code:orchestrator -->"
 
 // orchestratorRuntimesForInstall lists every runtime whose installed prompt
 // carries the orchestrator.
@@ -80,9 +77,6 @@ func TestInstallAndSyncDeliverOrchestratorOnceForEveryRuntime(t *testing.T) {
 			if strings.Index(prompt, orchestratorOpenMarker) > strings.Index(prompt, routingOpenMarker) {
 				t.Fatal("orchestrator block must precede the routing block")
 			}
-			if strings.Contains(prompt, legacyOrchestratorOpenMarker) {
-				t.Fatal("install wrote the retired sdd-orchestrator marker")
-			}
 			if !strings.Contains(prompt, "Use at most one scoped independent read-only assumption challenge") {
 				t.Fatal("installed prompt lost the ODD assumption challenge")
 			}
@@ -123,9 +117,9 @@ func TestInstallAndSyncDeliverOrchestratorOnceForEveryRuntime(t *testing.T) {
 	}
 }
 
-// A v3.7.0 CLAUDE.md carried the orchestrator under the retired SDD marker.
-// Upgrading must leave exactly one orchestrator block and every user byte.
-func TestInstallUpgradesV370OrchestratorBlockAndKeepsUserText(t *testing.T) {
+// A CLAUDE.md with user text and a stale routing block must end with exactly
+// one orchestrator block and every user byte.
+func TestInstallAddsOrchestratorBlockAndKeepsUserText(t *testing.T) {
 	for _, run := range []struct {
 		name  string
 		apply func(t *testing.T, home string, selection model.Selection)
@@ -141,7 +135,6 @@ func TestInstallUpgradesV370OrchestratorBlockAndKeepsUserText(t *testing.T) {
 			home := t.TempDir()
 			promptPath := systemPromptFileFor(t, home, model.AgentClaudeCode)
 			legacy := "# My own rules\n\nAlways answer briefly.\n\n" +
-				legacyOrchestratorOpenMarker + "\n# Agent Teams Lite — Orchestrator Instructions\n\n### SDD Workflow\n\nArtifact Store Mode\n<!-- /brunnr-code:sdd-orchestrator -->\n\n" +
 				"<!-- brunnr-code:agent-routing -->\nstale routing\n<!-- /brunnr-code:agent-routing -->\n\n" +
 				"User footer.\n"
 			mustWriteFile(t, promptPath, []byte(legacy))
@@ -152,9 +145,6 @@ func TestInstallUpgradesV370OrchestratorBlockAndKeepsUserText(t *testing.T) {
 
 			if !strings.HasPrefix(got, "# My own rules\n\nAlways answer briefly.\n\n") || !strings.HasSuffix(got, "User footer.\n") {
 				t.Fatalf("upgrade lost user text:\n%s", got)
-			}
-			if strings.Contains(got, legacyOrchestratorOpenMarker) || strings.Contains(got, "SDD Workflow") || strings.Contains(got, "Artifact Store Mode") {
-				t.Fatalf("legacy SDD orchestrator survived the upgrade:\n%s", got)
 			}
 			if count := strings.Count(got, orchestratorOpenMarker); count != 1 {
 				t.Fatalf("orchestrator block count = %d, want 1:\n%s", count, got)

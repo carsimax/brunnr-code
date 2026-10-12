@@ -1292,15 +1292,6 @@ func TestRunInstallCustomPresetExplicitSkillsFlagPopulatesSelection(t *testing.T
 		t.Fatalf("expected branch-pr skill file %q: %v", branchPRPath, err)
 	}
 
-	// Regression guard for #3554: `skills` no longer has a hard dependency on
-	// `sdd` in the planner graph, so selecting only the skills component must
-	// NOT auto-resolve SDD (or Engram). sdd-init and the rest of the SDD
-	// orchestrator suite are installed only by the SDD component itself.
-	sddInitPath := filepath.Join(home, ".claude", "skills", "sdd-init", "SKILL.md")
-	if _, err := os.Stat(sddInitPath); !os.IsNotExist(err) {
-		t.Fatalf("sdd-init skill should NOT be installed (skills has no hard dependency on sdd): err=%v", err)
-	}
-
 	// Total = 2 explicitly requested skills only.
 	skillsDir := filepath.Join(home, ".claude", "skills")
 	entries, err := os.ReadDir(skillsDir)
@@ -1319,7 +1310,7 @@ func TestRunInstallCustomPresetExplicitSkillsFlagPopulatesSelection(t *testing.T
 		}
 	}
 	if skillCount != 2 {
-		t.Fatalf("expected 2 skill files (go-testing + branch-pr only, no SDD), got %d", skillCount)
+		t.Fatalf("expected 2 skill files (go-testing + branch-pr only), got %d", skillCount)
 	}
 }
 
@@ -1356,10 +1347,9 @@ func TestRunInstallCustomPresetSkillsNoFlagInstallsNothing(t *testing.T) {
 		t.Fatalf("verification ready = false, report = %#v", result.Verify)
 	}
 
-	// Regression guard for #3554: skills has no hard dependency on sdd, so
-	// selecting only --component skills without --skills (which leaves
-	// selectedSkillIDs() empty for the custom preset) truly installs nothing —
-	// sdd is not auto-resolved and its skills are not written.
+	// Regression guard for #3554: selecting only --component skills without
+	// --skills (which leaves selectedSkillIDs() empty for the custom preset)
+	// truly installs nothing.
 	skillsDir := filepath.Join(home, ".claude", "skills")
 	// Count SKILL.md files (one per skill, excluding _shared and other non-skill dirs).
 	var skillCount int
@@ -1375,7 +1365,7 @@ func TestRunInstallCustomPresetSkillsNoFlagInstallsNothing(t *testing.T) {
 		}
 	}
 	if skillCount != 0 {
-		t.Fatalf("expected 0 skill files (skills has no hard dependency on sdd), got %d", skillCount)
+		t.Fatalf("expected 0 skill files, got %d", skillCount)
 	}
 }
 

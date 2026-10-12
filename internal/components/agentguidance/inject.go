@@ -68,8 +68,7 @@ type RoutingOptions struct {
 // own installer rewrites from an embedded asset on the next sync.
 //
 // Every runtime also receives its orchestrator instructions as a second
-// managed section placed ahead of routing (see RenderOrchestrator); a v3.7.0
-// sdd-orchestrator block is converted in place so exactly one remains.
+// managed section placed ahead of routing (see RenderOrchestrator).
 //
 // Only the marked sections are owned by Brunnr-Code: everything a user wrote
 // around them is preserved verbatim, and a second identical injection is a no-op.
