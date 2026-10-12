@@ -466,9 +466,6 @@ func (r *syncRuntime) stagePlan() pipeline.StagePlan {
 			apply = append(apply, nativeReviewAgentStep{id: "sync:agent:native-review:" + string(agent), agent: agent, homeDir: r.homeDir, workspaceDir: r.workspaceDir, scope: r.scope, selection: r.selection, changedFiles: &r.changedFiles, state: r.state})
 		}
 	}
-	apply = append(apply, retiredSDDAssetStepList(retiredSDDAssetSteps("sync:agent:retire-sdd-assets:", r.homeDir, r.workspaceDir, r.scope, r.agentIDs, &r.changedFiles, r.state))...)
-	// After the native installer, so retired SDD subagents go last.
-	apply = append(apply, retiredSDDAgentSteps("sync:agent:retire-sdd:", r.homeDir, r.scope, r.agentIDs, &r.changedFiles, r.state)...)
 
 	// Routing guidance is refreshed per agent and outside the component loop, for
 	// the same reason install schedules it there: a persisted selection without
@@ -595,12 +592,6 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 		}
 	}
 	for _, path := range routingGuidancePaths(homeDir, workspaceDir, scope, guidanceAdapters) {
-		paths[path] = struct{}{}
-	}
-	for _, path := range retiredSDDAssetBackupPaths(homeDir, workspaceDir, scope, selection.Agents) {
-		paths[path] = struct{}{}
-	}
-	for _, path := range retiredSDDAgentBackupPaths(homeDir, scope, adapters) {
 		paths[path] = struct{}{}
 	}
 	for _, adapter := range guidanceAdapters {
@@ -1362,7 +1353,6 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 		return result, fmt.Errorf("execute sync pipeline: %w", result.Execution.Err)
 	}
 	result.ManualActions = append(result.ManualActions, rt.state.nativeReviewActions...)
-	result.ManualActions = append(result.ManualActions, rt.state.retiredSDDActions...)
 	result.ManualActions = append(result.ManualActions, rt.skippedActions...)
 	result.SkippedAgents = append(result.SkippedAgents, rt.skippedParts...)
 
@@ -1803,22 +1793,6 @@ func runPostSyncVerificationScoped(homeDir, workspaceDir string, scope InstallSc
 				continue
 			}
 			currentPath := path
-			if isRetiredManagedPath(currentPath) {
-				checks = append(checks, verify.Check{
-					ID:          "verify:sync:file:" + currentPath,
-					Description: "retired managed file removed",
-					Run: func(context.Context) error {
-						if _, err := os.Stat(currentPath); err != nil {
-							if os.IsNotExist(err) {
-								return nil
-							}
-							return err
-						}
-						return fmt.Errorf("retired managed file still exists; rerun `brunnr-code sync` to finish retiring it")
-					},
-				})
-				continue
-			}
 			checks = append(checks, verify.Check{
 				ID:          "verify:sync:file:" + currentPath,
 				Description: "synced file exists",

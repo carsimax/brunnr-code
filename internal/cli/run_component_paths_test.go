@@ -107,35 +107,6 @@ func TestComponentPathsSDDIncludesSystemPromptForPromptFileAdapters(t *testing.T
 	}
 }
 
-func TestComponentPathsLegacyCommandsExactAndAbsentFromODD(t *testing.T) {
-	home := t.TempDir()
-	for _, tc := range []struct {
-		agent  model.AgentID
-		dir    string
-		prefix string
-	}{
-		{model.AgentClaudeCode, ".claude/commands", "gentle-"},
-	} {
-		adapter := resolveAdapters([]model.AgentID{tc.agent})[0]
-		paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, []agents.Adapter{adapter}, model.ComponentSDD)
-		names := []string{"sdd-init", "sdd-new", "sdd-continue", "sdd-status", "sdd-explore", "sdd-research", "sdd-ff", "sdd-apply", "sdd-verify", "sdd-archive", "sdd-onboard"}
-		for _, name := range names {
-			for _, prefix := range []string{tc.prefix, ""} {
-				path := filepath.Join(home, tc.dir, prefix+name+".md")
-				if !containsPath(paths, path) {
-					t.Errorf("legacy inventory missing %s", path)
-				}
-			}
-		}
-		active := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, []agents.Adapter{adapter}, model.ComponentPersona)
-		for _, path := range active {
-			if strings.Contains(path, "/commands/sdd-") || strings.Contains(path, "/commands/gentle-sdd-") {
-				t.Errorf("active ODD inventory includes legacy command %s", path)
-			}
-		}
-	}
-}
-
 func TestComponentPathsClaudeRetainsReviewAndRouting(t *testing.T) {
 	home := t.TempDir()
 	selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}}

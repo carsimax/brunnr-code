@@ -25,7 +25,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/assets"
 	"github.com/carsimax/brunnr-code/internal/backup"
 	"github.com/carsimax/brunnr-code/internal/components/agentguidance"
-	"github.com/carsimax/brunnr-code/internal/components/legacyassets"
 	"github.com/carsimax/brunnr-code/internal/components/persona"
 	"github.com/carsimax/brunnr-code/internal/components/skills"
 	"github.com/carsimax/brunnr-code/internal/components/theme"
@@ -213,30 +212,14 @@ func managedAgentBackupPaths(homeDir string, adapter agents.Adapter, diagnostics
 		add(persona.OutputStylePath(adapter.OutputStyleDir(homeDir)))
 	}
 
-	if adapter.SupportsSlashCommands() {
-		add(presentPaths(legacyassets.SlashCommandPaths(adapter.Agent(), adapter.CommandsDir(homeDir)))...)
-	}
-
 	if adapter.SupportsSubAgents() {
 		for _, name := range embeddedFileNames(adapter.EmbeddedSubAgentsDir(), diagnostics) {
 			add(filepath.Join(adapter.SubAgentsDir(homeDir), name))
 		}
-		// The upgraded binary's sync retires native SDD agents (#5157).
-		add(presentPaths(legacyassets.RetiredSDDAgentPaths(adapter.Agent(), adapter.SubAgentsDir(homeDir)))...)
 	}
 
 	if adapter.SupportsSkills() {
 		add(managedSkillBackupPaths(homeDir, adapter, diagnostics)...)
-		// The upgraded binary's sync retires SDD skills (#5157).
-		add(legacyassets.PresentRetiredSDDAssetPaths(adapter.Agent(), legacyassets.SDDAssetDirs{Skills: adapter.SkillsDir(homeDir)})...)
-	}
-
-	// It also retires Codex's SDD profiles and the SDD block of its lowercase
-	// agents.md (#5157).
-	runtimeFiles := legacyassets.RetiredSDDRuntimeFiles(adapter.Agent(), homeDir)
-	add(legacyassets.PresentRetiredSDDAssetPaths(adapter.Agent(), runtimeFiles.Dirs)...)
-	if runtimeFiles.Prompt != "" && legacyassets.RetirablePromptFile(runtimeFiles.Dirs.CodexHome, runtimeFiles.Prompt) {
-		add(runtimeFiles.Prompt)
 	}
 
 	switch adapter.Agent() {
@@ -259,19 +242,6 @@ func managedAgentBackupPaths(homeDir string, adapter agents.Adapter, diagnostics
 	}
 
 	return paths
-}
-
-// presentPaths keeps the retired inventory paths that exist. Sync only
-// removes what exists, and a restore deletes every path the snapshot recorded
-// as absent, which would remove a file the user later created there.
-func presentPaths(paths []string) []string {
-	var present []string
-	for _, path := range paths {
-		if _, err := os.Lstat(path); err == nil {
-			present = append(present, path)
-		}
-	}
-	return present
 }
 
 func managedGlobalBackupPaths(homeDir string) []string {

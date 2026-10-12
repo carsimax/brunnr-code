@@ -24,7 +24,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/communitytool"
 	"github.com/carsimax/brunnr-code/internal/components/engram"
 	"github.com/carsimax/brunnr-code/internal/components/filemerge"
-	"github.com/carsimax/brunnr-code/internal/components/legacyassets"
 	"github.com/carsimax/brunnr-code/internal/components/mcp"
 	"github.com/carsimax/brunnr-code/internal/components/permissions"
 	"github.com/carsimax/brunnr-code/internal/components/persona"
@@ -205,7 +204,6 @@ func RunPreparedInstall(prepared PreparedInstall, detection system.DetectionResu
 		return result, fmt.Errorf("execute install pipeline: %w", result.Execution.Err)
 	}
 	result.ManualActions = append(result.ManualActions, runtime.state.nativeReviewActions...)
-	result.ManualActions = append(result.ManualActions, runtime.state.retiredSDDActions...)
 	result.Verify = runPostApplyVerification(postApplyVerificationInput{
 		HomeDir:      homeDir,
 		WorkspaceDir: runtime.workspaceDir,
@@ -553,7 +551,6 @@ type runtimeState struct {
 	manifest                 backup.Manifest
 	rollbackSnapshotDir      string
 	nativeReviewActions      []string
-	retiredSDDActions        []string
 	compatibilityTransaction compatibilityRefreshTransaction
 
 	// engramVersionResolved, engramVersion, and engramVersionErr cache the
@@ -679,9 +676,6 @@ func (r *installRuntime) stagePlan() pipeline.StagePlan {
 			apply = append(apply, nativeReviewAgentStep{id: "agent:native-review:" + string(agent), agent: agent, homeDir: r.homeDir, workspaceDir: r.workspaceDir, scope: r.scope, selection: r.selection, state: r.state})
 		}
 	}
-	apply = append(apply, retiredSDDAssetStepList(retiredSDDAssetSteps("agent:retire-sdd-assets:", r.homeDir, r.workspaceDir, r.scope, r.resolved.Agents, nil, r.state))...)
-	// After the native installer, so retired SDD subagents go last.
-	apply = append(apply, retiredSDDAgentSteps("agent:retire-sdd:", r.homeDir, r.scope, r.resolved.Agents, nil, r.state)...)
 
 	// Routing guidance is scheduled per agent and outside the component loop:
 	// an agent that cannot choose between direct and delegated work is unusable,
@@ -758,136 +752,6 @@ func (s nativeReviewAgentStep) Run() error {
 		}
 	}
 	return nil
-}
-
-// retiredSDDAssetsStep removes the SDD skills, slash commands, workflow,
-// Codex profiles, and Claude Code preflight hook earlier
-// releases installed for one runtime, and the SDD text they left in prompt
-// files routing guidance does not migrate. It reports what it cannot prove it
-// wrote (#5157). The pipeline snapshot captures the same inventory first
-// (retiredSDDAssetBackupPaths).
-type retiredSDDAssetsStep struct {
-	id           string
-	inventory    legacyassets.SDDInventory
-	changedFiles *[]string
-	state        *runtimeState
-}
-
-func (s retiredSDDAssetsStep) ID() string { return s.id }
-
-func (s retiredSDDAssetsStep) Run() error {
-	res, err := s.inventory.Retire()
-	if s.changedFiles != nil {
-		*s.changedFiles = append(*s.changedFiles, res.Removed...)
-		*s.changedFiles = append(*s.changedFiles, res.Rewritten...)
-	}
-	if err != nil {
-		return err
-	}
-	if s.state != nil {
-		s.state.retiredSDDActions = append(s.state.retiredSDDActions, res.ManualActions...)
-	}
-	return nil
-}
-
-// retiredSDDAssetSteps resolves where releases installed retired SDD files
-// for the selected runtimes in this scope: the legacyassets inventory under
-// the scoped config root, and the shared ~/.agents/skills root only in a
-// global run on platforms where the generic snapshot owns it.
-func retiredSDDAssetSteps(prefix, homeDir, workspaceDir string, scope InstallScope, agentIDs []model.AgentID, changedFiles *[]string, state *runtimeState) []retiredSDDAssetsStep {
-	var steps []retiredSDDAssetsStep
-	for _, adapter := range resolveAdapters(agentIDs) {
-		// A workspace-scoped install wrote these under the workspace too.
-		root := componentInjectionDirScoped(homeDir, workspaceDir, scope, adapter)
-		inventory := legacyassets.RetiredSDDInventory(adapter, root)
-		// A workspace sync delivers no routing guidance to these runtimes, so
-		// nothing migrates the v3.7.0 SDD block of their project prompt.
-		if scope == ScopeWorkspace && workspaceRoutingGuidanceGlobalOnly(adapter.Agent()) && adapter.SupportsSystemPrompt() {
-			prompt := adapter.SystemPromptFile(root)
-			inventory.Blocks = append(inventory.Blocks, legacyassets.SDDPromptFile{Root: filepath.Dir(prompt), Path: prompt})
-		}
-		steps = append(steps, retiredSDDAssetsStep{id: prefix + string(adapter.Agent()), inventory: inventory, changedFiles: changedFiles, state: state})
-	}
-	if scope != ScopeWorkspace && !usesAnchoredCompatibilityTransaction() {
-		if dir, ok, err := compatibilitySkillsDir(homeDir); err == nil && ok {
-			steps = append(steps, retiredSDDAssetsStep{id: prefix + "compatibility-skills", inventory: legacyassets.SDDInventory{Dirs: legacyassets.SDDAssetDirs{Skills: dir}}, changedFiles: changedFiles, state: state})
-		}
-	}
-	return steps
-}
-
-func retiredSDDAssetStepList(steps []retiredSDDAssetsStep) []pipeline.Step {
-	list := make([]pipeline.Step, 0, len(steps))
-	for _, step := range steps {
-		list = append(list, step)
-	}
-	return list
-}
-
-// retiredSDDAssetBackupPaths is the snapshot half of retiredSDDAssetSteps.
-// Retirement only removes files that exist, so only present inventory files
-// enter the snapshot; retired SDD paths never become install targets.
-func retiredSDDAssetBackupPaths(homeDir, workspaceDir string, scope InstallScope, agentIDs []model.AgentID) []string {
-	var paths []string
-	for _, step := range retiredSDDAssetSteps("", homeDir, workspaceDir, scope, agentIDs, nil, nil) {
-		paths = append(paths, step.inventory.BackupPaths()...)
-	}
-	return paths
-}
-
-// retiredSDDAgentsStep removes the native SDD sub-agents earlier releases
-// rendered and reports the ones whose ownership cannot be proven (#5157,
-// #5253). The pipeline snapshot captures every inventory path first.
-type retiredSDDAgentsStep struct {
-	id, homeDir  string
-	agent        model.AgentID
-	changedFiles *[]string
-	state        *runtimeState
-}
-
-func (s retiredSDDAgentsStep) ID() string { return s.id }
-
-func (s retiredSDDAgentsStep) Run() error {
-	adapter := resolveAdapters([]model.AgentID{s.agent})[0]
-	res, err := legacyassets.RetireSDDAgents(s.agent, adapter.SubAgentsDir(s.homeDir))
-	if s.changedFiles != nil {
-		*s.changedFiles = append(*s.changedFiles, res.Removed...)
-	}
-	if err != nil {
-		return fmt.Errorf("retire SDD agents for %q: %w", s.agent, err)
-	}
-	if s.state != nil {
-		s.state.retiredSDDActions = append(s.state.retiredSDDActions, res.ManualActions()...)
-	}
-	return nil
-}
-
-// retiredSDDAgentSteps schedules retirement for every selected runtime that
-// received native SDD agents. Releases installed them in the home directory,
-// so a workspace-scoped run never touches them (#1074).
-func retiredSDDAgentSteps(prefix, homeDir string, scope InstallScope, agentIDs []model.AgentID, changedFiles *[]string, state *runtimeState) []pipeline.Step {
-	if scope == ScopeWorkspace {
-		return nil
-	}
-	var steps []pipeline.Step
-	for _, agent := range agentIDs {
-		if len(legacyassets.RetiredSDDAgentFiles(agent)) > 0 {
-			steps = append(steps, retiredSDDAgentsStep{id: prefix + string(agent), homeDir: homeDir, agent: agent, changedFiles: changedFiles, state: state})
-		}
-	}
-	return steps
-}
-
-// retiredSDDAgentBackupPaths is the snapshot half of retiredSDDAgentSteps.
-func retiredSDDAgentBackupPaths(homeDir string, scope InstallScope, adapters []agents.Adapter) []string {
-	if scope == ScopeWorkspace {
-		return nil
-	}
-	var paths []string
-	for _, adapter := range adapters {
-		paths = append(paths, legacyassets.RetiredSDDAgentPaths(adapter.Agent(), adapter.SubAgentsDir(homeDir))...)
-	}
-	return paths
 }
 
 func nativeReviewPreservedAction(path string) string {
@@ -1616,7 +1480,6 @@ func executeTUIInstall(homeDir string, selection model.Selection, resolved plann
 	orchestrator := pipeline.NewOrchestrator(pipeline.DefaultRollbackPolicy(), pipeline.WithFailurePolicy(pipeline.ContinueOnError), pipeline.WithProgressFunc(onProgress), pipeline.WithTerminalCleanup(runtime.state.cleanupRollbackSnapshot))
 	result := orchestrator.Execute(tuiInstallStagePlan(runtime))
 	result.ManualActions = append(result.ManualActions, runtime.state.nativeReviewActions...)
-	result.ManualActions = append(result.ManualActions, runtime.state.retiredSDDActions...)
 	return result, orchestrator, runtime.state.codexServiceTier
 }
 
@@ -1876,9 +1739,6 @@ func installBackupTargets(homeDir, workspaceDir string, scope InstallScope, sele
 	for _, path := range routingGuidancePathsWithClaudeModules(homeDir, workspaceDir, scope, adapters, claudeModules) {
 		paths[path] = struct{}{}
 	}
-	for _, path := range retiredSDDAssetBackupPaths(homeDir, workspaceDir, scope, resolved.Agents) {
-		paths[path] = struct{}{}
-	}
 	for _, adapter := range adapters {
 		if path := agentguidance.StrictTDDPath(routingGuidanceDir(homeDir, workspaceDir, scope, adapter), adapter.Agent()); path != "" {
 			paths[path] = struct{}{}
@@ -1887,9 +1747,6 @@ func installBackupTargets(homeDir, workspaceDir string, scope InstallScope, sele
 	for _, adapter := range adapters {
 		if adapter.Agent() == model.AgentCodex {
 			paths[filepath.Join(adapter.GlobalConfigDir(homeDir), "hooks.json")] = struct{}{}
-		}
-		for _, path := range retiredSDDAgentBackupPaths(homeDir, scope, []agents.Adapter{adapter}) {
-			paths[path] = struct{}{}
 		}
 		// Retained Claude hooks are installed independently of optional
 		// components. Snapshot the same scoped settings their writer uses.
@@ -2074,9 +1931,6 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 		case model.ComponentSDD:
 			if adapter.SupportsSystemPrompt() {
 				paths = append(paths, adapter.SystemPromptFile(targetDir))
-			}
-			if adapter.SupportsSlashCommands() {
-				paths = append(paths, legacyassets.SlashCommandPaths(adapter.Agent(), adapter.CommandsDir(targetDir))...)
 			}
 			paths = append(paths, sddSubAgentPaths(targetDir, adapter)...)
 			if adapter.Agent() == model.AgentCodex {
@@ -2328,22 +2182,6 @@ func runPostApplyVerification(input postApplyVerificationInput) verify.Report {
 
 	for _, currentPath := range uniqueFilePaths {
 		path := currentPath
-		if isRetiredManagedPath(path) {
-			checks = append(checks, verify.Check{
-				ID:          "verify:file:" + path,
-				Description: "retired managed file removed",
-				Run: func(context.Context) error {
-					if _, err := os.Stat(path); err != nil {
-						if os.IsNotExist(err) {
-							return nil
-						}
-						return err
-					}
-					return fmt.Errorf("retired managed file still exists; rerun `brunnr-code sync` to finish retiring it")
-				},
-			})
-			continue
-		}
 		checks = append(checks, verify.Check{
 			ID:          "verify:file:" + path,
 			Description: "required file exists",
@@ -2361,12 +2199,6 @@ func runPostApplyVerification(input postApplyVerificationInput) verify.Report {
 	}
 
 	return verify.BuildReport(verify.RunChecks(context.Background(), checks))
-}
-
-// isRetiredManagedPath reports whether path names a managed file that install
-// and sync remove instead of write, so verification checks its absence.
-func isRetiredManagedPath(path string) bool {
-	return legacyassets.IsLegacyClaudeCommandPath(path)
 }
 
 func hasComponent(components []model.ComponentID, target model.ComponentID) bool {

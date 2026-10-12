@@ -55,10 +55,7 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 			return InjectionResult{}, err
 		}
 
-		// Strip the legacy Agent Teams Lite block (standalone ATL installer leftover).
-		healed := filemerge.StripLegacyATLBlock(existing)
-
-		updated := filemerge.InjectMarkdownSection(healed, "persona", content)
+		updated := filemerge.InjectMarkdownSection(existing, "persona", content)
 
 		writeResult, err := filemerge.WriteFileAtomic(promptPath, []byte(updated), 0o644)
 		if err != nil {
@@ -82,8 +79,7 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 				return InjectionResult{}, err
 			}
 
-			healed := filemerge.StripLegacyATLBlock(existing)
-			updated := injectPersonaBeforeManagedSections(healed, content)
+			updated := injectPersonaBeforeManagedSections(existing, content)
 
 			writeResult, err := filemerge.WriteFileAtomic(promptPath, []byte(updated), 0o644)
 			if err != nil {

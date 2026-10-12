@@ -574,43 +574,6 @@ func TestConfigPathsForBackup_CoversManagedAgentPaths(t *testing.T) {
 	}
 }
 
-// TestConfigPathsForBackup_HandlesEmptyDirs verifies that configPathsForBackup
-// returns a non-nil slice (possibly empty) when agent config directories don't exist.
-// It must NOT panic or error out — missing dirs simply contribute no paths.
-func TestConfigPathsForBackup_LegacyCommandSnapshot(t *testing.T) {
-	home := t.TempDir()
-	for _, name := range []string{"sdd-init", "sdd-new", "sdd-continue", "sdd-status", "sdd-explore", "sdd-research", "sdd-ff", "sdd-apply", "sdd-verify", "sdd-archive", "sdd-onboard"} {
-		for _, prefix := range []string{"", "gentle-"} {
-			path := filepath.Join(home, ".claude", "commands", prefix+name+".md")
-			if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(path, []byte("historical user content"), 0644); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-	paths := configPathsForBackup(home)
-	for _, name := range []string{"sdd-init", "sdd-new", "sdd-continue", "sdd-status", "sdd-explore", "sdd-research", "sdd-ff", "sdd-apply", "sdd-verify", "sdd-archive", "sdd-onboard"} {
-		for _, prefix := range []string{"", "gentle-"} {
-			path := filepath.Join(home, ".claude", "commands", prefix+name+".md")
-			found := false
-			for _, got := range paths {
-				if got == path {
-					found = true
-					break
-				}
-			}
-			if !found {
-				t.Errorf("historical path absent from snapshot: %s", path)
-			}
-			if _, err := os.Stat(path); err != nil {
-				t.Errorf("inventory removed user file %s: %v", path, err)
-			}
-		}
-	}
-}
-
 func TestConfigPathsForBackup_HandlesEmptyDirs(t *testing.T) {
 	homeDir := t.TempDir()
 	// No agent config directories exist in this temp dir.
@@ -1355,28 +1318,6 @@ func mockCmd(name string, args ...string) *exec.Cmd {
 	return exec.Command(name, args...)
 }
 
-// The upgrade snapshot declares the same retired SDD agent inventory the
-// upgraded binary's sync removes (#5157, #5253).
-func TestManagedAgentBackupPathsIncludeRetiredSDDAgents(t *testing.T) {
-	homeDir := t.TempDir()
-	reg, err := agents.NewDefaultRegistry()
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, agent := range []model.AgentID{model.AgentClaudeCode} {
-		adapter, ok := reg.Get(agent)
-		if !ok {
-			t.Fatalf("default registry does not contain %s", agent)
-		}
-		want := filepath.Join(adapter.SubAgentsDir(homeDir), "sdd-apply.md")
-		writeRetiredFixture(t, want)
-		paths := managedAgentBackupPaths(homeDir, adapter, &bytes.Buffer{})
-		if !slices.Contains(paths, want) {
-			t.Errorf("%s upgrade snapshot omits %s", agent, want)
-		}
-	}
-}
-
 // writeRetiredFixture creates a leftover retired file: the snapshot only
 // records retired inventory paths that exist.
 func writeRetiredFixture(t *testing.T, path string) {
@@ -1386,110 +1327,6 @@ func writeRetiredFixture(t *testing.T, path string) {
 	}
 	if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
-	}
-}
-
-// The upgraded binary's sync retires SDD skills and slash commands for every
-// runtime that received them (#5157), so the snapshot holds the same
-// inventory.
-func TestManagedAgentBackupPathsIncludeRetiredSDDSkillsAndCommands(t *testing.T) {
-	homeDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", "")
-	reg, err := agents.NewDefaultRegistry()
-	if err != nil {
-		t.Fatal(err)
-	}
-	for agent, want := range map[model.AgentID][]string{
-		model.AgentClaudeCode: {
-			filepath.Join(homeDir, ".claude", "skills", "sdd-apply", "SKILL.md"),
-			filepath.Join(homeDir, ".claude", "skills", "_shared", "openspec-convention.md"),
-			filepath.Join(homeDir, ".claude", "commands", "gentle-sdd-apply.md"),
-			filepath.Join(homeDir, ".claude", "commands", "sdd-apply.md"),
-		},
-		model.AgentCodex: {filepath.Join(homeDir, ".codex", "skills", "sdd-verify", "references", "report-format.md")},
-	} {
-		adapter, ok := reg.Get(agent)
-		if !ok {
-			t.Fatalf("default registry does not contain %s", agent)
-		}
-		for _, path := range want {
-			writeRetiredFixture(t, path)
-		}
-		paths := managedAgentBackupPaths(homeDir, adapter, &bytes.Buffer{})
-		for _, path := range want {
-			if !slices.Contains(paths, path) {
-				t.Errorf("%s upgrade snapshot omits %s", agent, path)
-			}
-		}
-	}
-}
-
-// A restore recreates the snapshot: a path recorded as absent would be
-// deleted, removing a file the user created there after the upgrade. Retired
-// SDD inventories therefore enter the snapshot only when present.
-func TestManagedAgentBackupPathsOmitAbsentRetiredSDDPaths(t *testing.T) {
-	homeDir := t.TempDir()
-	reg, err := agents.NewDefaultRegistry()
-	if err != nil {
-		t.Fatal(err)
-	}
-	adapter, ok := reg.Get(model.AgentClaudeCode)
-	if !ok {
-		t.Fatal("default registry does not contain claude-code")
-	}
-	present := []string{
-		filepath.Join(homeDir, ".claude", "skills", "sdd-apply", "SKILL.md"),
-		filepath.Join(homeDir, ".claude", "agents", "sdd-apply.md"),
-		filepath.Join(homeDir, ".claude", "commands", "gentle-sdd-apply.md"),
-	}
-	for _, path := range present {
-		writeRetiredFixture(t, path)
-	}
-	paths := managedAgentBackupPaths(homeDir, adapter, &bytes.Buffer{})
-	for _, path := range present {
-		if !slices.Contains(paths, path) {
-			t.Errorf("snapshot omits present retired path %s", path)
-		}
-	}
-	for _, path := range []string{
-		filepath.Join(homeDir, ".claude", "skills", "sdd-verify", "SKILL.md"),
-		filepath.Join(homeDir, ".claude", "skills", "_shared", "openspec-convention.md"),
-		filepath.Join(homeDir, ".claude", "agents", "sdd-verify.md"),
-		filepath.Join(homeDir, ".claude", "commands", "gentle-sdd-verify.md"),
-	} {
-		if slices.Contains(paths, path) {
-			t.Errorf("snapshot records absent retired path %s", path)
-		}
-	}
-}
-
-// The upgraded binary's sync retires Codex's SDD profiles and the SDD block
-// of its lowercase agents.md (#5157), so the snapshot holds every one of them that exists.
-func TestManagedAgentBackupPathsIncludeRetiredCodexSDDFiles(t *testing.T) {
-	homeDir := t.TempDir()
-	reg, err := agents.NewDefaultRegistry()
-	if err != nil {
-		t.Fatal(err)
-	}
-	for agent, want := range map[model.AgentID][]string{
-		model.AgentCodex: {
-			filepath.Join(homeDir, ".codex", "sdd-strong.config.toml"),
-			filepath.Join(homeDir, ".codex", "agents.md"),
-		},
-	} {
-		for _, path := range want {
-			writeRetiredFixture(t, path)
-		}
-		adapter, ok := reg.Get(agent)
-		if !ok {
-			t.Fatalf("default registry does not contain %s", agent)
-		}
-		paths := managedAgentBackupPaths(homeDir, adapter, &bytes.Buffer{})
-		for _, path := range want {
-			if !slices.Contains(paths, path) {
-				t.Errorf("%s upgrade snapshot omits %s", agent, path)
-			}
-		}
 	}
 }
 

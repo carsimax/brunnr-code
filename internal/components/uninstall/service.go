@@ -71,9 +71,6 @@ const (
 	opRewriteFile opType = iota
 	opRemoveFile
 	opRemoveTree
-	// opRetireSDD runs after every file and tree removal, so the empty
-	// directories it leaves are still pruned by opRemoveIfEmpty.
-	opRetireSDD
 	opRemoveIfEmpty
 )
 
@@ -356,21 +353,6 @@ func (s *Service) buildPlan(agentIDs []model.AgentID, componentIDs []model.Compo
 				}
 				operationsByKey[key] = op
 			}
-		}
-	}
-	if removesAllAgentComponents(componentIDs) {
-		for _, agentID := range agentIDs {
-			adapter, _ := s.registry.Get(agentID)
-			op, targets, ok := s.retiredSDDOperation(adapter)
-			if !ok {
-				continue
-			}
-			for _, target := range targets {
-				backupTargets[target] = struct{}{}
-			}
-			// One retirement per runtime: runtimes sharing a config root
-			// still retire their own inventories.
-			operationsByKey["retire-sdd:"+string(agentID)] = op
 		}
 	}
 	if slices.Contains(agentIDs, model.AgentClaudeCode) && removesAllAgentComponents(componentIDs) {

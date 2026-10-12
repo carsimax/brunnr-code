@@ -46,15 +46,6 @@ func TestCLIHelpShowsNoRetiredWorkflowText(t *testing.T) {
 // files, and messages that name a legacy file the user must act on. Every
 // entry must still match, so the list can only shrink.
 var retiredWorkflowLiteralAllowlist = map[string]map[string]string{
-	"internal/cli/run.go": {
-		"agent:retire-sdd-assets:":     "retirement step ID",
-		"agent:retire-sdd:":            "retirement step ID",
-		"retire SDD agents for %q: %w": "retirement failure naming legacy agents",
-	},
-	"internal/cli/sync.go": {
-		"sync:agent:retire-sdd-assets:": "retirement step ID",
-		"sync:agent:retire-sdd:":        "retirement step ID",
-	},
 	"internal/cli/validate.go": {
 		"unsupported sdd-mode %q (valid: single, multi)": "unreachable validation of an install flag field nothing assigns",
 	},
