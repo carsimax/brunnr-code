@@ -120,3 +120,16 @@ func TestRemoveJSONCMembersLastMemberAfterCommentedMembersStaysValid(t *testing.
 		t.Fatalf("remaining = %v", agent)
 	}
 }
+
+// An empty path addresses the document root, so top-level members such as a
+// managed settings key are removed without touching the user's comments.
+func TestRemoveJSONCMembersTopLevel(t *testing.T) {
+	raw := "{\n  // note\n  \"model\": \"opus\",\n  \"outputStyle\": \"X\",\n}\n"
+	got, kept, err := RemoveJSONCMembers([]byte(raw), nil, []string{"outputStyle"}, true)
+	if err != nil || len(kept) != 0 {
+		t.Fatalf("kept = %v, err = %v", kept, err)
+	}
+	if want := "{\n  // note\n  \"model\": \"opus\",\n}\n"; string(got) != want {
+		t.Fatalf("top-level removal = %q, want %q", got, want)
+	}
+}

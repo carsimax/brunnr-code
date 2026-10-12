@@ -1628,7 +1628,8 @@ func TestRunSyncRestoresConfiguredSelectionAndExplicitOverrides(t *testing.T) {
 	osUserHomeDir = func() (string, error) { return home, nil }
 	t.Cleanup(func() { osUserHomeDir = original })
 	plain, err := RunSync([]string{"--dry-run"})
-	if err != nil || !reflect.DeepEqual(plain.Selection.Components, []model.ComponentID{model.ComponentEngram}) || !reflect.DeepEqual(plain.Selection.Skills, []model.SkillID{model.SkillCommentWriter}) || plain.Selection.Preset != model.PresetCustom {
+	// Restored state gains the mandatory persona.
+	if err != nil || !reflect.DeepEqual(plain.Selection.Components, []model.ComponentID{model.ComponentEngram, model.ComponentPersona}) || !reflect.DeepEqual(plain.Selection.Skills, []model.SkillID{model.SkillCommentWriter}) || plain.Selection.Preset != model.PresetCustom {
 		t.Fatalf("plain sync selection = %#v, err = %v", plain.Selection, err)
 	}
 	overridden, err := RunSync([]string{"--dry-run", "--skill", "go-testing"})
@@ -1720,6 +1721,18 @@ func TestRestorePersistedSelectionIgnoresLegacyStrictTDD(t *testing.T) {
 	RestorePersistedSelection(&selection, persisted, SyncFlags{})
 	if selection.StrictTDD || !selection.HasComponent(model.ComponentSkills) {
 		t.Fatalf("retained sync options lost: %+v", selection)
+	}
+}
+
+// TestRestorePersistedSelectionAddsMandatoryPersona covers state written by a
+// custom install before persona became mandatory: sync installs it again.
+func TestRestorePersistedSelectionAddsMandatoryPersona(t *testing.T) {
+	selection := model.Selection{}
+	persisted := state.InstallState{SelectionConfigured: true, Components: []model.ComponentID{model.ComponentEngram}}
+	RestorePersistedSelection(&selection, persisted, SyncFlags{})
+	want := []model.ComponentID{model.ComponentEngram, model.ComponentPersona}
+	if !slices.Equal(selection.Components, want) {
+		t.Fatalf("components = %v, want %v", selection.Components, want)
 	}
 }
 

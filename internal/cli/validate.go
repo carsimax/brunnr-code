@@ -140,7 +140,7 @@ func normalizeComponents(values []string, preset model.PresetID) ([]model.Compon
 		components = append(components, component)
 	}
 
-	return unique(components), nil
+	return model.WithMandatoryComponents(unique(components)), nil
 }
 
 func normalizeSkills(values []string) ([]model.SkillID, error) {

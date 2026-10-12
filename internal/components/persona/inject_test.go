@@ -585,3 +585,41 @@ func TestInjectClaudeRemovesLegacyNeutralOutputStyle(t *testing.T) {
 		})
 	}
 }
+
+// TestInjectClaudePreservesJSONCSettingsComments pins that enabling the
+// managed output style edits only the outputStyle member of a Claude
+// settings.json that carries JSONC comments, like the retained hooks writer.
+func TestInjectClaudePreservesJSONCSettingsComments(t *testing.T) {
+	for _, tc := range []struct{ name, seed string }{
+		{"adds outputStyle", "{\n  // Personal settings.\n  \"model\": \"opus\", /* chosen by hand */\n}\n"},
+		{"replaces outputStyle", "{\n  // Personal settings.\n  \"model\": \"opus\", /* chosen by hand */\n  \"outputStyle\": \"Old\",\n}\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			home := t.TempDir()
+			adapter := claudeAdapter()
+			settingsPath := adapter.SettingsPath(home)
+			if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(settingsPath, []byte(tc.seed), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := Inject(home, adapter); err != nil {
+				t.Fatalf("Inject() error = %v", err)
+			}
+			raw, err := os.ReadFile(settingsPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := string(raw)
+			for _, want := range []string{"// Personal settings.", "/* chosen by hand */", `"outputStyle": "Principal Engineer"`} {
+				if !strings.Contains(got, want) {
+					t.Fatalf("settings missing %q after Inject:\n%s", want, got)
+				}
+			}
+			if strings.Contains(got, `"Old"`) {
+				t.Fatalf("previous outputStyle kept:\n%s", got)
+			}
+		})
+	}
+}

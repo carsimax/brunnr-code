@@ -19,3 +19,16 @@ func TestMVPComponentsMatchShippedComponentIDs(t *testing.T) {
 		t.Fatalf("catalog component IDs = %v, want model.ShippedComponentIDs() = %v", catalogIDs, want)
 	}
 }
+
+// TestSelectableComponentsExcludeMandatoryPersona pins that the managed persona
+// is never offered as a toggle: it is always installed.
+func TestSelectableComponentsExcludeMandatoryPersona(t *testing.T) {
+	var got []model.ComponentID
+	for _, component := range SelectableComponents() {
+		got = append(got, component.ID)
+	}
+	want := []model.ComponentID{model.ComponentEngram, model.ComponentSkills, model.ComponentPermission}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("SelectableComponents() IDs = %v, want %v", got, want)
+	}
+}

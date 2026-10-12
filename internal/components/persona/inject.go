@@ -210,7 +210,9 @@ func mergeJSONFile(path string, overlay []byte) (filemerge.WriteResult, error) {
 	if err != nil {
 		return filemerge.WriteResult{}, err
 	}
-	merged, err := filemerge.MergeJSONObjectsForPath(path, baseJSON, overlay)
+	// Claude settings.json may carry JSONC comments; edit only the overlay's
+	// members, as the retained hooks writer does, so user text survives.
+	merged, err := filemerge.MergeJSONCObjects(baseJSON, overlay)
 	if err != nil {
 		return filemerge.WriteResult{}, err
 	}

@@ -20,3 +20,16 @@ func MVPComponents() []Component {
 	copy(components, mvpComponents)
 	return components
 }
+
+// SelectableComponents returns the components a user may toggle in the custom
+// preset. Mandatory components (the managed persona) are always installed and
+// are never offered as a choice.
+func SelectableComponents() []Component {
+	components := make([]Component, 0, len(mvpComponents))
+	for _, component := range mvpComponents {
+		if !model.IsMandatoryComponent(component.ID) {
+			components = append(components, component)
+		}
+	}
+	return components
+}

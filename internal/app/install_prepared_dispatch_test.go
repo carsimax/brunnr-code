@@ -15,10 +15,11 @@ func TestRunArgsPreparedInstallPreservesValidDispatch(t *testing.T) {
 		args       []string
 		components string
 	}{
-		{"implicit persona", []string{"--component", "permissions"}, "permissions"},
+		// The managed persona is mandatory, so every explicit list resolves it.
+		{"implicit persona", []string{"--component", "permissions"}, "permissions,persona"},
 		{"managed persona", []string{"--component", "persona"}, "persona"},
-		{"skill", []string{"--component", "skills", "--skill", "go-testing"}, "skills"},
-		{"skills alias", []string{"--components", "skills", "--skills", "go-testing"}, "skills"},
+		{"skill", []string{"--component", "skills", "--skill", "go-testing"}, "persona,skills"},
+		{"skills alias", []string{"--components", "skills", "--skills", "go-testing"}, "persona,skills"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			setupMockHome(t, t.TempDir())

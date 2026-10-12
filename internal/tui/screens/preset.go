@@ -20,7 +20,7 @@ var presetDescriptions = map[model.PresetID]string{
 	model.PresetMinimal:       "Just Engram persistent memory across sessions",
 	model.PresetEcosystemOnly: "Memory + skills + docs",
 	model.PresetFull:          "Dev Stack plus security-first permissions",
-	model.PresetCustom:        "Choose each component manually: memory, skills, persona, permissions",
+	model.PresetCustom:        "Choose each component manually: memory, skills, permissions",
 }
 
 var presetLabels = map[model.PresetID]string{

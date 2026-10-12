@@ -616,8 +616,9 @@ func (s *Service) componentOperations(adapter agents.Adapter, componentID model.
 		}
 		for _, path := range settingsTargets(homeDir, adapter) {
 			targets = append(targets, path)
-			jsonPaths := []jsonPath{{"outputStyle"}}
-			ops = append(ops, rewriteJSONFile(path, jsonPaths...))
+			ops = append(ops, rewriteJSONFileWith(path, func(raw []byte) ([]byte, bool, error) {
+				return removeTopLevelJSONCMembers(raw, "outputStyle")
+			}))
 		}
 	case model.ComponentEngram:
 		if s.engramUninstallScope == model.EngramUninstallScopeProject {
@@ -761,6 +762,14 @@ func rewriteMarkdownFile(path string, mutate func(content string) (string, bool)
 }
 
 func rewriteJSONFile(path string, jsonPaths ...jsonPath) operation {
+	return rewriteJSONFileWith(path, func(raw []byte) ([]byte, bool, error) {
+		return removeJSONPaths(raw, jsonPaths...)
+	})
+}
+
+// rewriteJSONFileWith rewrites a JSON settings file through clean, removing
+// the file when only an empty object remains.
+func rewriteJSONFileWith(path string, clean func([]byte) ([]byte, bool, error)) operation {
 	return operation{
 		typeID: opRewriteFile,
 		path:   path,
@@ -772,7 +781,7 @@ func rewriteJSONFile(path string, jsonPaths ...jsonPath) operation {
 				}
 				return false, false, fmt.Errorf("read json file %q: %w", path, err)
 			}
-			updated, changed, err := removeJSONPaths(raw, jsonPaths...)
+			updated, changed, err := clean(raw)
 			if err != nil {
 				return false, false, fmt.Errorf("clean json file %q: %w", path, err)
 			}

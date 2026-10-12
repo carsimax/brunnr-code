@@ -54,10 +54,11 @@ func TestRunInstallModifierConsumersAndDefaults(t *testing.T) {
 		args []string
 		want []model.ComponentID
 	}{
-		{"implicit persona with permissions", []string{"--component", "permissions"}, []model.ComponentID{model.ComponentPermission}},
+		// The managed persona is mandatory, so every explicit list resolves it.
+		{"implicit persona with permissions", []string{"--component", "permissions"}, []model.ComponentID{model.ComponentPermission, model.ComponentPersona}},
 		{"explicit persona component", []string{"--component", "persona"}, []model.ComponentID{model.ComponentPersona}},
-		{"explicit skill consumer", []string{"--component", "skills", "--skill", "go-testing"}, []model.ComponentID{model.ComponentSkills}},
-		{"explicit skills alias consumer", []string{"--components", "skills", "--skills", "go-testing"}, []model.ComponentID{model.ComponentSkills}},
+		{"explicit skill consumer", []string{"--component", "skills", "--skill", "go-testing"}, []model.ComponentID{model.ComponentPersona, model.ComponentSkills}},
+		{"explicit skills alias consumer", []string{"--components", "skills", "--skills", "go-testing"}, []model.ComponentID{model.ComponentPersona, model.ComponentSkills}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			home := t.TempDir()

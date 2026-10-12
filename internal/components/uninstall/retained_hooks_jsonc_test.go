@@ -102,3 +102,32 @@ func TestFullAgentClaudeRefusesUnsafeJSONCHooksWithoutWrite(t *testing.T) {
 		})
 	}
 }
+
+// TestFullAgentClaudeRemovesOutputStyleFromJSONCSettings pins that persona
+// uninstall removes only the outputStyle member of JSONC Claude settings,
+// keeping the user's comments. A comment attached to outputStyle keeps the
+// member in place rather than discarding the note.
+func TestFullAgentClaudeRemovesOutputStyleFromJSONCSettings(t *testing.T) {
+	const prefix = "{\n  // Personal settings.\n  \"model\": \"opus\",\n"
+	const attached = "{\n  \"model\": \"opus\", // chosen by hand\n  \"outputStyle\": \"Principal Engineer\"\n}\n"
+	for _, tc := range []struct {
+		name, seed, want string
+	}{
+		{"managed member removed", prefix + "  \"outputStyle\": \"Principal Engineer\",\n  \"theme\": \"dark\",\n}\n", prefix + "  \"theme\": \"dark\",\n}\n"},
+		{"attached comment kept", attached, attached},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path, err := applyClaudeSettingsRewrite(t, tc.seed)
+			if err != nil {
+				t.Fatalf("uninstall over JSONC settings: %v", err)
+			}
+			raw, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("settings with user text removed: %v", err)
+			}
+			if string(raw) != tc.want {
+				t.Fatalf("settings = %q, want %q", raw, tc.want)
+			}
+		})
+	}
+}

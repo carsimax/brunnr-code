@@ -6,11 +6,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/pipeline"
+	"github.com/carsimax/brunnr-code/internal/planner"
 	"github.com/carsimax/brunnr-code/internal/system"
 )
 
@@ -19,7 +21,12 @@ type claudeHooksRollbackFailureStep struct{ run func() error }
 func (claudeHooksRollbackFailureStep) ID() string   { return "test:fail-after-claude-hooks" }
 func (s claudeHooksRollbackFailureStep) Run() error { return s.run() }
 
-func TestInstallClaudeHooksRollbackWithoutPersona(t *testing.T) {
+// TestInstallClaudeHooksRollback injects a failure after the scoped Claude
+// hooks are written and checks that rollback restores settings. The managed
+// persona is mandatory, so every install also selects it; the component-free
+// snapshot of the hook settings is pinned separately by
+// TestInstallBackupTargetsSnapshotClaudeSettingsWithoutPersona.
+func TestInstallClaudeHooksRollback(t *testing.T) {
 	for _, scope := range []InstallScope{ScopeWorkspace, ScopeGlobal} {
 		for _, existing := range []bool{false, true} {
 			name := string(scope) + "/new settings"
@@ -48,8 +55,8 @@ func TestInstallClaudeHooksRollbackWithoutPersona(t *testing.T) {
 				failure := errors.New("injected failure after scoped Claude hooks")
 				observed := false
 				installStagePlan = func(rt *installRuntime) pipeline.StagePlan {
-					if len(rt.selection.Components) != 1 || rt.selection.Components[0] != model.ComponentSkills {
-						t.Fatalf("regression must not select a settings-writing component: %v", rt.selection.Components)
+					if want := []model.ComponentID{model.ComponentSkills, model.ComponentPersona}; !slices.Equal(rt.selection.Components, want) {
+						t.Fatalf("selection = %v, want %v (skills plus the mandatory persona)", rt.selection.Components, want)
 					}
 					plan := priorPlan(rt)
 					plan.Apply = append(plan.Apply, claudeHooksRollbackFailureStep{run: func() error {
@@ -84,6 +91,31 @@ func TestInstallClaudeHooksRollbackWithoutPersona(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// TestInstallBackupTargetsSnapshotClaudeSettingsWithoutPersona pins that the
+// retained Claude hooks snapshot their scoped settings independently of the
+// components in the plan, so the snapshot does not depend on persona (the
+// only component that also declares settings.json).
+func TestInstallBackupTargetsSnapshotClaudeSettingsWithoutPersona(t *testing.T) {
+	for _, scope := range []InstallScope{ScopeWorkspace, ScopeGlobal} {
+		t.Run(string(scope), func(t *testing.T) {
+			home, workspace := t.TempDir(), t.TempDir()
+			target := workspace
+			if scope == ScopeGlobal {
+				target = home
+			}
+			selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}, Components: []model.ComponentID{model.ComponentSkills}}
+			resolved := planner.ResolvedPlan{Agents: selection.Agents, OrderedComponents: selection.Components}
+			paths, err := backupTargets(home, workspace, scope, selection, resolved)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if settings := filepath.Join(target, ".claude", "settings.json"); !slices.Contains(paths, settings) {
+				t.Fatalf("backup targets miss scoped Claude settings %s: %v", settings, paths)
+			}
+		})
 	}
 }
 

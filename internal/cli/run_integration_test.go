@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -1108,7 +1109,7 @@ func TestRunInstallUpgradeIdempotency(t *testing.T) {
 
 // --- Custom preset integration tests ---
 
-func TestRunInstallCustomPresetNoComponentsIsNoop(t *testing.T) {
+func TestRunInstallCustomPresetNoComponentsInstallsOnlyPersona(t *testing.T) {
 	home := t.TempDir()
 	restoreHome := osUserHomeDir
 	restoreCommand := runCommand
@@ -1131,10 +1132,9 @@ func TestRunInstallCustomPresetNoComponentsIsNoop(t *testing.T) {
 		t.Fatalf("RunInstall() error = %v", err)
 	}
 
-	// Custom preset with no components should resolve to zero ordered components.
-	if len(result.Resolved.OrderedComponents) != 0 {
-		t.Fatalf("expected 0 ordered components for custom preset, got %d: %v",
-			len(result.Resolved.OrderedComponents), result.Resolved.OrderedComponents)
+	// Custom preset with no components resolves to only the mandatory persona.
+	if want := []model.ComponentID{model.ComponentPersona}; !slices.Equal(result.Resolved.OrderedComponents, want) {
+		t.Fatalf("ordered components for custom preset = %v, want %v", result.Resolved.OrderedComponents, want)
 	}
 }
 
@@ -1306,9 +1306,9 @@ func TestRunInstallCustomPresetDryRunShowsCustomPreset(t *testing.T) {
 		t.Fatalf("preset = %q, want %q", result.Selection.Preset, model.PresetCustom)
 	}
 
-	// Zero components when no --component flags provided.
-	if len(result.Resolved.OrderedComponents) != 0 {
-		t.Fatalf("expected 0 ordered components, got %d", len(result.Resolved.OrderedComponents))
+	// Only the mandatory persona when no --component flags provided.
+	if want := []model.ComponentID{model.ComponentPersona}; !slices.Equal(result.Resolved.OrderedComponents, want) {
+		t.Fatalf("ordered components = %v, want %v", result.Resolved.OrderedComponents, want)
 	}
 
 	output := RenderDryRun(result)
@@ -1333,18 +1333,11 @@ func TestRunInstallCustomPresetExplicitComponentsResolveCorrectly(t *testing.T) 
 		t.Fatalf("RunInstall() error = %v", err)
 	}
 
-	// Custom selection contains exactly the three explicitly requested independent components.
-	if len(result.Resolved.OrderedComponents) != 3 {
-		t.Fatalf("expected 3 ordered components, got %d: %v",
-			len(result.Resolved.OrderedComponents), result.Resolved.OrderedComponents)
-	}
-
-	// Verify persona is NOT in the plan.
-	for _, c := range result.Resolved.OrderedComponents {
-		switch c {
-		case model.ComponentPersona:
-			t.Fatalf("unexpected component %q in custom preset plan", c)
-		}
+	// Custom selection contains the three explicitly requested components plus
+	// the mandatory persona, which runs before Engram (soft ordering).
+	want := []model.ComponentID{model.ComponentPersona, model.ComponentEngram, model.ComponentPermission, model.ComponentSkills}
+	if !slices.Equal(result.Resolved.OrderedComponents, want) {
+		t.Fatalf("ordered components = %v, want %v", result.Resolved.OrderedComponents, want)
 	}
 }
 

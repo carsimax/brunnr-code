@@ -12,10 +12,11 @@ import (
 // comment inside it or attached to it, or one spelled with escapes, is kept
 // and returned in kept, since deleting it would discard the user's note.
 // When dropEmpty is set and the object ends up with no members, the object's
-// own member is removed from its parent the same way. A missing path is not
-// an error; duplicate keys anywhere in the document are refused.
+// own member is removed from its parent the same way. An empty path addresses
+// the document root, which is never dropped. A missing path is not an error;
+// duplicate keys anywhere in the document are refused.
 func RemoveJSONCMembers(raw []byte, path []string, names []string, dropEmpty bool) ([]byte, []string, error) {
-	if len(path) == 0 || len(names) == 0 {
+	if len(names) == 0 {
 		return raw, nil, nil
 	}
 	if err := RejectDuplicateJSONKeys(raw); err != nil {
@@ -68,7 +69,7 @@ func RemoveJSONCMembers(raw []byte, path []string, names []string, dropEmpty boo
 	}
 	shift := len(content) - (target[1] - target[0])
 	text = text[:target[0]] + content + text[target[1]:]
-	if dropEmpty && removed == len(object) {
+	if dropEmpty && len(path) > 0 && removed == len(object) {
 		parent := spans[len(spans)-2]
 		start, end := parent[0], parent[1]+shift
 		if updated, ok := removeJSONCMember(text[start:end], path[len(path)-1]); ok {

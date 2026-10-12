@@ -2247,8 +2247,8 @@ func TestPresetConfirmCustomEntersDependencyTreeComponentPicker(t *testing.T) {
 	if state.Selection.Preset != model.PresetCustom {
 		t.Fatalf("preset = %q, want %q", state.Selection.Preset, model.PresetCustom)
 	}
-	if len(state.Selection.Components) != 0 {
-		t.Fatalf("components = %v, want empty custom selection", state.Selection.Components)
+	if !slices.Equal(state.Selection.Components, []model.ComponentID{model.ComponentPersona}) {
+		t.Fatalf("components = %v, want custom selection with only the mandatory persona", state.Selection.Components)
 	}
 }
 
@@ -3523,7 +3523,10 @@ func TestPinErrClearedOnScreenReentry(t *testing.T) {
 	}
 }
 
-func TestCustomPresetCanSelectEngramWithoutPersona(t *testing.T) {
+// TestCustomPresetKeepsMandatoryPersona pins that the custom picker never
+// offers persona as a toggle and that persona stays selected while the user
+// toggles the optional components.
+func TestCustomPresetKeepsMandatoryPersona(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenPreset
 	m.Cursor = len(screens.PresetOptions()) - 1 // Custom preset
@@ -3537,15 +3540,17 @@ func TestCustomPresetCanSelectEngramWithoutPersona(t *testing.T) {
 	if state.Screen != ScreenDependencyTree {
 		t.Fatalf("Screen = %v, want ScreenDependencyTree for custom component selection", state.Screen)
 	}
-	if len(state.Selection.Components) != 0 {
-		t.Fatalf("custom preset should start with no components selected; got %v", state.Selection.Components)
+	if !slices.Equal(state.Selection.Components, []model.ComponentID{model.ComponentPersona}) {
+		t.Fatalf("custom preset should start with only the mandatory persona; got %v", state.Selection.Components)
 	}
 
 	engramCursor := -1
 	for idx, component := range screens.AllComponents() {
+		if component.ID == model.ComponentPersona {
+			t.Fatalf("custom component picker offers mandatory %v as a toggle", model.ComponentPersona)
+		}
 		if component.ID == model.ComponentEngram {
 			engramCursor = idx
-			break
 		}
 	}
 	if engramCursor < 0 {
@@ -3555,11 +3560,13 @@ func TestCustomPresetCanSelectEngramWithoutPersona(t *testing.T) {
 	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeySpace})
 	state = updated.(Model)
 
-	if !slices.Equal(state.Selection.Components, []model.ComponentID{model.ComponentEngram}) {
-		t.Fatalf("components = %v, want only Engram selected", state.Selection.Components)
+	if !slices.Equal(state.Selection.Components, []model.ComponentID{model.ComponentPersona, model.ComponentEngram}) {
+		t.Fatalf("components = %v, want persona and Engram selected", state.Selection.Components)
 	}
-	if slices.Contains(state.Selection.Components, model.ComponentPersona) {
-		t.Fatalf("custom preset should not auto-select %v; components: %v", model.ComponentPersona, state.Selection.Components)
+
+	view := screens.RenderDependencyTree(state.DependencyPlan, state.Selection, 0)
+	if strings.Contains(view, string(model.ComponentPersona)) {
+		t.Fatalf("custom picker renders persona as a choice:\n%s", view)
 	}
 }
 

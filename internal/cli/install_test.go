@@ -81,7 +81,8 @@ func TestNormalizeInstallFlagsCustomAcceptsOptionalInstallables(t *testing.T) {
 		t.Fatalf("NormalizeInstallFlags() error = %v", err)
 	}
 
-	want := []model.ComponentID{model.ComponentPermission}
+	// The managed persona is mandatory, so it joins every explicit list.
+	want := []model.ComponentID{model.ComponentPermission, model.ComponentPersona}
 	if !reflect.DeepEqual(input.Selection.Components, want) {
 		t.Fatalf("components = %#v, want %#v", input.Selection.Components, want)
 	}

@@ -54,6 +54,26 @@ func removeJSONPaths(raw []byte, paths ...jsonPath) ([]byte, bool, error) {
 	return append(encoded, []byte(eol)...), true, nil
 }
 
+// removeTopLevelJSONCMembers removes top-level members from settings that may
+// carry JSONC comments. Strict JSON keeps the shared normalized rewrite; JSONC
+// is edited in place so the user's comments survive. A member holding or
+// carrying a comment stays, like an emptied hooks object with an attached
+// comment: leaving a managed key is recoverable, discarding the note is not.
+func removeTopLevelJSONCMembers(raw []byte, names ...string) ([]byte, bool, error) {
+	if json.Valid(raw) || len(bytes.TrimSpace(raw)) == 0 {
+		paths := make([]jsonPath, 0, len(names))
+		for _, name := range names {
+			paths = append(paths, jsonPath{name})
+		}
+		return removeJSONPaths(raw, paths...)
+	}
+	updated, _, err := filemerge.RemoveJSONCMembers(raw, nil, names, false)
+	if err != nil {
+		return nil, false, err
+	}
+	return updated, !bytes.Equal(updated, raw), nil
+}
+
 func deleteJSONPath(root map[string]any, path jsonPath) bool {
 	if len(path) == 0 {
 		return false

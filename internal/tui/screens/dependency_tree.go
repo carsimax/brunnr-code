@@ -14,9 +14,10 @@ func DependencyTreeOptions() []string {
 	return []string{"Continue", "Back"}
 }
 
-// AllComponents returns the full list of available components for the custom picker.
+// AllComponents returns the components the custom picker offers as toggles.
+// Mandatory components (the managed persona) are always installed and hidden.
 func AllComponents() []catalog.Component {
-	return catalog.MVPComponents()
+	return catalog.SelectableComponents()
 }
 
 // RenderDependencyTree shows the install plan. For custom presets, it shows

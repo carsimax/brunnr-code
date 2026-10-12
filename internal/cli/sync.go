@@ -275,6 +275,9 @@ func RestorePersistedSelection(selection *model.Selection, persisted state.Insta
 	}
 	explicit := *selection
 	persisted.RestoreSelection(selection)
+	// State written before persona became mandatory may lack it; sync
+	// installs it like every other selection path.
+	selection.Components = model.WithMandatoryComponents(selection.Components)
 	if flags.skillsSet {
 		selection.Skills = explicit.Skills
 		setSelectionComponent(selection, model.ComponentSkills, true, true)

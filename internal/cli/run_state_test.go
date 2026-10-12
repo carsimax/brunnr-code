@@ -113,7 +113,7 @@ func TestRunInstallPersistsConfiguredSelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := state.Read(home)
-	if err != nil || !got.SelectionConfigured || got.Preset != model.PresetCustom || len(got.Components) != 0 || len(got.InstalledAgents) != 1 || got.InstalledAgents[0] != "claude-code" {
+	if err != nil || !got.SelectionConfigured || got.Preset != model.PresetCustom || !slices.Equal(got.Components, []model.ComponentID{model.ComponentPersona}) || len(got.InstalledAgents) != 1 || got.InstalledAgents[0] != "claude-code" {
 		t.Fatalf("persisted selection = %#v, err = %v", got, err)
 	}
 	wantDigest, err := managedAssetDigest()

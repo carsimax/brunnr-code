@@ -13,6 +13,9 @@ func TestRenderPresetClarifiesCustomManualSelection(t *testing.T) {
 	if !strings.Contains(out, "Choose each component manually") {
 		t.Fatalf("RenderPreset missing custom preset clarification; output:\n%s", out)
 	}
+	if strings.Contains(out, "persona") {
+		t.Fatalf("RenderPreset offers the mandatory persona as a custom choice; output:\n%s", out)
+	}
 	if strings.Contains(out, "Pick individual components yourself") {
 		t.Fatalf("RenderPreset still shows old custom preset wording; output:\n%s", out)
 	}
