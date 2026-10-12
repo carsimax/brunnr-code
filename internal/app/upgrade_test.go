@@ -83,7 +83,7 @@ func TestRunArgs_UpgradeToolFilter(t *testing.T) {
 	}
 
 	out := buf.String()
-	// Output should only mention engram or no-upgrades, not brunnr-code or gga.
+	// Output should only mention engram or no-upgrades, not brunnr-code or faketool.
 	// This is a soft check since the tool may not be installed.
 	if strings.Contains(out, "brunnr-code") && !strings.Contains(out, "engram") {
 		t.Errorf("filtering to engram should not show brunnr-code in output; got: %s", out)
@@ -197,14 +197,14 @@ func TestRenderUpgradeReport_PerToolSemantics_Deterministic(t *testing.T) {
 			name: "real failure shows error details",
 			results: []upgrade.ToolUpgradeResult{
 				{
-					ToolName:   "gga",
+					ToolName:   "faketool",
 					OldVersion: "1.0.0",
 					NewVersion: "2.0.0",
 					Status:     upgrade.UpgradeFailed,
-					Err:        errors.New("brew upgrade gga: exit status 1"),
+					Err:        errors.New("brew upgrade faketool: exit status 1"),
 				},
 			},
-			wantContains:   []string{"gga", "FAILED", "exit status 1", "[!!]"},
+			wantContains:   []string{"faketool", "FAILED", "exit status 1", "[!!]"},
 			wantNotContain: []string{"manual update required"},
 		},
 		{
@@ -238,14 +238,14 @@ func TestRenderUpgradeReport_PerToolSemantics_Deterministic(t *testing.T) {
 					ManualHint: "source build — upgrade manually",
 				},
 				{
-					ToolName:   "gga",
+					ToolName:   "faketool",
 					OldVersion: "1.0.0",
 					NewVersion: "2.0.0",
 					Status:     upgrade.UpgradeSkipped,
 					ManualHint: "Download from https://example.com/tool/releases",
 				},
 			},
-			wantContains:   []string{"engram", "[ok]", "brunnr-code", "[--]", "gga", "1 succeeded", "2 skipped"},
+			wantContains:   []string{"engram", "[ok]", "brunnr-code", "[--]", "faketool", "1 succeeded", "2 skipped"},
 			wantNotContain: []string{"FAILED", "[!!]"},
 		},
 	}

@@ -186,19 +186,19 @@ func TestCheckOneTool_WindowsPowerShellShimFallback(t *testing.T) {
 	executableExtsFn = func() []string { return []string{".exe", ".cmd"} }
 
 	dir := t.TempDir()
-	ps1Path := filepath.Join(dir, "gga.ps1")
+	ps1Path := filepath.Join(dir, "faketool.ps1")
 	if err := os.WriteFile(ps1Path, []byte("fake"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
 	lookPathFn = func(file string) (string, error) {
-		if file == "gga.ps1" {
+		if file == "faketool.ps1" {
 			return ps1Path, nil
 		}
 		return "", errors.New("not found")
 	}
 
-	got := checkOneTool("gga", []string{dir})
+	got := checkOneTool("faketool", []string{dir})
 
 	if got.Status != CheckStatusPass {
 		t.Fatalf("expected pass, got %s: %s", got.Status, got.Detail)
@@ -222,21 +222,21 @@ func TestCheckOneTool_WindowsShimVariantsInSameDirAreNotDuplicates(t *testing.T)
 	executableExtsFn = func() []string { return []string{".cmd"} }
 
 	dir := t.TempDir()
-	cmdPath := filepath.Join(dir, "gga.cmd")
-	for _, path := range []string{cmdPath, filepath.Join(dir, "gga.ps1")} {
+	cmdPath := filepath.Join(dir, "faketool.cmd")
+	for _, path := range []string{cmdPath, filepath.Join(dir, "faketool.ps1")} {
 		if err := os.WriteFile(path, []byte("fake"), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	lookPathFn = func(file string) (string, error) {
-		if file == "gga" {
+		if file == "faketool" {
 			return cmdPath, nil
 		}
 		return "", errors.New("not found")
 	}
 
-	got := checkOneTool("gga", []string{dir})
+	got := checkOneTool("faketool", []string{dir})
 
 	if got.Status != CheckStatusPass {
 		t.Fatalf("expected pass for same-directory shim variants, got %s: %s", got.Status, got.Detail)

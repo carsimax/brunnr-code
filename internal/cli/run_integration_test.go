@@ -19,7 +19,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/system"
 )
 
-// missingBinaryLookPath simulates all installable binaries (engram, gga) as
+// missingBinaryLookPath simulates all installable binaries (engram) as
 // missing. Go availability is no longer required for engram installation
 // (pre-built binaries are downloaded directly from GitHub Releases).
 func missingBinaryLookPath(name string) (string, error) {

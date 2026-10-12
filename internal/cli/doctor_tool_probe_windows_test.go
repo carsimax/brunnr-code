@@ -15,8 +15,8 @@ func TestDoctorBatchProbeRefusalsNameRecovery(t *testing.T) {
 		name, path, want string
 		unsetRoot        bool
 	}{
-		{name: "expansion-sensitive path", path: filepath.Join(t.TempDir(), "unsafe%gga.cmd")},
-		{name: "missing system root", path: filepath.Join(t.TempDir(), "gga.cmd"), unsetRoot: true},
+		{name: "expansion-sensitive path", path: filepath.Join(t.TempDir(), "unsafe%faketool.cmd")},
+		{name: "missing system root", path: filepath.Join(t.TempDir(), "faketool.cmd"), unsetRoot: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.unsetRoot {

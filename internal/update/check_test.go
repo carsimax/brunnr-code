@@ -64,8 +64,8 @@ func TestDetectInstalledVersion(t *testing.T) {
 			wantVersion: "dev",
 		},
 		{
-			name: "gga not installed",
-			tool: ToolInfo{Name: "gga", DetectCmd: []string{"gga", "--version"}},
+			name: "faketool not installed",
+			tool: ToolInfo{Name: "faketool", DetectCmd: []string{"faketool", "--version"}},
 			lookPathFn: func(string) (string, error) {
 				return "", fmt.Errorf("not found")
 			},
@@ -84,12 +84,12 @@ func TestDetectInstalledVersion(t *testing.T) {
 		},
 		{
 			name: "unparseable version output",
-			tool: ToolInfo{Name: "gga", DetectCmd: []string{"gga", "--version"}},
+			tool: ToolInfo{Name: "faketool", DetectCmd: []string{"faketool", "--version"}},
 			lookPathFn: func(string) (string, error) {
-				return "/usr/local/bin/gga", nil
+				return "/usr/local/bin/faketool", nil
 			},
 			execCommandFn: func(name string, args ...string) *exec.Cmd {
-				return mockCmd("echo", "gga - no version info")
+				return mockCmd("echo", "faketool - no version info")
 			},
 			wantVersion: "",
 		},
@@ -517,12 +517,12 @@ func TestCheckAll(t *testing.T) {
 	httpClient = server.Client()
 	httpClient.Transport = &testTransport{server: server}
 
-	// Mock: engram is installed at v0.3.2, gga is not installed.
+	// Mock: engram is installed at v0.3.2, faketool is not installed.
 	lookPath = func(name string) (string, error) {
 		switch name {
 		case "engram":
 			return "/usr/local/bin/engram", nil
-		case "gga":
+		case "faketool":
 			return "", fmt.Errorf("not found")
 		default:
 			return "", fmt.Errorf("not found")
@@ -877,7 +877,7 @@ func TestParseVersionFromOutput(t *testing.T) {
 		want   string
 	}{
 		{name: "engram v0.3.2", output: "engram v0.3.2", want: "0.3.2"},
-		{name: "gga 1.0.0", output: "gga version 1.0.0", want: "1.0.0"},
+		{name: "faketool 1.0.0", output: "faketool version 1.0.0", want: "1.0.0"},
 		{name: "bare version", output: "2.1.0", want: "2.1.0"},
 		{name: "no version", output: "no version info here", want: ""},
 		{name: "empty", output: "", want: ""},
@@ -1227,7 +1227,7 @@ func TestInstallMethodFieldsOnRegistry(t *testing.T) {
 }
 
 func TestBuildExecCmd_Ps1UsesPoershellFile(t *testing.T) {
-	ps1Path := `C:\Users\test\bin\gga.ps1`
+	ps1Path := `C:\Users\test\bin\faketool.ps1`
 
 	gotBin, gotArgs := buildExecCmd(ps1Path, []string{"--version"})
 
@@ -1255,7 +1255,7 @@ func TestBuildExecCmd_NonPs1Passthrough(t *testing.T) {
 	}{
 		{"/usr/local/bin/engram", []string{"version"}},
 		{`C:\Users\user\AppData\Local\engram\bin\engram.exe`, []string{"version"}},
-		{"/home/user/.local/bin/gga", []string{"--version"}},
+		{"/home/user/.local/bin/faketool", []string{"--version"}},
 	}
 
 	for _, c := range cases {
@@ -1276,18 +1276,18 @@ func TestBuildExecCmd_NonPs1Passthrough(t *testing.T) {
 }
 
 // TestDetectInstalledVersionPs1FallbackInvokesViaPowershell verifies the full
-// integration path: when LookPath fails for gga, the fallback finds a .ps1
+// integration path: when LookPath fails for faketool, the fallback finds a .ps1
 // file on disk and dispatches it through the central PowerShell resolver.
 func TestDetectInstalledVersionPs1FallbackInvokesViaPowershell(t *testing.T) {
 	tmpDir := t.TempDir()
-	ps1Path := filepath.Join(tmpDir, "gga.ps1")
+	ps1Path := filepath.Join(tmpDir, "faketool.ps1")
 	if err := os.WriteFile(ps1Path, []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
 	tool := ToolInfo{
-		Name:      "gga",
-		DetectCmd: []string{"gga", "--version"},
+		Name:      "faketool",
+		DetectCmd: []string{"faketool", "--version"},
 		FallbackPaths: func(homeDir, localAppData string) []string {
 			return []string{ps1Path}
 		},
@@ -1306,7 +1306,7 @@ func TestDetectInstalledVersionPs1FallbackInvokesViaPowershell(t *testing.T) {
 		userHomeDir = origUserHomeDir
 	})
 
-	// Simulate stale PATH: gga not found via LookPath.
+	// Simulate stale PATH: faketool not found via LookPath.
 	lookPath = func(string) (string, error) { return "", fmt.Errorf("not found") }
 	osStat = os.Stat // real stat so the .ps1 file is found
 	userHomeDir = func() (string, error) { return t.TempDir(), nil }
@@ -1317,7 +1317,7 @@ func TestDetectInstalledVersionPs1FallbackInvokesViaPowershell(t *testing.T) {
 	runPowerShell = func(_ context.Context, args ...string) ([]byte, error) {
 		capturedBinary = powerShellCommand
 		capturedArgs = append([]string{}, args...)
-		return []byte("gga 1.2.3"), nil
+		return []byte("faketool 1.2.3"), nil
 	}
 
 	got := detectInstalledVersion(context.Background(), tool)

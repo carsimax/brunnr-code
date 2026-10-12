@@ -277,8 +277,8 @@ func TestExecute_PerToolSuccessAndFailure(t *testing.T) {
 	t.Cleanup(func() { execCommand = origExecCommand })
 
 	execCommand = func(name string, args ...string) *exec.Cmd {
-		// engram go install succeeds, gga curl/download attempt fails — we simulate
-		// the failure by having execCommand return false for "gga" detection.
+		// engram go install succeeds, faketool curl/download attempt fails — we simulate
+		// the failure by having execCommand return false for "faketool" detection.
 		if name == "go" {
 			return mockCmd("echo", "go install ok")
 		}
@@ -307,7 +307,7 @@ func TestExecute_PerToolSuccessAndFailure(t *testing.T) {
 // TestExecute_DevBuildIsSkipped verifies the spec requirement:
 // brunnr-code with DevBuild status must appear in Results as UpgradeSkipped
 // with a non-empty ManualHint explaining it is a source/dev build.
-// DevBuild tools must NOT be auto-executed, and engram/gga remain eligible.
+// DevBuild tools must NOT be auto-executed, and engram/faketool remain eligible.
 func TestExecute_DevBuildIsSkipped(t *testing.T) {
 	origExecCommand := execCommand
 	t.Cleanup(func() { execCommand = origExecCommand })
@@ -1397,7 +1397,7 @@ func TestManagedAgentBackupPathsOmitPromptsBehindSymlinkedRuntimeDirs(t *testing
 func TestClaudePilotSnapshotRestoreRemovesModulePilot(t *testing.T) {
 	home := t.TempDir()
 	if runtime.GOOS == "windows" {
-		// GGA honors APPDATA independently of the explicit installation home.
+		// Some managed paths honor APPDATA independently of the explicit installation home.
 		t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
 	}
 	if err := state.Write(home, state.InstallState{InstalledAgents: []string{string(model.AgentClaudeCode)}}); err != nil {

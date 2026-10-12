@@ -65,8 +65,6 @@ func TestRunStrategy_BrewUpgrade(t *testing.T) {
 	}
 }
 
-// --- TestRunStrategy_GoInstallMissingImportPath ---
-
 // --- TestRunStrategy_UnsupportedMethodManualFallback ---
 
 func TestRunStrategy_UnsupportedMethodManualFallback(t *testing.T) {
@@ -482,18 +480,6 @@ func TestRunStrategy_ExecErrorWrapped(t *testing.T) {
 	}
 }
 
-// --- TestRunStrategy_ScriptUpgradeSuccess ---
-
-// --- TestRunStrategy_ScriptUpgradeDownloadFailure ---
-
-// --- TestRunStrategy_ScriptUpgradeWindowsManualFallback ---
-
-// --- TestGGAScriptUpgradeUsesGitClone ---
-
-// --- TestGGAScriptUpgradeWindowsManualFallback ---
-
-// --- TestRunStrategy_GGAUsesGitClone ---
-
 // --- TestEngramUpgradeUsesDownloadNotGoInstall ---
 
 // TestEngramUpgradeUsesDownloadNotGoInstall verifies that on Windows (non-brew),
@@ -591,8 +577,6 @@ func TestEngramUpgradeLinuxUsesDownload(t *testing.T) {
 		t.Errorf("exec (go install) should NOT be called for engram on Linux — use binary download")
 	}
 }
-
-// --- TestRunStrategy_ScriptUpgradeExecFailure ---
 
 // TestEngramBinaryUpgrade_CallsDownloadFn verifies that engramBinaryUpgrade
 // delegates to engramDownloadFn (the release-download path) and never execs.

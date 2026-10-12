@@ -110,7 +110,7 @@ func TestPartialUpdateChecks(t *testing.T) {
 				t.Setenv("USERPROFILE", home)
 				results := []update.UpdateResult{
 					{Tool: update.ToolInfo{Name: "engram"}, Status: update.CheckFailed},
-					{Tool: update.ToolInfo{Name: "gga"}, InstalledVersion: "1.0.0", LatestVersion: "2.0.0", Status: healthyStatus},
+					{Tool: update.ToolInfo{Name: "faketool"}, InstalledVersion: "1.0.0", LatestVersion: "2.0.0", Status: healthyStatus},
 				}
 				origAll, origFiltered, origExecute := updateCheckAll, updateCheckFiltered, upgradeExecuteWithOptions
 				t.Cleanup(func() {
@@ -125,7 +125,7 @@ func TestPartialUpdateChecks(t *testing.T) {
 						t.Fatalf("executor arguments = %v, %q, %v, %+v", got, gotHome, dryRun, opts)
 					}
 					if command == "upgrade-failure" {
-						return upgrade.UpgradeReport{Results: []upgrade.ToolUpgradeResult{{ToolName: "gga", Status: upgrade.UpgradeFailed, Err: fmt.Errorf("upgrade failure")}}}
+						return upgrade.UpgradeReport{Results: []upgrade.ToolUpgradeResult{{ToolName: "faketool", Status: upgrade.UpgradeFailed, Err: fmt.Errorf("upgrade failure")}}}
 					}
 					return upgrade.UpgradeReport{}
 				}
@@ -138,7 +138,7 @@ func TestPartialUpdateChecks(t *testing.T) {
 					err = runUpgrade(context.Background(), upgradeArgs{dryRun: command == "dry-run", noBackup: true}, system.DetectionResult{System: system.SystemInfo{Profile: profile}}, &out)
 				}
 				if command == "upgrade-failure" {
-					if err == nil || !strings.Contains(err.Error(), "upgrade failed for \"gga\"") {
+					if err == nil || !strings.Contains(err.Error(), "upgrade failed for \"faketool\"") {
 						t.Fatalf("error = %v, want actual upgrade failure", err)
 					}
 				} else if err != nil {
@@ -152,7 +152,7 @@ func TestPartialUpdateChecks(t *testing.T) {
 					t.Fatalf("executor calls = %d, want %d", calls, wantCalls)
 				}
 				text := out.String()
-				for _, want := range []string{"[!!] engram", "check failed", "gga"} {
+				for _, want := range []string{"[!!] engram", "check failed", "faketool"} {
 					if !strings.Contains(text, want) {
 						t.Fatalf("missing %q in output:\n%s", want, text)
 					}
@@ -214,15 +214,15 @@ func TestRunUpgrade_ForwardsParsedArgsOnceWithoutReparsing(t *testing.T) {
 	setupMockHome(t, home)
 
 	var buf bytes.Buffer
-	err := runUpgrade(context.Background(), upgradeArgs{dryRun: true, noBackup: true, toolFilter: []string{"engram", "gga"}}, system.DetectionResult{System: system.SystemInfo{Profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}}}, &buf)
+	err := runUpgrade(context.Background(), upgradeArgs{dryRun: true, noBackup: true, toolFilter: []string{"engram", "faketool"}}, system.DetectionResult{System: system.SystemInfo{Profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}}}, &buf)
 	if err != nil {
 		t.Fatalf("runUpgrade() error = %v, want nil", err)
 	}
 	if checkCalls != 1 {
 		t.Fatalf("updateCheckFiltered called %d times, want exactly 1", checkCalls)
 	}
-	if !reflect.DeepEqual(checkFilters, []string{"engram", "gga"}) {
-		t.Fatalf("updateCheckFiltered filters = %#v, want [engram gga] forwarded once", checkFilters)
+	if !reflect.DeepEqual(checkFilters, []string{"engram", "faketool"}) {
+		t.Fatalf("updateCheckFiltered filters = %#v, want [engram faketool] forwarded once", checkFilters)
 	}
 	if execCalls != 1 {
 		t.Fatalf("upgradeExecuteWithOptions called %d times, want exactly 1", execCalls)
@@ -236,7 +236,7 @@ func TestRunUpgrade_ForwardsParsedArgsOnceWithoutReparsing(t *testing.T) {
 }
 
 // TestRunUpgrade_NonBrunnrCodeUpgradeDoesNotPrintDoctorAdvisory verifies that
-// upgrading a tool other than brunnr-code (e.g. engram, gga) does NOT trigger
+// upgrading a tool other than brunnr-code (e.g. engram, faketool) does NOT trigger
 // the doctor advisory. The advisory is gated on brunnr-code specifically.
 func TestRunUpgrade_NonBrunnrCodeUpgradeDoesNotPrintDoctorAdvisory(t *testing.T) {
 	origCheckFiltered := updateCheckFiltered
