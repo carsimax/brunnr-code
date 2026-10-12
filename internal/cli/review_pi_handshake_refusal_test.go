@@ -143,7 +143,6 @@ func TestPiRelayHandshakeIsSoleMissingConditionStaysDiagnostic(t *testing.T) {
 		{name: "pi without the handshake", declared: "", agent: model.AgentPi, want: true},
 		{name: "pi with a stale contract", declared: "gentle-pi.review-relay/v0", agent: model.AgentPi, want: true},
 		{name: "pi with the exact handshake", declared: reviewPiHostRelayContract, agent: model.AgentPi, want: false},
-		{name: "kilocode without the handshake", declared: "", agent: model.AgentKilocode, want: false},
 		{name: "opencode without the handshake", declared: "", agent: model.AgentOpenCode, want: false},
 		{name: "unknown runtime", declared: "", agent: model.AgentID("unknown-runtime"), want: false},
 	} {

@@ -24,7 +24,6 @@ func TestCrossRepositoryLifecycleRootConformance(t *testing.T) {
 		{name: "Codex", runtime: model.AgentCodex, supported: true},
 		{name: "OpenCode", runtime: model.AgentOpenCode, supported: true},
 		{name: "Pi", runtime: model.AgentPi, supported: true},
-		{name: "unsupported Kilo", runtime: model.AgentKilocode},
 	}
 
 	supported := 0

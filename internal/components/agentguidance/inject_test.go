@@ -100,7 +100,7 @@ func TestRemoteAuthorizationRetainsExistingPermissionMergeBehavior(t *testing.T)
 		}
 		return string(root["permission"]) + string(agents["gentle-orchestrator"]["permission"])
 	}
-	for _, agent := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode} {
+	for _, agent := range []model.AgentID{model.AgentOpenCode} {
 		t.Run(string(agent), func(t *testing.T) {
 			home := t.TempDir()
 			paths, err := RoutingPaths(home, agent)
@@ -159,8 +159,8 @@ func TestRemoteAuthorizationPrimaryCarriers(t *testing.T) {
 			}
 		})
 	}
-	if covered != 15 {
-		t.Fatalf("covered %d non-Pi clients, want 15", covered)
+	if covered != 3 {
+		t.Fatalf("covered %d non-Pi clients, want 3", covered)
 	}
 }
 
@@ -425,102 +425,10 @@ type jinjaBootstrapper interface {
 	BootstrapTemplate(homeDir string) error
 }
 
-func TestInjectRoutingSurvivesJinjaTemplateBootstrap(t *testing.T) {
-	t.Parallel()
-
-	targetDir := t.TempDir()
-
-	adapter, err := agents.NewAdapter(model.AgentKimi)
-	if err != nil {
-		t.Fatalf("NewAdapter error = %v", err)
-	}
-	if adapter.SystemPromptStrategy() != model.StrategyJinjaModules {
-		t.Fatalf("kimi no longer uses StrategyJinjaModules; this regression guard needs a new subject")
-	}
-	bootstrapper, ok := adapter.(jinjaBootstrapper)
-	if !ok {
-		t.Fatalf("kimi adapter no longer exposes BootstrapTemplate")
-	}
-
-	result, err := InjectRoutingWithOptions(targetDir, model.AgentKimi, RoutingOptions{})
-	if err != nil {
-		t.Fatalf("InjectRouting error = %v", err)
-	}
-	var guidancePath string
-	for _, path := range result.Files {
-		if filepath.Base(path) == routingModuleFile {
-			guidancePath = path
-		}
-	}
-	if guidancePath == "" {
-		t.Fatalf("InjectRouting touched %v, want %s included", result.Files, routingModuleFile)
-	}
-
-	rendered, err := RenderRouting(model.AgentKimi)
-	if err != nil {
-		t.Fatalf("RenderRouting error = %v", err)
-	}
-
-	// A Jinja router template is rewritten from its embedded asset on every
-	// install, so guidance stored inside it is destroyed by the next sync.
-	if err := bootstrapper.BootstrapTemplate(targetDir); err != nil {
-		t.Fatalf("BootstrapTemplate error = %v", err)
-	}
-
-	after := readFile(t, guidancePath)
-	if !strings.Contains(after, rendered) {
-		t.Fatalf("BootstrapTemplate destroyed the routing guidance in %q:\n%s", guidancePath, after)
-	}
-
-	// Surviving on disk is not enough: the router template must still pull the
-	// module in, otherwise the agent never loads the guidance.
-	entry := readFile(t, adapter.SystemPromptFile(targetDir))
-	include := `{% include "` + filepath.Base(guidancePath) + `"`
-	if !strings.Contains(entry, include) {
-		t.Fatalf("router template %q does not include %q:\n%s", adapter.SystemPromptFile(targetDir), filepath.Base(guidancePath), entry)
-	}
-}
-
-func TestInjectRoutingCurrentKimiReportsRenderedHubWrite(t *testing.T) {
-	t.Parallel()
-
-	targetDir := t.TempDir()
-	configDir := filepath.Join(targetDir, ".kimi-code")
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	declared, err := RoutingPaths(targetDir, model.AgentKimi)
-	if err != nil {
-		t.Fatalf("RoutingPaths error = %v", err)
-	}
-	wantHub := filepath.Join(configDir, "AGENTS.md")
-	wantModule := filepath.Join(configDir, routingModuleFile)
-	if !samePathSet(declared, []string{wantModule, wantHub}) {
-		t.Fatalf("RoutingPaths(current Kimi) = %v, want module and hub", declared)
-	}
-
-	result, err := InjectRoutingWithOptions(targetDir, model.AgentKimi, RoutingOptions{})
-	if err != nil {
-		t.Fatalf("InjectRouting error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatal("InjectRouting changed = false, want true for first hub/module write")
-	}
-	if !samePathSet(result.Files, declared) {
-		t.Fatalf("InjectRouting files = %v, want declared %v", result.Files, declared)
-	}
-
-	hub := readFile(t, wantHub)
-	if !strings.Contains(hub, "<!-- gentle-ai:kimi-agents-hub -->") || !strings.Contains(hub, "Organic Driven Development") {
-		t.Fatalf("current Kimi hub does not contain rendered managed guidance:\n%s", hub)
-	}
-}
-
 func TestInjectRoutingUsesAlwaysLoadedOrchestratorScope(t *testing.T) {
 	t.Parallel()
 
-	for _, agent := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode} {
+	for _, agent := range []model.AgentID{model.AgentOpenCode} {
 		t.Run(string(agent), func(t *testing.T) {
 			t.Parallel()
 
@@ -883,17 +791,14 @@ func TestInjectRoutingDeliversNoRetiredControlPlaneVocabulary(t *testing.T) {
 
 // markdownSectionAgents lists every supported agent whose guidance is delivered
 // as a marker section inside its own system prompt file — that is, everything
-// except the Jinja router and the orchestrator-scoped OpenCode family.
+// except the orchestrator-scoped OpenCode runtime.
 func markdownSectionAgents(t *testing.T) []model.AgentID {
 	t.Helper()
 
 	var selected []model.AgentID
 	for _, agent := range catalog.AllAgents() {
-		if agent.ID == model.AgentOpenCode || agent.ID == model.AgentKilocode {
+		if agent.ID == model.AgentOpenCode {
 			continue
-		}
-		if agent.ID == model.AgentConductor {
-			continue // Catalog-only: inherits Claude Code config, no prompt file of its own.
 		}
 		adapter, err := agents.NewAdapter(agent.ID)
 		if err != nil {
@@ -904,8 +809,8 @@ func markdownSectionAgents(t *testing.T) []model.AgentID {
 		}
 		selected = append(selected, agent.ID)
 	}
-	if len(selected) != supportedAgentCount-4 {
-		t.Fatalf("selected %d markdown-section agents, want %d", len(selected), supportedAgentCount-4)
+	if len(selected) != supportedAgentCount-1 {
+		t.Fatalf("selected %d markdown-section agents, want %d", len(selected), supportedAgentCount-1)
 	}
 	return selected
 }

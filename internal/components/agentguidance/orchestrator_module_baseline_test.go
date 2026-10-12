@@ -59,22 +59,6 @@ var moduleVariantInputs = []moduleVariantInput{
 	{id: "opencode/unknown", agent: model.AgentOpenCode, asset: "opencode/orchestrator.md"},
 	{id: "opencode/v1", agent: model.AgentOpenCode, openCodeVersion: "1.14.0", asset: "opencode/orchestrator.md"},
 	{id: "opencode/v2", agent: model.AgentOpenCode, openCodeVersion: "2.0.4", asset: "opencode/orchestrator.md"},
-	{id: "kilocode", agent: model.AgentKilocode, asset: "opencode/orchestrator.md"},
-	{id: "gemini-cli", agent: model.AgentGeminiCLI, asset: "gemini/orchestrator.md"},
-	{id: "cursor", agent: model.AgentCursor, asset: "cursor/orchestrator.md"},
-	{id: "antigravity", agent: model.AgentAntigravity, asset: "antigravity/orchestrator.md"},
-	{id: "windsurf", agent: model.AgentWindsurf, asset: "windsurf/orchestrator.md"},
-	{id: "kimi/legacy", agent: model.AgentKimi, asset: "kimi/orchestrator.md"},
-	{id: "kimi/current", agent: model.AgentKimi, kimiCurrent: true, asset: "kimi/orchestrator.md"},
-	{id: "qwen-code", agent: model.AgentQwenCode, asset: "qwen/orchestrator.md"},
-	{id: "kiro-ide", agent: model.AgentKiroIDE, asset: "kiro/orchestrator.md"},
-	{id: "hermes", agent: model.AgentHermes, asset: "hermes/orchestrator.md"},
-	{id: "vscode-copilot/capable", agent: model.AgentVSCodeCopilot, asset: "generic/orchestrator.md"},
-	{id: "vscode-copilot/small", agent: model.AgentVSCodeCopilot, capability: "small", asset: "generic/orchestrator.md"},
-	{id: "openclaw/capable", agent: model.AgentOpenClaw, asset: "generic/orchestrator.md"},
-	{id: "openclaw/small", agent: model.AgentOpenClaw, capability: "small", asset: "generic/orchestrator.md"},
-	{id: "trae-ide/capable", agent: model.AgentTrae, asset: "generic/orchestrator.md"},
-	{id: "trae-ide/small", agent: model.AgentTrae, capability: "small", asset: "generic/orchestrator.md"},
 }
 
 type moduleVariant struct {
@@ -225,20 +209,21 @@ func TestOrchestratorModuleBaseline(t *testing.T) {
 		t.Fatalf("partial matrix: %d of %d variants ran; run the whole TestOrchestratorModuleBaseline without a subtest filter", len(order), len(moduleVariantInputs))
 	}
 
-	// Every non-Pi runtime with a guidance target and every orchestrator asset
-	// is characterized. Pi's prompt is owned by Gentle Shell and Conductor is
-	// catalog-only, so neither renders an orchestrator here.
+	// Every non-Pi runtime with a guidance target and every runtime-specific
+	// orchestrator asset is characterized. Pi's prompt is owned by Gentle Shell,
+	// so it renders no orchestrator here. The generic asset is the fallback for
+	// runtimes without a dedicated orchestrator; no supported runtime uses it.
 	agentsSeen, assetsSeen := map[model.AgentID]bool{}, map[string]bool{}
 	for _, input := range moduleVariantInputs {
 		agentsSeen[input.agent], assetsSeen[input.asset] = true, true
 	}
 	for _, agent := range catalog.AllAgents() {
-		if agent.ID != model.AgentPi && agent.ID != model.AgentConductor && !agentsSeen[agent.ID] {
+		if agent.ID != model.AgentPi && !agentsSeen[agent.ID] {
 			t.Errorf("runtime %q has no baseline variant", agent.ID)
 		}
 	}
 	if err := fs.WalkDir(assets.FS, ".", func(assetPath string, entry fs.DirEntry, err error) error {
-		if err == nil && !entry.IsDir() && path.Base(assetPath) == "orchestrator.md" && !assetsSeen[assetPath] {
+		if err == nil && !entry.IsDir() && path.Base(assetPath) == "orchestrator.md" && assetPath != "generic/orchestrator.md" && !assetsSeen[assetPath] {
 			t.Errorf("orchestrator asset %s has no baseline variant", assetPath)
 		}
 		return err
@@ -252,12 +237,6 @@ func TestOrchestratorModuleBaseline(t *testing.T) {
 	}
 	if renders["opencode/v2"] == renders["opencode/v1"] || !strings.Contains(renders["opencode/v2"], "`subagent`") {
 		t.Error("OpenCode v2 no longer binds the review contract to its own tool names")
-	}
-	for _, agent := range []string{"vscode-copilot", "openclaw", "trae-ide"} {
-		capable, small := renders[agent+"/capable"], renders[agent+"/small"]
-		if capable == small || strings.Contains(capable, "(Small Model)") || !strings.Contains(small, "(Small Model)") {
-			t.Errorf("%s does not keep distinct capable and small generic variants", agent)
-		}
 	}
 
 	if t.Failed() {

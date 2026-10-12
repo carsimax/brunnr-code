@@ -1,7 +1,6 @@
 package agents
 
 import (
-	"slices"
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
@@ -29,8 +28,8 @@ func TestJSONSettingsPathKeepsOnlyJSONNativeSettings(t *testing.T) {
 			t.Fatalf("JSONSettingsPath(%s) = %q, want native %q", agent, got, native)
 		}
 	}
-	if want := []model.AgentID{model.AgentKimi, model.AgentHermes}; !slices.Equal(nonJSON, want) {
-		t.Fatalf("non-JSON native settings = %v, want %v", nonJSON, want)
+	if len(nonJSON) != 0 {
+		t.Fatalf("non-JSON native settings = %v, want none", nonJSON)
 	}
 }
 

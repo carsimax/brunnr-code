@@ -116,31 +116,15 @@ func reviewExecutionContract(agent model.AgentID, source ReviewContractSource) (
 var sharedOrchestratorSectionPlaceholder = regexp.MustCompile(`\{\{GENTLE_AI_ODD_SECTION:([^}]*)\}\}`)
 
 // orchestratorAsset selects the embedded orchestrator for one runtime. It
-// mirrors the v3.7.0 selection exactly: runtime-specific assets win, Kilo shares
-// the OpenCode asset, and every other runtime receives the generic asset.
+// mirrors the v3.7.0 selection exactly: runtime-specific assets win and every
+// other runtime receives the generic asset.
 func orchestratorAsset(agent model.AgentID) string {
 	switch agent {
 	case model.AgentClaudeCode:
 		return "claude/orchestrator.md"
-	case model.AgentGeminiCLI:
-		return "gemini/orchestrator.md"
 	case model.AgentCodex:
 		return "codex/orchestrator.md"
-	case model.AgentAntigravity:
-		return "antigravity/orchestrator.md"
-	case model.AgentWindsurf:
-		return "windsurf/orchestrator.md"
-	case model.AgentCursor:
-		return "cursor/orchestrator.md"
-	case model.AgentKimi:
-		return "kimi/orchestrator.md"
-	case model.AgentQwenCode:
-		return "qwen/orchestrator.md"
-	case model.AgentKiroIDE:
-		return "kiro/orchestrator.md"
-	case model.AgentHermes:
-		return "hermes/orchestrator.md"
-	case model.AgentOpenCode, model.AgentKilocode:
+	case model.AgentOpenCode:
 		return "opencode/orchestrator.md"
 	default:
 		return "generic/orchestrator.md"

@@ -11,7 +11,7 @@ import (
 )
 
 func TestStrictTDDCarrierLifecycle(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex, model.AgentOpenClaw, model.AgentKimi, model.AgentCursor, model.AgentGeminiCLI, model.AgentWindsurf, model.AgentKiroIDE, model.AgentVSCodeCopilot, model.AgentAntigravity, model.AgentQwenCode, model.AgentTrae, model.AgentHermes} {
+	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex} {
 		t.Run(string(agent), func(t *testing.T) {
 			home := t.TempDir()
 			adapter, err := agents.NewAdapter(agent)
@@ -80,29 +80,5 @@ func TestStrictTDDUnsupportedCarrier(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestStrictTDDModifiedKimiModuleFailsClosed(t *testing.T) {
-	home := t.TempDir()
-	adapter, err := agents.NewAdapter(model.AgentKimi)
-	if err != nil {
-		t.Fatal(err)
-	}
-	path := filepath.Join(adapter.GlobalConfigDir(home), "strict-tdd-mode.md")
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, []byte("user module"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	for _, enabled := range []bool{true, false} {
-		if _, err := InjectStrictTDDWithOptions(home, model.AgentKimi, enabled, RoutingOptions{}); err == nil {
-			t.Fatalf("enabled=%v: expected ownership error", enabled)
-		}
-		raw, err := os.ReadFile(path)
-		if err != nil || string(raw) != "user module" {
-			t.Fatalf("modified module lost: %q %v", raw, err)
-		}
 	}
 }

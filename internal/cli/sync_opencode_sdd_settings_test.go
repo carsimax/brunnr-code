@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	kilocodeagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/kilocode"
 	opencodeagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
@@ -282,39 +281,6 @@ func TestWorkspaceSyncRetiresOnlyWorkspaceOpenCodeSDDSettings(t *testing.T) {
 	}
 	if _, err := os.Stat(prompt); err != nil {
 		t.Errorf("workspace sync removed a global SDD prompt: %v", err)
-	}
-}
-
-// Kilocode received the same v3.7.0 overlay and profile entries.
-func TestSyncRetiresOwnedKilocodeSDDSettings(t *testing.T) {
-	home := t.TempDir()
-	setSyncTestHome(t, home)
-	setOpenCodeTestHome(t, home)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
-	settings := kilocodeagent.NewAdapter().SettingsPath(home)
-	agent := releasedOpenCodeSDDAgents(t, "v1", "sdd-apply", "sdd-apply-fallback", "sdd-orchestrator-fallback")
-	agent["sdd-init"] = userSDDInit
-	mustWriteFile(t, settings, []byte(`{"agent":`+indentedJSON(t, agent)+`}`))
-	t.Chdir(t.TempDir())
-
-	result, err := RunSyncWithSelection(home, model.Selection{Agents: []model.AgentID{model.AgentKilocode}})
-	if err != nil {
-		t.Fatalf("RunSyncWithSelection() error = %v", err)
-	}
-	got, _ := openCodeSettingsAgents(t, settings)
-	for _, name := range []string{"sdd-apply", "sdd-apply-fallback", "sdd-orchestrator-fallback"} {
-		if _, ok := got[name]; ok {
-			t.Errorf("Gentle-owned Kilocode agent.%s survived sync", name)
-		}
-	}
-	if !reflect.DeepEqual(got["sdd-init"], userSDDInit) {
-		t.Errorf("user-defined Kilocode agent.sdd-init changed: %#v", got["sdd-init"])
-	}
-	if !hasManualAction(result.ManualActions, settings, "sdd-init", "move or delete it") {
-		t.Errorf("preserved Kilocode agent.sdd-init not reported: %v", result.ManualActions)
-	}
-	if _, ok := backupManifestEntries(t, home)[settings]; !ok {
-		t.Error("rollback snapshot omitted the Kilocode settings")
 	}
 }
 

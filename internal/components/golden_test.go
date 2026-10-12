@@ -8,15 +8,9 @@ import (
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/antigravity"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
 	codexagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/cursor"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/gemini"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/kiro"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/vscode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/windsurf"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/engram"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/mcp"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/persona"
@@ -26,15 +20,9 @@ import (
 
 var update = flag.Bool("update", false, "update golden files")
 
-func claudeAdapter() agents.Adapter      { return claude.NewAdapter() }
-func opencodeAdapter() agents.Adapter    { return opencode.NewAdapter() }
-func cursorAdapter() agents.Adapter      { return cursor.NewAdapter() }
-func geminiAdapter() agents.Adapter      { return gemini.NewAdapter() }
-func vscodeAdapter() agents.Adapter      { return vscode.NewAdapter() }
-func codexAdapter() agents.Adapter       { return codexagent.NewAdapter() }
-func antigravityAdapter() agents.Adapter { return antigravity.NewAdapter() }
-func windsurfAdapter() agents.Adapter    { return windsurf.NewAdapter() }
-func kiroAdapter() agents.Adapter        { return kiro.NewAdapter() }
+func claudeAdapter() agents.Adapter   { return claude.NewAdapter() }
+func opencodeAdapter() agents.Adapter { return opencode.NewAdapter() }
+func codexAdapter() agents.Adapter    { return codexagent.NewAdapter() }
 
 // ---------------------------------------------------------------------------
 // Existing golden tests (context7 and presets)
@@ -181,40 +169,6 @@ func TestGoldenPersona_OpenCode_Custom(t *testing.T) {
 	}
 }
 
-func TestGoldenPersona_Windsurf_Gentleman(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := persona.Inject(home, windsurfAdapter(), model.PersonaGentleman)
-	if err != nil {
-		t.Fatalf("persona.Inject(windsurf, gentleman) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("persona.Inject(windsurf, gentleman) changed = false")
-	}
-
-	globalRules := readTestFile(t, filepath.Join(home, ".codeium", "windsurf", "memories", "global_rules.md"))
-	assertGolden(t, "persona-windsurf-gentleman.golden", globalRules)
-}
-
-func TestGoldenPersona_Kiro_Gentleman(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
-	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
-
-	adapter := kiroAdapter()
-	result, err := persona.Inject(home, adapter, model.PersonaGentleman)
-	if err != nil {
-		t.Fatalf("persona.Inject(kiro, gentleman) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("persona.Inject(kiro, gentleman) changed = false")
-	}
-
-	promptPath := adapter.SystemPromptFile(home)
-	instructionsFile := readTestFile(t, promptPath)
-	assertGolden(t, "persona-kiro-gentleman.golden", instructionsFile)
-}
-
 // ---------------------------------------------------------------------------
 // Engram Injector golden tests
 // ---------------------------------------------------------------------------
@@ -263,43 +217,6 @@ func TestGoldenEngram_OpenCode(t *testing.T) {
 
 	configJSON := readTestFile(t, filepath.Join(home, ".config", "opencode", "opencode.json"))
 	assertGolden(t, "engram-opencode-settings.golden", configJSON)
-}
-
-func TestGoldenEngram_Windsurf(t *testing.T) {
-	home := t.TempDir()
-
-	engram.SetLookPathForTest(t, "/opt/homebrew/bin/engram", "")
-
-	result, err := engram.Inject(home, windsurfAdapter())
-	if err != nil {
-		t.Fatalf("engram.Inject(windsurf) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("engram.Inject(windsurf) changed = false")
-	}
-
-	mcpJSON := readTestFile(t, filepath.Join(home, ".codeium", "windsurf", "mcp_config.json"))
-	assertGolden(t, "engram-windsurf-mcp.golden", mcpJSON)
-}
-
-func TestGoldenEngram_Kiro(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
-	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
-
-	engram.SetLookPathForTest(t, "/opt/homebrew/bin/engram", "")
-
-	result, err := engram.Inject(home, kiroAdapter())
-	if err != nil {
-		t.Fatalf("engram.Inject(kiro) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("engram.Inject(kiro) changed = false")
-	}
-
-	// Kiro reads MCP from ~/.kiro/settings/mcp.json (not from the app config dir)
-	mcpJSON := readTestFile(t, filepath.Join(home, ".kiro", "settings", "mcp.json"))
-	assertGolden(t, "engram-kiro-mcp.golden", mcpJSON)
 }
 
 // TestGoldenEngram_Codex captures the rendered Codex model_instructions_file
@@ -374,49 +291,6 @@ func TestGoldenSkills_OpenCode(t *testing.T) {
 	assertGolden(t, "skills-opencode-skill-creator.golden", skillCreator)
 }
 
-func TestGoldenSkills_Windsurf(t *testing.T) {
-	home := t.TempDir()
-
-	skillIDs := []model.SkillID{model.SkillGoTesting, model.SkillCreator}
-	result, err := skills.Inject(home, windsurfAdapter(), skillIDs)
-	if err != nil {
-		t.Fatalf("skills.Inject(windsurf) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("skills.Inject(windsurf) changed = false")
-	}
-
-	skillsDir := filepath.Join(home, ".codeium", "windsurf", "skills")
-	goTestingSkill := readTestFile(t, filepath.Join(skillsDir, "go-testing", "SKILL.md"))
-	assertGolden(t, "skills-windsurf-go-testing.golden", goTestingSkill)
-
-	skillCreator := readTestFile(t, filepath.Join(skillsDir, "skill-creator", "SKILL.md"))
-	assertGolden(t, "skills-windsurf-skill-creator.golden", skillCreator)
-}
-
-func TestGoldenSkills_Kiro(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
-	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
-
-	adapter := kiroAdapter()
-	skillIDs := []model.SkillID{model.SkillGoTesting, model.SkillCreator}
-	result, err := skills.Inject(home, adapter, skillIDs)
-	if err != nil {
-		t.Fatalf("skills.Inject(kiro) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("skills.Inject(kiro) changed = false")
-	}
-
-	skillsDir := adapter.SkillsDir(home)
-	goTestingSkill := readTestFile(t, filepath.Join(skillsDir, "go-testing", "SKILL.md"))
-	assertGolden(t, "skills-kiro-go-testing.golden", goTestingSkill)
-
-	skillCreatorFile := readTestFile(t, filepath.Join(skillsDir, "skill-creator", "SKILL.md"))
-	assertGolden(t, "skills-kiro-skill-creator.golden", skillCreatorFile)
-}
-
 // ---------------------------------------------------------------------------
 // Combined injection golden test (multiple components writing to same CLAUDE.md)
 // ---------------------------------------------------------------------------
@@ -441,73 +315,9 @@ func TestGoldenCombined_Claude(t *testing.T) {
 	assertGolden(t, "combined-claude-claudemd.golden", claudeMD)
 }
 
-func TestGoldenCombined_Windsurf(t *testing.T) {
-	home := t.TempDir()
-
-	engram.SetLookPathForTest(t, "/opt/homebrew/bin/engram", "")
-
-	// Combine retained persona and Engram components.
-	if _, err := persona.Inject(home, windsurfAdapter(), model.PersonaGentleman); err != nil {
-		t.Fatalf("persona.Inject(windsurf) error = %v", err)
-	}
-	if _, err := engram.Inject(home, windsurfAdapter()); err != nil {
-		t.Fatalf("engram.Inject(windsurf) error = %v", err)
-	}
-
-	// global_rules.md retains the persona section.
-	globalRules := readTestFile(t, filepath.Join(home, ".codeium", "windsurf", "memories", "global_rules.md"))
-	assertGolden(t, "combined-windsurf-global-rules.golden", globalRules)
-}
-
 // ---------------------------------------------------------------------------
 // Antigravity golden tests
 // ---------------------------------------------------------------------------
-
-func TestGoldenPersona_Antigravity_Gentleman(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := persona.Inject(home, antigravityAdapter(), model.PersonaGentleman)
-	if err != nil {
-		t.Fatalf("persona.Inject(antigravity, gentleman) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("persona.Inject(antigravity, gentleman) changed = false")
-	}
-
-	rulesFile := readTestFile(t, filepath.Join(home, ".gemini", "GEMINI.md"))
-	assertGolden(t, "persona-antigravity-gentleman.golden", rulesFile)
-}
-
-func TestGoldenEngram_Antigravity(t *testing.T) {
-	home := t.TempDir()
-
-	engram.SetLookPathForTest(t, "/opt/homebrew/bin/engram", "")
-
-	result, err := engram.Inject(home, antigravityAdapter())
-	if err != nil {
-		t.Fatalf("engram.Inject(antigravity) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("engram.Inject(antigravity) changed = false")
-	}
-
-	// #797: Engram registration for Antigravity is plugin-owned only; the
-	// plugin MCP config uses the canonical agent tool profile
-	// (args ["mcp", "--tools=agent"]).
-	pluginMCPJSON := readTestFile(t, filepath.Join(home, ".gemini", "antigravity-cli", "plugins", "gentle-ai-engram", "mcp_config.json"))
-	assertGolden(t, "engram-antigravity-mcp.golden", pluginMCPJSON)
-
-	// The global ~/.gemini/antigravity-cli/mcp_config.json is shared with
-	// other MCP servers and must never be written for Engram.
-	globalMCPPath := filepath.Join(home, ".gemini", "antigravity-cli", "mcp_config.json")
-	if _, err := os.Stat(globalMCPPath); !os.IsNotExist(err) {
-		t.Fatalf("global Antigravity MCP config %q must not be written for Engram; stat err = %v", globalMCPPath, err)
-	}
-
-	// GEMINI.md must contain the engram-protocol section.
-	rulesFile := readTestFile(t, filepath.Join(home, ".gemini", "GEMINI.md"))
-	assertGolden(t, "engram-antigravity-rulesmd.golden", rulesFile)
-}
 
 // ---------------------------------------------------------------------------
 // Helpers

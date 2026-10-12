@@ -14,7 +14,7 @@ import (
 // depending on IsVerifiedSlimAdapter, which today never verifies either of
 // these two agents as slim.
 func TestComputeSlugSlimVerdictsSafestWinsAcrossDivergentPair(t *testing.T) {
-	agentIDs := []model.AgentID{model.AgentGeminiCLI, model.AgentAntigravity}
+	agentIDs := []model.AgentID{model.AgentAntigravity}
 
 	tests := []struct {
 		name        string
@@ -32,20 +32,6 @@ func TestComputeSlugSlimVerdictsSafestWinsAcrossDivergentPair(t *testing.T) {
 			name: "both full -> full",
 			isSlim: func(model.AgentID) bool {
 				return false
-			},
-			wantVerdict: false,
-		},
-		{
-			name: "divergent (one slim, one full) -> safest-wins full",
-			isSlim: func(agent model.AgentID) bool {
-				return agent == model.AgentGeminiCLI
-			},
-			wantVerdict: false,
-		},
-		{
-			name: "divergent, other order -> still safest-wins full",
-			isSlim: func(agent model.AgentID) bool {
-				return agent == model.AgentAntigravity
 			},
 			wantVerdict: false,
 		},

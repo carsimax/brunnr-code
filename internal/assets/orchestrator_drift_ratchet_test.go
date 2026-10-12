@@ -9,20 +9,19 @@ import (
 	"testing"
 )
 
-// #3817: ODD orchestrators are hand-maintained across twelve runtimes. Keep
-// historical ceilings for retained shared sections. The lossless-prompt
-// section's ceiling rises from four to six for the intentional ODD rewrite;
-// its common safety anchors remain checked on every runtime below. Removing
-// a section is an inventory change; new uncoordinated drift must fail.
+// #3817: ODD orchestrators are hand-maintained across four runtimes. Keep
+// ceilings for retained shared sections at their current variant counts; the
+// lossless-prompt section's common safety anchors remain checked on every
+// runtime below. Removing a section is an inventory change; new uncoordinated
+// drift must fail.
 var orchestratorSectionDriftRatchet = []struct {
 	name        string
 	maxVariants int
 }{
-	{"Delegation Rules", 11},
-	{"State and Conventions", 10},
-	{"Skill Resolution Feedback", 8},
-	{"Agent Teams Orchestrator", 6},
-	{"Lossless Blocking Prompts (MANDATORY)", 6},
+	{"Delegation Rules", 3},
+	{"Skill Resolution Feedback", 2},
+	{"Agent Teams Orchestrator", 1},
+	{"Lossless Blocking Prompts (MANDATORY)", 4},
 	{"Language Domain Contract", 2},
 }
 
@@ -67,13 +66,13 @@ func orchestratorSectionVariants(t *testing.T) map[string]map[string]struct{} {
 	if err != nil {
 		t.Fatalf("walk orchestrator assets: %v", err)
 	}
-	for _, runtime := range []string{"antigravity", "claude", "codex", "cursor", "gemini", "generic", "hermes", "kimi", "kiro", "opencode", "qwen", "windsurf"} {
+	for _, runtime := range []string{"claude", "codex", "generic", "opencode"} {
 		if !seen[runtime] {
 			t.Errorf("missing ODD orchestrator for %s", runtime)
 		}
 	}
-	if len(seen) != 12 {
-		t.Errorf("ODD orchestrator inventory changed: got %d runtimes, want 12; update the ratchet deliberately", len(seen))
+	if len(seen) != 4 {
+		t.Errorf("ODD orchestrator inventory changed: got %d runtimes, want 4; update the ratchet deliberately", len(seen))
 	}
 	return variants
 }

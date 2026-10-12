@@ -38,7 +38,6 @@ func TestInjectWritesSupportFiles(t *testing.T) {
 		wantCommands []string
 	}{
 		{agent: model.AgentOpenCode, wantCommands: []string{"skill-creator.md"}},
-		{agent: model.AgentQwenCode, wantCommands: []string{"skill-creator.md"}},
 		{agent: model.AgentClaudeCode},
 		{agent: model.AgentCodex},
 	} {

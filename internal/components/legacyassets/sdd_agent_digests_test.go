@@ -105,11 +105,10 @@ func (r genSDDRepo) git(args ...string) {
 func (r genSDDRepo) release(tag, apply string) {
 	r.t.Helper()
 	for name, content := range map[string]string{
-		"gentleman.yaml":                  "version: \"1\"\nagent:\n  name: gentleman\n  subagents:\n    sdd-apply:\n      path: ./sdd-apply.yaml\n",
-		"sdd-apply.yaml":                  apply,
-		"../../skills/sdd-apply/SKILL.md": apply,
+		"claude/agents/sdd-apply.md": apply,
+		"skills/sdd-apply/SKILL.md":  apply,
 	} {
-		path := filepath.Join(r.dir, "internal", "assets", "kimi", "agents", name)
+		path := filepath.Join(r.dir, "internal", "assets", name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			r.t.Fatal(err)
 		}

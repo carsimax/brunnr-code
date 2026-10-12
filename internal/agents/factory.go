@@ -3,44 +3,18 @@ package agents
 import (
 	"fmt"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/antigravity"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/conductor"
-	cursoradapter "github.com/gentleman-programming/gentle-ai/v4/internal/agents/cursor"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/gemini"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/hermes"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/kilocode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/kimi"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/kiro"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/openclaw"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/qwen"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/trae"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/vscode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/windsurf"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
 
 var defaultAgentIDs = []model.AgentID{
 	model.AgentClaudeCode,
 	model.AgentOpenCode,
-	model.AgentKilocode,
-	model.AgentGeminiCLI,
-	model.AgentCursor,
-	model.AgentVSCodeCopilot,
 	model.AgentCodex,
-	model.AgentAntigravity,
-	model.AgentWindsurf,
-	model.AgentKimi,
-	model.AgentQwenCode,
-	model.AgentKiroIDE,
-	model.AgentOpenClaw,
 	model.AgentPi,
-	model.AgentTrae,
-	model.AgentHermes,
-	model.AgentConductor,
 }
 
 func NewAdapter(agent model.AgentID) (Adapter, error) {
@@ -49,36 +23,10 @@ func NewAdapter(agent model.AgentID) (Adapter, error) {
 		return claude.NewAdapter(), nil
 	case model.AgentOpenCode:
 		return opencode.NewAdapter(), nil
-	case model.AgentKilocode:
-		return kilocode.NewAdapter(), nil
-	case model.AgentGeminiCLI:
-		return gemini.NewAdapter(), nil
-	case model.AgentCursor:
-		return cursoradapter.NewAdapter(), nil
-	case model.AgentVSCodeCopilot:
-		return vscode.NewAdapter(), nil
 	case model.AgentCodex:
 		return codex.NewAdapter(), nil
-	case model.AgentAntigravity:
-		return antigravity.NewAdapter(), nil
-	case model.AgentWindsurf:
-		return windsurf.NewAdapter(), nil
-	case model.AgentKimi:
-		return kimi.NewAdapter(), nil
-	case model.AgentQwenCode:
-		return qwen.NewAdapter(), nil
-	case model.AgentKiroIDE:
-		return kiro.NewAdapter(), nil
-	case model.AgentOpenClaw:
-		return openclaw.NewAdapter(), nil
 	case model.AgentPi:
 		return pi.NewAdapter(), nil
-	case model.AgentTrae:
-		return trae.NewAdapter(), nil
-	case model.AgentHermes:
-		return hermes.NewAdapter(), nil
-	case model.AgentConductor:
-		return conductor.NewAdapter(), nil
 	default:
 		return nil, AgentNotSupportedError{Agent: agent}
 	}

@@ -10,7 +10,7 @@ import (
 )
 
 func TestStrictTDDOpenCodePrompt(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode} {
+	for _, agent := range []model.AgentID{model.AgentOpenCode} {
 		t.Run(string(agent), func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "settings.jsonc")
 			seed := `{"agent":{"gentle-orchestrator":{"prompt":"User note\n","permission":{"task":{"review-refuter":"allow"}}},"review-refuter":{"mode":"subagent"}},"custom":true}`

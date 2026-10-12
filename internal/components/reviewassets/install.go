@@ -13,7 +13,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/agentguidance"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/legacyassets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/mutationjournal"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
@@ -147,10 +146,7 @@ func InstallNativeAgents(home string, adapter agents.Adapter, opts InstallOption
 			return result, err
 		}
 		expected, known := ledger.Files[name]
-		// A file a release shipped before the ledger existed (v3 Kimi
-		// gentleman.yaml, which declares every SDD subagent) is owned by
-		// those exact bytes, so retiring SDD can rewrite it (#5253).
-		owned := exists && ((known && installedHash(data) == expected) || legacyassets.OwnsPreLedgerNativeAgent(adapter.Agent(), name, data))
+		owned := exists && known && installedHash(data) == expected
 		if exists && !owned {
 			result.Skipped = append(result.Skipped, path)
 		}

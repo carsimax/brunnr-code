@@ -5,9 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/antigravity"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/trae"
 )
 
 func TestRegenerateWritesRegistryAndCacheThenHitsCache(t *testing.T) {
@@ -248,223 +245,6 @@ description: OpenCode copy
 	claudePath := filepath.Join(home, ".claude", "skills", "dup", "SKILL.md")
 	if !strings.Contains(registry, openCodePath) || strings.Contains(registry, claudePath) || strings.Contains(registry, "OpenCode rule") || strings.Contains(registry, "Claude rule") {
 		t.Fatalf("user duplicate should respect UserSkillDirs source order:\n%s", registry)
-	}
-}
-
-func TestAntigravitySkillDiscoveryMatchesActiveVariant(t *testing.T) {
-	type fixtureSkill struct {
-		scope       string
-		path        string
-		name        string
-		description string
-	}
-	type expectedSkill struct {
-		scope       string
-		path        string
-		name        string
-		description string
-	}
-	tests := []struct {
-		name          string
-		skills        []fixtureSkill
-		want          []expectedSkill
-		activeVariant string
-	}{
-		{
-			name: "CLI only",
-			skills: []fixtureSkill{
-				{scope: "user", path: ".gemini/antigravity-cli/skills/cli-only/SKILL.md", name: "cli-only", description: "CLI only"},
-			},
-			want: []expectedSkill{
-				{scope: "user", path: ".gemini/antigravity-cli/skills/cli-only/SKILL.md", name: "cli-only", description: "CLI only"},
-			},
-			activeVariant: ".gemini/antigravity-cli/skills",
-		},
-		{
-			name: "Desktop only",
-			skills: []fixtureSkill{
-				{scope: "user", path: ".gemini/antigravity-desktop/skills/desktop-only/SKILL.md", name: "desktop-only", description: "Desktop only"},
-			},
-			want: []expectedSkill{
-				{scope: "user", path: ".gemini/antigravity-desktop/skills/desktop-only/SKILL.md", name: "desktop-only", description: "Desktop only"},
-			},
-			activeVariant: ".gemini/antigravity-desktop/skills",
-		},
-		{
-			name: "both variants preserve compatibility roots and precedence",
-			skills: []fixtureSkill{
-				{scope: "user", path: ".gemini/antigravity-cli/skills/cli-only/SKILL.md", name: "cli-only", description: "CLI only"},
-				{scope: "user", path: ".gemini/antigravity-cli/skills/duplicate/SKILL.md", name: "duplicate", description: "CLI duplicate"},
-				{scope: "user", path: ".gemini/antigravity-desktop/skills/desktop-only/SKILL.md", name: "desktop-only", description: "Desktop only"},
-				{scope: "user", path: ".gemini/antigravity-desktop/skills/duplicate/SKILL.md", name: "duplicate", description: "Desktop duplicate"},
-				{scope: "user", path: ".gemini/antigravity-desktop/skills/project-wins/SKILL.md", name: "project-wins", description: "Desktop user copy"},
-				{scope: "user", path: ".gemini/antigravity/skills/legacy-only/SKILL.md", name: "legacy-only", description: "Legacy only"},
-				{scope: "user", path: ".gemini/skills/shared-only/SKILL.md", name: "shared-only", description: "Shared only"},
-				{scope: "project", path: "skills/project-wins/SKILL.md", name: "project-wins", description: "Project copy"},
-			},
-			want: []expectedSkill{
-				{scope: "user", path: ".gemini/antigravity-cli/skills/cli-only/SKILL.md", name: "cli-only", description: "CLI only"},
-				{scope: "user", path: ".gemini/antigravity-desktop/skills/desktop-only/SKILL.md", name: "desktop-only", description: "Desktop only"},
-				{scope: "user", path: ".gemini/antigravity-desktop/skills/duplicate/SKILL.md", name: "duplicate", description: "Desktop duplicate"},
-				{scope: "user", path: ".gemini/antigravity/skills/legacy-only/SKILL.md", name: "legacy-only", description: "Legacy only"},
-				{scope: "project", path: "skills/project-wins/SKILL.md", name: "project-wins", description: "Project copy"},
-				{scope: "user", path: ".gemini/skills/shared-only/SKILL.md", name: "shared-only", description: "Shared only"},
-			},
-			activeVariant: ".gemini/antigravity-desktop/skills",
-		},
-		{
-			name: "missing variant directories preserve shared and legacy roots",
-			skills: []fixtureSkill{
-				{scope: "user", path: ".gemini/antigravity/skills/legacy-only/SKILL.md", name: "legacy-only", description: "Legacy only"},
-				{scope: "user", path: ".gemini/skills/shared-only/SKILL.md", name: "shared-only", description: "Shared only"},
-			},
-			want: []expectedSkill{
-				{scope: "user", path: ".gemini/antigravity/skills/legacy-only/SKILL.md", name: "legacy-only", description: "Legacy only"},
-				{scope: "user", path: ".gemini/skills/shared-only/SKILL.md", name: "shared-only", description: "Shared only"},
-			},
-			activeVariant: ".gemini/antigravity-cli/skills",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cwd := t.TempDir()
-			home := t.TempDir()
-			pathFor := func(scope, path string) string {
-				if scope == "project" {
-					return filepath.Join(cwd, filepath.FromSlash(path))
-				}
-				return filepath.Join(home, filepath.FromSlash(path))
-			}
-
-			all := make([]SkillEntry, len(tt.skills))
-			for i, skill := range tt.skills {
-				writeSkill(t, pathFor(skill.scope, skill.path), "---\nname: "+skill.name+"\ndescription: "+skill.description+"\n---\n")
-				all[i] = SkillEntry{
-					Name:        skill.name,
-					Path:        pathFor(skill.scope, skill.path),
-					Description: skill.description,
-				}
-			}
-
-			activeSkillsDir := antigravity.NewAdapter().SkillsDir(home)
-			if want := filepath.Join(home, filepath.FromSlash(tt.activeVariant)); activeSkillsDir != want {
-				t.Fatalf("active Antigravity skills dir = %q, want %q", activeSkillsDir, want)
-			}
-
-			want := make([]SkillEntry, len(tt.want))
-			for i, skill := range tt.want {
-				want[i] = SkillEntry{
-					Name:        skill.name,
-					Path:        pathFor(skill.scope, skill.path),
-					Description: skill.description,
-				}
-			}
-			t.Run("List", func(t *testing.T) {
-				assertSkillEntries(t, List(cwd, home), want)
-				assertSkillEntries(t, List(cwd, home), want)
-			})
-
-			t.Run("Regenerate", func(t *testing.T) {
-				first, err := Regenerate(cwd, home, false)
-				if err != nil {
-					t.Fatalf("Regenerate() error = %v", err)
-				}
-				if !first.Regenerated || first.SkillCount != len(want) || first.Reason != "fingerprint-changed" {
-					t.Fatalf("first result = %#v, want %d regenerated skills", first, len(want))
-				}
-				registry := readFile(t, filepath.Join(cwd, RegistryRelPath))
-				assertRegistrySkills(t, registry, want, all)
-
-				second, err := Regenerate(cwd, home, false)
-				if err != nil {
-					t.Fatalf("second Regenerate() error = %v", err)
-				}
-				if second.Regenerated || second.Reason != "cache-hit" {
-					t.Fatalf("second result = %#v, want unchanged cache hit", second)
-				}
-				if got := readFile(t, filepath.Join(cwd, RegistryRelPath)); got != registry {
-					t.Fatal("registry changed on deterministic cache-hit run")
-				}
-
-				forced, err := Regenerate(cwd, home, true)
-				if err != nil {
-					t.Fatalf("forced Regenerate() error = %v", err)
-				}
-				if !forced.Regenerated || forced.SkillCount != len(want) || forced.Reason != "forced" {
-					t.Fatalf("forced result = %#v, want %d regenerated skills", forced, len(want))
-				}
-				if got := readFile(t, filepath.Join(cwd, RegistryRelPath)); got != registry {
-					t.Fatal("registry changed on deterministic forced regeneration")
-				}
-			})
-		})
-	}
-}
-
-func TestTraeInstalledSkillDiscoveryPreservesExistingPrecedenceAndExclusions(t *testing.T) {
-	cwd := t.TempDir()
-	home := t.TempDir()
-	traeDir := trae.NewAdapter().SkillsDir(home)
-	writeSkill(t, filepath.Join(traeDir, "trae-only", "SKILL.md"), "---\nname: trae-only\ndescription: Trae installed\n---\n")
-	writeSkill(t, filepath.Join(traeDir, "dup", "SKILL.md"), "---\nname: dup\ndescription: Trae copy\n---\n")
-	writeSkill(t, filepath.Join(home, ".claude", "skills", "dup", "SKILL.md"), "---\nname: dup\ndescription: Claude copy\n---\n")
-	writeSkill(t, filepath.Join(traeDir, "sdd-apply", "SKILL.md"), "---\nname: sdd-apply\ndescription: retired\n---\n")
-
-	entries := List(cwd, home)
-	want := []SkillEntry{
-		{Name: "dup", Path: filepath.Join(home, ".claude", "skills", "dup", "SKILL.md"), Description: "Claude copy"},
-		{Name: "trae-only", Path: filepath.Join(traeDir, "trae-only", "SKILL.md"), Description: "Trae installed"},
-	}
-	assertSkillEntries(t, entries, want)
-	result, err := Regenerate(cwd, home, false)
-	if err != nil {
-		t.Fatalf("Regenerate() error = %v", err)
-	}
-	if result.SkillCount != len(want) {
-		t.Fatalf("Regenerate() skill count = %d, want %d", result.SkillCount, len(want))
-	}
-}
-
-func TestUserSkillDirsIncludesSupportedAgentSkillLocations(t *testing.T) {
-	home := t.TempDir()
-	dirs := UserSkillDirs(home)
-
-	for _, want := range []string{
-		filepath.Join(home, ".config", "opencode", "skills"),
-		filepath.Join(home, ".config", "kilo", "skills"),
-		filepath.Join(home, ".claude", "skills"),
-		filepath.Join(home, ".gemini", "skills"),
-		filepath.Join(home, ".gemini", "antigravity", "skills"),
-		filepath.Join(home, ".gemini", "antigravity-cli", "skills"),
-		filepath.Join(home, ".gemini", "antigravity-desktop", "skills"),
-		filepath.Join(home, ".cursor", "skills"),
-		filepath.Join(home, ".copilot", "skills"),
-		filepath.Join(home, ".codex", "skills"),
-		filepath.Join(home, ".codeium", "windsurf", "skills"),
-		filepath.Join(home, ".config", "agents", "skills"),
-		filepath.Join(home, ".kimi-code", "skills"),
-		filepath.Join(home, ".kimi", "skills"),
-		filepath.Join(home, ".qwen", "skills"),
-		filepath.Join(home, ".kiro", "skills"),
-		filepath.Join(home, ".openclaw", "skills"),
-		filepath.Join(home, ".pi", "agent", "skills"),
-		filepath.Join(home, ".agents", "skills"),
-		filepath.Join(home, ".hermes", "skills"),
-		trae.NewAdapter().SkillsDir(home),
-	} {
-		if !containsPath(dirs, want) {
-			t.Fatalf("UserSkillDirs() missing %q in %#v", want, dirs)
-		}
-	}
-}
-
-func TestProjectSkillDirsIncludesHermesSkillLocation(t *testing.T) {
-	cwd := t.TempDir()
-	dirs := ProjectSkillDirs(cwd)
-	want := filepath.Join(cwd, ".hermes", "skills")
-	if !containsPath(dirs, want) {
-		t.Fatalf("ProjectSkillDirs() missing Hermes skill location %q", want)
 	}
 }
 
@@ -755,37 +535,6 @@ func TestListReturnsDedupedEntriesWithoutWriting(t *testing.T) {
 	}
 }
 
-// TestListKeepsSharedUserSkillBeforeKimiCodeNativeSkills verifies that a
-// skill name present in both the shared user skills root and the current
-// kimi-code native skills root resolves to the shared user copy: the
-// .config/agents/skills source precedes .kimi-code/skills in UserSkillDirs,
-// so dedupeBySkillName keeps the earlier entry while project skills still
-// beat both (issue #782 review).
-func TestListKeepsSharedUserSkillBeforeKimiCodeNativeSkills(t *testing.T) {
-	cwd := t.TempDir()
-	home := t.TempDir()
-	writeSkill(t, filepath.Join(home, ".config", "agents", "skills", "shared", "SKILL.md"),
-		"---\nname: shared\ndescription: shared user copy\n---\n")
-	writeSkill(t, filepath.Join(home, ".kimi-code", "skills", "shared", "SKILL.md"),
-		"---\nname: shared\ndescription: kimi-code native copy\n---\n")
-
-	entries := List(cwd, home)
-	if len(entries) != 1 {
-		t.Fatalf("len(entries) = %d, want 1", len(entries))
-	}
-	if want := filepath.Join(home, ".config", "agents", "skills", "shared", "SKILL.md"); entries[0].Path != want {
-		t.Fatalf("entries[0].Path = %q, want the shared user copy %q", entries[0].Path, want)
-	}
-
-	// Project-local skills must still outrank both user-level roots.
-	writeSkill(t, filepath.Join(cwd, "skills", "shared", "SKILL.md"),
-		"---\nname: shared\ndescription: project copy\n---\n")
-	entries = List(cwd, home)
-	if len(entries) != 1 || entries[0].Description != "project copy" {
-		t.Fatalf("entries = %#v, want the project copy to win", entries)
-	}
-}
-
 func writeSkill(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -851,5 +600,45 @@ func assertRegistrySkills(
 		if !selected[skill.Path] && strings.Contains(registry, "`"+skill.Path+"`") {
 			t.Fatalf("registry includes lower-precedence skill %q:\n%s", skill.Path, registry)
 		}
+	}
+}
+
+func TestProjectSkillDirsIncludesHermesSkillLocation(t *testing.T) {
+	cwd := t.TempDir()
+	dirs := ProjectSkillDirs(cwd)
+	want := filepath.Join(cwd, ".hermes", "skills")
+	if !containsPath(dirs, want) {
+		t.Fatalf("ProjectSkillDirs() missing Hermes skill location %q", want)
+	}
+}
+
+// TestListKeepsSharedUserSkillBeforeKimiCodeNativeSkills verifies that a
+// skill name present in both the shared user skills root and the current
+// kimi-code native skills root resolves to the shared user copy: the
+// .config/agents/skills source precedes .kimi-code/skills in UserSkillDirs,
+// so dedupeBySkillName keeps the earlier entry while project skills still
+// beat both (issue #782 review).
+func TestListKeepsSharedUserSkillBeforeKimiCodeNativeSkills(t *testing.T) {
+	cwd := t.TempDir()
+	home := t.TempDir()
+	writeSkill(t, filepath.Join(home, ".config", "agents", "skills", "shared", "SKILL.md"),
+		"---\nname: shared\ndescription: shared user copy\n---\n")
+	writeSkill(t, filepath.Join(home, ".kimi-code", "skills", "shared", "SKILL.md"),
+		"---\nname: shared\ndescription: kimi-code native copy\n---\n")
+
+	entries := List(cwd, home)
+	if len(entries) != 1 {
+		t.Fatalf("len(entries) = %d, want 1", len(entries))
+	}
+	if want := filepath.Join(home, ".config", "agents", "skills", "shared", "SKILL.md"); entries[0].Path != want {
+		t.Fatalf("entries[0].Path = %q, want the shared user copy %q", entries[0].Path, want)
+	}
+
+	// Project-local skills must still outrank both user-level roots.
+	writeSkill(t, filepath.Join(cwd, "skills", "shared", "SKILL.md"),
+		"---\nname: shared\ndescription: project copy\n---\n")
+	entries = List(cwd, home)
+	if len(entries) != 1 || entries[0].Description != "project copy" {
+		t.Fatalf("entries = %#v, want the project copy to win", entries)
 	}
 }

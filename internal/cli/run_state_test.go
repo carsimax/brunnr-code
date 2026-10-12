@@ -107,18 +107,11 @@ func TestRunInstallPersistsConfiguredSelection(t *testing.T) {
 	original := osUserHomeDir
 	osUserHomeDir = func() (string, error) { return home, nil }
 	t.Cleanup(func() { osUserHomeDir = original })
-	// This test targets state persistence, not agent install behavior, so
-	// simulate Cursor as already installed (its Detect checks for ~/.cursor)
-	// — otherwise gentle-ai correctly refuses to proceed for an undetected
-	// desktop-app agent.
-	if err := os.MkdirAll(filepath.Join(home, ".cursor"), 0o755); err != nil {
-		t.Fatalf("MkdirAll(.cursor): %v", err)
-	}
-	if _, err := RunInstall([]string{"--agent", "cursor", "--preset", "custom"}, system.DetectionResult{}); err != nil {
+	if _, err := RunInstall([]string{"--agent", "claude-code", "--preset", "custom"}, system.DetectionResult{}); err != nil {
 		t.Fatal(err)
 	}
 	got, err := state.Read(home)
-	if err != nil || !got.SelectionConfigured || got.Preset != model.PresetCustom || got.SDDMode != "" || len(got.Components) != 0 || len(got.InstalledAgents) != 1 || got.InstalledAgents[0] != "cursor" {
+	if err != nil || !got.SelectionConfigured || got.Preset != model.PresetCustom || got.SDDMode != "" || len(got.Components) != 0 || len(got.InstalledAgents) != 1 || got.InstalledAgents[0] != "claude-code" {
 		t.Fatalf("persisted selection = %#v, err = %v", got, err)
 	}
 	wantDigest, err := managedAssetDigest()
@@ -194,7 +187,7 @@ func TestRunInstallIncrementalSelectionPreservesUnspecifiedFields(t *testing.T) 
 	t.Chdir(t.TempDir())
 	home := convergenceTestHome(t)
 	if err := state.Write(home, state.InstallState{
-		InstalledAgents: []string{"cursor"}, SelectionConfigured: true,
+		InstalledAgents: []string{"codex"}, SelectionConfigured: true,
 		Components: []model.ComponentID{model.ComponentSkills, model.ComponentContext7},
 		Skills:     []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom, Persona: "neutral",
 	}); err != nil {
@@ -207,7 +200,7 @@ func TestRunInstallIncrementalSelectionPreservesUnspecifiedFields(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !got.SelectionConfigured || !slices.Equal(got.Components, []model.ComponentID{model.ComponentPersona}) || !slices.Equal(got.Skills, []model.SkillID{model.SkillCommentWriter}) || got.Preset != model.PresetCustom || got.Persona != "neutral" || !slices.Equal(got.InstalledAgents, []string{"cursor", "claude-code"}) {
+	if !got.SelectionConfigured || !slices.Equal(got.Components, []model.ComponentID{model.ComponentPersona}) || !slices.Equal(got.Skills, []model.SkillID{model.SkillCommentWriter}) || got.Preset != model.PresetCustom || got.Persona != "neutral" || !slices.Equal(got.InstalledAgents, []string{"codex", "claude-code"}) {
 		t.Fatalf("incremental selection = %#v, want explicit components with existing skills, preset, persona and agents preserved", got)
 	}
 }
@@ -303,7 +296,7 @@ func TestRunInstallFailsHonestlyWhenExistingStateIsCorruptDuringExplicitAgentIns
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	_, err := RunInstall([]string{"--agent", "cursor", "--preset", "custom"}, system.DetectionResult{})
+	_, err := RunInstall([]string{"--agent", "claude-code", "--preset", "custom"}, system.DetectionResult{})
 	if err == nil {
 		t.Fatal("RunInstall() error = nil, want an error naming the unreadable install state instead of a silent success")
 	}

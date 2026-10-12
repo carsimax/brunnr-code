@@ -2,13 +2,11 @@ package communitytool
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"slices"
-	"strings"
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
@@ -50,9 +48,7 @@ func TestCodeGraphCompatibilityStrategies(t *testing.T) {
 		strategy codeGraphStrategy
 		agents   []model.AgentID
 	}{
-		{codeGraphNative, []model.AgentID{model.AgentClaudeCode, model.AgentCursor, model.AgentCodex, model.AgentGeminiCLI, model.AgentHermes, model.AgentAntigravity, model.AgentKiroIDE}},
 		{codeGraphReconciled, []model.AgentID{model.AgentOpenCode, model.AgentPi}},
-		{codeGraphExcluded, []model.AgentID{model.AgentKilocode, model.AgentVSCodeCopilot, model.AgentWindsurf, model.AgentKimi, model.AgentQwenCode, model.AgentOpenClaw, model.AgentTrae, model.AgentConductor}},
 	}
 	for _, tt := range tests {
 		for _, id := range tt.agents {
@@ -60,46 +56,6 @@ func TestCodeGraphCompatibilityStrategies(t *testing.T) {
 				t.Errorf("%s strategy = %s, want %s", id, got, tt.strategy)
 			}
 		}
-	}
-}
-
-func TestExcludedAgentsNeverEnterCodeGraphSurfaces(t *testing.T) {
-	reg, err := agents.NewDefaultRegistry()
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, id := range []model.AgentID{model.AgentKilocode, model.AgentVSCodeCopilot, model.AgentWindsurf, model.AgentKimi, model.AgentQwenCode, model.AgentOpenClaw, model.AgentTrae} {
-		t.Run(string(id), func(t *testing.T) {
-			home := t.TempDir()
-			adapter, ok := reg.Get(id)
-			if !ok {
-				t.Fatal("adapter missing")
-			}
-			root := adapter.GlobalConfigDir(home)
-			if err := os.MkdirAll(root, 0o755); err != nil {
-				t.Fatal(err)
-			}
-			before, _ := filesBelow(root)
-			status := DetectStatus(model.CommunityToolCodeGraph, home, DetectorFunc(func(string) (string, error) { return "/bin/codegraph", nil }))
-			if slices.ContainsFunc(status.Agents, func(agent AgentStatus) bool { return agent.Agent == id }) {
-				t.Fatalf("excluded agent entered status: %#v", status.Agents)
-			}
-			if slices.Contains(detectedCodeGraphTargets(home), codeGraphCompatibilityTable[id].Target) && codeGraphCompatibilityTable[id].Target != "" {
-				t.Fatal("excluded agent entered targets")
-			}
-			if _, err := InjectCodeGraphGuidance(home); err != nil {
-				t.Fatal(err)
-			}
-			after, _ := filesBelow(root)
-			if !reflect.DeepEqual(before, after) {
-				t.Fatalf("excluded root changed: before=%v after=%v", before, after)
-			}
-			for _, path := range CodeGraphManagedPaths(home) {
-				if path == root || strings.HasPrefix(path, root+string(os.PathSeparator)) {
-					t.Fatalf("excluded path became candidate-owned: %s", path)
-				}
-			}
-		})
 	}
 }
 
@@ -129,46 +85,11 @@ func TestClaudeGlobalConfigRequiresValidMCPServersEntry(t *testing.T) {
 	}
 }
 
-func TestAntigravityRequiresCanonicalCodeGraphEntry(t *testing.T) {
-	home := t.TempDir()
-	reg, _ := agents.NewDefaultRegistry()
-	adapter, _ := reg.Get(model.AgentAntigravity)
-	path := filepath.Join(home, ".gemini", "antigravity", "mcp_config.json")
-	absoluteCommand := filepath.Join(home, "bin", "codegraph")
-	absoluteWindowsCommand := filepath.Join(home, "bin", "CODEGRAPH.EXE")
-	for _, tt := range []struct {
-		name, data string
-		want       bool
-	}{
-		{"valid bare command", `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`, true},
-		{"valid absolute command", fmt.Sprintf(`{"mcpServers":{"codegraph":{"command":%q,"args":["serve","--mcp"]}}}`, absoluteCommand), true},
-		{"valid absolute Windows executable", fmt.Sprintf(`{"mcpServers":{"codegraph":{"command":%q,"args":["serve","--mcp"]}}}`, absoluteWindowsCommand), true},
-		{"bare Windows executable", `{"mcpServers":{"codegraph":{"command":"codegraph.exe","args":["serve","--mcp"]}}}`, false},
-		{"relative dot command", `{"mcpServers":{"codegraph":{"command":"./codegraph","args":["serve","--mcp"]}}}`, false},
-		{"relative nested command", `{"mcpServers":{"codegraph":{"command":"tools/codegraph","args":["serve","--mcp"]}}}`, false},
-		{"relative trailing separator", `{"mcpServers":{"codegraph":{"command":"codegraph/","args":["serve","--mcp"]}}}`, false},
-		{"unrelated key", `{"mcpServers":{"not-codegraph":{"command":"codegraph"}}}`, false},
-		{"wrong command", `{"mcpServers":{"codegraph":{"command":"other-codegraph","args":["serve","--mcp"]}}}`, false},
-		{"missing args", `{"mcpServers":{"codegraph":{"command":"codegraph"}}}`, false},
-		{"wrong args", `{"mcpServers":{"codegraph":{"command":"codegraph","args":["mcp"]}}}`, false},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			mustWrite(t, path, tt.data)
-			_, got := hasCodeGraphToolWiring(home, adapter)
-			if got != tt.want {
-				t.Fatalf("configured = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestCodeGraphNativeOwnedPaths(t *testing.T) {
 	home := t.TempDir()
 	reg, _ := agents.NewDefaultRegistry()
 	tests := map[model.AgentID][]string{
-		model.AgentClaudeCode:  {filepath.Join(home, ".claude.json")},
-		model.AgentAntigravity: {filepath.Join(home, ".gemini", "config", "mcp_config.json"), filepath.Join(home, ".gemini", "antigravity", "mcp_config.json")},
-		model.AgentKiroIDE:     {filepath.Join(home, ".kiro", "settings", "mcp.json")},
+		model.AgentClaudeCode: {filepath.Join(home, ".claude.json")},
 	}
 	for id, want := range tests {
 		adapter, _ := reg.Get(id)
@@ -185,11 +106,11 @@ func TestCodeGraphCommandsUseExplicitMultipleTargets(t *testing.T) {
 			return "/bin/npm", nil
 		}
 		return "", errors.New("missing")
-	}), []string{"claude", "cursor", "kiro"})
+	}), []string{"claude", "codex", "opencode"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"codegraph", "install", "--target", "claude,cursor,kiro", "--location", "global", "--yes"}
+	want := []string{"codegraph", "install", "--target", "claude,codex,opencode", "--location", "global", "--yes"}
 	if !reflect.DeepEqual(commands[1], want) {
 		t.Fatalf("install command = %v, want %v", commands[1], want)
 	}

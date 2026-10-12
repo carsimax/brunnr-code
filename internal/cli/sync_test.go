@@ -20,7 +20,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
-	kilocodeagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/kilocode"
 	opencodeagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
@@ -1794,52 +1793,13 @@ func TestRunSyncRefreshesInstalledOpenCodeReviewPluginWithoutSDDComponent(t *tes
 	}
 }
 
-// TestRunSyncRemovesOpenCodeOnlyReviewPluginFromKilocode ensures a stale
-// OpenCode review interception plugin cannot keep affecting Kilo after sync.
-func TestRunSyncRemovesOpenCodeOnlyReviewPluginFromKilocode(t *testing.T) {
-	home := t.TempDir()
-	if err := state.Write(home, state.InstallState{
-		InstalledAgents:     []string{"kilocode"},
-		SelectionConfigured: true,
-		Components:          []model.ComponentID{model.ComponentEngram},
-		Persona:             "neutral",
-	}); err != nil {
-		t.Fatalf("state.Write() error = %v", err)
-	}
-
-	pluginsDir := filepath.Join(home, ".config", "kilo", "plugins")
-	reviewPlugin := filepath.Join(pluginsDir, "review-result-artifacts.ts")
-	mustWriteFile(t, reviewPlugin, releasedOpenCodePlugin(t, "v2.1.7/plugins/review-result-artifacts.ts"))
-
-	restoreHome := osUserHomeDir
-	restoreBackupHome := backup.UserHomeDirFn
-	osUserHomeDir = func() (string, error) { return home, nil }
-	backup.UserHomeDirFn = func() (string, error) { return home, nil }
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		backup.UserHomeDirFn = restoreBackupHome
-	})
-
-	result, err := RunSync(nil)
-	if err != nil {
-		t.Fatalf("RunSync() error = %v", err)
-	}
-
-	if _, statErr := os.Stat(reviewPlugin); !os.IsNotExist(statErr) {
-		t.Fatalf("sync left OpenCode-only review plugin installed for Kilo: %v", statErr)
-	}
-	if !containsPath(result.ChangedFiles, reviewPlugin) {
-		t.Errorf("ChangedFiles missing removed Kilocode plugin path %q\nchanged = %#v", reviewPlugin, result.ChangedFiles)
-	}
-}
-
 // TestRunSyncRecreatesMissingManagedOpenCodePlugins guards issues #5192 and
 // #5099: sync converges with install, so a deleted or never-provisioned
 // managed plugin is recreated from the running binary's assets.
 func TestRunSyncRecreatesMissingManagedOpenCodePlugins(t *testing.T) {
 	home := t.TempDir()
 	if err := state.Write(home, state.InstallState{
-		InstalledAgents:     []string{"opencode", "kilocode"},
+		InstalledAgents:     []string{"opencode"},
 		SelectionConfigured: true,
 		Components:          []model.ComponentID{model.ComponentEngram},
 		Persona:             "neutral",
@@ -1867,7 +1827,7 @@ func TestRunSyncRecreatesMissingManagedOpenCodePlugins(t *testing.T) {
 		t.Fatalf("RunSync() error = %v", err)
 	}
 
-	for configDir, agent := range map[string]model.AgentID{"opencode": model.AgentOpenCode, "kilo": model.AgentKilocode} {
+	for configDir, agent := range map[string]model.AgentID{"opencode": model.AgentOpenCode} {
 		for _, name := range opencoderuntimeplugins.ManagedPluginNames(agent) {
 			path := filepath.Join(home, ".config", configDir, "plugins", name)
 			got, readErr := os.ReadFile(path)
@@ -1888,7 +1848,7 @@ func TestRunSyncRecreatesMissingManagedOpenCodePlugins(t *testing.T) {
 func TestSyncBackupTargetsIncludeManagedOpenCodePluginsWithoutSDD(t *testing.T) {
 	home := t.TempDir()
 	sel := model.Selection{
-		Agents:     []model.AgentID{model.AgentOpenCode, model.AgentKilocode},
+		Agents:     []model.AgentID{model.AgentOpenCode},
 		Components: []model.ComponentID{model.ComponentEngram},
 	}
 
@@ -1897,7 +1857,7 @@ func TestSyncBackupTargetsIncludeManagedOpenCodePluginsWithoutSDD(t *testing.T) 
 		t.Fatalf("syncBackupTargets() error = %v", err)
 	}
 
-	for configDir, agent := range map[string]model.AgentID{"opencode": model.AgentOpenCode, "kilo": model.AgentKilocode} {
+	for configDir, agent := range map[string]model.AgentID{"opencode": model.AgentOpenCode} {
 		for _, plugin := range opencoderuntimeplugins.OpenCodePluginLifecycleNames(agent) {
 			want := filepath.Join(home, ".config", configDir, "plugins", plugin)
 			if !containsPath(targets, want) {
@@ -2140,76 +2100,6 @@ func TestSyncRollbackRestoresLegacyOpenCodePluginAndRemovesReplacement(t *testin
 		if _, statErr := os.Stat(filepath.Join(pluginsDir, plugin)); !os.IsNotExist(statErr) {
 			t.Fatalf("rollback retained replacement plugin %q: %v", plugin, statErr)
 		}
-	}
-}
-
-func TestSyncSkillBackupRollsBackOpenClawGlobalSkills(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-	currentProject := t.TempDir()
-	writeOpenClawConfigWithWorkspace(t, home, workspace)
-	t.Chdir(currentProject)
-	selection := model.Selection{
-		Agents:     []model.AgentID{model.AgentOpenClaw},
-		Components: []model.ComponentID{model.ComponentSkills},
-		Skills:     []model.SkillID{model.SkillGoTesting},
-	}
-
-	openClawGlobalSkills := filepath.Join(home, ".openclaw", "skills")
-	openClawWorkspaceSkills := filepath.Join(workspace, ".openclaw", "skills")
-	globalSkill := filepath.Join(openClawGlobalSkills, "go-testing", "SKILL.md")
-	globalReference := filepath.Join(openClawGlobalSkills, "go-testing", "references", "examples.md")
-	writeStale(t, globalSkill)
-	writeStale(t, globalReference)
-
-	runtime, err := newSyncRuntimeWithScope(home, selection, ScopeGlobal)
-	if err != nil {
-		t.Fatal(err)
-	}
-	plan := runtime.stagePlan()
-	plan.Apply = append(plan.Apply, failingCompatibilityStep{})
-	result := pipeline.NewOrchestrator(pipeline.DefaultRollbackPolicy()).Execute(plan)
-	if result.Err == nil {
-		t.Fatal("injected later failure did not trigger sync rollback")
-	}
-	for _, path := range []string{globalSkill, globalReference} {
-		content, readErr := os.ReadFile(path)
-		if readErr != nil || string(content) != "stale" {
-			t.Errorf("sync rollback did not restore %q: content=%q error=%v", path, content, readErr)
-		}
-	}
-	for _, path := range []string{
-		filepath.Join(openClawWorkspaceSkills, "go-testing", "SKILL.md"),
-		filepath.Join(openClawWorkspaceSkills, "go-testing", "references", "examples.md"),
-	} {
-		if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
-			t.Errorf("OpenClaw sync must not write configured workspace skill path %q: %v", path, statErr)
-		}
-	}
-}
-
-func TestSyncBackupTargetsOpenClawSkillsUseGlobalRoot(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-	selection := model.Selection{
-		Agents:     []model.AgentID{model.AgentOpenClaw},
-		Components: []model.ComponentID{model.ComponentSkills},
-		Skills:     []model.SkillID{model.SkillGoTesting},
-	}
-
-	targets, err := syncBackupTargetsScoped(home, workspace, ScopeGlobal, selection, resolveAdapters(selection.Agents))
-	if err != nil {
-		t.Fatalf("syncBackupTargets() error = %v", err)
-	}
-
-	workspaceReference := filepath.Join(workspace, ".openclaw", "skills", "go-testing", "references", "examples.md")
-	if containsPath(targets, workspaceReference) {
-		t.Errorf("sync backup targets include OpenClaw workspace skill path %q\ntargets = %v", workspaceReference, targets)
-	}
-
-	homeReference := filepath.Join(home, ".openclaw", "skills", "go-testing", "references", "examples.md")
-	if !containsPath(targets, homeReference) {
-		t.Errorf("sync backup targets missing OpenClaw home-root skill path %q\ntargets = %v", homeReference, targets)
 	}
 }
 
@@ -3420,149 +3310,6 @@ func TestRunSyncNoOpWhenNoAgentsDiscovered(t *testing.T) {
 
 // ─── Gap 2: Report managed actions executed ────────────────────────────────
 
-// TestRenderSyncReportIncludesManagedActions verifies that the sync output
-// reports the managed actions that were executed, not just verification results.
-func TestNativeReviewSyncPipelineRollbackRestoresLedgerAndAgent(t *testing.T) {
-	home := t.TempDir()
-	adapter, err := agents.NewAdapter(model.AgentKiroIDE)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{CodeGraphGuidanceMarkdown: "original guidance"}); err != nil {
-		t.Fatal(err)
-	}
-	dir := adapter.SubAgentsDir(home)
-	ledger := filepath.Join(dir, reviewassets.OwnershipLedgerFilename)
-	path := filepath.Join(dir, "jd-judge-a.md")
-	ledgerBefore, err := os.ReadFile(ledger)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fileBefore, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	selection := model.Selection{Agents: []model.AgentID{model.AgentKiroIDE}}
-	runtime, err := newSyncRuntimeWithScope(home, selection, ScopeGlobal)
-	if err != nil {
-		t.Fatal(err)
-	}
-	plan := runtime.stagePlan()
-	if !containsPath(runtime.managedPaths, ledger) || !containsPath(runtime.managedPaths, path) {
-		t.Fatalf("pipeline snapshot missing ledger/agent: %v", runtime.managedPaths)
-	}
-	plan.Apply = append(plan.Apply, failingSyncStep{})
-	result := pipeline.NewOrchestrator(pipeline.DefaultRollbackPolicy()).Execute(plan)
-	if result.Err == nil || !result.Rollback.Success {
-		t.Fatalf("pipeline rollback result = %+v", result)
-	}
-	if !containsPath(runtime.changedFiles, ledger) || !containsPath(runtime.changedFiles, path) {
-		t.Fatalf("native agent and ledger were not updated before rollback: %v", runtime.changedFiles)
-	}
-	ledgerAfter, err := os.ReadFile(ledger)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fileAfter, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(ledgerBefore, ledgerAfter) || !bytes.Equal(fileBefore, fileAfter) {
-		t.Fatalf("pipeline did not restore ledger and agent: ledger restored %t, file restored %t", bytes.Equal(ledgerBefore, ledgerAfter), bytes.Equal(fileBefore, fileAfter))
-	}
-}
-
-func TestNativeReviewSyncPreservesUnknownAndSnapshotsLedger(t *testing.T) {
-	home, workspace := t.TempDir(), t.TempDir()
-	adapter, err := agents.NewAdapter(model.AgentKiroIDE)
-	if err != nil {
-		t.Fatal(err)
-	}
-	selection := model.Selection{Agents: []model.AgentID{model.AgentKiroIDE}}
-	path := filepath.Join(adapter.SubAgentsDir(home), "jd-judge-a.md")
-	ledger := filepath.Join(adapter.SubAgentsDir(home), reviewassets.OwnershipLedgerFilename)
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, []byte("custom bytes"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	targets, err := syncBackupTargetsScoped(home, workspace, ScopeGlobal, selection, []agents.Adapter{adapter})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !containsPath(targets, ledger) || !containsPath(targets, path) {
-		t.Fatalf("snapshot targets missing ledger/file: %v", targets)
-	}
-	before, err := snapshotSyncFiles([]string{ledger, path})
-	if err != nil {
-		t.Fatal(err)
-	}
-	state := &runtimeState{}
-	changed := []string{}
-	step := nativeReviewAgentStep{id: "sync-test", agent: model.AgentKiroIDE, homeDir: home, workspaceDir: workspace, scope: ScopeGlobal, selection: selection, changedFiles: &changed, state: state}
-	if err := step.Run(); err != nil {
-		t.Fatal(err)
-	}
-	if !containsPath(changed, ledger) || containsPath(changed, path) {
-		t.Fatalf("changed paths = %v", changed)
-	}
-	if len(state.nativeReviewActions) != 1 || !strings.Contains(RenderSyncReport(SyncResult{NoOp: true, Agents: selection.Agents, ManualActions: state.nativeReviewActions}), nativeReviewPreservedAction(path)) {
-		t.Fatalf("actions = %v", state.nativeReviewActions)
-	}
-	if err := restoreSyncFiles(before); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Lstat(ledger); !os.IsNotExist(err) {
-		t.Fatalf("ledger after rollback error = %v", err)
-	}
-	data, err := os.ReadFile(path)
-	if err != nil || string(data) != "custom bytes" {
-		t.Fatalf("user file after rollback = %q, %v", data, err)
-	}
-
-	// Opt in for only the warned fixture file by moving it outside the agent
-	// directory. Verify the saved bytes before exercising the documented command.
-	saved := filepath.Join(t.TempDir(), "saved-agent.md")
-	if err := os.Rename(path, saved); err != nil {
-		t.Fatal(err)
-	}
-	if savedBytes, err := os.ReadFile(saved); err != nil || !bytes.Equal(savedBytes, data) {
-		t.Fatalf("saved backup = %q, %v", savedBytes, err)
-	}
-	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
-	originalHome, originalBackupHome := osUserHomeDir, backup.UserHomeDirFn
-	originalCommand, originalLookPath := runCommand, cmdLookPath
-	osUserHomeDir = func() (string, error) { return home, nil }
-	backup.UserHomeDirFn = func() (string, error) { return home, nil }
-	runCommand = func(string, ...string) error { return nil }
-	cmdLookPath = func(string) (string, error) { return "", exec.ErrNotFound }
-	t.Cleanup(func() {
-		osUserHomeDir, backup.UserHomeDirFn = originalHome, originalBackupHome
-		runCommand, cmdLookPath = originalCommand, originalLookPath
-	})
-	for i := 0; i < 2; i++ {
-		result, err := RunSync([]string{"--agent", "kiro-ide", "--scope", "global"})
-		if err != nil {
-			t.Fatalf("recovery sync %d: %v", i, err)
-		}
-		if strings.Contains(RenderSyncReport(result), nativeReviewPreservedAction(path)) {
-			t.Fatalf("recovery sync %d still preserves warned file: %v", i, result.ManualActions)
-		}
-		generated, err := os.ReadFile(path)
-		if err != nil || len(generated) == 0 || bytes.Equal(generated, data) {
-			t.Fatalf("recovered agent = %q, %v", generated, err)
-		}
-		if _, err := os.Stat(ledger); err != nil {
-			t.Fatalf("recovered ledger: %v", err)
-		}
-	}
-	if savedBytes, err := os.ReadFile(saved); err != nil || !bytes.Equal(savedBytes, data) {
-		t.Fatalf("recovery changed backup = %q, %v", savedBytes, err)
-	}
-}
-
 func TestRenderSyncReportIncludesManagedActions(t *testing.T) {
 	home := t.TempDir()
 	restoreHome := osUserHomeDir
@@ -4197,7 +3944,7 @@ func TestDiscoverAgentsFallsBackToFSDiscoveryWhenStateEmpty(t *testing.T) {
 func TestDiscoverAgentsStateMultipleAgents(t *testing.T) {
 	home := t.TempDir()
 
-	agents := []string{"claude-code", "opencode", "gemini-cli"}
+	agents := []string{"claude-code", "opencode", "codex"}
 	if err := state.Write(home, state.InstallState{InstalledAgents: agents}); err != nil {
 		t.Fatalf("state.Write() error = %v", err)
 	}
@@ -4207,7 +3954,7 @@ func TestDiscoverAgentsStateMultipleAgents(t *testing.T) {
 	want := []model.AgentID{
 		model.AgentClaudeCode,
 		model.AgentOpenCode,
-		model.AgentGeminiCLI,
+		model.AgentCodex,
 	}
 	if !reflect.DeepEqual(discovered, want) {
 		t.Errorf("DiscoverAgents() multi-state = %v, want %v", discovered, want)
@@ -6820,7 +6567,7 @@ func TestSyncBackupTargetsIncludeRoutingGuidancePathsWithoutAnyComponent(t *test
 func TestSyncBackupTargetsContainNoDuplicatePaths(t *testing.T) {
 	home := t.TempDir()
 	selection := model.Selection{
-		Agents:     []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode, model.AgentKimi, model.AgentCodex},
+		Agents:     []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode, model.AgentCodex},
 		Components: []model.ComponentID{model.ComponentSDD, model.ComponentEngram, model.ComponentPersona},
 		SDDMode:    model.SDDModeSingle,
 	}
@@ -7234,27 +6981,6 @@ func TestPostSyncVerificationRequiresEveryRetiredPluginRemoved(t *testing.T) {
 	t.Fatalf("no post-sync check for retired plugin %s; checks = %v", stale, report.Checks)
 }
 
-// Kilocode receives managed plugins too, so post-sync verification proves its
-// retired plugins are gone like OpenCode's.
-func TestPostSyncVerificationRequiresKilocodeRetiredPluginRemoved(t *testing.T) {
-	home := t.TempDir()
-	setOpenCodeTestHome(t, home)
-	adapter := kilocodeagent.NewAdapter()
-	stale := filepath.Join(adapter.GlobalConfigDir(home), "plugins", "background-agents.ts")
-	mustWriteFile(t, stale, []byte("stale"))
-	selection := model.Selection{Agents: []model.AgentID{model.AgentKilocode}}
-	report := runPostSyncVerificationScoped(home, t.TempDir(), ScopeGlobal, selection)
-	for _, check := range report.Checks {
-		if check.ID == "verify:sync:file:"+stale {
-			if check.Status != verify.CheckStatusFailed {
-				t.Fatalf("retired Kilocode plugin check status = %v, want failed", check.Status)
-			}
-			return
-		}
-	}
-	t.Fatalf("no post-sync check for retired Kilocode plugin %s; checks = %v", stale, report.Checks)
-}
-
 // Issue #5393: a hand-edited managed OpenCode plugin is refused and preserved,
 // but the refusal is scoped to that agent's managed plugins. Every other sync
 // step still runs, and the run ends as a partial sync naming the plugin.
@@ -7295,5 +7021,148 @@ func TestSyncDriftedOpenCodePluginIsScopedAndTheRestOfSyncRuns(t *testing.T) {
 		if !strings.Contains(report, want) {
 			t.Errorf("sync report missing %q:\n%s", want, report)
 		}
+	}
+}
+
+// TestRenderSyncReportIncludesManagedActions verifies that the sync output
+// reports the managed actions that were executed, not just verification results.
+func TestNativeReviewSyncPipelineRollbackRestoresLedgerAndAgent(t *testing.T) {
+	home := t.TempDir()
+	adapter, err := agents.NewAdapter(model.AgentClaudeCode)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{CodeGraphGuidanceMarkdown: "original guidance"}); err != nil {
+		t.Fatal(err)
+	}
+	dir := adapter.SubAgentsDir(home)
+	ledger := filepath.Join(dir, reviewassets.OwnershipLedgerFilename)
+	path := filepath.Join(dir, "jd-judge-a.md")
+	ledgerBefore, err := os.ReadFile(ledger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileBefore, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}}
+	runtime, err := newSyncRuntimeWithScope(home, selection, ScopeGlobal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := runtime.stagePlan()
+	if !containsPath(runtime.managedPaths, ledger) || !containsPath(runtime.managedPaths, path) {
+		t.Fatalf("pipeline snapshot missing ledger/agent: %v", runtime.managedPaths)
+	}
+	plan.Apply = append(plan.Apply, failingSyncStep{})
+	result := pipeline.NewOrchestrator(pipeline.DefaultRollbackPolicy()).Execute(plan)
+	if result.Err == nil || !result.Rollback.Success {
+		t.Fatalf("pipeline rollback result = %+v", result)
+	}
+	if !containsPath(runtime.changedFiles, ledger) || !containsPath(runtime.changedFiles, path) {
+		t.Fatalf("native agent and ledger were not updated before rollback: %v", runtime.changedFiles)
+	}
+	ledgerAfter, err := os.ReadFile(ledger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileAfter, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(ledgerBefore, ledgerAfter) || !bytes.Equal(fileBefore, fileAfter) {
+		t.Fatalf("pipeline did not restore ledger and agent: ledger restored %t, file restored %t", bytes.Equal(ledgerBefore, ledgerAfter), bytes.Equal(fileBefore, fileAfter))
+	}
+}
+
+func TestNativeReviewSyncPreservesUnknownAndSnapshotsLedger(t *testing.T) {
+	home, workspace := t.TempDir(), t.TempDir()
+	adapter, err := agents.NewAdapter(model.AgentClaudeCode)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}}
+	path := filepath.Join(adapter.SubAgentsDir(home), "jd-judge-a.md")
+	ledger := filepath.Join(adapter.SubAgentsDir(home), reviewassets.OwnershipLedgerFilename)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("custom bytes"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	targets, err := syncBackupTargetsScoped(home, workspace, ScopeGlobal, selection, []agents.Adapter{adapter})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !containsPath(targets, ledger) || !containsPath(targets, path) {
+		t.Fatalf("snapshot targets missing ledger/file: %v", targets)
+	}
+	before, err := snapshotSyncFiles([]string{ledger, path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := &runtimeState{}
+	changed := []string{}
+	step := nativeReviewAgentStep{id: "sync-test", agent: model.AgentClaudeCode, homeDir: home, workspaceDir: workspace, scope: ScopeGlobal, selection: selection, changedFiles: &changed, state: state}
+	if err := step.Run(); err != nil {
+		t.Fatal(err)
+	}
+	if !containsPath(changed, ledger) || containsPath(changed, path) {
+		t.Fatalf("changed paths = %v", changed)
+	}
+	if len(state.nativeReviewActions) != 1 || !strings.Contains(RenderSyncReport(SyncResult{NoOp: true, Agents: selection.Agents, ManualActions: state.nativeReviewActions}), nativeReviewPreservedAction(path)) {
+		t.Fatalf("actions = %v", state.nativeReviewActions)
+	}
+	if err := restoreSyncFiles(before); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(ledger); !os.IsNotExist(err) {
+		t.Fatalf("ledger after rollback error = %v", err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil || string(data) != "custom bytes" {
+		t.Fatalf("user file after rollback = %q, %v", data, err)
+	}
+
+	// Opt in for only the warned fixture file by moving it outside the agent
+	// directory. Verify the saved bytes before exercising the documented command.
+	saved := filepath.Join(t.TempDir(), "saved-agent.md")
+	if err := os.Rename(path, saved); err != nil {
+		t.Fatal(err)
+	}
+	if savedBytes, err := os.ReadFile(saved); err != nil || !bytes.Equal(savedBytes, data) {
+		t.Fatalf("saved backup = %q, %v", savedBytes, err)
+	}
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	originalHome, originalBackupHome := osUserHomeDir, backup.UserHomeDirFn
+	originalCommand, originalLookPath := runCommand, cmdLookPath
+	osUserHomeDir = func() (string, error) { return home, nil }
+	backup.UserHomeDirFn = func() (string, error) { return home, nil }
+	runCommand = func(string, ...string) error { return nil }
+	cmdLookPath = func(string) (string, error) { return "", exec.ErrNotFound }
+	t.Cleanup(func() {
+		osUserHomeDir, backup.UserHomeDirFn = originalHome, originalBackupHome
+		runCommand, cmdLookPath = originalCommand, originalLookPath
+	})
+	for i := 0; i < 2; i++ {
+		result, err := RunSync([]string{"--agent", "claude-code", "--scope", "global"})
+		if err != nil {
+			t.Fatalf("recovery sync %d: %v", i, err)
+		}
+		if strings.Contains(RenderSyncReport(result), nativeReviewPreservedAction(path)) {
+			t.Fatalf("recovery sync %d still preserves warned file: %v", i, result.ManualActions)
+		}
+		generated, err := os.ReadFile(path)
+		if err != nil || len(generated) == 0 || bytes.Equal(generated, data) {
+			t.Fatalf("recovered agent = %q, %v", generated, err)
+		}
+		if _, err := os.Stat(ledger); err != nil {
+			t.Fatalf("recovered ledger: %v", err)
+		}
+	}
+	if savedBytes, err := os.ReadFile(saved); err != nil || !bytes.Equal(savedBytes, data) {
+		t.Fatalf("recovery changed backup = %q, %v", savedBytes, err)
 	}
 }

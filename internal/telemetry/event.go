@@ -36,12 +36,8 @@ func sanitizeVersion(v string) string {
 // needs updating by hand when a new agent or component ships (a schema
 // cannot import Go constants).
 var knownAgents = map[string]bool{
-	string(model.AgentClaudeCode): true, string(model.AgentOpenCode): true, string(model.AgentKilocode): true,
-	string(model.AgentGeminiCLI): true, string(model.AgentCursor): true, string(model.AgentVSCodeCopilot): true,
-	string(model.AgentCodex): true, string(model.AgentAntigravity): true, string(model.AgentWindsurf): true,
-	string(model.AgentKimi): true, string(model.AgentQwenCode): true, string(model.AgentKiroIDE): true,
-	string(model.AgentOpenClaw): true, string(model.AgentPi): true, string(model.AgentTrae): true,
-	string(model.AgentHermes): true, string(model.AgentConductor): true,
+	string(model.AgentClaudeCode): true, string(model.AgentOpenCode): true,
+	string(model.AgentCodex): true, string(model.AgentPi): true,
 }
 
 var knownComponents = map[string]bool{

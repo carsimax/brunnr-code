@@ -35,33 +35,6 @@ func TestDefaultRegistryIncludesPi(t *testing.T) {
 	}
 }
 
-func TestFactoryResolvesAntigravityAdapter(t *testing.T) {
-	adapter, err := NewAdapter(model.AgentAntigravity)
-	if err != nil {
-		t.Fatalf("NewAdapter(%q) returned error: %v", model.AgentAntigravity, err)
-	}
-
-	if got := adapter.Agent(); got != model.AgentAntigravity {
-		t.Fatalf("adapter.Agent() = %q, want %q", got, model.AgentAntigravity)
-	}
-}
-
-func TestDefaultRegistryIncludesAntigravity(t *testing.T) {
-	registry, err := NewDefaultRegistry()
-	if err != nil {
-		t.Fatalf("NewDefaultRegistry() returned error: %v", err)
-	}
-
-	adapter, ok := registry.Get(model.AgentAntigravity)
-	if !ok {
-		t.Fatalf("registry missing %s adapter", model.AgentAntigravity)
-	}
-
-	if got := adapter.Agent(); got != model.AgentAntigravity {
-		t.Fatalf("registry adapter.Agent() = %q, want %q", got, model.AgentAntigravity)
-	}
-}
-
 func TestDefaultRegistrySupportedAgentsMatchesFactoryAgents(t *testing.T) {
 	registry, err := NewDefaultRegistry()
 	if err != nil {
@@ -69,23 +42,10 @@ func TestDefaultRegistrySupportedAgentsMatchesFactoryAgents(t *testing.T) {
 	}
 
 	want := []model.AgentID{
-		model.AgentAntigravity,
 		model.AgentClaudeCode,
 		model.AgentCodex,
-		model.AgentConductor,
-		model.AgentCursor,
-		model.AgentGeminiCLI,
-		model.AgentHermes,
-		model.AgentKilocode,
-		model.AgentKimi,
-		model.AgentKiroIDE,
-		model.AgentOpenClaw,
 		model.AgentOpenCode,
 		model.AgentPi,
-		model.AgentQwenCode,
-		model.AgentTrae,
-		model.AgentVSCodeCopilot,
-		model.AgentWindsurf,
 	}
 
 	if got := registry.SupportedAgents(); !reflect.DeepEqual(got, want) {
@@ -93,74 +53,11 @@ func TestDefaultRegistrySupportedAgentsMatchesFactoryAgents(t *testing.T) {
 	}
 }
 
-func TestFactoryResolvesHermesAdapter(t *testing.T) {
-	adapter, err := NewAdapter(model.AgentHermes)
-	if err != nil {
-		t.Fatalf("NewAdapter(%q) returned error: %v", model.AgentHermes, err)
-	}
-
-	if got := adapter.Agent(); got != model.AgentHermes {
-		t.Fatalf("adapter.Agent() = %q, want %q", got, model.AgentHermes)
-	}
-}
-
-func TestDefaultRegistryIncludesHermes(t *testing.T) {
-	registry, err := NewDefaultRegistry()
-	if err != nil {
-		t.Fatalf("NewDefaultRegistry() returned error: %v", err)
-	}
-
-	adapter, ok := registry.Get(model.AgentHermes)
-	if !ok {
-		t.Fatalf("registry missing %s adapter", model.AgentHermes)
-	}
-
-	if got := adapter.Agent(); got != model.AgentHermes {
-		t.Fatalf("registry adapter.Agent() = %q, want %q", got, model.AgentHermes)
-	}
-}
-
-func TestFactoryResolvesConductorAdapter(t *testing.T) {
-	adapter, err := NewAdapter(model.AgentConductor)
-	if err != nil {
-		t.Fatalf("NewAdapter(%q) returned error: %v", model.AgentConductor, err)
-	}
-
-	if got := adapter.Agent(); got != model.AgentConductor {
-		t.Fatalf("adapter.Agent() = %q, want %q", got, model.AgentConductor)
-	}
-}
-
-func TestDefaultRegistryIncludesConductor(t *testing.T) {
-	registry, err := NewDefaultRegistry()
-	if err != nil {
-		t.Fatalf("NewDefaultRegistry() returned error: %v", err)
-	}
-
-	adapter, ok := registry.Get(model.AgentConductor)
-	if !ok {
-		t.Fatalf("registry missing %s adapter", model.AgentConductor)
-	}
-
-	if got := adapter.Agent(); got != model.AgentConductor {
-		t.Fatalf("registry adapter.Agent() = %q, want %q", got, model.AgentConductor)
-	}
-
-	// Conductor inherits Claude Code configuration, so the adapter must claim
-	// no write capabilities.
-	if adapter.SupportsSkills() || adapter.SupportsSystemPrompt() || adapter.SupportsMCP() {
-		t.Fatalf("Conductor adapter claims write capabilities: skills=%t systemPrompt=%t mcp=%t",
-			adapter.SupportsSkills(), adapter.SupportsSystemPrompt(), adapter.SupportsMCP())
-	}
-}
-
-func TestFactoryRejectsUnsupportedOpenClawLookalike(t *testing.T) {
-	_, err := NewAdapter(model.AgentID("openclaw-beta"))
-	if err == nil {
-		t.Fatalf("NewAdapter() expected unsupported agent error")
-	}
-
-	if !errors.Is(err, ErrAgentNotSupported) {
-		t.Fatalf("NewAdapter() error = %v, want ErrAgentNotSupported", err)
+func TestFactoryRejectsRemovedAgents(t *testing.T) {
+	for _, id := range []model.AgentID{"openclaw", "cursor", "gemini-cli", "kimi", "windsurf"} {
+		_, err := NewAdapter(id)
+		if !errors.Is(err, ErrAgentNotSupported) {
+			t.Fatalf("NewAdapter(%q) error = %v, want ErrAgentNotSupported", id, err)
+		}
 	}
 }

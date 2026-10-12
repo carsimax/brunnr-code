@@ -9,11 +9,7 @@ import (
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/gemini"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/kilocode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/openclaw"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/qwen"
 	runtimeopencode "github.com/gentleman-programming/gentle-ai/v4/internal/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/telemetry"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/testenv"
@@ -26,6 +22,24 @@ import (
 // telemetryTestSpawnRecorder.Calls() rather than injecting their own Deps.Spawn,
 // since production call sites like TelemetryTrigger never expose that seam.
 var telemetryTestSpawnRecorder *telemetry.RecordingSpawner
+
+// pinGoCachesBeforeHomeIsolation keeps explicit GOPATH/GOMODCACHE/GOCACHE
+// values and otherwise records Go's HOME-derived defaults as explicit values,
+// so swapping HOME for a temporary directory does not empty the caches.
+func pinGoCachesBeforeHomeIsolation() {
+	if home, err := os.UserHomeDir(); err == nil && os.Getenv("GOPATH") == "" {
+		if err := os.Setenv("GOPATH", filepath.Join(home, "go")); err != nil {
+			panic(err)
+		}
+	}
+	if os.Getenv("GOCACHE") == "" {
+		if cache, err := os.UserCacheDir(); err == nil {
+			if err := os.Setenv("GOCACHE", filepath.Join(cache, "go-build")); err != nil {
+				panic(err)
+			}
+		}
+	}
+}
 
 // TestMain overrides verifyEngramVersion and probeEngramProtocolFlag with
 // hermetic fakes for the whole internal/cli test binary, so pre-existing
@@ -41,22 +55,20 @@ var telemetryTestSpawnRecorder *telemetry.RecordingSpawner
 // invocations exactly — see the exact-argv assertions in
 // run_integration_test.go).
 //
-// It does the same for claude/opencode/gemini/qwen/kilocode/openclaw's own
+// It does the same for claude/opencode's own
 // LookPathOverride: since gentle-ai now refuses instead of installing a
 // missing agent runtime (agentInstallStep in run.go), the many tests in this
 // package whose real target is protocol forwarding, engram provisioning,
 // workspace resolution, or config injection — not install/detection
 // behavior — used to pass only because those binaries happened to be on the
-// developer's PATH (openclaw is genuinely on this repo's dev machines, which
-// is exactly the kind of accidental dependency this guards against).
+// developer's PATH.
 // Defaulting them to "present" here makes that accidental dependency an
 // intentional, hermetic one; tests that must exercise a genuine absence (the
 // refusal itself) override the relevant package's LookPathOverride back to
 // missing locally, the same save/restore pattern as everywhere else — see
 // e.g. TestRunInstallRefusesMissingOpenCodeInsteadOfInstalling,
-// TestAgentInstallStepRefusesMissingCodexInsteadOfInstalling, and
-// TestRunInstallRefusesMissingKimiRegardlessOfUVPresence for that opposite,
-// deliberately-kept case.
+// and TestAgentInstallStepRefusesMissingCodexInsteadOfInstalling for that
+// opposite, deliberately-kept case.
 func TestMain(m *testing.M) {
 	if os.Getenv("GENTLE_AI_TEST_BREW_FIXTURE") == "1" {
 		os.Exit(runPortableBrewFixture())
@@ -94,10 +106,6 @@ func TestMain(m *testing.M) {
 		agentPresent := func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
 		claude.LookPathOverride = agentPresent
 		opencode.LookPathOverride = agentPresent
-		gemini.LookPathOverride = agentPresent
-		qwen.LookPathOverride = agentPresent
-		kilocode.LookPathOverride = agentPresent
-		openclaw.LookPathOverride = agentPresent
 		// The same routing app.RunArgs performs for the sync subcommand
 		// (internal/app/app.go: cli.RunSync(args[1:]) -- it cannot be imported
 		// here without an import cycle): strip the verb, reject anything else,
@@ -163,10 +171,6 @@ func TestMain(m *testing.M) {
 	agentPresent := func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
 	claude.LookPathOverride = agentPresent
 	opencode.LookPathOverride = agentPresent
-	gemini.LookPathOverride = agentPresent
-	qwen.LookPathOverride = agentPresent
-	kilocode.LookPathOverride = agentPresent
-	openclaw.LookPathOverride = agentPresent
 
 	// Telemetry hermeticity for the whole binary: countless tests in this
 	// package exercise install/sync/review-outcome code paths that now call
@@ -190,22 +194,4 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	_ = os.RemoveAll(testHome)
 	os.Exit(code)
-}
-
-// pinGoCachesBeforeHomeIsolation keeps explicit GOPATH/GOMODCACHE/GOCACHE
-// values and otherwise records Go's HOME-derived defaults as explicit values,
-// so swapping HOME for a temporary directory does not empty the caches.
-func pinGoCachesBeforeHomeIsolation() {
-	if home, err := os.UserHomeDir(); err == nil && os.Getenv("GOPATH") == "" {
-		if err := os.Setenv("GOPATH", filepath.Join(home, "go")); err != nil {
-			panic(err)
-		}
-	}
-	if os.Getenv("GOCACHE") == "" {
-		if cache, err := os.UserCacheDir(); err == nil {
-			if err := os.Setenv("GOCACHE", filepath.Join(cache, "go-build")); err != nil {
-				panic(err)
-			}
-		}
-	}
 }

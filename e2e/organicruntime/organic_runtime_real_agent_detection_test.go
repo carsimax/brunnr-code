@@ -12,11 +12,8 @@
 // instead of installing a missing runtime (agentInstallStep in
 // internal/cli/run.go), so without the real binary these cases fail with a
 // refusal, not a skip. `go test ./...` at the repo root (the Unit Tests CI
-// job) never installs agent runtimes and must not silently pass this file's
-// absence off as full coverage — Cursor's equivalent case, which needs no
-// real binary, still runs there unconditionally
-// (TestOrganicConfiguredAgentReceivesRoutingGuidanceCursor in
-// organic_runtime_test.go).
+// job) never installs agent runtimes, so these cases run only where the
+// runtimes are installed.
 //
 // The organic-runtime-e2e job in .github/workflows/ci.yml installs both
 // Claude Code and OpenCode before running `go test -tags real_agent_e2e
@@ -36,10 +33,8 @@ import (
 
 // TestOrganicConfiguredAgentReceivesRoutingGuidanceRealAgents proves the
 // markdown-section and orchestrator-prompt delivery strategies for Claude
-// Code and OpenCode — the two rows of
-// TestOrganicConfiguredAgentReceivesRoutingGuidanceCursor's original table
-// that need a real installed agent binary. See this file's package comment
-// for why they moved here.
+// Code and OpenCode, which need a real installed agent binary. See this
+// file's package comment for why they are gated.
 func TestOrganicConfiguredAgentReceivesRoutingGuidanceRealAgents(t *testing.T) {
 	t.Parallel()
 	// The orchestrator prompt lives in the home settings document even under

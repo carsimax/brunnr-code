@@ -90,7 +90,7 @@ func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 	}
 
 	want := model.Selection{
-		Agents:  []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode, model.AgentKilocode, model.AgentGeminiCLI, model.AgentCodex, model.AgentCursor, model.AgentVSCodeCopilot, model.AgentAntigravity, model.AgentWindsurf, model.AgentKimi, model.AgentQwenCode, model.AgentKiroIDE, model.AgentOpenClaw, model.AgentPi, model.AgentTrae, model.AgentHermes, model.AgentConductor},
+		Agents:  []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode, model.AgentCodex, model.AgentPi},
 		Persona: model.PersonaGentleman,
 		Preset:  model.PresetFullGentleman,
 		Components: []model.ComponentID{
@@ -421,20 +421,8 @@ func TestDefaultAgentsFromDetection_AllAgentsMappedCorrectly(t *testing.T) {
 	}{
 		{"claude-code", model.AgentClaudeCode},
 		{"opencode", model.AgentOpenCode},
-		{"kilocode", model.AgentKilocode},
-		{"gemini-cli", model.AgentGeminiCLI},
-		{"cursor", model.AgentCursor},
-		{"vscode-copilot", model.AgentVSCodeCopilot},
 		{"codex", model.AgentCodex},
-		{"antigravity", model.AgentAntigravity},
-		{"windsurf", model.AgentWindsurf},
-		{"kimi", model.AgentKimi},
-		{"qwen-code", model.AgentQwenCode},
-		{"kiro-ide", model.AgentKiroIDE},
-		{"openclaw", model.AgentOpenClaw},
 		{"pi", model.AgentPi},
-		{"trae-ide", model.AgentTrae},
-		{"hermes", model.AgentHermes},
 	}
 
 	for _, tt := range tests {

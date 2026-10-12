@@ -29,19 +29,9 @@ func TestProviderForAgents(t *testing.T) {
 			want:   "opencode",
 		},
 		{
-			name:   "gemini-cli maps to gemini",
-			agents: []model.AgentID{model.AgentGeminiCLI},
-			want:   "gemini",
-		},
-		{
 			name:   "both claude and opencode defaults to claude",
 			agents: []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode},
 			want:   "claude",
-		},
-		{
-			name:   "opencode and gemini defaults to opencode",
-			agents: []model.AgentID{model.AgentOpenCode, model.AgentGeminiCLI},
-			want:   "opencode",
 		},
 		{
 			name:   "empty agents defaults to claude",
@@ -54,19 +44,9 @@ func TestProviderForAgents(t *testing.T) {
 			want:   "claude",
 		},
 		{
-			name:   "cursor only defaults to claude",
-			agents: []model.AgentID{model.AgentCursor},
-			want:   "claude",
-		},
-		{
 			name:   "codex maps to codex",
 			agents: []model.AgentID{model.AgentCodex},
 			want:   "codex",
-		},
-		{
-			name:   "antigravity maps to gemini",
-			agents: []model.AgentID{model.AgentAntigravity},
-			want:   "gemini",
 		},
 	}
 

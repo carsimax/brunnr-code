@@ -11,15 +11,9 @@ import (
 	"time"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/antigravity"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/cursor"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/gemini"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/hermes"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/kilocode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/vscode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
 
@@ -297,7 +291,7 @@ func TestOpenCodePermissionsMirrorPiSafetyModel(t *testing.T) {
 	for _, path := range []string{".env", "app/.env", ".env.local", "app/.env.production", ".env_backup", "secrets/token", "app/secrets/db.json", "/home/u/.ssh/id_ed25519", ".ssh/config", "server.pem", "keys/tls.key", "cert.p12", "cert.pfx", "/home/u/.aws/credentials", "/home/u/.config/gh/hosts.yml", "/home/u/.config/gh/hosts.yaml", "/home/u/.credentials/token", "/Users/u/Library/Keychains/login.keychain-db", "/home/u/.ssh", "secrets", ".aws/credentials", ".config/gh/hosts.yml"} {
 		cases = append(cases, struct{ tool, input, want string }{"read", path, "deny"}, struct{ tool, input, want string }{"edit", path, "deny"})
 	}
-	for _, id := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode} {
+	for _, id := range []model.AgentID{model.AgentOpenCode} {
 		t.Run(string(id), func(t *testing.T) {
 			home := t.TempDir()
 			adapter, _ := agents.NewAdapter(id)
@@ -362,7 +356,7 @@ func TestRemoteMatcherBoundaryFixtures(t *testing.T) {
 }
 
 func TestRemoteCommandApprovalDefaults(t *testing.T) {
-	for _, id := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode} {
+	for _, id := range []model.AgentID{model.AgentOpenCode} {
 		for _, seed := range []string{`{}`, `{"permission":{"bash":{"*":"allow"}}}`, `{"permission":{"bash":{"*":"allow","ssh*":"deny"}}}`, `{"permission":"deny"}`, `{"permission":{"bash":"ask"}}`, `{"permission":{"bash":"deny"}}`, `{"permission":{"bash":{"*":"deny"}}}`, `{"permission":{"bash":{"*":"allow","ssh *":"deny"}}}`, `{"permission":{"bash":{"*":"allow","ssh*":"allow"}}}`} {
 			t.Run(string(id)+seed, func(t *testing.T) {
 				home := t.TempDir()
@@ -401,14 +395,9 @@ func TestRemoteCommandApprovalDefaults(t *testing.T) {
 	}
 }
 
-func claudeAdapter() agents.Adapter      { return claude.NewAdapter() }
-func opencodeAdapter() agents.Adapter    { return opencode.NewAdapter() }
-func geminiAdapter() agents.Adapter      { return gemini.NewAdapter() }
-func cursorAdapter() agents.Adapter      { return cursor.NewAdapter() }
-func vscodeAdapter() agents.Adapter      { return vscode.NewAdapter() }
-func codexAdapter() agents.Adapter       { return codex.NewAdapter() }
-func antigravityAdapter() agents.Adapter { return antigravity.NewAdapter() }
-func hermesAdapter() agents.Adapter      { return hermes.NewAdapter() }
+func claudeAdapter() agents.Adapter   { return claude.NewAdapter() }
+func opencodeAdapter() agents.Adapter { return opencode.NewAdapter() }
+func codexAdapter() agents.Adapter    { return codex.NewAdapter() }
 
 // codexInjectedLegacyConfig mirrors a config.toml produced by the retired
 // gentle-dev permission profile injection, wrapped in user-authored content.
@@ -464,29 +453,6 @@ func writeCodexConfig(t *testing.T, home, content string) string {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
 	return configPath
-}
-
-// TestInjectHermesSkipsPermissions verifies that Hermes returns nil (no file written)
-// because Hermes permission format is undocumented — §14 of spec.
-func TestInjectHermesSkipsPermissions(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := Inject(home, hermesAdapter())
-	if err != nil {
-		t.Fatalf("Inject(hermes) error = %v", err)
-	}
-	if result.Changed {
-		t.Fatal("Inject(hermes) changed = true, want false (no file should be written)")
-	}
-	if len(result.Files) != 0 {
-		t.Fatalf("Inject(hermes) files = %v, want [] (no file should be written)", result.Files)
-	}
-
-	// Confirm no config.yaml or settings file was created.
-	hermesDir := filepath.Join(home, ".hermes")
-	if _, err := os.Stat(hermesDir); err == nil {
-		t.Fatal("Inject(hermes) created ~/.hermes directory, want no files written")
-	}
 }
 
 func TestInjectOpenCodeIsIdempotent(t *testing.T) {
@@ -596,153 +562,6 @@ func TestInjectClaudeCodeUsesBypassPermissions(t *testing.T) {
 	mode, ok := perms["defaultMode"].(string)
 	if !ok || mode != "bypassPermissions" {
 		t.Fatalf("expected defaultMode=bypassPermissions, got %q", mode)
-	}
-}
-
-func TestInjectGeminiCLIUsesAutoEditMode(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := Inject(home, geminiAdapter())
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatal("Inject() changed = false")
-	}
-
-	settingsPath := filepath.Join(home, ".gemini", "settings.json")
-	content, err := os.ReadFile(settingsPath)
-	if err != nil {
-		t.Fatalf("read settings file: %v", err)
-	}
-
-	var settings map[string]any
-	if err := json.Unmarshal(content, &settings); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-
-	general, ok := settings["general"].(map[string]any)
-	if !ok {
-		t.Fatalf("general node missing: %#v", settings)
-	}
-
-	mode, ok := general["defaultApprovalMode"].(string)
-	if !ok || mode != "auto_edit" {
-		t.Fatalf("expected defaultApprovalMode=auto_edit, got %q", mode)
-	}
-
-	// Ensure no Claude Code keys leaked
-	if _, exists := settings["permissions"]; exists {
-		t.Fatal("gemini settings should not contain 'permissions' key")
-	}
-}
-
-func TestInjectVSCodeCopilotUsesAutoApprove(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
-	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
-
-	adapter := vscodeAdapter()
-	result, err := Inject(home, adapter)
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatal("Inject() changed = false")
-	}
-
-	settingsPath := adapter.SettingsPath(home)
-	content, err := os.ReadFile(settingsPath)
-	if err != nil {
-		t.Fatalf("read settings file: %v", err)
-	}
-
-	var settings map[string]any
-	if err := json.Unmarshal(content, &settings); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-
-	autoApprove, ok := settings["chat.tools.autoApprove"].(bool)
-	if !ok || !autoApprove {
-		t.Fatalf("expected chat.tools.autoApprove=true, got %v", settings["chat.tools.autoApprove"])
-	}
-
-	// Ensure no Claude Code keys leaked
-	if _, exists := settings["permissions"]; exists {
-		t.Fatal("vscode settings should not contain 'permissions' key")
-	}
-}
-
-func TestInjectVSCodeCopilotMergesIntoJSONCSettings(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
-	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
-
-	adapter := vscodeAdapter()
-	settingsPath := adapter.SettingsPath(home)
-	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-		t.Fatalf("MkdirAll() error = %v", err)
-	}
-
-	baseSettings := `{
-	  // User has comments and trailing commas in VS Code settings
-	  "editor.formatOnSave": true,
-	  "files.exclude": {
-	    "**/.git": true,
-	  },
-	}
-`
-	if err := os.WriteFile(settingsPath, []byte(baseSettings), 0o644); err != nil {
-		t.Fatalf("WriteFile(settings.json) error = %v", err)
-	}
-
-	result, err := Inject(home, adapter)
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatal("Inject() changed = false")
-	}
-
-	content, err := os.ReadFile(settingsPath)
-	if err != nil {
-		t.Fatalf("read settings file: %v", err)
-	}
-
-	var settings map[string]any
-	if err := json.Unmarshal(content, &settings); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-
-	autoApprove, ok := settings["chat.tools.autoApprove"].(bool)
-	if !ok || !autoApprove {
-		t.Fatalf("expected chat.tools.autoApprove=true, got %v", settings["chat.tools.autoApprove"])
-	}
-
-	if settings["editor.formatOnSave"] != true {
-		t.Fatalf("expected editor.formatOnSave=true, got %v", settings["editor.formatOnSave"])
-	}
-}
-
-func TestInjectCursorSkipsPermissions(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := Inject(home, cursorAdapter())
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-	if result.Changed {
-		t.Fatal("Inject() for Cursor should not change anything (permissions via cli-config.json)")
-	}
-	if len(result.Files) != 0 {
-		t.Fatalf("Inject() for Cursor should return no files, got %v", result.Files)
-	}
-}
-
-func TestInjectAntigravitySkipsPermissions(t *testing.T) {
-	overlay := agentOverlay(model.AgentAntigravity)
-	if overlay != nil {
-		t.Errorf("expected nil overlay for Antigravity, got %s", overlay)
 	}
 }
 
@@ -1082,38 +901,11 @@ func TestInjectOpenCodePreservesExistingDenyRules(t *testing.T) {
 	}
 }
 
-func TestKilocodePermissionsKeepBaseDuplicateKeyBehavior(t *testing.T) {
-	home := t.TempDir()
-	adapter := kilocode.NewAdapter()
-	settings := TargetPath(home, adapter)
-	if err := os.MkdirAll(filepath.Dir(settings), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(settings, []byte("{\"permission\":{\"bash\":{\"ssh\":\"deny\",\"ssh\":\"allow\"}}}\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := Inject(home, adapter); err != nil {
-		t.Fatalf("Inject(kilocode) error = %v; want base merge, not the OpenCode duplicate-key refusal", err)
-	}
-	raw, err := os.ReadFile(settings)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var root map[string]any
-	if err := json.Unmarshal(raw, &root); err != nil {
-		t.Fatalf("settings not valid JSON after merge: %v\n%s", err, raw)
-	}
-	if _, ok := root["permission"].(map[string]any); !ok {
-		t.Fatalf("permission missing after merge: %s", raw)
-	}
-}
-
 // A user running deny-by-default keeps it: no overlay rule looser than the
 // root "*" lands inside a tool map the user scoped, where it would follow the
 // root rule and win as the last match.
 func TestInjectKeepsUserDenyByDefault(t *testing.T) {
-	for _, id := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode} {
+	for _, id := range []model.AgentID{model.AgentOpenCode} {
 		t.Run(string(id), func(t *testing.T) {
 			home := t.TempDir()
 			adapter, _ := agents.NewAdapter(id)
@@ -1207,43 +999,5 @@ func TestInjectKeepsUserAskByDefault(t *testing.T) {
 	}
 	if got := remoteAction(t, raw, "git push"); got != "ask" {
 		t.Errorf("overlay ask lost: got %s", got)
-	}
-}
-
-// A root "*" pattern map of deny is deny-by-default too: the overlay adds no
-// looser rule, and the filter must not panic on the map form.
-func TestInjectToleratesPatternMapRootDefault(t *testing.T) {
-	home := t.TempDir()
-	adapter, _ := agents.NewAdapter(model.AgentKilocode)
-	path := adapter.SettingsPath(home)
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, []byte(`{"permission":{"*":{"*":"deny"}}}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := Inject(home, adapter); err != nil {
-		t.Fatal(err)
-	}
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var root struct {
-		Permission map[string]json.RawMessage `json:"permission"`
-	}
-	if err := json.Unmarshal(raw, &root); err != nil {
-		t.Fatal(err)
-	}
-	for tool, value := range root.Permission {
-		var patterns map[string]string
-		if tool == "*" || json.Unmarshal(value, &patterns) != nil {
-			continue
-		}
-		for pattern, action := range patterns {
-			if action != "deny" {
-				t.Errorf("%s %q: %s loosens the user's deny-by-default", tool, pattern, action)
-			}
-		}
 	}
 }

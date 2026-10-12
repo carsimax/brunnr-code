@@ -26,10 +26,7 @@ var sharedReferencePattern = regexp.MustCompile(`_shared/([A-Za-z0-9_.-]+\.md)`)
 // skillRuntimes are the runtimes that installed skills/_shared references in
 // v3.7.0. Pi has no adapter skills directory and is intentionally excluded.
 var skillRuntimes = []model.AgentID{
-	model.AgentClaudeCode, model.AgentOpenCode, model.AgentKilocode, model.AgentGeminiCLI,
-	model.AgentCursor, model.AgentVSCodeCopilot, model.AgentCodex, model.AgentAntigravity,
-	model.AgentWindsurf, model.AgentKimi, model.AgentQwenCode, model.AgentKiroIDE,
-	model.AgentOpenClaw, model.AgentTrae, model.AgentHermes,
+	model.AgentClaudeCode, model.AgentOpenCode, model.AgentCodex,
 }
 
 // v370SharedReferences is the exact non-SDD skills/_shared set v3.7.0
@@ -125,7 +122,7 @@ func TestInstallLeavesNoDanglingSharedReferences(t *testing.T) {
 // commands that the SDD component used to own for skill-creator and
 // skill-registry.
 func TestInstallRestoresSkillSlashCommands(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode, model.AgentQwenCode} {
+	for _, agent := range []model.AgentID{model.AgentOpenCode} {
 		t.Run(string(agent), func(t *testing.T) {
 			home := installFullGentleman(t, agent)
 			adapter, err := agents.NewAdapter(agent)
@@ -276,54 +273,6 @@ func TestUninstallRemovesRestoredSharedAndCommandFiles(t *testing.T) {
 		if _, err := os.Stat(path); err != nil {
 			t.Errorf("user file %s removed: %v", path, err)
 		}
-	}
-}
-
-// TestKiloInstallDefaultsShareDisabled mirrors v3.7.0 for Kilo's OpenCode
-// config: share is disabled only when the user has not chosen a mode.
-func TestKiloInstallDefaultsShareDisabled(t *testing.T) {
-	for _, tt := range []struct{ name, existing, want string }{
-		{name: "fresh", want: "disabled"},
-		{name: "user value", existing: `{"share":"auto"}`, want: "auto"},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			home := installTestHome(t)
-			settingsPath := filepath.Join(home, ".config", "kilo", "opencode.json")
-			if tt.existing != "" {
-				if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.WriteFile(settingsPath, []byte(tt.existing), 0o644); err != nil {
-					t.Fatal(err)
-				}
-			}
-			args := []string{"--agent", "kilocode", "--preset", "full-gentleman"}
-			if _, err := RunInstall(args, system.DetectionResult{}); err != nil {
-				t.Fatal(err)
-			}
-			if got := readJSONObject(t, settingsPath)["share"]; got != tt.want {
-				t.Fatalf("share = %v, want %s", got, tt.want)
-			}
-			before, _ := os.ReadFile(settingsPath)
-			if _, err := RunInstall(args, system.DetectionResult{}); err != nil {
-				t.Fatal(err)
-			}
-			if after, _ := os.ReadFile(settingsPath); !bytes.Equal(before, after) {
-				t.Fatal("second Kilo install is not idempotent")
-			}
-			if _, err := RunUninstallWithSelection(home, "", []model.AgentID{model.AgentKilocode}, nil); err != nil {
-				t.Fatalf("uninstall: %v", err)
-			}
-			if raw, err := os.ReadFile(settingsPath); err == nil {
-				root := map[string]any{}
-				if err := json.Unmarshal(raw, &root); err != nil {
-					t.Fatal(err)
-				}
-				if root["share"] != tt.want {
-					t.Fatalf("uninstall changed share: %v", root["share"])
-				}
-			}
-		})
 	}
 }
 

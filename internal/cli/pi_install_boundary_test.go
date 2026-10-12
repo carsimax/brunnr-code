@@ -4,6 +4,11 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
+	"testing"
+
 	piagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/installcmd"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
@@ -11,10 +16,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/planner"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
-	"os"
-	"path/filepath"
-	"reflect"
-	"testing"
 )
 
 func piInstallTestHome(t *testing.T) string {

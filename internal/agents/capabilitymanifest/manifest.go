@@ -308,13 +308,6 @@ func digest(domain string, payload []byte) string {
 }
 
 var featureClaimsByAgent = map[model.AgentID]AgentFeatureClaims{
-	model.AgentAntigravity: {
-		Skills: true, SystemPrompt: true, MCP: true,
-	},
-	// Conductor inherits Claude Code configuration and is managed through Claude
-	// Code's own adapter surface, so Gentle AI claims no write capabilities for
-	// it: no skills, MCP, system prompt, or other managed file writes.
-	model.AgentConductor: {},
 	model.AgentClaudeCode: {
 		OutputStyles: true, SlashCommands: true,
 		FileSubAgents: true, Skills: true, SystemPrompt: true, MCP: true,
@@ -322,43 +315,10 @@ var featureClaimsByAgent = map[model.AgentID]AgentFeatureClaims{
 	model.AgentCodex: {
 		Skills: true, SystemPrompt: true, MCP: true,
 	},
-	model.AgentCursor: {
-		FileSubAgents: true, Skills: true, SystemPrompt: true, MCP: true,
-	},
-	model.AgentGeminiCLI: {
-		Skills: true, SystemPrompt: true, MCP: true,
-	},
-	model.AgentHermes: {
-		Skills: true, SystemPrompt: true, MCP: true,
-	},
-	model.AgentKilocode: {
-		SlashCommands: true, Skills: true, SystemPrompt: true, MCP: true,
-	},
-	model.AgentKimi: {
-		FileSubAgents: true, Skills: true, SystemPrompt: true, MCP: true,
-	},
-	model.AgentKiroIDE: {
-		FileSubAgents: true, Skills: true, SystemPrompt: true, MCP: true,
-	},
-	model.AgentOpenClaw: {
-		Skills: true, SystemPrompt: true, MCP: true,
-	},
 	model.AgentOpenCode: {
 		SlashCommands: true, Skills: true, SystemPrompt: true, MCP: true,
 	},
 	model.AgentPi: {
 		SystemPrompt: false, MCP: true,
-	},
-	model.AgentQwenCode: {
-		SlashCommands: true, Skills: true, SystemPrompt: true, MCP: true,
-	},
-	model.AgentTrae: {
-		Skills: true, SystemPrompt: true, MCP: true,
-	},
-	model.AgentVSCodeCopilot: {
-		Skills: true, SystemPrompt: true, MCP: true,
-	},
-	model.AgentWindsurf: {
-		Skills: true, SystemPrompt: true, MCP: true, Workflows: true,
 	},
 }

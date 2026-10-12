@@ -2,7 +2,6 @@ package planner
 
 import (
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
@@ -263,42 +262,6 @@ func TestResolverOutputIsPlatformAgnostic(t *testing.T) {
 }
 
 // --- Conductor review note propagation (PR #5060 review) ---
-
-// TestBuildReviewPayloadPropagatesConductorReviewNote verifies the Conductor
-// review note travels from catalog metadata into the review payload only for
-// the agents a note actually belongs to.
-func TestBuildReviewPayloadPropagatesConductorReviewNote(t *testing.T) {
-	resolved := ResolvedPlan{
-		Agents: []model.AgentID{model.AgentClaudeCode, model.AgentConductor},
-	}
-
-	payload := BuildReviewPayload(model.Selection{}, resolved)
-
-	notes := map[model.AgentID]string{}
-	for _, note := range payload.AgentNotes {
-		if _, duplicate := notes[note.Agent]; duplicate {
-			t.Fatalf("duplicate review note for agent %q", note.Agent)
-		}
-		notes[note.Agent] = note.Note
-	}
-
-	conductorNote, ok := notes[model.AgentConductor]
-	if !ok {
-		t.Fatalf("BuildReviewPayload() produced no review note for %s; notes = %#v", model.AgentConductor, notes)
-	}
-	for _, required := range []string{
-		"inherit Claude Code configuration",
-		"no Conductor-specific files",
-	} {
-		if !strings.Contains(conductorNote, required) {
-			t.Fatalf("Conductor note = %q, want it to mention %q", conductorNote, required)
-		}
-	}
-
-	if note, ok := notes[model.AgentClaudeCode]; ok {
-		t.Fatalf("unrelated agent %s received a review note %q", model.AgentClaudeCode, note)
-	}
-}
 
 // TestBuildReviewPayloadOmitsNotesForWritableAgents keeps the review screen
 // quiet for every writable agent: notes exist only for catalog-only agents.

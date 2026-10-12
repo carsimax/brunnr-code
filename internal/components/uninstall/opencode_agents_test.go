@@ -16,7 +16,7 @@ import (
 )
 
 func TestPersonaOnlyUninstallRemovesOnlyManagedGentleman(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode} {
+	for _, agent := range []model.AgentID{model.AgentOpenCode} {
 		for _, modified := range []bool{false, true} {
 			t.Run(string(agent)+"/modified="+strconv.FormatBool(modified), func(t *testing.T) {
 				home := t.TempDir()
@@ -116,7 +116,6 @@ func TestUninstallLegacyMarkedAgents(t *testing.T) {
 		fixture string
 	}{
 		{model.AgentOpenCode, "opencode-v3.7.0-upgrade.json"},
-		{model.AgentKilocode, "kilo-v3.7.0-upgrade.json"},
 	} {
 		t.Run(string(tc.agent), func(t *testing.T) {
 			fixture, err := os.ReadFile(filepath.Join("..", "..", "cli", "testdata", tc.fixture))
@@ -250,7 +249,7 @@ func TestRemoveOpenCodeOrchestratorOnlyWhenEntireEntryIsManaged(t *testing.T) {
 // routing owner writes (#4816): the exact "allow" is Gentle AI's and leaves no
 // residue, while any other user value keeps the orchestrator alive.
 func TestRemoveOpenCodeOrchestratorQuestionPermission(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode} {
+	for _, agent := range []model.AgentID{model.AgentOpenCode} {
 		for _, tc := range []struct {
 			name     string
 			question any
@@ -318,7 +317,7 @@ func TestRemoveOpenCodeOrchestratorQuestionPermission(t *testing.T) {
 // rule is a Gentle AI delegation grant. Anywhere else the same value may be
 // the user's, so uninstall keeps it and reports it.
 func TestUninstallKeepsUnprovenOrchestratorQuestionAllow(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode} {
+	for _, agent := range []model.AgentID{model.AgentOpenCode} {
 		for _, tc := range []struct {
 			name       string
 			permission map[string]any

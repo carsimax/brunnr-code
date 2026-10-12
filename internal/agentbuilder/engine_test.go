@@ -83,16 +83,6 @@ func TestNewEngine_OpenCode_ReturnsOpenCodeEngine(t *testing.T) {
 	}
 }
 
-func TestNewEngine_GeminiCLI_ReturnsGeminiEngine(t *testing.T) {
-	engine := NewEngine(model.AgentGeminiCLI)
-	if engine == nil {
-		t.Fatal("expected non-nil engine for gemini-cli")
-	}
-	if engine.Agent() != model.AgentGeminiCLI {
-		t.Errorf("Agent() = %q, want %q", engine.Agent(), model.AgentGeminiCLI)
-	}
-}
-
 func TestNewEngine_Codex_ReturnsCodexEngine(t *testing.T) {
 	engine := NewEngine(model.AgentCodex)
 	if engine == nil {
@@ -107,14 +97,6 @@ func TestNewEngine_Unknown_ReturnsNil(t *testing.T) {
 	engine := NewEngine(model.AgentID("unknown-agent"))
 	if engine != nil {
 		t.Errorf("expected nil engine for unknown agent, got %v", engine)
-	}
-}
-
-func TestNewEngine_Cursor_ReturnsNil(t *testing.T) {
-	// cursor, vscode-copilot, etc. are not supported generation engines.
-	engine := NewEngine(model.AgentCursor)
-	if engine != nil {
-		t.Errorf("expected nil engine for cursor (not a generation engine), got %v", engine)
 	}
 }
 
@@ -136,13 +118,6 @@ func TestOpenCodeEngine_AgentID(t *testing.T) {
 	}
 }
 
-func TestGeminiEngine_AgentID(t *testing.T) {
-	e := &GeminiEngine{}
-	if e.Agent() != model.AgentGeminiCLI {
-		t.Errorf("GeminiEngine.Agent() = %q, want %q", e.Agent(), model.AgentGeminiCLI)
-	}
-}
-
 func TestCodexEngine_AgentID(t *testing.T) {
 	e := &CodexEngine{}
 	if e.Agent() != model.AgentCodex {
@@ -155,7 +130,6 @@ func TestAllSupportedEngines(t *testing.T) {
 	supported := []model.AgentID{
 		model.AgentClaudeCode,
 		model.AgentOpenCode,
-		model.AgentGeminiCLI,
 		model.AgentCodex,
 	}
 	for _, id := range supported {
@@ -165,5 +139,13 @@ func TestAllSupportedEngines(t *testing.T) {
 				t.Errorf("NewEngine(%q) returned nil", id)
 			}
 		})
+	}
+}
+
+func TestNewEngine_Cursor_ReturnsNil(t *testing.T) {
+	// cursor, vscode-copilot, etc. are not supported generation engines.
+	engine := NewEngine(model.AgentCursor)
+	if engine != nil {
+		t.Errorf("expected nil engine for cursor (not a generation engine), got %v", engine)
 	}
 }

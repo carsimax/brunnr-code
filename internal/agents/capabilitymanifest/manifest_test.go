@@ -209,23 +209,10 @@ func TestEveryManifestKeepsWorkRoutingDormantAndHashesCanonically(t *testing.T) 
 	// forwards the Go-issued opaque task to a fresh locked-down pi
 	// subprocess (gentle-pi#311, gentle-ai#3249).
 	wantManifestDigests := map[model.AgentID]string{
-		model.AgentAntigravity:   "sha256:4666df6712fc63b0aacf1227cb28d0afdace1f98cbdd611aa2d5e8d4048b87ce",
-		model.AgentClaudeCode:    "sha256:0644de1b6539cffee24ed3d673b450bf1f460fe5db7e8f05c5a0911aace8b280",
-		model.AgentCodex:         "sha256:b47855dc0acdae65aa2215eba09135087d32a890814dc73baab13595ecb6602b",
-		model.AgentConductor:     "sha256:f06b2f6250b4fe2795a4f3c5dba242f4d19933ba2601311f1e8ed1b9fc95e48f",
-		model.AgentCursor:        "sha256:acb6f0092917d40ee12ca88b2661f623f317f0c7436b8b4205fccabf6dd9a9ca",
-		model.AgentGeminiCLI:     "sha256:98095b61c7598a2b36088a0d28309ca95d27944298e20d09159375874b09d9fa",
-		model.AgentHermes:        "sha256:9f3a958ce7ca8d5b667f6af894eb8085535cd10b81d5ff238ffd358de12f7a5f",
-		model.AgentKilocode:      "sha256:13b99f2e8461693bd696ab8c9cea79dfcf37d1859a99f50a74396ff425004d99",
-		model.AgentKimi:          "sha256:57b074845e1fe0c98a6bdbb03486d6768a9fa4b48a87c0d4ad68cfdab972f21d",
-		model.AgentKiroIDE:       "sha256:e453ea65b26eca021f460b0d833c49eb3047e100aa3f81cb9fb77b77832c0da3",
-		model.AgentOpenClaw:      "sha256:5c14949d82e9bce1f283e77733cd7fab50116b5b37fad7fefa0d8fc8dee68299",
-		model.AgentOpenCode:      "sha256:c4889e14ddd1f82160d8d5bb49bcdf29bdac5fe367218adf6458a80bc9d5af9d",
-		model.AgentPi:            "sha256:cf2edc78e304c31a4fb0fe7ffb034128c008801499200eb6da97303f3a3b719d",
-		model.AgentQwenCode:      "sha256:490e77af62787bd18dd47145b673fdd222de199815ad1bed9fa33042eba80387",
-		model.AgentTrae:          "sha256:6ee937b8a1a35f51dcb8db6d90b9f05a52b651cedff9d323dede48d9c4a3fde8",
-		model.AgentVSCodeCopilot: "sha256:cc800f1eca6d5ea36ae83ae4fd43b59223093196970bdfee59096c60fe22fffe",
-		model.AgentWindsurf:      "sha256:2ccb52ebf0926b16f39f59e3df4bbf392c7bdd7fcc76dfb38ee758574be3ad00",
+		model.AgentClaudeCode: "sha256:0644de1b6539cffee24ed3d673b450bf1f460fe5db7e8f05c5a0911aace8b280",
+		model.AgentCodex:      "sha256:b47855dc0acdae65aa2215eba09135087d32a890814dc73baab13595ecb6602b",
+		model.AgentOpenCode:   "sha256:c4889e14ddd1f82160d8d5bb49bcdf29bdac5fe367218adf6458a80bc9d5af9d",
+		model.AgentPi:         "sha256:cf2edc78e304c31a4fb0fe7ffb034128c008801499200eb6da97303f3a3b719d",
 	}
 
 	for agent, wantDigest := range wantManifestDigests {
@@ -303,22 +290,9 @@ func TestEveryManifestDigestStaysByteStable(t *testing.T) {
 	t.Parallel()
 
 	wantNonPiDigests := map[model.AgentID]string{
-		model.AgentAntigravity:   "sha256:4666df6712fc63b0aacf1227cb28d0afdace1f98cbdd611aa2d5e8d4048b87ce",
-		model.AgentClaudeCode:    "sha256:0644de1b6539cffee24ed3d673b450bf1f460fe5db7e8f05c5a0911aace8b280",
-		model.AgentCodex:         "sha256:b47855dc0acdae65aa2215eba09135087d32a890814dc73baab13595ecb6602b",
-		model.AgentConductor:     "sha256:f06b2f6250b4fe2795a4f3c5dba242f4d19933ba2601311f1e8ed1b9fc95e48f",
-		model.AgentCursor:        "sha256:acb6f0092917d40ee12ca88b2661f623f317f0c7436b8b4205fccabf6dd9a9ca",
-		model.AgentGeminiCLI:     "sha256:98095b61c7598a2b36088a0d28309ca95d27944298e20d09159375874b09d9fa",
-		model.AgentHermes:        "sha256:9f3a958ce7ca8d5b667f6af894eb8085535cd10b81d5ff238ffd358de12f7a5f",
-		model.AgentKilocode:      "sha256:13b99f2e8461693bd696ab8c9cea79dfcf37d1859a99f50a74396ff425004d99",
-		model.AgentKimi:          "sha256:57b074845e1fe0c98a6bdbb03486d6768a9fa4b48a87c0d4ad68cfdab972f21d",
-		model.AgentKiroIDE:       "sha256:e453ea65b26eca021f460b0d833c49eb3047e100aa3f81cb9fb77b77832c0da3",
-		model.AgentOpenClaw:      "sha256:5c14949d82e9bce1f283e77733cd7fab50116b5b37fad7fefa0d8fc8dee68299",
-		model.AgentOpenCode:      "sha256:c4889e14ddd1f82160d8d5bb49bcdf29bdac5fe367218adf6458a80bc9d5af9d",
-		model.AgentQwenCode:      "sha256:490e77af62787bd18dd47145b673fdd222de199815ad1bed9fa33042eba80387",
-		model.AgentTrae:          "sha256:6ee937b8a1a35f51dcb8db6d90b9f05a52b651cedff9d323dede48d9c4a3fde8",
-		model.AgentVSCodeCopilot: "sha256:cc800f1eca6d5ea36ae83ae4fd43b59223093196970bdfee59096c60fe22fffe",
-		model.AgentWindsurf:      "sha256:2ccb52ebf0926b16f39f59e3df4bbf392c7bdd7fcc76dfb38ee758574be3ad00",
+		model.AgentClaudeCode: "sha256:0644de1b6539cffee24ed3d673b450bf1f460fe5db7e8f05c5a0911aace8b280",
+		model.AgentCodex:      "sha256:b47855dc0acdae65aa2215eba09135087d32a890814dc73baab13595ecb6602b",
+		model.AgentOpenCode:   "sha256:c4889e14ddd1f82160d8d5bb49bcdf29bdac5fe367218adf6458a80bc9d5af9d",
 	}
 
 	nonPiAgents := make([]model.AgentID, 0, len(wantNonPiDigests))
@@ -326,8 +300,8 @@ func TestEveryManifestDigestStaysByteStable(t *testing.T) {
 		nonPiAgents = append(nonPiAgents, agent)
 	}
 
-	if got := len(nonPiAgents); got != 16 {
-		t.Fatalf("want 16 non-Pi agents, got %d", got)
+	if got := len(nonPiAgents); got != 3 {
+		t.Fatalf("want 3 non-Pi agents, got %d", got)
 	}
 
 	for _, agent := range nonPiAgents {

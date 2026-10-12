@@ -34,8 +34,8 @@ func TestRuntimeContracts(t *testing.T) {
 
 func TestRenderedLensAssets(t *testing.T) {
 	for _, path := range []string{
-		"claude/agents/review-risk.md", "cursor/agents/review-reliability.md",
-		"kimi/agents/review-readability.md", "kiro/agents/review-resilience.md",
+		"claude/agents/review-risk.md", "claude/agents/review-reliability.md",
+		"claude/agents/review-readability.md", "claude/agents/review-resilience.md",
 	} {
 		t.Run(path, func(t *testing.T) {
 			source := assets.MustRead(path)
@@ -51,7 +51,7 @@ func TestRenderedLensAssets(t *testing.T) {
 		})
 	}
 	source := "---\nname: jd-judge-a\n---\noriginal"
-	if got, ok := RenderReviewerAsset("kiro/agents/jd-judge-a.md", source); ok || got != source {
+	if got, ok := RenderReviewerAsset("claude/agents/jd-judge-a.md", source); ok || got != source {
 		t.Fatal("Judgment Day unexpectedly rendered as review lens")
 	}
 	if got, ok := RenderReviewerAsset("claude/agents/review-refuter.md", source); ok || got != source {
@@ -68,7 +68,7 @@ func TestInspectionCommandsIndependent(t *testing.T) {
 }
 
 func TestRenderedLensAssetsCarrySeverityRules(t *testing.T) {
-	for _, path := range []string{"claude/agents/review-risk.md", "kiro/agents/review-resilience.md"} {
+	for _, path := range []string{"claude/agents/review-risk.md", "claude/agents/review-resilience.md"} {
 		t.Run(path, func(t *testing.T) {
 			got, ok := RenderReviewerAsset(path, assets.MustRead(path))
 			if !ok {

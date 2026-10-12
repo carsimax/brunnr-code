@@ -162,7 +162,7 @@ func TestDiscoverInstalled_MultipleInstalled(t *testing.T) {
 	reg := newStubRegistry(t,
 		stubAdapter{agent: model.AgentClaudeCode, configDir: claudeDir},
 		stubAdapter{agent: model.AgentOpenCode, configDir: opencodeDir},
-		stubAdapter{agent: model.AgentGeminiCLI, configDir: filepath.Join(home, ".gemini")}, // not created
+		stubAdapter{agent: model.AgentCodex, configDir: filepath.Join(home, ".codex")}, // not created
 	)
 
 	got := DiscoverInstalled(reg, home)
@@ -357,16 +357,15 @@ func writeInstalledAgentsState(t *testing.T, home string, ids ...model.AgentID) 
 
 // TestDiscoverSelected_HonoursSelectionInBothDirections is the regression test
 // Scope is the intersection: an agent installed but never
-// selected is excluded (the reported bug — Codex and Cursor were rewritten on
-// every sync), and an agent selected but not installed is excluded too, so
+// selected is excluded (the reported bug — unselected agents such as Codex were
+// rewritten on every sync), and an agent selected but not installed is excluded too, so
 // selection never conjures a config directory that is not there.
 func TestDiscoverSelected_HonoursSelectionInBothDirections(t *testing.T) {
 	home := t.TempDir()
 
 	opencodeDir := filepath.Join(home, ".config", "opencode")
 	codexDir := filepath.Join(home, ".codex")
-	cursorDir := filepath.Join(home, ".cursor")
-	for _, dir := range []string{opencodeDir, codexDir, cursorDir} {
+	for _, dir := range []string{opencodeDir, codexDir} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatalf("MkdirAll(%q): %v", dir, err)
 		}
@@ -377,7 +376,6 @@ func TestDiscoverSelected_HonoursSelectionInBothDirections(t *testing.T) {
 	reg := newStubRegistry(t,
 		stubAdapter{agent: model.AgentOpenCode, configDir: opencodeDir},
 		stubAdapter{agent: model.AgentCodex, configDir: codexDir},
-		stubAdapter{agent: model.AgentCursor, configDir: cursorDir},
 		stubAdapter{agent: model.AgentClaudeCode, configDir: filepath.Join(home, ".claude")},
 	)
 

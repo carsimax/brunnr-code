@@ -50,12 +50,6 @@ func TestManagedDirectReplyAssetsEnforceEnglishNoCodeSwitching(t *testing.T) {
 		{name: "claude gentleman persona", path: "claude/persona-gentleman.md", combineWith: "claude/output-style-gentleman.md"},
 		{name: "generic gentleman persona", path: "generic/persona-gentleman.md"},
 		{name: "generic neutral persona", path: "generic/persona-neutral.md"},
-		{name: "hermes gentleman persona", path: "hermes/persona-gentleman.md"},
-		{name: "hermes neutral persona", path: "hermes/persona-neutral.md"},
-		{name: "kiro gentleman persona", path: "kiro/persona-gentleman.md"},
-		{name: "kimi gentleman output style", path: "kimi/output-style-gentleman.md"},
-		{name: "kimi neutral output style", path: "kimi/output-style-neutral.md"},
-		{name: "kimi gentleman persona", path: "kimi/persona-gentleman.md", combineWith: "kimi/output-style-gentleman.md"},
 		{name: "opencode gentleman persona", path: "opencode/persona-gentleman.md"},
 	}
 
@@ -76,8 +70,8 @@ func TestManagedDirectReplyAssetsEnforceEnglishNoCodeSwitching(t *testing.T) {
 
 func TestODDOrchestratorAssetsEnforceLanguageContract(t *testing.T) {
 	assetPaths := allSDDOrchestratorAssetPaths(t)
-	if len(assetPaths) != 12 {
-		t.Fatalf("ODD orchestrator asset count = %d, want 12", len(assetPaths))
+	if len(assetPaths) != 4 {
+		t.Fatalf("ODD orchestrator asset count = %d, want 4", len(assetPaths))
 	}
 
 	for _, path := range assetPaths {
@@ -137,19 +131,11 @@ func TestSupportedAgentODDLanguageMatrix(t *testing.T) {
 		{agent: "claude-code", path: "claude/orchestrator.md"},
 		{agent: "opencode", path: "opencode/orchestrator.md"},
 		{agent: "kilocode", path: "opencode/orchestrator.md"},
-		{agent: "gemini-cli", path: "gemini/orchestrator.md"},
-		{agent: "cursor", path: "cursor/orchestrator.md"},
 		{agent: "vscode-copilot", path: "generic/orchestrator.md"},
 		{agent: "codex", path: "codex/orchestrator.md"},
-		{agent: "antigravity", path: "antigravity/orchestrator.md"},
-		{agent: "windsurf", path: "windsurf/orchestrator.md"},
-		{agent: "kimi", path: "kimi/orchestrator.md"},
-		{agent: "qwen-code", path: "qwen/orchestrator.md"},
-		{agent: "kiro-ide", path: "kiro/orchestrator.md"},
 		{agent: "openclaw", path: "generic/orchestrator.md"},
 		{agent: "pi", path: "generic/orchestrator.md"},
 		{agent: "trae-ide", path: "generic/orchestrator.md"},
-		{agent: "hermes", path: "hermes/orchestrator.md"},
 	}
 
 	for _, tc := range tests {
@@ -222,8 +208,6 @@ func TestGentlemanPersonaKeepsDirectConversationVoice(t *testing.T) {
 	}{
 		{path: "claude/persona-gentleman.md", combineWith: "claude/output-style-gentleman.md"},
 		{path: "generic/persona-gentleman.md"},
-		{path: "kiro/persona-gentleman.md"},
-		{path: "kimi/persona-gentleman.md", combineWith: "kimi/output-style-gentleman.md"},
 		{path: "opencode/persona-gentleman.md"},
 	}
 	for _, tc := range tests {
@@ -244,7 +228,6 @@ func TestGentlemanPersonaKeepsDirectConversationVoice(t *testing.T) {
 func TestNeutralPersonaAssetsProvideMentorParityWithoutRegionalVoice(t *testing.T) {
 	for _, path := range []string{
 		"generic/persona-neutral.md",
-		"hermes/persona-neutral.md",
 	} {
 		t.Run(path, func(t *testing.T) {
 			content := MustRead(path)
@@ -280,7 +263,6 @@ func TestNeutralPersonaAssetsProvideMentorParityWithoutRegionalVoice(t *testing.
 func TestNeutralOutputStyleAssetsProvideMeaningfulContract(t *testing.T) {
 	for _, path := range []string{
 		"claude/output-style-neutral.md",
-		"kimi/output-style-neutral.md",
 	} {
 		t.Run(path, func(t *testing.T) {
 			content := MustRead(path)
@@ -333,12 +315,12 @@ func allSDDOrchestratorAssetPaths(t *testing.T) []string {
 func allReviewLifecycleAssetPaths(t *testing.T) []string {
 	t.Helper()
 	var paths []string
-	for _, runtime := range []string{"claude", "cursor", "kimi", "kiro"} {
+	for _, runtime := range []string{"claude"} {
 		for _, role := range []string{"readability", "refuter", "reliability", "resilience", "risk"} {
 			paths = append(paths, runtime+"/agents/review-"+role+".md")
 		}
 	}
-	for _, runtime := range []string{"claude", "kiro"} {
+	for _, runtime := range []string{"claude"} {
 		for _, role := range []string{"fix-agent", "judge-a", "judge-b"} {
 			paths = append(paths, runtime+"/agents/jd-"+role+".md")
 		}
@@ -361,8 +343,6 @@ func TestOutputStylesKeepHumanReplyLanguageAcrossHarnessTurns(t *testing.T) {
 	paths := []string{
 		"claude/output-style-gentleman.md",
 		"claude/output-style-neutral.md",
-		"kimi/output-style-gentleman.md",
-		"kimi/output-style-neutral.md",
 	}
 	required := []string{
 		"Only a message written by the human can change the conversation language",
@@ -394,13 +374,8 @@ func TestPersonaChannelsCarryPreWriteArtifactSelfCheck(t *testing.T) {
 	paths := []string{
 		"claude/output-style-gentleman.md",
 		"claude/output-style-neutral.md",
-		"kimi/output-style-gentleman.md",
-		"kimi/output-style-neutral.md",
 		"generic/persona-gentleman.md",
 		"generic/persona-neutral.md",
-		"hermes/persona-gentleman.md",
-		"hermes/persona-neutral.md",
-		"kiro/persona-gentleman.md",
 		"opencode/persona-gentleman.md",
 	}
 	for _, path := range paths {
@@ -416,9 +391,7 @@ func TestPersonaChannelsCarryPreWriteArtifactSelfCheck(t *testing.T) {
 func TestNeutralChannelsExtendAntiDriftToToneAndDialect(t *testing.T) {
 	paths := []string{
 		"claude/output-style-neutral.md",
-		"kimi/output-style-neutral.md",
 		"generic/persona-neutral.md",
-		"hermes/persona-neutral.md",
 	}
 	for _, path := range paths {
 		t.Run(path, func(t *testing.T) {

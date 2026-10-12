@@ -16,7 +16,6 @@ func TestManagedOpenCodePluginInventory(t *testing.T) {
 		eligible  bool
 	}{
 		{"OpenCode", model.AgentOpenCode, []string{"model-variants.ts", "opencode-review-transport.ts", "skill-registry.ts"}, []string{"model-variants.ts", "opencode-review-transport.ts", "skill-registry.ts", "background-agents.ts", "review-result-artifacts.ts", "sdd-task-result-artifacts.ts"}, true},
-		{"Kilocode", model.AgentKilocode, []string{"model-variants.ts", "skill-registry.ts"}, []string{"model-variants.ts", "skill-registry.ts", "background-agents.ts", "review-result-artifacts.ts"}, true},
 		{"Claude", model.AgentClaudeCode, nil, nil, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

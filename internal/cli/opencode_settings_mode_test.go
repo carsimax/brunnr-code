@@ -22,7 +22,7 @@ func TestOpenCodeFamilySettingsWritersPreservePrivateMode(t *testing.T) {
 		t.Skip("POSIX permission bits are not meaningful on Windows")
 	}
 
-	for _, agent := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode} {
+	for _, agent := range []model.AgentID{model.AgentOpenCode} {
 		t.Run(string(agent), func(t *testing.T) {
 			settingsPath := filepath.Join(t.TempDir(), "opencode.json")
 			prompt := filemerge.InjectMarkdownSection("", legacyTriggerRulesSection, "Retired WorkRun ceremony\n")

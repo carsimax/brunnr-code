@@ -11,7 +11,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/pipeline"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
 )
 
 const (
@@ -139,7 +138,7 @@ func TestSyncRollbackRestoresRetiredCodexAndKimiFiles(t *testing.T) {
 	setSyncTestHome(t, home)
 	t.Cleanup(codex.SetRuntimeVersionCommandForTest("", exec.ErrNotFound))
 	files := seedRetiredRuntimeFiles(t, home)
-	selection := BuildSyncSelection(SyncFlags{}, []model.AgentID{model.AgentCodex, model.AgentKimi})
+	selection := BuildSyncSelection(SyncFlags{}, []model.AgentID{model.AgentCodex})
 	rt, err := newSyncRuntimeWithScope(home, selection, ScopeGlobal)
 	if err != nil {
 		t.Fatal(err)
@@ -212,23 +211,6 @@ func TestRunSyncWorkspaceRetiresSDDBlockFromProjectPrompts(t *testing.T) {
 	}
 	if got, _ := os.ReadFile(homePrompt); string(got) != block {
 		t.Errorf("workspace sync touched the home prompt: %q", got)
-	}
-}
-
-// Install retires the same inventory as sync.
-func TestRunInstallRetiresKimiSDDModule(t *testing.T) {
-	home := installTestHome(t)
-	setSyncTestHome(t, home)
-	module := filepath.Join(home, ".kimi", "sdd-orchestrator.md")
-	mustWriteFile(t, module, releasedSDDAsset(t, "v1.21.0", "kimi-sdd-orchestrator.md"))
-	if _, err := RunInstall([]string{"--agent", string(model.AgentKimi), "--component", "skills"}, system.DetectionResult{}); err != nil {
-		t.Fatalf("RunInstall() error = %v", err)
-	}
-	if _, err := os.Lstat(module); !os.IsNotExist(err) {
-		t.Errorf("install kept the owned Kimi SDD module: %v", err)
-	}
-	if _, ok := backupManifestEntries(t, home)[module]; !ok {
-		t.Error("install snapshot omitted the Kimi SDD module")
 	}
 }
 

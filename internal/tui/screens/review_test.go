@@ -124,29 +124,6 @@ func TestRenderReviewSummarizesPersonaConversationAndArtifacts(t *testing.T) {
 
 // ─── Conductor review note (PR #5060 review) ───────────────────────────────
 
-// TestRenderReviewShowsConductorNote verifies the review screen surfaces the
-// Conductor catalog note when Conductor is selected: its workspaces inherit
-// Claude Code configuration and no Conductor-specific files are written.
-func TestRenderReviewShowsConductorNote(t *testing.T) {
-	payload := planner.ReviewPayload{
-		Agents: []model.AgentID{model.AgentConductor},
-		AgentNotes: []planner.AgentNote{
-			{Agent: model.AgentConductor, Note: "Conductor workspaces inherit Claude Code configuration; Gentle AI writes no Conductor-specific files."},
-		},
-	}
-
-	out := RenderReview(payload, 0, "")
-
-	for _, required := range []string{
-		"Conductor workspaces inherit Claude Code configuration",
-		"no Conductor-specific files",
-	} {
-		if !strings.Contains(out, required) {
-			t.Fatalf("RenderReview() missing Conductor note %q; output:\n%s", required, out)
-		}
-	}
-}
-
 // TestRenderReviewHidesNotesForWritableAgents keeps the review screen free of
 // notes for writable agents: a payload without AgentNotes must render none.
 func TestRenderReviewHidesNotesForWritableAgents(t *testing.T) {

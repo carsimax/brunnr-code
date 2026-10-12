@@ -13,76 +13,13 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
 )
 
-// TestPartialUninstallCommitsSucceededAgentsWhenAnotherAgentFails reproduces
-// the reporter's batch: two managed agents, one of whose declared-JSON settings
-// files is malformed, uninstalled in a single invocation. The batch must not abandon the
-// remaining agent, and the state file it leaves behind must describe the disk.
-func TestPartialUninstallCommitsSucceededAgentsWhenAnotherAgentFails(t *testing.T) {
-	home := t.TempDir()
-	claudeSettings := filepath.Join(home, ".claude", "settings.json")
-	geminiSettings := filepath.Join(home, ".gemini", "settings.json")
-	geminiPrompt := filepath.Join(home, ".gemini", "GEMINI.md")
-
-	writeBatchFile(t, claudeSettings, `{"theme":"gentleman","outputStyle":"gentleman","env":{"MY_VAR":"1"}}`)
-	writeBatchFile(t, geminiSettings, `{"theme":"gentleman",`)
-	writeBatchFile(t, geminiPrompt, "<!-- gentle-ai:persona -->\nmanaged\n<!-- /gentle-ai:persona -->\n")
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code", "gemini-cli"}}); err != nil {
-		t.Fatal(err)
-	}
-
-	svc, err := NewService(home, t.TempDir(), "dev")
-	if err != nil {
-		t.Fatal(err)
-	}
-	svc.snapshotter = stubSnapshotter{}
-
-	result, err := svc.PartialUninstall([]model.AgentID{model.AgentClaudeCode, model.AgentGeminiCLI}, nil)
-	if err == nil {
-		t.Fatal("PartialUninstall() error = nil, want the gemini cleanup failure surfaced")
-	}
-	if want := fmt.Sprintf("%q", geminiSettings); !strings.Contains(err.Error(), want) {
-		t.Fatalf("PartialUninstall() error = %v, want it to name the representation %s", err, want)
-	}
-
-	if !slices.Equal(result.FailedAgents, []model.AgentID{model.AgentGeminiCLI}) {
-		t.Fatalf("FailedAgents = %v, want [gemini-cli]", result.FailedAgents)
-	}
-	if !slices.Equal(result.AgentsRemovedFromState, []model.AgentID{model.AgentClaudeCode}) {
-		t.Fatalf("AgentsRemovedFromState = %v, want [claude-code]", result.AgentsRemovedFromState)
-	}
-
-	// The report must describe the disk: the succeeded agent's managed keys are
-	// gone, so it commits; the failed agent stays recorded as installed.
-	current, err := state.Read(home)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Equal(current.InstalledAgents, []string{"gemini-cli"}) {
-		t.Fatalf("state.json installed_agents = %v, want only the agent that failed", current.InstalledAgents)
-	}
-
-	settings := string(mustReadServiceFile(t, claudeSettings))
-	if strings.Contains(settings, "theme") || strings.Contains(settings, "outputStyle") {
-		t.Fatalf("claude settings = %s, want managed keys removed: the batch must not abandon later agents", settings)
-	}
-	if !strings.Contains(settings, "MY_VAR") {
-		t.Fatalf("claude settings = %s, want the user-owned key preserved", settings)
-	}
-
-	if !slices.ContainsFunc(result.ManualActions, func(action string) bool {
-		return strings.Contains(action, "gemini-cli") && strings.Contains(action, geminiSettings)
-	}) {
-		t.Fatalf("ManualActions = %v, want the failed agent and its path reported", result.ManualActions)
-	}
-}
-
 // TestExecutePlanReportsPerAgentOutcomesInsteadOfAbortingOnTheFirstFailure
 // pins the boundary itself: a failing operation must not stop the operations
 // that belong to other agents, and only agents with no failed operation may
 // commit their state removal.
 func TestExecutePlanReportsPerAgentOutcomesInsteadOfAbortingOnTheFirstFailure(t *testing.T) {
 	home := t.TempDir()
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code", "codex", "hermes"}}); err != nil {
+	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code", "codex", "opencode"}}); err != nil {
 		t.Fatal(err)
 	}
 	svc, err := NewService(home, t.TempDir(), "dev")
@@ -94,7 +31,7 @@ func TestExecutePlanReportsPerAgentOutcomesInsteadOfAbortingOnTheFirstFailure(t 
 	failure := errors.New("clean json file: invalid character 'p'")
 	ranAfterFailure := false
 	plan := plan{operations: []operation{
-		{typeID: opRewriteFile, path: filepath.Join(home, "a-fails"), agents: []model.AgentID{model.AgentHermes}, apply: func(string) (bool, bool, error) {
+		{typeID: opRewriteFile, path: filepath.Join(home, "a-fails"), agents: []model.AgentID{model.AgentOpenCode}, apply: func(string) (bool, bool, error) {
 			return false, false, failure
 		}},
 		{typeID: opRewriteFile, path: filepath.Join(home, "b-succeeds"), agents: []model.AgentID{model.AgentClaudeCode}, apply: func(string) (bool, bool, error) {
@@ -103,7 +40,7 @@ func TestExecutePlanReportsPerAgentOutcomesInsteadOfAbortingOnTheFirstFailure(t 
 		}},
 	}}
 
-	result, err := svc.executePlan(plan, []model.AgentID{model.AgentClaudeCode, model.AgentCodex, model.AgentHermes})
+	result, err := svc.executePlan(plan, []model.AgentID{model.AgentClaudeCode, model.AgentCodex})
 	if err == nil {
 		t.Fatal("executePlan() error = nil, want the failure surfaced")
 	}
@@ -113,8 +50,8 @@ func TestExecutePlanReportsPerAgentOutcomesInsteadOfAbortingOnTheFirstFailure(t 
 	if !ranAfterFailure {
 		t.Fatal("operations after the failing one did not run: the batch still aborts on first failure")
 	}
-	if !slices.Equal(result.FailedAgents, []model.AgentID{model.AgentHermes}) {
-		t.Fatalf("FailedAgents = %v, want [hermes]", result.FailedAgents)
+	if !slices.Equal(result.FailedAgents, []model.AgentID{model.AgentOpenCode}) {
+		t.Fatalf("FailedAgents = %v, want [opencode]", result.FailedAgents)
 	}
 	if !slices.Equal(result.AgentsRemovedFromState, []model.AgentID{model.AgentClaudeCode, model.AgentCodex}) {
 		t.Fatalf("AgentsRemovedFromState = %v, want the two agents with no failed operation", result.AgentsRemovedFromState)
@@ -127,7 +64,7 @@ func TestExecutePlanReportsPerAgentOutcomesInsteadOfAbortingOnTheFirstFailure(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(current.InstalledAgents, []string{"hermes"}) {
+	if !slices.Equal(current.InstalledAgents, []string{"opencode"}) {
 		t.Fatalf("state.json installed_agents = %v, want only the failed agent retained", current.InstalledAgents)
 	}
 }
@@ -182,7 +119,7 @@ func TestBuildPlanAttributesOperationsToTheAgentsThatContributedThem(t *testing.
 		t.Fatal(err)
 	}
 
-	built, err := svc.buildPlan([]model.AgentID{model.AgentClaudeCode, model.AgentHermes}, []model.ComponentID{model.ComponentTheme, model.ComponentPersona})
+	built, err := svc.buildPlan([]model.AgentID{model.AgentClaudeCode, model.AgentCodex}, []model.ComponentID{model.ComponentTheme, model.ComponentPersona})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,15 +133,8 @@ func TestBuildPlanAttributesOperationsToTheAgentsThatContributedThem(t *testing.
 	}
 
 	claudeSettings := filepath.Join(home, ".claude", "settings.json")
-	hermesConfig := filepath.Join(home, ".hermes", "config.yaml")
 	assertOperationAgents(t, built, claudeSettings, []model.AgentID{model.AgentClaudeCode})
-	assertOperationAgents(t, built, filepath.Join(home, ".hermes", "SOUL.md"), []model.AgentID{model.AgentHermes})
-	// Hermes' native YAML settings are not a generic JSON target.
-	for _, op := range built.operations {
-		if op.path == hermesConfig {
-			t.Fatalf("buildPlan() mutates native YAML settings %q", hermesConfig)
-		}
-	}
+	assertOperationAgents(t, built, filepath.Join(home, ".codex", "AGENTS.md"), []model.AgentID{model.AgentCodex})
 }
 
 func assertOperationAgents(t *testing.T, built plan, path string, want []model.AgentID) {
@@ -228,5 +158,66 @@ func writeBatchFile(t *testing.T, path, content string) {
 	}
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestPartialUninstallCommitsSucceededAgentsWhenAnotherAgentFails reproduces
+// the reporter's batch: two managed agents, one of whose declared-JSON settings
+// files is malformed, uninstalled in a single invocation. The batch must not abandon the
+// remaining agent, and the state file it leaves behind must describe the disk.
+func TestPartialUninstallCommitsSucceededAgentsWhenAnotherAgentFails(t *testing.T) {
+	home := t.TempDir()
+	claudeSettings := filepath.Join(home, ".claude", "settings.json")
+	codexPrompt := filepath.Join(home, ".codex", "AGENTS.md")
+
+	writeBatchFile(t, claudeSettings, `{"theme":"gentleman",`)
+	writeBatchFile(t, codexPrompt, "user instructions\n<!-- gentle-ai:persona -->\nmanaged\n<!-- /gentle-ai:persona -->\n")
+	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code", "codex"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	svc, err := NewService(home, t.TempDir(), "dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc.snapshotter = stubSnapshotter{}
+
+	result, err := svc.PartialUninstall([]model.AgentID{model.AgentClaudeCode, model.AgentCodex}, nil)
+	if err == nil {
+		t.Fatal("PartialUninstall() error = nil, want the claude-code cleanup failure surfaced")
+	}
+	if want := fmt.Sprintf("%q", claudeSettings); !strings.Contains(err.Error(), want) {
+		t.Fatalf("PartialUninstall() error = %v, want it to name the representation %s", err, want)
+	}
+
+	if !slices.Equal(result.FailedAgents, []model.AgentID{model.AgentClaudeCode}) {
+		t.Fatalf("FailedAgents = %v, want [claude-code]", result.FailedAgents)
+	}
+	if !slices.Equal(result.AgentsRemovedFromState, []model.AgentID{model.AgentCodex}) {
+		t.Fatalf("AgentsRemovedFromState = %v, want [codex]", result.AgentsRemovedFromState)
+	}
+
+	// The report must describe the disk: the succeeded agent's managed block is
+	// gone, so it commits; the failed agent stays recorded as installed.
+	current, err := state.Read(home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(current.InstalledAgents, []string{"claude-code"}) {
+		t.Fatalf("state.json installed_agents = %v, want only the agent that failed", current.InstalledAgents)
+	}
+
+	prompt := string(mustReadServiceFile(t, codexPrompt))
+	if strings.Contains(prompt, "gentle-ai:persona") {
+		t.Fatalf("codex prompt = %s, want the managed block removed: the batch must not abandon later agents", prompt)
+	}
+	if !strings.Contains(prompt, "user instructions") {
+		t.Fatalf("codex prompt = %s, want the user-owned content preserved", prompt)
+	}
+
+	if !slices.ContainsFunc(result.ManualActions, func(action string) bool {
+		return strings.Contains(action, "claude-code") && strings.Contains(action, claudeSettings)
+	}) {
+		t.Fatalf("ManualActions = %v, want the failed agent and its path reported", result.ManualActions)
 	}
 }

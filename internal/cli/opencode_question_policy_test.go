@@ -28,7 +28,6 @@ func TestOpenCodeFamilyInstallHonorsUserQuestionDeny(t *testing.T) {
 		{"opencode", []string{"--agent", "opencode", "--component", "persona"}, func(home string) string {
 			return filepath.Join(home, ".config", "opencode", "opencode.json")
 		}},
-		{"kilocode", []string{"--agent", "kilocode", "--preset", "full-gentleman"}, kiloSettingsPath},
 	} {
 		for _, policy := range []struct {
 			name     string

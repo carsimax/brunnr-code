@@ -24,106 +24,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
 )
 
-// Exercise the public post-apply boundaries with a real owned agent and ledger.
-// The backup is deliberately deduplicated, so rollback depends on the temporary snapshot.
-func TestNativeReviewPostApplyErrorsRestoreDeduplicatedSnapshot(t *testing.T) {
-	for _, branch := range []string{"install digest", "sync comparison", "sync digest"} {
-		t.Run(branch, func(t *testing.T) {
-			home := t.TempDir()
-			t.Setenv("HOME", home)
-			t.Setenv("USERPROFILE", home)
-			originalHome, originalCommand, originalLookPath := osUserHomeDir, runCommand, cmdLookPath
-			osUserHomeDir = func() (string, error) { return home, nil }
-			runCommand = func(string, ...string) error { return nil }
-			cmdLookPath = func(string) (string, error) { return "", exec.ErrNotFound }
-			t.Cleanup(func() { osUserHomeDir, runCommand, cmdLookPath = originalHome, originalCommand, originalLookPath })
-			if _, err := RunInstall([]string{"--agent", "kiro-ide"}, system.DetectionResult{}); err != nil {
-				t.Fatalf("seed install: %v", err)
-			}
-			adapter, err := agents.NewAdapter(model.AgentKiroIDE)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{CodeGraphGuidanceMarkdown: "previous guidance"}); err != nil {
-				t.Fatal(err)
-			}
-			targets := []string{filepath.Join(adapter.SubAgentsDir(home), reviewassets.OwnershipLedgerFilename), filepath.Join(adapter.SubAgentsDir(home), "jd-judge-a.md")}
-			before := make(map[string][]byte)
-			for _, path := range targets {
-				before[path], err = os.ReadFile(path)
-				if err != nil {
-					t.Fatal(err)
-				}
-			}
-			failure := errors.New("injected post-apply failure")
-			var transaction *runtimeState
-			assertApplied := func() {
-				for _, path := range targets {
-					got, err := os.ReadFile(path)
-					if err != nil || bytes.Equal(got, before[path]) {
-						t.Fatalf("post-apply failure did not follow a change to %s: %v", path, err)
-					}
-				}
-				if transaction == nil || transaction.rollbackSnapshotDir == "" {
-					t.Fatal("deduplicated temporary snapshot missing before failure")
-				}
-				if _, err := os.Stat(transaction.rollbackSnapshotDir); err != nil {
-					t.Fatalf("deduplicated temporary snapshot missing before failure: %v", err)
-				}
-			}
-			originalDigest, originalCompare := deriveManagedAssetWriter, compareChangedSyncFiles
-			originalInstall, originalSync := installStagePlan, syncStagePlan
-			t.Cleanup(func() {
-				deriveManagedAssetWriter, compareChangedSyncFiles = originalDigest, originalCompare
-				installStagePlan, syncStagePlan = originalInstall, originalSync
-			})
-			if branch != "sync comparison" {
-				deriveManagedAssetWriter = func() (string, error) { assertApplied(); return "", failure }
-			} else {
-				compareChangedSyncFiles = func([]string, map[string]syncFileSnapshot) ([]string, error) { assertApplied(); return nil, failure }
-			}
-			planFor := func(backupRoot, workspace string, state *runtimeState, selection model.Selection, changed *[]string) pipeline.StagePlan {
-				transaction = state
-				if _, err := backup.NewSnapshotter().Create(filepath.Join(backupRoot, "existing"), targets); err != nil {
-					t.Fatal(err)
-				}
-				snapshotDir := filepath.Join(backupRoot, "next")
-				return pipeline.StagePlan{
-					Prepare: []pipeline.Step{prepareBackupStep{id: "backup", snapshotter: backup.NewSnapshotter(), snapshotDir: snapshotDir, targets: targets, state: state, backupRoot: backupRoot}},
-					Apply:   []pipeline.Step{rollbackRestoreStep{id: "restore", state: state, homeDir: home, workspaceDir: workspace}, nativeReviewAgentStep{id: "native", agent: model.AgentKiroIDE, homeDir: home, workspaceDir: workspace, scope: ScopeGlobal, selection: selection, changedFiles: changed, state: state}},
-				}
-			}
-			selection := model.Selection{Agents: []model.AgentID{model.AgentKiroIDE}}
-			var runErr error
-			if branch == "install digest" {
-				installStagePlan = func(rt *installRuntime) pipeline.StagePlan {
-					return planFor(rt.backupRoot, rt.workspaceDir, rt.state, selection, nil)
-				}
-				_, runErr = RunInstall([]string{"--agent", "kiro-ide"}, system.DetectionResult{})
-			} else {
-				syncStagePlan = func(rt *syncRuntime) pipeline.StagePlan {
-					plan := planFor(rt.backupRoot, rt.workspaceDir, rt.state, selection, &rt.changedFiles)
-					rt.managedPaths = targets
-					return plan
-				}
-				_, runErr = RunSyncWithSelection(home, selection)
-			}
-			if !errors.Is(runErr, failure) {
-				t.Fatalf("%s returned %v, want injected failure", branch, runErr)
-			}
-			for _, path := range targets {
-				got, err := os.ReadFile(path)
-				if err != nil || !bytes.Equal(got, before[path]) {
-					t.Fatalf("%s left changed %s: %v", branch, path, err)
-				}
-			}
-			if transaction.rollbackSnapshotDir != "" {
-				t.Fatalf("%s retained transaction snapshot: %s", branch, transaction.rollbackSnapshotDir)
-			}
-		})
-	}
-}
-
 type failingPostApplyRollbackStep struct{ err error }
 
 func (s failingPostApplyRollbackStep) ID() string      { return "failing-post-apply-rollback" }
@@ -143,128 +43,9 @@ func TestNativeReviewPostApplyErrorJoinsRollbackFailure(t *testing.T) {
 	}
 }
 
-// A deduplicated backup still needs a live transaction snapshot until the TUI
-// caller has persisted state (or rolled back a failed persistence).
-func TestTUIDeduplicatedNativeReviewSnapshotSurvivesPostApplyRollback(t *testing.T) {
-	for _, outcome := range []string{"post-apply rollback", "persisted success"} {
-		t.Run(outcome, func(t *testing.T) {
-			home := t.TempDir()
-			adapter, err := agents.NewAdapter(model.AgentKiroIDE)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{CodeGraphGuidanceMarkdown: "previous guidance"}); err != nil {
-				t.Fatal(err)
-			}
-			ledger := filepath.Join(adapter.SubAgentsDir(home), reviewassets.OwnershipLedgerFilename)
-			agent := filepath.Join(adapter.SubAgentsDir(home), "jd-judge-a.md")
-			targets := []string{ledger, agent}
-			before := make(map[string][]byte)
-			for _, path := range targets {
-				before[path], err = os.ReadFile(path)
-				if err != nil {
-					t.Fatal(err)
-				}
-			}
-			selection := model.Selection{Agents: []model.AgentID{model.AgentKiroIDE}}
-			resolved := planner.ResolvedPlan{Agents: selection.Agents}
-			var transaction *runtimeState
-			original := tuiInstallStagePlan
-			tuiInstallStagePlan = func(rt *installRuntime) pipeline.StagePlan {
-				transaction = rt.state
-				if _, err := backup.NewSnapshotter().Create(filepath.Join(rt.backupRoot, "existing"), targets); err != nil {
-					t.Fatal(err)
-				}
-				return pipeline.StagePlan{
-					Prepare: []pipeline.Step{prepareBackupStep{id: "backup", snapshotter: backup.NewSnapshotter(), snapshotDir: filepath.Join(rt.backupRoot, "next"), targets: targets, state: rt.state, backupRoot: rt.backupRoot}},
-					Apply: []pipeline.Step{
-						rollbackRestoreStep{id: "restore", state: rt.state, homeDir: home, workspaceDir: rt.workspaceDir},
-						nativeReviewAgentStep{id: "native", agent: model.AgentKiroIDE, homeDir: home, workspaceDir: rt.workspaceDir, scope: ScopeGlobal, selection: selection, state: rt.state},
-					},
-				}
-			}
-			t.Cleanup(func() { tuiInstallStagePlan = original })
-			result, orchestrator, _ := ExecuteTUIInstallRecordingCodexServiceTier(home, selection, resolved, system.PlatformProfile{OS: "darwin", Supported: true}, model.OpenCodeBackgroundAuto, "", nil)
-			if result.Err != nil {
-				t.Fatalf("apply: %v", result.Err)
-			}
-			if transaction.rollbackSnapshotDir == "" {
-				t.Fatal("expected deduplicated transaction snapshot")
-			}
-			for _, path := range targets {
-				content, err := os.ReadFile(path)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if bytes.Equal(content, before[path]) {
-					t.Fatalf("%s was not updated before simulated persistence failure", path)
-				}
-			}
-			dir := transaction.rollbackSnapshotDir
-			if _, err := os.Stat(dir); err != nil {
-				t.Fatalf("snapshot must survive apply until persistence settles: %v", err)
-			}
-			if outcome == "post-apply rollback" {
-				rollback := orchestrator.Rollback(result)
-				if rollback.Err != nil {
-					t.Fatalf("post-apply rollback: %v", rollback.Err)
-				}
-				for _, path := range targets {
-					content, err := os.ReadFile(path)
-					if err != nil || !bytes.Equal(content, before[path]) {
-						t.Fatalf("rollback did not restore %s: %v", path, err)
-					}
-				}
-			} else {
-				orchestrator.Finish()
-				orchestrator.Finish() // settling twice must not re-run cleanup
-			}
-			if _, err := os.Stat(dir); !os.IsNotExist(err) {
-				t.Fatalf("transaction snapshot not cleaned after %s: %v", outcome, err)
-			}
-		})
-	}
-}
-
-func TestNativeReviewLedgerInstallBackupAndManualActions(t *testing.T) {
-	home, workspace := t.TempDir(), t.TempDir()
-	adapter, err := agents.NewAdapter(model.AgentKiroIDE)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ledger := filepath.Join(adapter.SubAgentsDir(home), reviewassets.OwnershipLedgerFilename)
-	selection := model.Selection{Agents: []model.AgentID{model.AgentKiroIDE}}
-	targets, err := backupTargets(home, workspace, ScopeGlobal, selection, planner.ResolvedPlan{Agents: selection.Agents})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !containsPath(targets, ledger) {
-		t.Fatalf("install backup missing ledger %s", ledger)
-	}
-	path := filepath.Join(adapter.SubAgentsDir(home), "jd-judge-a.md")
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, []byte("my review agent"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	state := &runtimeState{}
-	step := nativeReviewAgentStep{id: "test", agent: model.AgentKiroIDE, homeDir: home, workspaceDir: workspace, scope: ScopeGlobal, selection: selection, state: state}
-	if err := step.Run(); err != nil {
-		t.Fatal(err)
-	}
-	if len(state.nativeReviewActions) != 1 || state.nativeReviewActions[0] != nativeReviewPreservedAction(path) {
-		t.Fatalf("preserved-file actions = %v", state.nativeReviewActions)
-	}
-	data, err := os.ReadFile(path)
-	if err != nil || string(data) != "my review agent" {
-		t.Fatalf("user bytes = %q, error = %v", data, err)
-	}
-}
-
 func TestNativeReviewPreservedAction(t *testing.T) {
 	// Recovery examples must use supported parser syntax, with scope explicit.
-	for _, runtime := range []string{"claude-code", "kiro-ide", "kimi"} {
+	for _, runtime := range []string{"claude-code", "codex"} {
 		for _, scope := range []string{"global", "workspace"} {
 			t.Run(runtime+"/"+scope, func(t *testing.T) {
 				flags, err := ParseSyncFlags([]string{"--agent", runtime, "--scope", scope})
@@ -314,45 +95,10 @@ func TestNativeReviewPreservedAction(t *testing.T) {
 	}
 }
 
-func TestComponentPathsGlobalOpenClawAndPiPersonaMatchBackup(t *testing.T) {
-	home, workspace := t.TempDir(), t.TempDir()
-	selection := model.Selection{
-		Agents:     []model.AgentID{model.AgentOpenClaw, model.AgentPi},
-		Components: []model.ComponentID{model.ComponentPersona, model.ComponentEngram, model.ComponentSDD, model.ComponentSkills},
-		Persona:    model.PersonaGentleman, Skills: []model.SkillID{model.SkillGoTesting},
-	}
-	adapters := resolveAdapters(selection.Agents)
-	targets, err := backupTargets(home, workspace, ScopeGlobal, selection, planner.ResolvedPlan{Agents: selection.Agents, OrderedComponents: selection.Components})
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, component := range selection.Components {
-		paths := componentPathsWithWorkspaceScoped(home, workspace, ScopeGlobal, selection, adapters, component)
-		for _, path := range paths {
-			if !strings.HasPrefix(path, home+string(filepath.Separator)) || !containsPath(targets, path) {
-				t.Errorf("%s verification path %q must be at home and backed up", component, path)
-			}
-		}
-	}
-	for _, path := range targets {
-		if strings.HasPrefix(path, workspace+string(filepath.Separator)) {
-			t.Errorf("backup escaped global scope: %s", path)
-		}
-	}
-	for _, relative := range []string{"AGENTS.md", "SOUL.md", ".openclaw/openclaw.json", ".openclaw/skills/go-testing/SKILL.md", ".pi/gentle-ai/persona.json"} {
-		if !containsPath(targets, filepath.Join(home, relative)) {
-			t.Errorf("backup missing %s", relative)
-		}
-	}
-}
-
 func TestComponentPathsSDDIncludesSystemPromptForPromptFileAdapters(t *testing.T) {
 	home := t.TempDir()
 	adapters := resolveAdapters([]model.AgentID{
 		model.AgentClaudeCode,
-		model.AgentGeminiCLI,
-		model.AgentCursor,
-		model.AgentVSCodeCopilot,
 	})
 
 	paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, adapters, model.ComponentSDD)
@@ -371,7 +117,7 @@ func TestComponentPathsSDDIncludesSystemPromptForPromptFileAdapters(t *testing.T
 // must not require, back up, or verify the AGENTS.md it never writes.
 func TestComponentPathsSDDExcludesSystemPromptForManagedOpenCodeAgents(t *testing.T) {
 	home := t.TempDir()
-	adapters := resolveAdapters([]model.AgentID{model.AgentOpenCode, model.AgentKilocode})
+	adapters := resolveAdapters([]model.AgentID{model.AgentOpenCode})
 
 	for _, mode := range []model.SDDModeID{"", model.SDDModeSingle, model.SDDModeMulti} {
 		paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{SDDMode: mode}, adapters, model.ComponentSDD)
@@ -488,28 +234,6 @@ func assertRetainedOpenCodePluginPaths(t *testing.T) {
 		want := filepath.Join(home, ".config", "opencode", "plugins", plugin)
 		if !containsPath(targets, want) {
 			t.Errorf("install snapshot missing retired plugin %s", want)
-		}
-	}
-}
-
-// Install writes and retires Kilocode's managed plugins too, so its snapshot
-// covers exactly the plugin paths Install can mutate.
-func TestBackupTargetsIncludeKilocodePluginLifecycle(t *testing.T) {
-	home := t.TempDir()
-	selection := model.Selection{Agents: []model.AgentID{model.AgentKilocode}}
-	targets, err := backupTargets(home, "", ScopeGlobal, selection, planner.ResolvedPlan{Agents: selection.Agents})
-	if err != nil {
-		t.Fatal(err)
-	}
-	dir := filepath.Join(home, ".config", "kilo", "plugins")
-	for _, plugin := range []string{"model-variants.ts", "skill-registry.ts", "background-agents.ts", "review-result-artifacts.ts"} {
-		if want := filepath.Join(dir, plugin); !containsPath(targets, want) {
-			t.Errorf("Kilocode install snapshot missing plugin %s", want)
-		}
-	}
-	for _, plugin := range []string{"opencode-review-transport.ts", "sdd-task-result-artifacts.ts"} {
-		if path := filepath.Join(dir, plugin); containsPath(targets, path) {
-			t.Errorf("Kilocode install snapshot includes plugin Install never touches: %s", path)
 		}
 	}
 }
@@ -656,54 +380,11 @@ func TestLegacyOpenCodeBackgroundAgentsPluginRequiresConfigOpenCodePluginsPath(t
 func TestComponentPathsSDDIncludesSkillsAndSharedConventions(t *testing.T) {
 	home := t.TempDir()
 	selection := model.Selection{Skills: []model.SkillID{model.SkillGoTesting, model.SkillJudgmentDay}}
-	paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, selection, resolveAdapters([]model.AgentID{model.AgentGeminiCLI}), model.ComponentSkills)
+	paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, selection, resolveAdapters([]model.AgentID{model.AgentClaudeCode}), model.ComponentSkills)
 	for _, skill := range []string{"go-testing", "judgment-day"} {
-		want := filepath.Join(home, ".gemini", "skills", skill, "SKILL.md")
+		want := filepath.Join(home, ".claude", "skills", skill, "SKILL.md")
 		if !containsPath(paths, want) {
 			t.Errorf("retained skill missing: %s", want)
-		}
-	}
-}
-
-func TestComponentPathsWithWorkspaceOpenClawSDDUsesWorkspaceScopedSkills(t *testing.T) {
-	home, workspace := t.TempDir(), t.TempDir()
-	selection := model.Selection{Skills: []model.SkillID{model.SkillGoTesting}}
-	adapters := resolveAdapters([]model.AgentID{model.AgentOpenClaw})
-	paths := componentPathsWithWorkspaceScoped(home, workspace, ScopeWorkspace, selection, adapters, model.ComponentSkills)
-	want := filepath.Join(workspace, ".openclaw", "skills", "go-testing", "SKILL.md")
-	if !containsPath(paths, want) {
-		t.Fatalf("workspace skill missing: %v", paths)
-	}
-	if containsPath(paths, filepath.Join(home, ".openclaw", "skills", "go-testing", "SKILL.md")) {
-		t.Fatalf("home skill leaked: %v", paths)
-	}
-}
-
-func TestComponentPathsOpenClawSkillsSkipsSDDPhaseSkills(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-	adapters := resolveAdapters([]model.AgentID{model.AgentOpenClaw})
-	selection := model.Selection{
-		Skills: []model.SkillID{
-			model.SkillSDDInit,
-			model.SkillGoTesting,
-			model.SkillSDDOnboard,
-		},
-	}
-
-	paths := componentPathsWithWorkspaceScoped(home, workspace, ScopeWorkspace, selection, adapters, model.ComponentSkills)
-
-	want := filepath.Join(workspace, ".openclaw", "skills", "go-testing", "SKILL.md")
-	if !containsPath(paths, want) {
-		t.Fatalf("componentPaths(skills,openclaw) missing portable skill path %q\npaths=%v", want, paths)
-	}
-
-	for _, unwanted := range []string{
-		filepath.Join(workspace, ".openclaw", "skills", "sdd-init", "SKILL.md"),
-		filepath.Join(workspace, ".openclaw", "skills", "sdd-onboard", "SKILL.md"),
-	} {
-		if containsPath(paths, unwanted) {
-			t.Fatalf("componentPaths(skills,openclaw) must not verify SDD phase skill path %q\npaths=%v", unwanted, paths)
 		}
 	}
 }
@@ -779,87 +460,6 @@ func TestInstallWorkspaceScopeVerificationWithNoGlobalSkills(t *testing.T) {
 		if containsPath(paths, unwanted) {
 			t.Fatalf("workspace-scoped verification must not check home path %q when scope=workspace\npaths=%v", unwanted, paths)
 		}
-	}
-}
-
-func TestComponentPathsSDDKimiIncludesAgentFilesAndGlobalSkills(t *testing.T) {
-	home := t.TempDir()
-	selection := model.Selection{Agents: []model.AgentID{model.AgentKimi}, Components: []model.ComponentID{model.ComponentSkills}, Skills: []model.SkillID{model.SkillGoTesting}}
-	targets, err := backupTargets(home, "", ScopeGlobal, selection, planner.ResolvedPlan{Agents: selection.Agents, OrderedComponents: selection.Components})
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, relative := range []string{".kimi/KIMI.md", ".kimi/agents/gentleman.yaml", ".kimi/agents/review-risk.yaml", ".config/agents/skills/go-testing/SKILL.md"} {
-		if !containsPath(targets, filepath.Join(home, relative)) {
-			t.Errorf("retained Kimi path missing: %s", relative)
-		}
-	}
-}
-
-// TestComponentPathsSDDKimiCurrentLayoutPrefersKimiCode verifies that when
-// the current kimi-code v0.11+ root (~/.kimi-code directory) exists, SDD
-// component paths resolve under it (with the AGENTS.md hub) and skills go to
-// the native skills root instead of the legacy shared path. YAML agents are
-// only discoverable by the legacy CLI, so they stay on ~/.kimi/agents
-// (issue #782).
-func TestComponentPathsSDDKimiCurrentLayoutPrefersKimiCode(t *testing.T) {
-	home := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(home, ".kimi-code"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	selection := model.Selection{Agents: []model.AgentID{model.AgentKimi}, Components: []model.ComponentID{model.ComponentSkills}, Skills: []model.SkillID{model.SkillGoTesting}}
-	targets, err := backupTargets(home, "", ScopeGlobal, selection, planner.ResolvedPlan{Agents: selection.Agents, OrderedComponents: selection.Components})
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, relative := range []string{
-		".kimi-code/AGENTS.md",
-		".kimi/agents/gentleman.yaml",
-		".kimi-code/skills/go-testing/SKILL.md",
-	} {
-		if !containsPath(targets, filepath.Join(home, relative)) {
-			t.Errorf("current-layout Kimi path missing: %s", relative)
-		}
-	}
-	for _, unwanted := range []string{
-		".kimi-code/KIMI.md",
-		".kimi-code/agents/gentleman.yaml",
-		".kimi/KIMI.md",
-		".config/agents/skills/go-testing/SKILL.md",
-	} {
-		if containsPath(targets, filepath.Join(home, unwanted)) {
-			t.Errorf("current-layout Kimi targets must not include path %s", unwanted)
-		}
-	}
-}
-
-func TestComponentPathsContext7KimiIncludesMCPConfig(t *testing.T) {
-	home := t.TempDir()
-	adapters := resolveAdapters([]model.AgentID{model.AgentKimi})
-
-	paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, adapters, model.ComponentContext7)
-
-	want := filepath.Join(home, ".kimi", "mcp.json")
-	if !containsPath(paths, want) {
-		t.Fatalf("componentPaths(context7,kimi) missing %q\npaths=%v", want, paths)
-	}
-}
-
-// TestComponentPathsContext7KimiCurrentLayoutUsesKimiCodeMCP verifies that
-// MCP config paths resolve under ~/.kimi-code for the current kimi-code
-// v0.11+ layout (issue #782).
-func TestComponentPathsContext7KimiCurrentLayoutUsesKimiCodeMCP(t *testing.T) {
-	home := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(home, ".kimi-code"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	adapters := resolveAdapters([]model.AgentID{model.AgentKimi})
-
-	paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, adapters, model.ComponentContext7)
-
-	want := filepath.Join(home, ".kimi-code", "mcp.json")
-	if !containsPath(paths, want) {
-		t.Fatalf("componentPaths(context7,kimi) missing current-layout %q\npaths=%v", want, paths)
 	}
 }
 
@@ -986,11 +586,7 @@ func TestComponentPathsPermissionsCodexContributesNoPaths(t *testing.T) {
 
 func TestComponentPathsPermissionsSkipsAgentsWithoutInjectionTarget(t *testing.T) {
 	home := t.TempDir()
-	adapters := resolveAdapters([]model.AgentID{
-		model.AgentCursor,
-		model.AgentAntigravity,
-		model.AgentHermes,
-	})
+	adapters := resolveAdapters([]model.AgentID{})
 
 	paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, adapters, model.ComponentPermission)
 
@@ -1010,10 +606,6 @@ func TestComponentPathsPermissionsIncludesAgentsWithInjectionTarget(t *testing.T
 	adapters := resolveAdapters([]model.AgentID{
 		model.AgentClaudeCode,
 		model.AgentOpenCode,
-		model.AgentKilocode,
-		model.AgentGeminiCLI,
-		model.AgentQwenCode,
-		model.AgentVSCodeCopilot,
 	})
 
 	paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, adapters, model.ComponentPermission)
@@ -1023,32 +615,6 @@ func TestComponentPathsPermissionsIncludesAgentsWithInjectionTarget(t *testing.T
 		if !containsPath(paths, want) {
 			t.Fatalf("componentPaths(permissions) missing supported injection path %q\npaths=%v", want, paths)
 		}
-	}
-}
-
-// TestComponentPathsEngramOpenClawUsesCanonicalSettingsPath asserts that the
-// engram component path for OpenClaw always resolves to the canonical
-// ~/.openclaw/openclaw.json and never to a workspace-scoped copy.
-//
-// This is a regression test for issue #522: the verifier used to call
-// SettingsPath(workspaceDir) which produced
-// <workspace>/.openclaw/openclaw.json, causing post-sync verification to
-// fail even when the file at the canonical path existed.
-func TestComponentPathsEngramOpenClawUsesCanonicalSettingsPath(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-	adapters := resolveAdapters([]model.AgentID{model.AgentOpenClaw})
-
-	paths := componentPathsWithWorkspaceScoped(home, workspace, ScopeGlobal, model.Selection{}, adapters, model.ComponentEngram)
-
-	canonical := filepath.Join(home, ".openclaw", "openclaw.json")
-	if !containsPath(paths, canonical) {
-		t.Fatalf("componentPathsWithWorkspace(engram,openclaw) missing canonical path %q\npaths=%v", canonical, paths)
-	}
-
-	wrongPath := filepath.Join(workspace, ".openclaw", "openclaw.json")
-	if containsPath(paths, wrongPath) {
-		t.Fatalf("componentPathsWithWorkspace(engram,openclaw) must not include workspace-scoped path %q\npaths=%v", wrongPath, paths)
 	}
 }
 
@@ -1219,7 +785,7 @@ func TestInstallDeliversRoutingGuidanceWithoutSDDComponent(t *testing.T) {
 }
 
 func TestInstallRetainedAgentsWithoutSDD(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCursor, model.AgentKimi, model.AgentKiroIDE} {
+	for _, agent := range []model.AgentID{model.AgentClaudeCode} {
 		t.Run(string(agent), func(t *testing.T) {
 			home := t.TempDir()
 			selection := model.Selection{Agents: []model.AgentID{agent}}
@@ -1413,48 +979,6 @@ func TestInstallRoutingGuidanceWorkspaceScopeDeliversOpenCodeToHome(t *testing.T
 	}
 }
 
-// TestRoutingLegacyTriggerCleanupStripsKilocodeSettings covers the Kilocode
-// branch of the legacy trigger-rule cleanup: Kilo keeps its orchestrator prompt
-// in its own settings document, not in a system prompt file.
-func TestRoutingLegacyTriggerCleanupStripsKilocodeSettings(t *testing.T) {
-	home := t.TempDir()
-	settingsPath := filepath.Join(home, ".config", "kilo", "opencode.json")
-	seeded := filemerge.InjectMarkdownSection("# My own notes\n", "trigger-rules", "Retired WorkRun ceremony\n")
-	payload, err := json.Marshal(map[string]any{
-		"agent": map[string]any{opencodedefault.ManagedAgent: map[string]any{"prompt": seeded}},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	mustWriteFile(t, settingsPath, payload)
-
-	step := agentRoutingGuidanceStep{
-		id:      "agent-guidance:" + string(model.AgentKilocode),
-		agent:   model.AgentKilocode,
-		homeDir: home,
-		scope:   ScopeGlobal,
-	}
-	if err := step.Run(); err != nil {
-		t.Fatalf("Run() error = %v", err)
-	}
-
-	var settings struct {
-		Agent map[string]struct {
-			Prompt string `json:"prompt"`
-		} `json:"agent"`
-	}
-	if err := json.Unmarshal([]byte(readTextFile(t, settingsPath)), &settings); err != nil {
-		t.Fatalf("decode Kilo settings error = %v", err)
-	}
-	prompt := settings.Agent[opencodedefault.ManagedAgent].Prompt
-	if strings.Contains(prompt, "Retired WorkRun ceremony") {
-		t.Fatalf("legacy trigger-rules content survived in the Kilo settings:\n%s", prompt)
-	}
-	if !strings.Contains(prompt, "# My own notes") {
-		t.Fatalf("stripping the legacy section destroyed unmanaged user content:\n%s", prompt)
-	}
-}
-
 // TestRoutingLegacyTriggerCleanupTargetsSelectedOpenCodeSettings covers issue
 // #5025 item 2: the retired trigger-rules cleanup must act on the settings file
 // OpenCode loads, never on a non-loaded global decoy, for install and sync.
@@ -1540,13 +1064,12 @@ func TestAgentRoutingGuidanceStepRetiresPiManagedBlocks(t *testing.T) {
 func TestRoutingGuidancePathsWorkspaceScopeReportOrchestratorPromptAgentsAtHome(t *testing.T) {
 	home := t.TempDir()
 	workspace := t.TempDir()
-	adapters := resolveAdapters([]model.AgentID{model.AgentOpenCode, model.AgentKilocode, model.AgentClaudeCode})
+	adapters := resolveAdapters([]model.AgentID{model.AgentOpenCode, model.AgentClaudeCode})
 
 	paths := routingGuidancePaths(home, workspace, ScopeWorkspace, adapters)
 
 	for _, want := range []string{
 		filepath.Join(home, ".config", "opencode", "opencode.json"),
-		filepath.Join(home, ".config", "kilo", "opencode.json"),
 	} {
 		if !containsPath(paths, want) {
 			t.Fatalf("routingGuidancePaths(workspace) missing home settings path %q\npaths=%v", want, paths)
@@ -1554,7 +1077,6 @@ func TestRoutingGuidancePathsWorkspaceScopeReportOrchestratorPromptAgentsAtHome(
 	}
 	for _, unwanted := range []string{
 		filepath.Join(workspace, ".config", "opencode", "opencode.json"),
-		filepath.Join(workspace, ".config", "kilo", "opencode.json"),
 	} {
 		if containsPath(paths, unwanted) {
 			t.Fatalf("routingGuidancePaths(workspace) reported %q, a path the agent never loads\npaths=%v", unwanted, paths)
@@ -1775,7 +1297,7 @@ func TestComponentPathsOpenCodeGentleLogoMatchesSelectedAdapter(t *testing.T) {
 
 func TestBackupTargetsContainNoDuplicatePaths(t *testing.T) {
 	home := t.TempDir()
-	agentIDs := []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode, model.AgentKimi}
+	agentIDs := []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode}
 	selection := model.Selection{
 		Agents:     agentIDs,
 		Components: []model.ComponentID{model.ComponentSDD, model.ComponentEngram, model.ComponentPersona},
@@ -2065,4 +1587,223 @@ func TestInstallPrepareValidationScopesRefusalsToSelectedWriters(t *testing.T) {
 // installBackupTargets without the Claude module opt-in.
 func backupTargets(homeDir, workspaceDir string, scope InstallScope, selection model.Selection, resolved planner.ResolvedPlan) ([]string, error) {
 	return installBackupTargets(homeDir, workspaceDir, scope, selection, resolved, false)
+}
+
+// Exercise the public post-apply boundaries with a real owned agent and ledger.
+// The backup is deliberately deduplicated, so rollback depends on the temporary snapshot.
+func TestNativeReviewPostApplyErrorsRestoreDeduplicatedSnapshot(t *testing.T) {
+	for _, branch := range []string{"install digest", "sync comparison", "sync digest"} {
+		t.Run(branch, func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			originalHome, originalCommand, originalLookPath := osUserHomeDir, runCommand, cmdLookPath
+			osUserHomeDir = func() (string, error) { return home, nil }
+			runCommand = func(string, ...string) error { return nil }
+			cmdLookPath = func(string) (string, error) { return "", exec.ErrNotFound }
+			t.Cleanup(func() { osUserHomeDir, runCommand, cmdLookPath = originalHome, originalCommand, originalLookPath })
+			if _, err := RunInstall([]string{"--agent", "claude-code"}, system.DetectionResult{}); err != nil {
+				t.Fatalf("seed install: %v", err)
+			}
+			adapter, err := agents.NewAdapter(model.AgentClaudeCode)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{CodeGraphGuidanceMarkdown: "previous guidance"}); err != nil {
+				t.Fatal(err)
+			}
+			targets := []string{filepath.Join(adapter.SubAgentsDir(home), reviewassets.OwnershipLedgerFilename), filepath.Join(adapter.SubAgentsDir(home), "jd-judge-a.md")}
+			before := make(map[string][]byte)
+			for _, path := range targets {
+				before[path], err = os.ReadFile(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			failure := errors.New("injected post-apply failure")
+			var transaction *runtimeState
+			assertApplied := func() {
+				for _, path := range targets {
+					got, err := os.ReadFile(path)
+					if err != nil || bytes.Equal(got, before[path]) {
+						t.Fatalf("post-apply failure did not follow a change to %s: %v", path, err)
+					}
+				}
+				if transaction == nil || transaction.rollbackSnapshotDir == "" {
+					t.Fatal("deduplicated temporary snapshot missing before failure")
+				}
+				if _, err := os.Stat(transaction.rollbackSnapshotDir); err != nil {
+					t.Fatalf("deduplicated temporary snapshot missing before failure: %v", err)
+				}
+			}
+			originalDigest, originalCompare := deriveManagedAssetWriter, compareChangedSyncFiles
+			originalInstall, originalSync := installStagePlan, syncStagePlan
+			t.Cleanup(func() {
+				deriveManagedAssetWriter, compareChangedSyncFiles = originalDigest, originalCompare
+				installStagePlan, syncStagePlan = originalInstall, originalSync
+			})
+			if branch != "sync comparison" {
+				deriveManagedAssetWriter = func() (string, error) { assertApplied(); return "", failure }
+			} else {
+				compareChangedSyncFiles = func([]string, map[string]syncFileSnapshot) ([]string, error) { assertApplied(); return nil, failure }
+			}
+			planFor := func(backupRoot, workspace string, state *runtimeState, selection model.Selection, changed *[]string) pipeline.StagePlan {
+				transaction = state
+				if _, err := backup.NewSnapshotter().Create(filepath.Join(backupRoot, "existing"), targets); err != nil {
+					t.Fatal(err)
+				}
+				snapshotDir := filepath.Join(backupRoot, "next")
+				return pipeline.StagePlan{
+					Prepare: []pipeline.Step{prepareBackupStep{id: "backup", snapshotter: backup.NewSnapshotter(), snapshotDir: snapshotDir, targets: targets, state: state, backupRoot: backupRoot}},
+					Apply:   []pipeline.Step{rollbackRestoreStep{id: "restore", state: state, homeDir: home, workspaceDir: workspace}, nativeReviewAgentStep{id: "native", agent: model.AgentClaudeCode, homeDir: home, workspaceDir: workspace, scope: ScopeGlobal, selection: selection, changedFiles: changed, state: state}},
+				}
+			}
+			selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}}
+			var runErr error
+			if branch == "install digest" {
+				installStagePlan = func(rt *installRuntime) pipeline.StagePlan {
+					return planFor(rt.backupRoot, rt.workspaceDir, rt.state, selection, nil)
+				}
+				_, runErr = RunInstall([]string{"--agent", "claude-code"}, system.DetectionResult{})
+			} else {
+				syncStagePlan = func(rt *syncRuntime) pipeline.StagePlan {
+					plan := planFor(rt.backupRoot, rt.workspaceDir, rt.state, selection, &rt.changedFiles)
+					rt.managedPaths = targets
+					return plan
+				}
+				_, runErr = RunSyncWithSelection(home, selection)
+			}
+			if !errors.Is(runErr, failure) {
+				t.Fatalf("%s returned %v, want injected failure", branch, runErr)
+			}
+			for _, path := range targets {
+				got, err := os.ReadFile(path)
+				if err != nil || !bytes.Equal(got, before[path]) {
+					t.Fatalf("%s left changed %s: %v", branch, path, err)
+				}
+			}
+			if transaction.rollbackSnapshotDir != "" {
+				t.Fatalf("%s retained transaction snapshot: %s", branch, transaction.rollbackSnapshotDir)
+			}
+		})
+	}
+}
+
+// A deduplicated backup still needs a live transaction snapshot until the TUI
+// caller has persisted state (or rolled back a failed persistence).
+func TestTUIDeduplicatedNativeReviewSnapshotSurvivesPostApplyRollback(t *testing.T) {
+	for _, outcome := range []string{"post-apply rollback", "persisted success"} {
+		t.Run(outcome, func(t *testing.T) {
+			home := t.TempDir()
+			adapter, err := agents.NewAdapter(model.AgentClaudeCode)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{CodeGraphGuidanceMarkdown: "previous guidance"}); err != nil {
+				t.Fatal(err)
+			}
+			ledger := filepath.Join(adapter.SubAgentsDir(home), reviewassets.OwnershipLedgerFilename)
+			agent := filepath.Join(adapter.SubAgentsDir(home), "jd-judge-a.md")
+			targets := []string{ledger, agent}
+			before := make(map[string][]byte)
+			for _, path := range targets {
+				before[path], err = os.ReadFile(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}}
+			resolved := planner.ResolvedPlan{Agents: selection.Agents}
+			var transaction *runtimeState
+			original := tuiInstallStagePlan
+			tuiInstallStagePlan = func(rt *installRuntime) pipeline.StagePlan {
+				transaction = rt.state
+				if _, err := backup.NewSnapshotter().Create(filepath.Join(rt.backupRoot, "existing"), targets); err != nil {
+					t.Fatal(err)
+				}
+				return pipeline.StagePlan{
+					Prepare: []pipeline.Step{prepareBackupStep{id: "backup", snapshotter: backup.NewSnapshotter(), snapshotDir: filepath.Join(rt.backupRoot, "next"), targets: targets, state: rt.state, backupRoot: rt.backupRoot}},
+					Apply: []pipeline.Step{
+						rollbackRestoreStep{id: "restore", state: rt.state, homeDir: home, workspaceDir: rt.workspaceDir},
+						nativeReviewAgentStep{id: "native", agent: model.AgentClaudeCode, homeDir: home, workspaceDir: rt.workspaceDir, scope: ScopeGlobal, selection: selection, state: rt.state},
+					},
+				}
+			}
+			t.Cleanup(func() { tuiInstallStagePlan = original })
+			result, orchestrator, _ := ExecuteTUIInstallRecordingCodexServiceTier(home, selection, resolved, system.PlatformProfile{OS: "darwin", Supported: true}, model.OpenCodeBackgroundAuto, "", nil)
+			if result.Err != nil {
+				t.Fatalf("apply: %v", result.Err)
+			}
+			if transaction.rollbackSnapshotDir == "" {
+				t.Fatal("expected deduplicated transaction snapshot")
+			}
+			for _, path := range targets {
+				content, err := os.ReadFile(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if bytes.Equal(content, before[path]) {
+					t.Fatalf("%s was not updated before simulated persistence failure", path)
+				}
+			}
+			dir := transaction.rollbackSnapshotDir
+			if _, err := os.Stat(dir); err != nil {
+				t.Fatalf("snapshot must survive apply until persistence settles: %v", err)
+			}
+			if outcome == "post-apply rollback" {
+				rollback := orchestrator.Rollback(result)
+				if rollback.Err != nil {
+					t.Fatalf("post-apply rollback: %v", rollback.Err)
+				}
+				for _, path := range targets {
+					content, err := os.ReadFile(path)
+					if err != nil || !bytes.Equal(content, before[path]) {
+						t.Fatalf("rollback did not restore %s: %v", path, err)
+					}
+				}
+			} else {
+				orchestrator.Finish()
+				orchestrator.Finish() // settling twice must not re-run cleanup
+			}
+			if _, err := os.Stat(dir); !os.IsNotExist(err) {
+				t.Fatalf("transaction snapshot not cleaned after %s: %v", outcome, err)
+			}
+		})
+	}
+}
+
+func TestNativeReviewLedgerInstallBackupAndManualActions(t *testing.T) {
+	home, workspace := t.TempDir(), t.TempDir()
+	adapter, err := agents.NewAdapter(model.AgentClaudeCode)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ledger := filepath.Join(adapter.SubAgentsDir(home), reviewassets.OwnershipLedgerFilename)
+	selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}}
+	targets, err := backupTargets(home, workspace, ScopeGlobal, selection, planner.ResolvedPlan{Agents: selection.Agents})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !containsPath(targets, ledger) {
+		t.Fatalf("install backup missing ledger %s", ledger)
+	}
+	path := filepath.Join(adapter.SubAgentsDir(home), "jd-judge-a.md")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("my review agent"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	state := &runtimeState{}
+	step := nativeReviewAgentStep{id: "test", agent: model.AgentClaudeCode, homeDir: home, workspaceDir: workspace, scope: ScopeGlobal, selection: selection, state: state}
+	if err := step.Run(); err != nil {
+		t.Fatal(err)
+	}
+	if len(state.nativeReviewActions) != 1 || state.nativeReviewActions[0] != nativeReviewPreservedAction(path) {
+		t.Fatalf("preserved-file actions = %v", state.nativeReviewActions)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil || string(data) != "my review agent" {
+		t.Fatalf("user bytes = %q, error = %v", data, err)
+	}
 }

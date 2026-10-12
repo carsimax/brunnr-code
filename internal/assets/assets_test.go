@@ -43,58 +43,13 @@ func TestODDOnlyEmbeddedInventory(t *testing.T) {
 	if len(orchestrators) == 0 {
 		t.Fatal("embedded inventory has no retained orchestrator assets")
 	}
-	for _, runtime := range []string{"claude", "opencode", "gemini", "antigravity", "codex", "cursor", "kiro", "kimi", "hermes", "generic", "qwen", "windsurf"} {
+	for _, runtime := range []string{"claude", "opencode", "codex", "generic"} {
 		if !orchestrators[runtime] {
 			t.Errorf("%s lost its ODD/RDD orchestrator asset", runtime)
 		}
 	}
 	if len(forbidden) != 0 {
 		t.Errorf("embedded inventory still ships SDD-only assets: %s", strings.Join(forbidden, ", "))
-	}
-}
-
-// TestKimiInstalledPromptAndAgentReferences guards the embedded Kimi entrypoints
-// rather than only the standalone orchestrator asset.
-func TestKimiInstalledPromptAndAgentReferences(t *testing.T) {
-	prompt := MustRead("kimi/KIMI.md")
-	agent := MustRead("kimi/agents/gentleman.yaml")
-	for path, content := range map[string]string{"kimi/KIMI.md": prompt, "kimi/agents/gentleman.yaml": agent} {
-		if match := regexp.MustCompile(`(?i)\bsdd(?:[-/]|\b)|spec-driven|openspec`).FindString(content); match != "" {
-			t.Errorf("%s offers retired SDD reference %q", path, match)
-		}
-	}
-	for _, include := range []string{"strict-tdd-mode.md", "agent-routing.md"} {
-		if !strings.Contains(prompt, `{% include "`+include+`" ignore missing %}`) {
-			t.Errorf("Kimi system prompt lost %s", include)
-		}
-	}
-	if !strings.Contains(MustRead("kimi/orchestrator.md"), "Organic Driven Development Is The Default Workflow") ||
-		!strings.Contains(MustRead("kimi/orchestrator.md"), "Review Execution Contract") {
-		t.Error("Kimi ODD/RDD orchestrator asset is missing its active contracts")
-	}
-	if !strings.Contains(agent, "name: gentleman") || !strings.Contains(agent, "extend: default") {
-		t.Error("Kimi gentleman agent lost its identity/default extension")
-	}
-	// Check each configured subagent path against the embedded inventory; no
-	// user-owned installed files are read or modified by this contract test.
-	refs := regexp.MustCompile(`(?m)^\s+(?:system_prompt_path|path): (\S+)\s*$`).FindAllStringSubmatch(agent, -1)
-	if len(refs) == 0 {
-		t.Fatal("Kimi gentleman agent has no system prompt reference")
-	}
-	for _, ref := range refs {
-		var path string
-		switch {
-		case strings.HasPrefix(ref[1], "../"):
-			path = "kimi/" + strings.TrimPrefix(ref[1], "../")
-		case strings.HasPrefix(ref[1], "./"):
-			path = "kimi/agents/" + strings.TrimPrefix(ref[1], "./")
-		default:
-			t.Errorf("unexpected Kimi agent reference %q", ref[1])
-			continue
-		}
-		if _, err := fs.Stat(FS, path); err != nil {
-			t.Errorf("Kimi agent reference %s is not embedded: %v", path, err)
-		}
 	}
 }
 
@@ -219,37 +174,6 @@ func TestPrimaryODDOnlyOrchestrator(t *testing.T) {
 					if !strings.Contains(content, required) {
 						t.Errorf("missing Codex contract %q", required)
 					}
-				}
-			}
-		})
-	}
-}
-
-// TestRemainingODDOnlyOrchestrators covers mixed prompts retained for migration.
-// Their RDD, language, and delegation contracts must survive SDD removal.
-func TestRemainingODDOnlyOrchestrators(t *testing.T) {
-	for _, runtime := range []string{"antigravity", "cursor", "gemini", "hermes", "kimi", "kiro", "qwen", "windsurf"} {
-		t.Run(runtime, func(t *testing.T) {
-			content := MustRead(runtime + "/orchestrator.md")
-			for _, required := range []string{
-				"{{GENTLE_AI_ODD_SECTION:Organic Driven Development Is The Default Workflow (MANDATORY)}}",
-				"{{GENTLE_AI_ODD_SECTION:Language Domain Contract}}",
-				"{{GENTLE_AI_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}",
-				"Lossless Blocking Prompts", "Gentle AI Provider Defect Handoff",
-				"Mandatory Delegation Triggers", "Native Checking Contract", "Review Execution Contract",
-			} {
-				if !strings.Contains(content, required) {
-					t.Errorf("missing %q", required)
-				}
-			}
-			for _, forbidden := range []string{
-				"{{GENTLE_AI_SDD_SECTION:", "{{GENTLE_AI_RESEARCH_LIFECYCLE}}",
-				"SDD Workflow", "SDD Edit-Authority", "SDD Session Preflight", "sdd-apply",
-				"sdd-verify", "sdd-init", "sdd-model-assignments", "optional SDD",
-				"Optional SDD rule", "SDD phase", "OpenSpec", "openspec",
-			} {
-				if strings.Contains(content, forbidden) {
-					t.Errorf("retains %q", forbidden)
 				}
 			}
 		})
@@ -527,7 +451,7 @@ func allODDOrchestratorAssetPaths(t *testing.T) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, runtime := range []string{"antigravity", "claude", "codex", "cursor", "gemini", "generic", "hermes", "kimi", "kiro", "opencode", "qwen", "windsurf"} {
+	for _, runtime := range []string{"claude", "codex", "generic", "opencode"} {
 		path := runtime + "/orchestrator.md"
 		if !slices.Contains(paths, path) {
 			t.Errorf("missing retained ODD orchestrator %s", path)
@@ -910,7 +834,7 @@ func TestEngramEmbeddedAssetLayout(t *testing.T) {
 
 func TestFourRReviewAgentAssets(t *testing.T) {
 	reviewAgents := []string{"review-risk", "review-readability", "review-reliability", "review-resilience"}
-	nativeDirs := []string{"claude/agents", "cursor/agents", "kiro/agents"}
+	nativeDirs := []string{"claude/agents"}
 	agentRules := map[string][]string{
 		"review-risk": {
 			"Rule sources: ai-course-2 slides",
@@ -954,32 +878,12 @@ func TestFourRReviewAgentAssets(t *testing.T) {
 		}
 	}
 
-	for _, agent := range reviewAgents {
-		md := MustRead("kimi/agents/" + agent + ".md")
-		yaml := MustRead("kimi/agents/" + agent + ".yaml")
-		if !strings.Contains(md, "name: "+agent+"\n") || !strings.Contains(yaml, "system_prompt_path: ./"+agent+".md") {
-			t.Fatalf("kimi review agent %s missing frontmatter name or YAML binding", agent)
-		}
-	}
-
 	// OpenCode reviews use the retained transport plugin rather than an SDD
 	// overlay. TestOpenCodeReviewTransportPluginContract pins that route.
 }
 
 func TestRetiredSDDLedgerGuidanceAbsentFromDistributedAssets(t *testing.T) {
 	paths := []string{"skills/work-unit-commits/SKILL.md"}
-	for _, lens := range []string{"risk", "readability", "reliability", "resilience"} {
-		path := "kimi/agents/review-" + lens + ".md"
-		paths = append(paths, path)
-		content := MustRead(path)
-		if !strings.HasPrefix(content, "---\nname: review-"+lens+"\n") ||
-			!strings.Contains(content, "\nmodel: inherit\nreadonly: true\nbackground: false\n---\n") {
-			t.Errorf("%s lost its native lens frontmatter", path)
-		}
-		if !strings.Contains(content, "native") {
-			t.Errorf("%s does not describe native rendering", path)
-		}
-	}
 	for _, path := range paths {
 		content := strings.ToLower(MustRead(path))
 		for _, retired := range []string{"sdd-tasks", "sdd relationship", "review ledger contract", "openspec/changes/", "sdd/{change-name}/review-ledger"} {
@@ -1057,12 +961,7 @@ func TestPlatformNativeODDOrchestratorsAvoidOpenCodePersistenceClaims(t *testing
 	tests := []struct {
 		path     string
 		required []string
-	}{
-		{path: "kimi/orchestrator.md", required: []string{"multiagent:Task", "bounded general worker"}},
-		{path: "kiro/orchestrator.md", required: []string{"native subagents", "bounded ODD work"}},
-		{path: "windsurf/orchestrator.md", required: []string{"solo-agent", "There are no sub-agents", "bounded ODD work"}},
-		{path: "antigravity/orchestrator.md", required: []string{"define_subagent", "invoke_subagent", "bounded ODD work"}},
-	}
+	}{}
 
 	for _, tc := range tests {
 		t.Run(tc.path, func(t *testing.T) {
@@ -1106,8 +1005,6 @@ func TestGentlemanLanguageInstructionsDoNotBiasEnglishSessions(t *testing.T) {
 		// Rules opener instead (JD-019).
 		{path: "claude/persona-gentleman.md", combineWith: "claude/output-style-gentleman.md", languagePhrase: "Always match the user's current language in your reply."},
 		{path: "generic/persona-gentleman.md", languagePhrase: "Match the user's current language in your REPLY ONLY"},
-		{path: "kiro/persona-gentleman.md", languagePhrase: "Match the user's current language in your REPLY ONLY"},
-		{path: "kimi/persona-gentleman.md", combineWith: "kimi/output-style-gentleman.md", languagePhrase: "Always match the user's current language in your reply."},
 		{path: "opencode/persona-gentleman.md", languagePhrase: "Match the user's current language in your REPLY ONLY"},
 	}
 
@@ -1142,7 +1039,6 @@ func TestGentlemanLanguageInstructionsDoNotBiasEnglishSessions(t *testing.T) {
 
 	for _, path := range []string{
 		"claude/output-style-gentleman.md",
-		"kimi/output-style-gentleman.md",
 	} {
 		t.Run(path, func(t *testing.T) {
 			content := MustRead(path)
@@ -1322,8 +1218,6 @@ func TestPersonasContainContextualSkillLoadingDirective(t *testing.T) {
 		{path: "opencode/persona-gentleman.md", isClaude: false, invokeMsg: "read the matching SKILL.md"},
 		{path: "generic/persona-gentleman.md", isClaude: false, invokeMsg: "read the matching SKILL.md"},
 		{path: "generic/persona-neutral.md", isClaude: false, invokeMsg: "read the matching SKILL.md"},
-		{path: "kiro/persona-gentleman.md", isClaude: false, invokeMsg: "read the matching SKILL.md"},
-		{path: "kimi/persona-gentleman.md", isClaude: false, invokeMsg: "read the matching SKILL.md"},
 	}
 
 	for _, tc := range tests {
@@ -1401,8 +1295,8 @@ func TestEmbeddedAssetCount(t *testing.T) {
 
 	// Only retained skills with embedded files count; deleted SDD directories
 	// contain no embedded assets.
-	if skillDirs != 16 {
-		t.Fatalf("expected 16 retained skill directories, got %d", skillDirs)
+	if skillDirs != 15 {
+		t.Fatalf("expected 15 retained skill directories, got %d", skillDirs)
 	}
 
 	// Verify each skill directory has a SKILL.md.
@@ -1663,7 +1557,7 @@ func TestOpenCodeGenericAgentsReadTheFeatureSpecByReference(t *testing.T) {
 	}
 }
 
-// #1731 parity: the Hermes delegation skill and the shared persistence contract
+// #1731 parity: the shared persistence contract
 // delegate for a named reason, never for file count, and forward the routing
 // block's test-first policy instead of a strict TDD mode.
 func TestDelegationSkillsDelegateForReasonAndForwardTestDiscipline(t *testing.T) {
@@ -1674,16 +1568,6 @@ func TestDelegationSkillsDelegateForReasonAndForwardTestDiscipline(t *testing.T)
 		required []string
 		retired  []string
 	}{
-		{
-			path: "skills/hermes-ephemeral-delegation/SKILL.md",
-			required: []string{
-				"a named reason",
-				"the applicable test-first policy and runner from `## Implementation Routing`",
-				"Write one RED test per requested rule",
-				"the **Verify handoff** from the Delegated Verification Gate",
-			},
-			retired: []string{"4+ files", "multi-file reads", "TDD mode", "strict TDD"},
-		},
 		{
 			path:     "skills/_shared/persistence-contract.md",
 			required: []string{"the applicable test-first policy and runner from `## Implementation Routing`"},

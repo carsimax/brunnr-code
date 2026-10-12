@@ -11,21 +11,8 @@ Gentle AI configures agents you already have; it does not install an AI agent fo
 | --- | --- | --- |
 | <a id="claude-code"></a>Claude Code | `claude-code` | Task subagents, MCP, skills, output styles, skill-registry and review hooks |
 | <a id="opencode"></a>OpenCode | `opencode` | Native task subagents, skills, MCP, managed review plugins and optional background policy |
-| <a id="kilo-code"></a>Kilo Code | `kilocode` | OpenCode-compatible configuration, skills and MCP |
-| <a id="gemini-cli"></a>Gemini CLI | `gemini-cli` | Experimental native agents, skills and MCP |
-| <a id="cursor"></a>Cursor | `cursor` | Native subagents, rules, skills and MCP |
-| <a id="vs-code-copilot"></a>VS Code Copilot | `vscode-copilot` | `runSubagent`, user instructions, skills and MCP |
 | <a id="codex"></a>Codex | `codex` | Native multi-agent when available, solo fallback, skills and MCP |
-| <a id="windsurf"></a>Windsurf | `windsurf` | Native skills, global rules and MCP |
-| <a id="antigravity"></a>Antigravity | `antigravity` | Native skills, MCP and built-in Mission Control tools |
-| <a id="kimi-code"></a>Kimi Code | `kimi` | Native custom agents, skills and MCP |
-| <a id="qwen-code"></a>Qwen Code | `qwen-code` | Native subagents, skills and MCP |
-| <a id="kiro-ide"></a>Kiro IDE | `kiro-ide` | Native agents, steering, skills and MCP |
-| <a id="openclaw"></a>OpenClaw | `openclaw` | Workspace instructions, skills and global MCP config |
-| <a id="trae"></a>Trae | `trae-ide` | User rules, skills and MCP |
 | <a id="pi"></a>Pi | `pi` | Package-owned runtime through Gentle Shell; see [Pi](pi.md) |
-| <a id="hermes"></a>Hermes | `hermes` | Ephemeral `delegate_task` workers, skills and MCP |
-| <a id="conductor"></a>Conductor | `conductor` | Workspace orchestrator that inherits Claude Code configuration; detection and catalog only — no managed writes |
 
 ## Agent guidance and ownership
 

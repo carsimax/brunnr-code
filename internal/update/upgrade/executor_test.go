@@ -474,7 +474,6 @@ func TestExecute_ConfigNotMutatedDuringUpgrade(t *testing.T) {
 	configFiles := map[string]string{
 		".claude/CLAUDE.md":            "# Claude config\nThis is my config.\n",
 		".config/opencode/config.json": `{"theme":"kanagawa"}`,
-		".gemini/GEMINI.md":            "# Gemini config\nMy rules.\n",
 	}
 
 	for relPath, content := range configFiles {
@@ -556,9 +555,6 @@ func TestConfigPathsForBackup_CoversManagedAgentPaths(t *testing.T) {
 		".config/opencode/themes/gentleman.json":      `{"theme":{}}`,
 		".config/opencode/themes/gentleman-cute.json": `{"theme":{}}`,
 		".config/opencode/opencode.json":              `{"model":"claude"}`,
-		".gemini/GEMINI.md":                           "# Gemini",
-		".cursor/rules/gentle-ai.mdc":                 "# Cursor rules",
-		".kimi/agent-routing.md":                      "# Kimi orchestrator and routing",
 	}
 	unmanagedFile := filepath.Join(homeDir, ".claude", "conversation-transcript.md")
 
@@ -1111,17 +1107,6 @@ func TestConfigPathsForBackup_ExcludesRuntimeDirs(t *testing.T) {
 
 	claudeExcludes := []string{"projects", "sessions", "plugins", "cache", "backups"}
 
-	// --- Gemini: config file (keep) + runtime dirs (exclude) ---
-	geminiConfig := filepath.Join(homeDir, ".gemini", "GEMINI.md")
-	if err := os.MkdirAll(filepath.Dir(geminiConfig), 0o755); err != nil {
-		t.Fatalf("MkdirAll: %v", err)
-	}
-	if err := os.WriteFile(geminiConfig, []byte("# Gemini"), 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-
-	geminiExcludes := []string{"browser_recordings", "brain", "conversations"}
-
 	// --- OpenCode: managed config file (keep) + node_modules (exclude) ---
 	openCodeConfig := filepath.Join(homeDir, ".config", "opencode", "opencode.json")
 	if err := os.MkdirAll(filepath.Dir(openCodeConfig), 0o755); err != nil {
@@ -1140,7 +1125,6 @@ func TestConfigPathsForBackup_ExcludesRuntimeDirs(t *testing.T) {
 	}
 	agents := []agentExclude{
 		{filepath.Join(homeDir, ".claude"), claudeExcludes},
-		{filepath.Join(homeDir, ".gemini"), geminiExcludes},
 		{filepath.Join(homeDir, ".config", "opencode"), openCodeExcludes},
 	}
 
@@ -1158,16 +1142,6 @@ func TestConfigPathsForBackup_ExcludesRuntimeDirs(t *testing.T) {
 		}
 	}
 
-	// Gemini Antigravity temp dir is nested under antigravity/ and must also be excluded.
-	geminiAntigravityTmpFile := filepath.Join(homeDir, ".gemini", "antigravity", "tmp", "artifact.json")
-	if err := os.MkdirAll(filepath.Dir(geminiAntigravityTmpFile), 0o755); err != nil {
-		t.Fatalf("MkdirAll gemini antigravity tmp: %v", err)
-	}
-	if err := os.WriteFile(geminiAntigravityTmpFile, []byte("temp runtime data"), 0o644); err != nil {
-		t.Fatalf("WriteFile gemini antigravity tmp: %v", err)
-	}
-	excludedFiles = append(excludedFiles, geminiAntigravityTmpFile)
-
 	paths := configPathsForBackup(homeDir)
 	pathSet := make(map[string]struct{}, len(paths))
 	for _, p := range paths {
@@ -1175,7 +1149,7 @@ func TestConfigPathsForBackup_ExcludesRuntimeDirs(t *testing.T) {
 	}
 
 	// Config files must be present.
-	for _, cfg := range []string{claudeConfig, geminiConfig, openCodeConfig} {
+	for _, cfg := range []string{claudeConfig, openCodeConfig} {
 		if _, ok := pathSet[cfg]; !ok {
 			t.Errorf("configPathsForBackup missing config file %q", cfg)
 		}
@@ -1519,29 +1493,6 @@ func TestManagedAgentBackupPathsOpenCodePluginsFollowXDGConfigHome(t *testing.T)
 	}
 }
 
-// The pre-upgrade snapshot covers exactly the plugin paths the managed plugin
-// install can write or retire, for every plugin-receiving agent.
-func TestManagedAgentBackupPathsKilocodePluginLifecycle(t *testing.T) {
-	homeDir := t.TempDir()
-	reg, err := agents.NewDefaultRegistry()
-	if err != nil {
-		t.Fatal(err)
-	}
-	adapter, ok := reg.Get(model.AgentKilocode)
-	if !ok {
-		t.Fatal("kilocode adapter not found in registry")
-	}
-	paths := managedAgentBackupPaths(homeDir, adapter, log.Writer())
-	for _, want := range opencoderuntimeplugins.PluginPaths(homeDir, adapter) {
-		if !slices.Contains(paths, want) {
-			t.Errorf("backup paths miss Kilocode plugin %q", want)
-		}
-	}
-	if len(opencoderuntimeplugins.PluginPaths(homeDir, adapter)) == 0 {
-		t.Fatal("no Kilocode plugin paths")
-	}
-}
-
 // TestManagedAgentBackupPathsOpenCodeDefaultAgentOwnershipFollowsConfigDir
 // pins that the snapshot targets the default-agent ownership record beside the
 // effective OpenCode settings path, which honors an absolute
@@ -1581,7 +1532,7 @@ func TestManagedAgentBackupPathsIncludeRetiredSDDAgents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentKiroIDE, model.AgentCursor, model.AgentKimi} {
+	for _, agent := range []model.AgentID{model.AgentClaudeCode} {
 		adapter, ok := reg.Get(agent)
 		if !ok {
 			t.Fatalf("default registry does not contain %s", agent)
@@ -1611,7 +1562,6 @@ func TestManagedAgentBackupPathsIncludeRetiredOpenCodeSDDSettings(t *testing.T) 
 			filepath.Join(homeDir, ".config", "opencode", "opencode.json"),
 			prompt,
 		},
-		model.AgentKilocode: {filepath.Join(homeDir, ".config", "kilo", "opencode.json")},
 	} {
 		adapter, ok := reg.Get(agent)
 		if !ok {
@@ -1655,8 +1605,7 @@ func TestManagedAgentBackupPathsIncludeRetiredSDDSkillsAndCommands(t *testing.T)
 			filepath.Join(homeDir, ".claude", "commands", "gentle-sdd-apply.md"),
 			filepath.Join(homeDir, ".claude", "commands", "sdd-apply.md"),
 		},
-		model.AgentCodex:    {filepath.Join(homeDir, ".codex", "skills", "sdd-verify", "references", "report-format.md")},
-		model.AgentQwenCode: {filepath.Join(homeDir, ".qwen", "commands", "sdd-init.md")},
+		model.AgentCodex: {filepath.Join(homeDir, ".codex", "skills", "sdd-verify", "references", "report-format.md")},
 	} {
 		adapter, ok := reg.Get(agent)
 		if !ok {
@@ -1714,9 +1663,8 @@ func TestManagedAgentBackupPathsOmitAbsentRetiredSDDPaths(t *testing.T) {
 }
 
 // The upgraded binary's sync retires Codex's SDD profiles and the SDD block
-// of its lowercase agents.md, and Kimi's SDD module and its legacy include
-// (#5157), so the snapshot holds every one of them that exists.
-func TestManagedAgentBackupPathsIncludeRetiredCodexAndKimiSDDFiles(t *testing.T) {
+// of its lowercase agents.md (#5157), so the snapshot holds every one of them that exists.
+func TestManagedAgentBackupPathsIncludeRetiredCodexSDDFiles(t *testing.T) {
 	homeDir := t.TempDir()
 	reg, err := agents.NewDefaultRegistry()
 	if err != nil {
@@ -1727,17 +1675,9 @@ func TestManagedAgentBackupPathsIncludeRetiredCodexAndKimiSDDFiles(t *testing.T)
 			filepath.Join(homeDir, ".codex", "sdd-strong.config.toml"),
 			filepath.Join(homeDir, ".codex", "agents.md"),
 		},
-		// The current kimi-code root does not hide the legacy files.
-		model.AgentKimi: {
-			filepath.Join(homeDir, ".kimi", "sdd-orchestrator.md"),
-			filepath.Join(homeDir, ".kimi", "KIMI.md"),
-		},
 	} {
 		for _, path := range want {
 			writeRetiredFixture(t, path)
-		}
-		if err := os.MkdirAll(filepath.Join(homeDir, ".kimi-code"), 0o755); err != nil {
-			t.Fatal(err)
 		}
 		adapter, ok := reg.Get(agent)
 		if !ok {
@@ -1768,7 +1708,6 @@ func TestManagedAgentBackupPathsOmitAbsentRetiredRuntimeFiles(t *testing.T) {
 			filepath.Join(homeDir, ".codex", "sdd-strong.config.toml"),
 			filepath.Join(homeDir, ".codex", "agents.md"),
 		},
-		model.AgentKimi: {filepath.Join(homeDir, ".kimi", "sdd-orchestrator.md")},
 	}
 	for agent, paths := range absent {
 		adapter, ok := reg.Get(agent)
@@ -1798,7 +1737,7 @@ func TestManagedAgentBackupPathsOmitAbsentRetiredRuntimeFiles(t *testing.T) {
 	}
 }
 
-// Retirement never enters a symlinked ~/.codex or ~/.kimi, so the snapshot
+// Retirement never enters a symlinked ~/.codex, so the snapshot
 // never declares a prompt behind one.
 func TestManagedAgentBackupPathsOmitPromptsBehindSymlinkedRuntimeDirs(t *testing.T) {
 	homeDir := t.TempDir()
@@ -1808,18 +1747,13 @@ func TestManagedAgentBackupPathsOmitPromptsBehindSymlinkedRuntimeDirs(t *testing
 	}
 	dotfiles := t.TempDir()
 	writeRetiredFixture(t, filepath.Join(dotfiles, "codex", "agents.md"))
-	writeRetiredFixture(t, filepath.Join(dotfiles, "kimi", "KIMI.md"))
-	for name, target := range map[string]string{".codex": "codex", ".kimi": "kimi"} {
+	for name, target := range map[string]string{".codex": "codex"} {
 		if err := os.Symlink(filepath.Join(dotfiles, target), filepath.Join(homeDir, name)); err != nil {
 			t.Skipf("symlinks unavailable: %v", err)
 		}
 	}
-	if err := os.MkdirAll(filepath.Join(homeDir, ".kimi-code"), 0o755); err != nil {
-		t.Fatal(err)
-	}
 	for agent, path := range map[model.AgentID]string{
 		model.AgentCodex: filepath.Join(homeDir, ".codex", "agents.md"),
-		model.AgentKimi:  filepath.Join(homeDir, ".kimi", "KIMI.md"),
 	} {
 		adapter, ok := reg.Get(agent)
 		if !ok {

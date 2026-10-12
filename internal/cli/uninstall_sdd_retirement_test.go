@@ -51,8 +51,6 @@ func TestUninstallRetiresOwnedSDDInventoryForEveryRuntime(t *testing.T) {
 		owned[path] = data
 	}
 	owned[filepath.Join(home, ".claude", "agents", "sdd-apply.md")] = releasedSDDRender(t, "claude-sdd-apply.md")
-	owned[filepath.Join(home, ".kiro", "agents", "sdd-apply.md")] = releasedSDDRender(t, "kiro-sdd-apply.md")
-	owned[filepath.Join(home, ".cursor", "agents", "sdd-apply.md")] = releasedSDDRender(t, "cursor-sdd-apply.md")
 	prompts := legacyassets.SharedPromptDir(home)
 	owned[filepath.Join(prompts, "sdd-apply.md")] = releasedSDDRender(t, "opencode-prompt-sdd-apply.md")
 	kept := map[string][]byte{
@@ -169,7 +167,7 @@ func TestUninstallNeverEntersSymlinkedSDDDirectories(t *testing.T) {
 	home := uninstallSDDTestHome(t)
 	outside := t.TempDir()
 	targets := map[string][]byte{
-		filepath.Join(outside, "agents", "sdd-apply.md"):         releasedSDDRender(t, "cursor-sdd-apply.md"),
+		filepath.Join(outside, "agents", "sdd-apply.md"):         releasedSDDRender(t, "claude-sdd-apply.md"),
 		filepath.Join(outside, "skills", "sdd-init", "SKILL.md"): releasedSDDAsset(t, "v3.7.0", "skill-sdd-init.md"),
 		filepath.Join(outside, "prompts", "sdd-apply.md"):        releasedSDDRender(t, "opencode-prompt-sdd-apply.md"),
 	}
@@ -177,8 +175,8 @@ func TestUninstallNeverEntersSymlinkedSDDDirectories(t *testing.T) {
 		mustWriteFile(t, path, data)
 	}
 	links := map[string]string{
-		filepath.Join(home, ".cursor", "agents"): filepath.Join(outside, "agents"),
-		filepath.Join(home, ".qwen", "skills"):   filepath.Join(outside, "skills"),
+		filepath.Join(home, ".claude", "agents"): filepath.Join(outside, "agents"),
+		filepath.Join(home, ".claude", "skills"): filepath.Join(outside, "skills"),
 		legacyassets.SharedPromptDir(home):       filepath.Join(outside, "prompts"),
 	}
 	for link, target := range links {
@@ -190,7 +188,7 @@ func TestUninstallNeverEntersSymlinkedSDDDirectories(t *testing.T) {
 		}
 	}
 
-	result, err := RunUninstallWithSelection(home, t.TempDir(), []model.AgentID{model.AgentCursor, model.AgentOpenCode, model.AgentQwenCode}, nil)
+	result, err := RunUninstallWithSelection(home, t.TempDir(), []model.AgentID{model.AgentOpenCode, model.AgentClaudeCode}, nil)
 	if err != nil {
 		t.Fatalf("RunUninstallWithSelection() error = %v", err)
 	}

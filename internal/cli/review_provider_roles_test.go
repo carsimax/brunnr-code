@@ -301,7 +301,6 @@ func TestReviewProviderRefuterClaimsKeepDeterministicOnlyWhereARefuterRuns(t *te
 		{runtime: string(model.AgentClaudeCode), want: "D-introduced,I-worsened"},
 		{runtime: string(model.AgentCodex), want: "D-introduced,I-worsened"},
 		{runtime: "", want: "I-worsened"},
-		{runtime: string(model.AgentGeminiCLI), want: "I-worsened"},
 	} {
 		claims, err := reviewProviderRefuterClaims(snapshot, input, tt.runtime)
 		if err != nil {

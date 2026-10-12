@@ -534,9 +534,9 @@ func TestCheckStateJSON_AbsentAncestorChainKeepsSyncRemedy(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(homeDir, ".gentle-ai"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	// windsurf lives two levels below home (~/.codeium/windsurf); neither
+	// opencode lives two levels below home (~/.config/opencode); neither
 	// level exists, so the path is genuinely missing and sync must stay.
-	if err := os.WriteFile(filepath.Join(homeDir, ".gentle-ai", "state.json"), []byte(`{"installed_agents":["windsurf"]}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(homeDir, ".gentle-ai", "state.json"), []byte(`{"installed_agents":["opencode"]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

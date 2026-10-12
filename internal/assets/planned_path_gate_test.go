@@ -38,13 +38,13 @@ func TestEveryODDOrchestratorDoesNotRejectPlannedPaths(t *testing.T) {
 	if err != nil {
 		t.Fatalf("walk ODD orchestrators: %v", err)
 	}
-	for _, runtime := range []string{"antigravity", "claude", "codex", "cursor", "gemini", "generic", "hermes", "kimi", "kiro", "opencode", "qwen", "windsurf"} {
+	for _, runtime := range []string{"claude", "codex", "generic", "opencode"} {
 		if !seen[runtime] {
 			t.Errorf("missing ODD orchestrator for %s", runtime)
 		}
 	}
-	if len(seen) != 12 {
-		t.Errorf("ODD orchestrator inventory changed: got %d runtimes, want 12", len(seen))
+	if len(seen) != 4 {
+		t.Errorf("ODD orchestrator inventory changed: got %d runtimes, want 4", len(seen))
 	}
 }
 

@@ -46,18 +46,10 @@ func providerDefectRouteForPublishedFix(installedBuild, fixChannel string, publi
 const providerDefectHandoffCanonicalPath = "generic/orchestrator.md"
 
 var blockingPromptRoutes = map[string]blockingPromptRoute{
-	"antigravity/orchestrator.md": {},
-	"claude/orchestrator.md":      {nativeTool: "`AskUserQuestion`"},
-	"codex/orchestrator.md":       {},
-	"cursor/orchestrator.md":      {},
-	"gemini/orchestrator.md":      {},
-	"generic/orchestrator.md":     {},
-	"hermes/orchestrator.md":      {},
-	"kimi/orchestrator.md":        {},
-	"kiro/orchestrator.md":        {},
-	"opencode/orchestrator.md":    {nativeTool: "`question`"},
-	"qwen/orchestrator.md":        {},
-	"windsurf/orchestrator.md":    {},
+	"claude/orchestrator.md":   {nativeTool: "`AskUserQuestion`"},
+	"codex/orchestrator.md":    {},
+	"generic/orchestrator.md":  {},
+	"opencode/orchestrator.md": {nativeTool: "`question`"},
 }
 
 func TestCoordinatorOrchestratorsCarryLosslessBlockingPromptRule(t *testing.T) {
@@ -161,23 +153,6 @@ func TestCoordinatorOrchestratorsCarryClosedSingleSelectDomainContract(t *testin
 				}
 			}
 		})
-	}
-}
-
-func TestBlockingPromptFallbackCoversWindsurfToolResults(t *testing.T) {
-	content := MustRead("windsurf/orchestrator.md")
-	if !strings.Contains(content, "There are no sub-agents") {
-		t.Fatal("Windsurf must still identify its solo-agent execution model")
-	}
-	contract := blockingPromptContractSection(t, "windsurf/orchestrator.md")
-	for _, required := range []string{
-		"sub-agent or tool",
-		"always use the plain chat or terminal fallback",
-		"Then STOP",
-	} {
-		if !strings.Contains(contract, required) {
-			t.Errorf("Windsurf tool-result fallback missing %q", required)
-		}
 	}
 }
 

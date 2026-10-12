@@ -91,7 +91,6 @@ func TestNativeAgentOwnedModelUpdates(t *testing.T) {
 		want    string
 	}{
 		{model.AgentClaudeCode, "jd-judge-a.md", reviewassets.InstallOptions{ClaudePhaseAssignments: map[string]model.ClaudePhaseAssignment{"jd-judge-a": {Model: model.ClaudeModelOpus, Effort: model.ClaudeEffortHigh}}}, "effort: high"},
-		{model.AgentKiroIDE, "jd-judge-a.md", reviewassets.InstallOptions{KiroModelAssignments: map[string]model.KiroModelAlias{"jd-judge-a": model.KiroModelOpus}}, "model: claude-opus"},
 	} {
 		t.Run(string(tc.agent), func(t *testing.T) {
 			adapter, err := agents.NewAdapter(tc.agent)
@@ -123,108 +122,6 @@ func TestNativeAgentOwnedModelUpdates(t *testing.T) {
 				t.Fatal("model update hash does not match installed bytes")
 			}
 		})
-	}
-}
-
-func TestNativeAgentNoLedgerDoesNotAdoptMatchingBytes(t *testing.T) {
-	adapter, err := agents.NewAdapter(model.AgentKiroIDE)
-	if err != nil {
-		t.Fatal(err)
-	}
-	home := t.TempDir()
-	dir := adapter.SubAgentsDir(home)
-	if _, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{}); err != nil {
-		t.Fatal(err)
-	}
-	name := "jd-judge-a.md"
-	path := filepath.Join(dir, name)
-	before, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Remove(filepath.Join(dir, reviewassets.OwnershipLedgerFilename)); err != nil {
-		t.Fatal(err)
-	}
-	matching, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !containsPath(matching.Skipped, path) || len(matching.Files) != 0 {
-		t.Fatalf("unknown matching bytes were adopted: %+v", matching)
-	}
-	result, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{CodeGraphGuidanceMarkdown: "new guidance"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got, _ := os.ReadFile(path); string(got) != string(before) || !containsPath(result.Skipped, path) {
-		t.Fatalf("matching unknown bytes adopted: %+v", result)
-	}
-	if _, err := os.Lstat(filepath.Join(dir, reviewassets.OwnershipLedgerFilename)); !os.IsNotExist(err) {
-		t.Fatalf("all-skipped install created an ownership ledger: %v", err)
-	}
-}
-
-func TestNativeAgentInvalidLedgerFailsClosed(t *testing.T) {
-	for _, tc := range []struct {
-		name, body string
-		link       bool
-	}{
-		{name: "malformed", body: "{"}, {name: "unsupported", body: `{"version":2,"files":{}}`}, {name: "symlink", link: true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			adapter, err := agents.NewAdapter(model.AgentKiroIDE)
-			if err != nil {
-				t.Fatal(err)
-			}
-			home := t.TempDir()
-			dir := adapter.SubAgentsDir(home)
-			if err := os.MkdirAll(dir, 0755); err != nil {
-				t.Fatal(err)
-			}
-			ledger := filepath.Join(dir, reviewassets.OwnershipLedgerFilename)
-			if tc.link {
-				target := filepath.Join(t.TempDir(), "target")
-				if err := os.WriteFile(target, []byte("safe"), 0644); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.Symlink(target, ledger); err != nil {
-					t.Fatal(err)
-				}
-			} else if err := os.WriteFile(ledger, []byte(tc.body), 0644); err != nil {
-				t.Fatal(err)
-			}
-			if _, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{}); err == nil {
-				t.Fatal("invalid ledger accepted")
-			}
-			if _, err := os.Lstat(filepath.Join(dir, "jd-judge-a.md")); !os.IsNotExist(err) {
-				t.Fatalf("partial install despite invalid ledger: %v", err)
-			}
-		})
-	}
-}
-
-func TestNativeAgentSymlinkFailsClosed(t *testing.T) {
-	adapter, err := agents.NewAdapter(model.AgentKiroIDE)
-	if err != nil {
-		t.Fatal(err)
-	}
-	home := t.TempDir()
-	dir := adapter.SubAgentsDir(home)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		t.Fatal(err)
-	}
-	target := filepath.Join(t.TempDir(), "user")
-	if err := os.WriteFile(target, []byte("safe"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(target, filepath.Join(dir, "jd-judge-a.md")); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{}); err == nil {
-		t.Fatal("symlink accepted")
-	}
-	if got, _ := os.ReadFile(target); string(got) != "safe" {
-		t.Fatalf("symlink target modified: %q", got)
 	}
 }
 
@@ -279,7 +176,6 @@ func TestNativeAgentModelsAndUnrelatedFiles(t *testing.T) {
 		name, want string
 	}{
 		{model.AgentClaudeCode, reviewassets.InstallOptions{ClaudePhaseAssignments: map[string]model.ClaudePhaseAssignment{"jd-judge-a": {Model: model.ClaudeModelOpus, Effort: model.ClaudeEffortHigh}}}, "jd-judge-a.md", "model: opus"},
-		{model.AgentKiroIDE, reviewassets.InstallOptions{KiroModelAssignments: map[string]model.KiroModelAlias{"jd-judge-a": model.KiroModelOpus}}, "jd-judge-a.md", "model: claude-opus"},
 	} {
 		t.Run(string(tc.agent), func(t *testing.T) {
 			adapter, err := agents.NewAdapter(tc.agent)
@@ -313,5 +209,107 @@ func TestNativeAgentModelsAndUnrelatedFiles(t *testing.T) {
 				t.Fatalf("custom file overwritten: %q %v", preserved, err)
 			}
 		})
+	}
+}
+
+func TestNativeAgentNoLedgerDoesNotAdoptMatchingBytes(t *testing.T) {
+	adapter, err := agents.NewAdapter(model.AgentClaudeCode)
+	if err != nil {
+		t.Fatal(err)
+	}
+	home := t.TempDir()
+	dir := adapter.SubAgentsDir(home)
+	if _, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	name := "jd-judge-a.md"
+	path := filepath.Join(dir, name)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(dir, reviewassets.OwnershipLedgerFilename)); err != nil {
+		t.Fatal(err)
+	}
+	matching, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !containsPath(matching.Skipped, path) || len(matching.Files) != 0 {
+		t.Fatalf("unknown matching bytes were adopted: %+v", matching)
+	}
+	result, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{CodeGraphGuidanceMarkdown: "new guidance"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(path); string(got) != string(before) || !containsPath(result.Skipped, path) {
+		t.Fatalf("matching unknown bytes adopted: %+v", result)
+	}
+	if _, err := os.Lstat(filepath.Join(dir, reviewassets.OwnershipLedgerFilename)); !os.IsNotExist(err) {
+		t.Fatalf("all-skipped install created an ownership ledger: %v", err)
+	}
+}
+
+func TestNativeAgentInvalidLedgerFailsClosed(t *testing.T) {
+	for _, tc := range []struct {
+		name, body string
+		link       bool
+	}{
+		{name: "malformed", body: "{"}, {name: "unsupported", body: `{"version":2,"files":{}}`}, {name: "symlink", link: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			adapter, err := agents.NewAdapter(model.AgentClaudeCode)
+			if err != nil {
+				t.Fatal(err)
+			}
+			home := t.TempDir()
+			dir := adapter.SubAgentsDir(home)
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				t.Fatal(err)
+			}
+			ledger := filepath.Join(dir, reviewassets.OwnershipLedgerFilename)
+			if tc.link {
+				target := filepath.Join(t.TempDir(), "target")
+				if err := os.WriteFile(target, []byte("safe"), 0644); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink(target, ledger); err != nil {
+					t.Fatal(err)
+				}
+			} else if err := os.WriteFile(ledger, []byte(tc.body), 0644); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{}); err == nil {
+				t.Fatal("invalid ledger accepted")
+			}
+			if _, err := os.Lstat(filepath.Join(dir, "jd-judge-a.md")); !os.IsNotExist(err) {
+				t.Fatalf("partial install despite invalid ledger: %v", err)
+			}
+		})
+	}
+}
+
+func TestNativeAgentSymlinkFailsClosed(t *testing.T) {
+	adapter, err := agents.NewAdapter(model.AgentClaudeCode)
+	if err != nil {
+		t.Fatal(err)
+	}
+	home := t.TempDir()
+	dir := adapter.SubAgentsDir(home)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(t.TempDir(), "user")
+	if err := os.WriteFile(target, []byte("safe"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, filepath.Join(dir, "jd-judge-a.md")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reviewassets.InstallNativeAgents(home, adapter, reviewassets.InstallOptions{}); err == nil {
+		t.Fatal("symlink accepted")
+	}
+	if got, _ := os.ReadFile(target); string(got) != "safe" {
+		t.Fatalf("symlink target modified: %q", got)
 	}
 }

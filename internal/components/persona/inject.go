@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/cursor"
 	piagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
@@ -64,13 +63,6 @@ func InjectPiPersonaAt(path string, persona model.PersonaID) (InjectionResult, e
 		return InjectionResult{}, err
 	}
 	return InjectionResult{Changed: writeResult.Changed, Files: []string{path}}, nil
-}
-
-// bootstrapper is an optional adapter capability: if an adapter implements
-// this interface, any injector that writes Jinja modules will first ensure
-// the base template (entry point) exists.
-type bootstrapper interface {
-	BootstrapTemplate(homeDir string) error
 }
 
 // outputStyleOverlayJSON is the settings.json overlay to enable the selected
@@ -201,25 +193,6 @@ func injectInternal(homeDir string, adapter agents.Adapter, persona model.Person
 
 	case model.StrategyFileReplace:
 		promptPath := adapter.SystemPromptFile(homeDir)
-
-		if adapter.Agent() == model.AgentCursor {
-			existing, err := readFileOrEmpty(promptPath)
-			if err != nil {
-				return InjectionResult{}, err
-			}
-			// Cursor owns the leading persona body, but other components append
-			// marker-bound sections that install and sync must retain.
-			if idx := strings.Index(existing, "<!-- gentle-ai:"); idx >= 0 {
-				content = strings.TrimRight(content, "\n") + "\n\n" + existing[idx:]
-			}
-			writeResult, err := filemerge.WriteFileAtomic(promptPath, []byte(cursor.WrapRule(content)), 0o644)
-			if err != nil {
-				return InjectionResult{}, err
-			}
-			changed = changed || writeResult.Changed
-			files = append(files, promptPath)
-			break
-		}
 
 		if adapter.Agent() == model.AgentOpenCode {
 			existing, err := readFileOrEmpty(promptPath)
@@ -395,47 +368,6 @@ func injectInternal(homeDir string, adapter agents.Adapter, persona model.Person
 		changed = changed || writeResult.Changed
 		files = append(files, promptPath)
 
-	case model.StrategyJinjaModules:
-		// Ensure the base template exists for Jinja-based agents.
-		if bs, ok := adapter.(bootstrapper); ok {
-			if err := bs.BootstrapTemplate(homeDir); err != nil {
-				return InjectionResult{}, fmt.Errorf("bootstrap template: %w", err)
-			}
-			files = append(files, adapter.SystemPromptFile(homeDir))
-			files = append(files, adapter.SettingsPath(homeDir))
-		}
-
-		// Write separate Jinja include modules for Kimi (and any future agents that
-		// use this strategy). Each module corresponds to one {% include "…" %} in
-		// the static KIMI.md template that the bootstrapper above ensures exists.
-		configDir := adapter.GlobalConfigDir(homeDir)
-
-		// Module 1: persona (raw content — no variables; those live in the template).
-		personaPath := filepath.Join(configDir, "persona.md")
-		wr1, err := filemerge.WriteFileAtomic(personaPath, []byte(content), 0o644)
-		if err != nil {
-			return InjectionResult{}, err
-		}
-		changed = changed || wr1.Changed
-		files = append(files, personaPath)
-
-		// Module 2: output-style. Neutral gets a meaningful output-style module
-		// rather than an empty include so Kimi receives the same behavior contract
-		// across both persona and output-style instruction layers.
-		outputStyleContent := ""
-		switch {
-		case isGentlemanConversationPersona(persona):
-			outputStyleContent = assets.MustRead("kimi/output-style-gentleman.md")
-		case persona == model.PersonaNeutral:
-			outputStyleContent = assets.MustRead("kimi/output-style-neutral.md")
-		}
-		outputStylePath := filepath.Join(configDir, "output-style.md")
-		wr2, err := filemerge.WriteFileAtomic(outputStylePath, []byte(outputStyleContent), 0o644)
-		if err != nil {
-			return InjectionResult{}, err
-		}
-		changed = changed || wr2.Changed
-		files = append(files, outputStylePath)
 	}
 
 	// 2. OpenCode/Kilocode agent definitions — Tab-switchable agents in settings.
@@ -669,12 +601,9 @@ func isGentlemanConversationPersona(persona model.PersonaID) bool {
 // residualChannel reports whether the adapter already delivers tone/language/
 // philosophy content through an active output-style channel that loads every
 // session, making the system-prompt persona section redundant for that
-// content. Claude Code is gated on SupportsOutputStyles(); Kimi is an explicit
-// carve-out because its KIMI.md unconditionally double-includes both the
-// persona.md and output-style.md Jinja modules regardless of that capability
-// flag (see design.md Decision 1).
+// content. Claude Code is gated on SupportsOutputStyles().
 func residualChannel(adapter agents.Adapter) bool {
-	return adapter.SupportsOutputStyles() || adapter.Agent() == model.AgentKimi
+	return adapter.SupportsOutputStyles()
 }
 
 // personaContent returns the persona asset for the given agent and persona.
@@ -691,34 +620,20 @@ func personaContent(agent model.AgentID, persona model.PersonaID, residualConten
 }
 
 func neutralPersonaContent(agent model.AgentID, residualContentAvailable bool) string {
-	if agent == model.AgentHermes {
-		return assets.MustRead("hermes/persona-neutral.md")
-	}
-	if residualContentAvailable {
-		switch agent {
-		case model.AgentClaudeCode:
-			return assets.MustRead("claude/persona-neutral-residual.md")
-		case model.AgentKimi:
-			return assets.MustRead("kimi/persona-neutral-residual.md")
-		}
+	if residualContentAvailable && agent == model.AgentClaudeCode {
+		return assets.MustRead("claude/persona-neutral-residual.md")
 	}
 	return assets.MustRead("generic/persona-neutral.md")
 }
 
 func gentlemanPersonaContent(agent model.AgentID) string {
-	// Claude and Kimi Gentleman assets are already residual/slim in place; unlike
+	// Claude Gentleman assets are already residual/slim in place; unlike
 	// Neutral, there is no separate residual variant to choose here.
 	switch agent {
 	case model.AgentClaudeCode:
 		return assets.MustRead("claude/persona-gentleman.md")
 	case model.AgentOpenCode, model.AgentKilocode:
 		return assets.MustRead("opencode/persona-gentleman.md")
-	case model.AgentKimi:
-		return assets.MustRead("kimi/persona-gentleman.md")
-	case model.AgentKiroIDE:
-		return assets.MustRead("kiro/persona-gentleman.md")
-	case model.AgentHermes:
-		return assets.MustRead("hermes/persona-gentleman.md")
 	default:
 		return assets.MustRead("generic/persona-gentleman.md")
 	}

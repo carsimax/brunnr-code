@@ -1891,9 +1891,8 @@ func runOrganicProviderCaptureFake(agent string) int {
 
 // organicRoutingGuidanceRequiredFragments pins the ODD routes, applicable
 // test-first policy, and independent review guidance every configured agent
-// must receive, shared between this file's Cursor
-// case and organic_runtime_real_agent_detection_test.go's Claude Code /
-// OpenCode cases (see that file for why they're split).
+// must receive, checked by organic_runtime_real_agent_detection_test.go's
+// Claude Code / OpenCode cases.
 var organicRoutingGuidanceRequiredFragments = []string{
 	"Organic Driven Development",
 	"Direct inline",
@@ -1910,63 +1909,6 @@ var organicRoutingGuidanceRequiredFragments = []string{
 var organicRoutingGuidanceRDDFragments = []string{
 	"gentle-ai review mode enable|disable|status",
 	"disabled/unmanaged",
-}
-
-// TestOrganicConfiguredAgentReceivesRoutingGuidanceCursor proves the
-// markdown-rules delivery strategy for Cursor. Cursor's Detect is
-// config-dir-only (~/.cursor, no PATH lookup — see
-// internal/agents/cursor/adapter.go), so this case needs no real agent
-// binary and runs unconditionally in the ordinary unit sweep.
-//
-// Claude Code and OpenCode's equivalent cases used to live in this same
-// table-driven test, but their detection follows the inherited PATH to a
-// real installed binary — install refuses instead of installing a missing
-// runtime now (agentInstallStep in internal/cli/run.go) — so running them
-// here depended on those binaries happening to be on the machine running
-// `go test ./...`, which is true on developer machines but not on every CI
-// runner. They now live in
-// organic_runtime_real_agent_detection_test.go, gated behind the
-// real_agent_e2e build tag so they run only in the organic-runtime-e2e CI
-// job, which installs both runtimes first.
-func TestOrganicConfiguredAgentReceivesRoutingGuidanceCursor(t *testing.T) {
-	t.Parallel()
-	workspace := t.TempDir()
-	home := t.TempDir()
-	if _, err := organicGitOutput(context.Background(), workspace, "init", "--quiet", "--initial-branch=main", "."); err != nil {
-		t.Fatal(err)
-	}
-	// Cursor's Detect looks for ~/.cursor, which this fake isolated HOME
-	// never has. Simulate Cursor as already installed so gentle-ai does not
-	// correctly refuse an undetected agent here — this test targets
-	// routing-guidance delivery, not agent install behavior.
-	if err := os.MkdirAll(filepath.Join(home, ".cursor"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	const path = ".cursor/rules/gentle-ai.mdc"
-	output, stderr, err := runOrganicCommand(
-		t, organicBinary, workspace, organicEnvironment(home),
-		"install", "--agent", "cursor", "--scope", "workspace", "--components", "permissions",
-	)
-	if err != nil {
-		t.Fatalf("install cursor: %v\nstdout:\n%s\nstderr:\n%s", err, output, stderr)
-	}
-	rendered, readErr := os.ReadFile(filepath.Join(workspace, filepath.FromSlash(path)))
-	if readErr != nil {
-		t.Fatalf("configured agent cursor received no routing guidance at %s: %v", path, readErr)
-	}
-	for _, fragment := range organicRoutingGuidanceRequiredFragments {
-		if !bytes.Contains(rendered, []byte(fragment)) {
-			t.Fatalf("routing guidance for cursor omits %q:\n%s", fragment, rendered)
-		}
-	}
-	for _, fragment := range organicRoutingGuidanceRDDFragments {
-		if bytes.Contains(rendered, []byte(fragment)) {
-			t.Fatalf("ODD-only runtime cursor received RDD guidance %q:\n%s", fragment, rendered)
-		}
-	}
-	if bytes.Contains(rendered, []byte("SDD")) {
-		t.Fatalf("routing guidance for cursor still names retired SDD:\n%s", rendered)
-	}
 }
 
 // TestOrganicReviewTierIsSelectedByEvidenceNotSize pins the proportional tier.

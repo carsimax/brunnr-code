@@ -841,14 +841,6 @@ func TestReadPersistedStdioCommands_PreservesConfiguredCommandAndArguments(t *te
 			command: "/configured/codex-engram",
 			args:    []string{"mcp", "--tools=codex"},
 		},
-		{
-			name:    "Hermes YAML configuration",
-			agentID: "hermes",
-			path:    ".hermes/config.yaml",
-			content: "mcp_servers:\n  engram:\n    command: /configured/hermes-engram\n    args:\n      - mcp\n      - --tools=hermes\n",
-			command: "/configured/hermes-engram",
-			args:    []string{"mcp", "--tools=hermes"},
-		},
 	}
 
 	for _, tt := range cases {

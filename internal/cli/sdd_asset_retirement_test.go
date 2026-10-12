@@ -46,14 +46,12 @@ func seedRetiredSDDAssets(t *testing.T, home string) (owned map[string][]byte, e
 		filepath.Join(home, ".claude", "commands", "sdd-init.md"):                                releasedSDDAsset(t, "v2.0.0", "claude-sdd-init.md"),
 		filepath.Join(home, ".claude", "skills", "sdd-init", "SKILL.md"):                         releasedSDDAsset(t, "v3.7.0", "skill-sdd-init.md"),
 		filepath.Join(home, ".claude", "skills", "sdd-verify", "references", "report-format.md"): releasedSDDAsset(t, "v3.7.0", "skill-sdd-verify-report-format.md"),
-		filepath.Join(home, ".claude", "skills", "_shared", "sdd-orchestrator-sections.md"):      releasedSDDAsset(t, "v3.7.0", "skill-shared-sdd-orchestrator-sections.md"),
-		filepath.Join(home, ".qwen", "commands", "sdd-init.md"):                                  releasedSDDAsset(t, "v3.7.0", "opencode-sdd-init.md"),
-		filepath.Join(home, ".qwen", "skills", "sdd-init", "SKILL.md"):                           releasedSDDAsset(t, "v3.7.0", "skill-sdd-init.md"),
 	}
 	edited = map[string][]byte{
+		// Released bytes, kept because an edited SDD skill still shares the directory.
+		filepath.Join(home, ".claude", "skills", "_shared", "sdd-orchestrator-sections.md"):  releasedSDDAsset(t, "v3.7.0", "skill-shared-sdd-orchestrator-sections.md"),
 		filepath.Join(home, ".claude", "commands", "gentle-sdd-verify.md"):                   []byte("my own verify command\n"),
-		filepath.Join(home, ".qwen", "skills", "sdd-apply", "SKILL.md"):                      []byte("---\nname: sdd-apply\n---\nMy apply.\n"),
-		filepath.Join(home, ".qwen", "skills", "_shared", "sdd-orchestrator-sections.md"):    releasedSDDAsset(t, "v3.7.0", "skill-shared-sdd-orchestrator-sections.md"),
+		filepath.Join(home, ".claude", "skills", "sdd-apply", "SKILL.md"):                    []byte("---\nname: sdd-apply\n---\nMy apply.\n"),
 		filepath.Join(home, ".claude", "skills", "sdd-init", "my-notes.md"):                  []byte("not an SDD file\n"),
 		filepath.Join(home, ".claude", "skills", "_shared", "skill-resolver-local-notes.md"): []byte("unrelated\n"),
 	}
@@ -76,7 +74,7 @@ func seedRetiredSDDAssets(t *testing.T, home string) (owned map[string][]byte, e
 func TestRunSyncRetiresOwnedSDDSkillsCommandsAndHook(t *testing.T) {
 	home := t.TempDir()
 	setSyncTestHome(t, home)
-	agents := []string{string(model.AgentClaudeCode), string(model.AgentQwenCode)}
+	agents := []string{string(model.AgentClaudeCode)}
 	if err := state.Write(home, state.InstallState{
 		InstalledAgents: agents, SelectionConfigured: true,
 		Components: []model.ComponentID{model.ComponentSDD, model.ComponentSkills},
@@ -112,7 +110,7 @@ func TestRunSyncRetiresOwnedSDDSkillsCommandsAndHook(t *testing.T) {
 	}
 	for _, path := range []string{
 		filepath.Join(home, ".claude", "commands", "gentle-sdd-verify.md"),
-		filepath.Join(home, ".qwen", "skills", "sdd-apply", "SKILL.md"),
+		filepath.Join(home, ".claude", "skills", "sdd-apply", "SKILL.md"),
 	} {
 		if !slices.ContainsFunc(result.ManualActions, func(action string) bool {
 			return strings.Contains(action, path) && strings.Contains(action, "move or delete it")
@@ -211,43 +209,6 @@ func TestSyncRollbackRestoresRetiredSDDAssets(t *testing.T) {
 		if got, err := os.ReadFile(path); err != nil || string(got) != string(data) {
 			t.Errorf("rollback did not restore %s byte for byte: %v", path, err)
 		}
-	}
-}
-
-// Windsurf received its SDD workflow in the project, so only a
-// workspace-scoped sync retires it, and that sync never reaches home files.
-func TestRunSyncRetiresWindsurfSDDWorkflowOnlyInWorkspaceScope(t *testing.T) {
-	home := t.TempDir()
-	setSyncTestHome(t, home)
-	workspace := t.TempDir()
-	mustWriteFile(t, filepath.Join(workspace, ".git", "HEAD"), []byte("ref: refs/heads/main\n"))
-	workflow := filepath.Join(workspace, ".windsurf", "workflows", "sdd-new.md")
-	released := releasedSDDAsset(t, "v3.7.0", "windsurf-sdd-new.md")
-	skill := releasedSDDAsset(t, "v3.7.0", "skill-sdd-init.md")
-	mustWriteFile(t, workflow, released)
-	homeSkill := filepath.Join(home, ".codeium", "windsurf", "skills", "sdd-init", "SKILL.md")
-	mustWriteFile(t, homeSkill, skill)
-	t.Chdir(workspace)
-
-	if _, err := RunSync([]string{"--agents", string(model.AgentWindsurf)}); err != nil {
-		t.Fatalf("global RunSync() error = %v", err)
-	}
-	if got, err := os.ReadFile(workflow); err != nil || string(got) != string(released) {
-		t.Fatalf("global sync touched the project workflow: %v", err)
-	}
-	if _, err := os.Lstat(homeSkill); !os.IsNotExist(err) {
-		t.Fatalf("global sync kept the owned home skill: %v", err)
-	}
-
-	mustWriteFile(t, homeSkill, skill)
-	if _, err := RunSync([]string{"--agents", string(model.AgentWindsurf), "--scope", "workspace"}); err != nil {
-		t.Fatalf("workspace RunSync() error = %v", err)
-	}
-	if _, err := os.Lstat(workflow); !os.IsNotExist(err) {
-		t.Fatalf("workspace sync kept the owned SDD workflow: %v", err)
-	}
-	if _, err := os.Stat(homeSkill); err != nil {
-		t.Fatalf("workspace sync touched a home-level SDD skill: %v", err)
 	}
 }
 

@@ -20,20 +20,8 @@ func TestRunDoctor_AgentConfigDirectories(t *testing.T) {
 	}{
 		{"claude-code", ".claude"},
 		{"opencode", ".config/opencode"},
-		{"cursor", ".cursor"},
-		{"windsurf", ".codeium/windsurf"},
 		{"codex", ".codex"},
 		{"pi", ".pi"},
-		{"gemini-cli", ".gemini"},
-		{"kilocode", ".config/kilo"},
-		{"vscode-copilot", ".copilot"},
-		{"kiro-ide", ".kiro"},
-		{"kimi", ".kimi"},
-		{"qwen-code", ".qwen"},
-		{"openclaw", ".openclaw"},
-		{"trae-ide", ".trae"},
-		{"hermes", ".hermes"},
-		{"antigravity", ".gemini/antigravity"},
 	}
 	for _, tt := range tests {
 		for _, present := range []bool{false, true} {
@@ -71,9 +59,6 @@ func TestRunDoctor_AgentConfigSpecialCases(t *testing.T) {
 		name, payload, want string
 		dirs                []string
 	}{
-		{"kimi current", `{"installed_agents":["kimi"]}`, "  [ok]  state:json                     state file OK — 1 agent(s) installed: kimi", []string{".kimi-code"}},
-		{"kimi both layouts", `{"installed_agents":["kimi"]}`, "  [ok]  state:json                     state file OK — 1 agent(s) installed: kimi", []string{".kimi", ".kimi-code"}},
-		{"conductor detection only", `{"installed_agents":["conductor"]}`, "  [ok]  state:json                     state file OK — 1 agent(s) installed: conductor", nil},
 		{"unknown", `{"installed_agents":["future-agent"]}`, "  [!!]  state:json                     state lists unrecognized agent IDs: future-agent; inspect or repair the state file, then re-run 'gentle-ai doctor'", nil},
 		{"unknown and missing", `{"installed_agents":["future-agent","pi"]}`, "  [!!]  state:json                     state lists unrecognized agent IDs: future-agent; inspect or repair the state file, then re-run 'gentle-ai doctor'; config dirs are missing: pi", nil},
 	}

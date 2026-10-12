@@ -55,15 +55,8 @@ func TestSetupAgentSlug(t *testing.T) {
 	}{
 		{model.AgentOpenCode, "opencode", true},
 		{model.AgentClaudeCode, "claude-code", true},
-		{model.AgentGeminiCLI, "gemini-cli", true},
 		{model.AgentCodex, "codex", true},
-		{model.AgentAntigravity, "gemini-cli", true},
-		{model.AgentWindsurf, "windsurf", true},
-		{model.AgentQwenCode, "", false},
-		{model.AgentCursor, "", false},
-		{model.AgentVSCodeCopilot, "", false},
 		// Hermes MCP is injected directly via YAML helpers — no engram setup slug.
-		{model.AgentHermes, "", false},
 	}
 
 	for _, tt := range tests {

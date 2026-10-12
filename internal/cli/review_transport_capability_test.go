@@ -28,7 +28,6 @@ func TestImmutableReviewRuntimeMatrix(t *testing.T) {
 		{name: "Claude prompt carried fresh executor", runtime: string(model.AgentClaudeCode), eligible: true, transport: reviewImmutableTransportClaudePromptCarried, supported: true},
 		{name: "OpenCode provider relay", runtime: string(model.AgentOpenCode), eligible: true, transport: reviewImmutableTransportOpenCodeProviderInjected, supported: true},
 		{name: "Codex subprocess boundary", runtime: string(model.AgentCodex), eligible: true, transport: reviewImmutableTransportCodexAdvisoryScratchProcess, supported: true},
-		{name: "Kilo has no immutable transport", runtime: string(model.AgentKilocode), transport: reviewImmutableTransportUnsupported},
 		{name: "Pi host relay", runtime: string(model.AgentPi), eligible: true, transport: reviewImmutableTransportPiHostRelay, supported: true},
 		{name: "unknown", runtime: "unknown-runtime", transport: reviewImmutableTransportUnsupported},
 		{name: "alias", runtime: "open-code", transport: reviewImmutableTransportUnsupported},
@@ -96,7 +95,6 @@ func TestUnsupportedImmutableReviewTransportStopsBeforeRepositoryOrAuthority(t *
 		// immutable-transport unavailable.
 		startCode string
 	}{
-		{name: "Kilo", runtime: string(model.AgentKilocode), startCode: reviewTransportCapabilityUnsupportedCode},
 		{name: "unknown", runtime: "unknown-runtime", startCode: reviewTransportCapabilityUnsupportedCode},
 		{name: "logical orchestrator role", runtime: "gentle-orchestrator", startCode: reviewTransportCapabilityUnsupportedCode},
 		//
@@ -152,7 +150,6 @@ func TestUnsupportedImmutableReviewTransportStopsBeforeRepositoryOrAuthority(t *
 
 	repo := initReviewCLIRepo(t)
 	for _, args := range [][]string{
-		{"status", "--contract", ReviewIntegrationContractV2, "--agent", string(model.AgentKilocode), "--next-transition", "--cwd", repo},
 		{"start", "--contract", ReviewIntegrationContractV2, "--agent", "unknown-runtime", "--target", target, "--projection", "workspace", "--cwd", repo},
 		{"start", "--contract", ReviewIntegrationContractV2, "--agent", "gentle-orchestrator", "--target", target, "--projection", "workspace", "--cwd", repo},
 		{"start", "--contract", ReviewIntegrationContractV2, "--agent", string(model.AgentClaudeCode), "--agent", string(model.AgentClaudeCode), "--target", target, "--projection", "workspace", "--cwd", repo},

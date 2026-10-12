@@ -11,7 +11,7 @@ import (
 )
 
 func TestStrictTDDLegacyCarrierRetiredByInstallAndSync(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex, model.AgentOpenClaw, model.AgentKimi, model.AgentCursor, model.AgentGeminiCLI, model.AgentWindsurf, model.AgentKiroIDE, model.AgentVSCodeCopilot, model.AgentAntigravity, model.AgentQwenCode, model.AgentTrae, model.AgentHermes} {
+	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex} {
 		t.Run(string(agent), func(t *testing.T) {
 			home := t.TempDir()
 			path := agentguidance.StrictTDDPath(home, agent)
@@ -50,7 +50,7 @@ func TestStrictTDDLegacyCarrierRetiredByInstallAndSync(t *testing.T) {
 }
 
 func TestStrictTDDLegacyOpenCodePromptRetired(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode} {
+	for _, agent := range []model.AgentID{model.AgentOpenCode} {
 		t.Run(string(agent), func(t *testing.T) {
 			home := t.TempDir()
 			adapter := resolveAdapters([]model.AgentID{agent})[0]

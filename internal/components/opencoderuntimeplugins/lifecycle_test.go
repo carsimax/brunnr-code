@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/kilocode"
 	agent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/opencode"
@@ -248,48 +247,6 @@ func TestInstallRefusesReleasedBytesUnderAnotherName(t *testing.T) {
 			}
 			if got, err := os.ReadFile(path); err != nil || string(got) != string(shipped) {
 				t.Fatalf("cross-name bytes changed: %v", err)
-			}
-		})
-	}
-}
-
-// Kilocode received background-agents.ts under ~/.config/kilo/plugins from
-// v1.19.0 to v1.37.2; its shipped bytes are retired, user bytes refused.
-func TestKilocodeInstallRetiresReleasedBackgroundAgents(t *testing.T) {
-	for _, tc := range []struct {
-		name    string
-		data    []byte
-		retired bool
-	}{
-		{"released", releasedFixture(t, "v1.33.2/plugins/background-agents.ts"), true},
-		{"user-edited", append(releasedFixture(t, "v1.33.2/plugins/background-agents.ts"), "// user edit\n"...), false},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			home := t.TempDir()
-			adapter := kilocode.NewAdapter()
-			dir := filepath.Join(adapter.GlobalConfigDir(home), "plugins")
-			if err := os.MkdirAll(dir, 0755); err != nil {
-				t.Fatal(err)
-			}
-			path := filepath.Join(dir, "background-agents.ts")
-			if err := os.WriteFile(path, tc.data, 0644); err != nil {
-				t.Fatal(err)
-			}
-			result, err := InstallFromDirectory(home, adapter, "opencode/plugins/")
-			if !tc.retired {
-				if err == nil || result.Changed || !strings.Contains(err.Error(), path) {
-					t.Fatalf("user-edited Kilocode plugin not refused: %+v %v", result, err)
-				}
-				if got, err := os.ReadFile(path); err != nil || string(got) != string(tc.data) {
-					t.Fatalf("user bytes lost: %v", err)
-				}
-				return
-			}
-			if err != nil || !result.Changed {
-				t.Fatalf("install: %+v %v", result, err)
-			}
-			if _, err := os.Lstat(path); !os.IsNotExist(err) {
-				t.Fatalf("retired Kilocode plugin kept: %v", err)
 			}
 		})
 	}

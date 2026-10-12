@@ -35,7 +35,7 @@ import (
 )
 
 func TestUninstallOpenCodeFamilyManagedAgents(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentOpenCode, model.AgentKilocode} {
+	for _, agent := range []model.AgentID{model.AgentOpenCode} {
 		t.Run(string(agent), func(t *testing.T) {
 			home := t.TempDir()
 			t.Setenv("HOME", home)
@@ -1251,13 +1251,13 @@ func TestPartialUninstallOpenCodeLogoScopedToOpenCodeAgent(t *testing.T) {
 		nil, // default: allManagedComponents
 	} {
 		if _, err := svc.PartialUninstall(
-			[]model.AgentID{model.AgentGeminiCLI},
+			[]model.AgentID{model.AgentCodex},
 			components,
 		); err != nil {
-			t.Fatalf("PartialUninstall(gemini-cli, %v) error = %v", components, err)
+			t.Fatalf("PartialUninstall(codex, %v) error = %v", components, err)
 		}
 		if got, err := os.ReadFile(logoPath); err != nil || string(got) != "// managed logo" {
-			t.Fatalf("OpenCode logo removed by gemini-cli uninstall (components %v): got %q, %v; want preserved", components, got, err)
+			t.Fatalf("OpenCode logo removed by codex uninstall (components %v): got %q, %v; want preserved", components, got, err)
 		}
 	}
 
@@ -2479,11 +2479,7 @@ func TestPartialUninstallLeavesNonJSONNativeSettingsUntouched(t *testing.T) {
 		content  string
 		prompt   string
 		mcp      string
-	}{
-		{name: "kimi legacy", agent: model.AgentKimi, settings: ".kimi/config.toml", content: "default_model = \"k2\"\n[models.k2]\nprovider = \"moonshot\"\n", prompt: ".kimi/KIMI.md", mcp: ".kimi/mcp.json"},
-		{name: "kimi current", agent: model.AgentKimi, settings: ".kimi-code/config.toml", content: "default_model = \"k2\"\n", prompt: ".kimi-code/AGENTS.md", mcp: ".kimi-code/mcp.json"},
-		{name: "hermes", agent: model.AgentHermes, settings: ".hermes/config.yaml", content: "providers:\n  - name: hermes\n", prompt: ".hermes/SOUL.md"},
-	}
+	}{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			home := t.TempDir()

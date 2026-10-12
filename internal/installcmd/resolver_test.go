@@ -400,24 +400,6 @@ func TestResolveAgentInstall(t *testing.T) {
 			agent:   model.AgentOpenCode,
 			want:    CommandSequence{{"npm", "install", "-g", "@opencode/cli@latest"}},
 		},
-		{
-			name:    "kimi on windows uses uv to strictly enforce secure package installation",
-			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget", Supported: true},
-			agent:   model.AgentKimi,
-			want:    CommandSequence{{"uv", "tool", "install", "--python", "3.13", "kimi-cli"}},
-		},
-		{
-			name:    "kimi on unix uses uv to strictly enforce secure package installation",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt", Supported: true},
-			agent:   model.AgentKimi,
-			want:    CommandSequence{{"uv", "tool", "install", "--python", "3.13", "kimi-cli"}},
-		},
-		{
-			name:    "kimi on unsupported profile returns error",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt", Supported: false},
-			agent:   model.AgentKimi,
-			wantErr: true,
-		},
 
 		{
 			name:    "unsupported agent returns error",
@@ -454,41 +436,6 @@ func TestValidateAgentInstallPreflight(t *testing.T) {
 		wantErr     bool
 		errContains string
 	}{
-		{
-			name:    "kimi on unsupported platform returns unsupported error before uv lookup",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: "unknown", PackageManager: "", Supported: false},
-			agent:   model.AgentKimi,
-			lookPath: func(file string) (string, error) {
-				return "", fmt.Errorf("should not be called")
-			},
-			wantErr:     true,
-			errContains: "not supported on this platform",
-		},
-		{
-			name:    "kimi missing uv returns actionable remediation",
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true},
-			agent:   model.AgentKimi,
-			lookPath: func(file string) (string, error) {
-				if file == "uv" {
-					return "", fmt.Errorf("not found")
-				}
-				return "/usr/bin/" + file, nil
-			},
-			wantErr:     true,
-			errContains: "brew install uv",
-		},
-		{
-			name:    "kimi with uv present passes preflight",
-			profile: system.PlatformProfile{OS: "linux", PackageManager: "apt", Supported: true},
-			agent:   model.AgentKimi,
-			lookPath: func(file string) (string, error) {
-				if file == "uv" {
-					return "/usr/bin/uv", nil
-				}
-				return "", fmt.Errorf("not found")
-			},
-			wantErr: false,
-		},
 		{
 			name:    "pi missing binary returns actionable remediation",
 			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true},
@@ -531,10 +478,9 @@ func TestValidateAgentInstallPreflight(t *testing.T) {
 			errContains: "Node.js",
 		},
 		{
-			// ClaudeCode does not require uv (that is Kimi-specific), but it does
-			// require npm. This case verifies that npm being present is sufficient
-			// for the preflight to pass — uv absence is irrelevant.
-			name:    "non kimi npm agent does not require uv but does require npm (npm present)",
+			// ClaudeCode requires npm. This case verifies that npm being present is
+			// sufficient for the preflight to pass — uv absence is irrelevant.
+			name:    "npm agent does not require uv but does require npm (npm present)",
 			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true},
 			agent:   model.AgentClaudeCode,
 			lookPath: func(file string) (string, error) {
@@ -579,16 +525,6 @@ func TestValidateAgentInstallPreflight(t *testing.T) {
 			wantErr:     true,
 			errContains: "rpm-ostree install -y nodejs npm && systemctl reboot",
 		},
-		{
-			name:    "silverblue missing uv returns actionable remediation and degraded path",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroFedora, PackageManager: "rpm-ostree", Supported: true},
-			agent:   model.AgentKimi,
-			lookPath: func(file string) (string, error) {
-				return "", fmt.Errorf("not found")
-			},
-			wantErr:     true,
-			errContains: "rpm-ostree install -y uv && systemctl reboot",
-		},
 	}
 
 	for _, tt := range tests {
@@ -613,13 +549,6 @@ func TestValidateAgentInstallPreflight(t *testing.T) {
 
 			if tt.wantErr && !strings.Contains(err.Error(), tt.errContains) {
 				t.Fatalf("ValidateAgentInstallPreflight() error = %q, want to contain %q", err.Error(), tt.errContains)
-			}
-			if tt.name == "kimi on unsupported platform returns unsupported error before uv lookup" && strings.Contains(strings.ToLower(err.Error()), "install uv") {
-				t.Fatalf("ValidateAgentInstallPreflight() unsupported-platform error leaked uv remediation: %q", err.Error())
-			}
-
-			if tt.name == "kimi on unsupported platform returns unsupported error before uv lookup" && calls != 0 {
-				t.Fatalf("ValidateAgentInstallPreflight() called uv lookup %d times on unsupported platform, want 0", calls)
 			}
 		})
 	}
@@ -891,35 +820,5 @@ func TestGGAInstall_CleanupCommandBehavior(t *testing.T) {
 func TestPowerShellSingleQuotedValue(t *testing.T) {
 	if got, want := system.PowerShellSingleQuoted(`C:\Users\O'Brien\Temp`), `C:\Users\O''Brien\Temp`; got != want {
 		t.Fatalf("PowerShellSingleQuoted() = %q, want %q", got, want)
-	}
-}
-
-func TestUVInstallHint(t *testing.T) {
-	tests := []struct {
-		pm   string
-		want string
-	}{
-		{
-			pm:   "rpm-ostree",
-			want: "rpm-ostree install -y --apply-live uv (or see https://docs.astral.sh/uv/getting-started/installation/)",
-		},
-		{
-			pm:   "brew",
-			want: "brew install uv",
-		},
-		{
-			pm:   "unknown-pm",
-			want: "https://docs.astral.sh/uv/getting-started/installation/",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.pm, func(t *testing.T) {
-			profile := system.PlatformProfile{OS: "linux", PackageManager: tt.pm}
-			got := uvInstallHint(profile)
-			if got != tt.want {
-				t.Fatalf("uvInstallHint(%q) = %q, want %q", tt.pm, got, tt.want)
-			}
-		})
 	}
 }

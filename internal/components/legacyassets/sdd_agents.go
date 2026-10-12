@@ -21,9 +21,6 @@ import (
 // rendered them from. Every release installed them in adapter.SubAgentsDir.
 var SDDAgentFamilies = map[model.AgentID]string{
 	model.AgentClaudeCode: "claude",
-	model.AgentKiroIDE:    "kiro",
-	model.AgentCursor:     "cursor",
-	model.AgentKimi:       "kimi",
 }
 
 var (
@@ -141,19 +138,6 @@ func OwnsRetiredSDDAgent(agent model.AgentID, name string, content []byte) bool 
 		return false
 	}
 	return slices.Contains(releasedSDDAgentDigests[family+"/"+name], SDDAgentDigest(string(content)))
-}
-
-// OwnsPreLedgerNativeAgent reports whether content is a retained native agent
-// file exactly as a release before the v4.0.0 ownership ledger shipped it.
-// Kimi's v3 gentleman.yaml is the only such file: it declared every SDD
-// subagent by path, and without this proof a v3-inherited copy could never
-// be rewritten, so its SDD subagents could never be retired.
-func OwnsPreLedgerNativeAgent(agent model.AgentID, name string, content []byte) bool {
-	family, ok := SDDAgentFamilies[agent]
-	if !ok || len(content) == 0 {
-		return false
-	}
-	return slices.Contains(releasedPreLedgerNativeAgentDigests[family+"/"+name], SDDAgentDigest(string(content)))
 }
 
 // PreserveReason says why retirement kept an inventory file.

@@ -43,7 +43,7 @@ func TestFullPresetUninstallOpenCodeFamilyAgents(t *testing.T) {
 	if testing.Short() {
 		t.Skip("full install and uninstall integration")
 	}
-	for _, tc := range []struct{ agent, directory string }{{"opencode", "opencode"}, {"kilocode", "kilo"}} {
+	for _, tc := range []struct{ agent, directory string }{{"opencode", "opencode"}} {
 		t.Run(tc.agent, func(t *testing.T) {
 			home := installTestHome(t)
 			t.Setenv("HOME", home)

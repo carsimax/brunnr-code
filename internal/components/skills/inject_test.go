@@ -10,7 +10,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/vscode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/skillregistry"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
@@ -241,29 +240,6 @@ func TestInjectSkipsUnsupportedAgent(t *testing.T) {
 	}
 	if result.Changed {
 		t.Fatal("Inject() changed = true, want false for unsupported agent")
-	}
-}
-
-func TestInjectVSCodeWritesSkillFiles(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
-
-	adapter := vscode.NewAdapter()
-
-	result, err := Inject(home, adapter, []model.SkillID{model.SkillCreator})
-	if err != nil {
-		t.Fatalf("Inject(vscode) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("Inject(vscode) changed = false")
-	}
-	if len(skillFiles(result.Files)) != 2 {
-		t.Fatalf("Inject(vscode) files len = %d, want 2", len(skillFiles(result.Files)))
-	}
-
-	path := filepath.Join(home, ".copilot", "skills", "skill-creator", "SKILL.md")
-	if _, err := os.Stat(path); err != nil {
-		t.Fatalf("expected skill file %q: %v", path, err)
 	}
 }
 

@@ -128,15 +128,6 @@ func TestClaudeInstalledModulePilotLeavesOtherRoutingUnchanged(t *testing.T) {
 			scope:  ScopeWorkspace,
 			want:   func(t *testing.T, _, workspace string) []string { return prompt(t, workspace, model.AgentClaudeCode) },
 		},
-		{
-			name:   "other global agents beside an installed pilot",
-			pilot:  true,
-			agents: []model.AgentID{model.AgentCodex, model.AgentGeminiCLI},
-			scope:  ScopeGlobal,
-			want: func(t *testing.T, home, _ string) []string {
-				return append(prompt(t, home, model.AgentCodex), prompt(t, home, model.AgentGeminiCLI)...)
-			},
-		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			home := t.TempDir()

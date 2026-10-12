@@ -74,7 +74,7 @@ func installHomeWithTwoNativeTargets(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
 	mustWrite(t, filepath.Join(home, ".claude", "settings.json"), `{}`)
-	mustWrite(t, filepath.Join(home, ".cursor", "mcp.json"), `{}`)
+	mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "")
 	return home
 }
 
@@ -84,7 +84,7 @@ func TestInstallDropsBlindTargetsWhenInstalledCodeGraphPredatesTheContract(t *te
 
 	result, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
 		mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
-		mustWrite(t, filepath.Join(home, ".cursor", "mcp.json"), `{"mcpServers":{"codegraph":{"command":"codegraph"}}}`)
+		mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\n")
 		return nil
 	}), DetectorFunc(func(string) (string, error) { return "/bin/codegraph", nil }))
 	if err != nil {
@@ -106,14 +106,14 @@ func TestInstallKeepsExplicitTargetsWhenInstalledCodeGraphMeetsTheContract(t *te
 
 	result, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
 		mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
-		mustWrite(t, filepath.Join(home, ".cursor", "mcp.json"), `{"mcpServers":{"codegraph":{"command":"codegraph"}}}`)
+		mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\n")
 		return nil
 	}), DetectorFunc(func(string) (string, error) { return "/bin/codegraph", nil }))
 	if err != nil {
 		t.Fatalf("InstallWithHome() error = %v", err)
 	}
 
-	want := []string{"codegraph install --target claude,cursor --location global --yes"}
+	want := []string{"codegraph install --target claude,codex --location global --yes"}
 	if !reflect.DeepEqual(result.CommandsRun, want) {
 		t.Fatalf("CommandsRun = %#v, want %#v", result.CommandsRun, want)
 	}
@@ -128,14 +128,14 @@ func TestInstallKeepsExplicitTargetsWhenVersionProbeCannotDetermineAVersion(t *t
 
 	result, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
 		mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
-		mustWrite(t, filepath.Join(home, ".cursor", "mcp.json"), `{"mcpServers":{"codegraph":{"command":"codegraph"}}}`)
+		mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\n")
 		return nil
 	}), DetectorFunc(func(string) (string, error) { return "/bin/codegraph", nil }))
 	if err != nil {
 		t.Fatalf("InstallWithHome() error = %v", err)
 	}
 
-	want := []string{"codegraph install --target claude,cursor --location global --yes"}
+	want := []string{"codegraph install --target claude,codex --location global --yes"}
 	if !reflect.DeepEqual(result.CommandsRun, want) {
 		t.Fatalf("CommandsRun = %#v, want unchanged behaviour when the probe is inconclusive", result.CommandsRun)
 	}
@@ -153,7 +153,7 @@ func TestInstallProbesTheResolvedCLIPathNotABareName(t *testing.T) {
 
 	if _, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
 		mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
-		mustWrite(t, filepath.Join(home, ".cursor", "mcp.json"), `{"mcpServers":{"codegraph":{"command":"codegraph"}}}`)
+		mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\n")
 		return nil
 	}), DetectorFunc(func(string) (string, error) { return "/opt/tools/codegraph", nil })); err != nil {
 		t.Fatalf("InstallWithHome() error = %v", err)
@@ -178,7 +178,7 @@ func TestInstallSkipsTheVersionProbeWhenTheCLIIsNotYetInstalled(t *testing.T) {
 	if _, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
 		available = true
 		mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
-		mustWrite(t, filepath.Join(home, ".cursor", "mcp.json"), `{"mcpServers":{"codegraph":{"command":"codegraph"}}}`)
+		mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\n")
 		return nil
 	}), DetectorFunc(func(string) (string, error) {
 		if !available {

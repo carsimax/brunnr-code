@@ -112,9 +112,4 @@ func TestInjectRoutingWithoutReviewContractSourceFailsClosedAndWritesNothing(t *
 			}
 		})
 	}
-
-	// A runtime without receipt-driven development needs no contract source.
-	if _, err := InjectRoutingWithOptions(t.TempDir(), model.AgentGeminiCLI, RoutingOptions{}); err != nil {
-		t.Fatalf("InjectRoutingWithOptions(gemini) error = %v; an ODD-only runtime needs no contract", err)
-	}
 }

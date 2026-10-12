@@ -21,8 +21,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
 	codexagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/cursor"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/kimi"
 	opencodeagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
 	piagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
@@ -898,14 +896,6 @@ func (r *installRuntime) stagePlan() pipeline.StagePlan {
 	}
 	if r.piBackgroundProjection != nil {
 		apply = append(apply, piBackgroundProjectionStep{id: "pi:background-projection", plan: r.piBackgroundProjection})
-	}
-
-	// Before installing components, ensure modular agents have their system prompt hub.
-	// This ensures that SDD or Engram can inject their modules even if Persona is skipped.
-	for _, agent := range r.resolved.Agents {
-		if agent == model.AgentKimi {
-			apply = append(apply, kimiSystemPromptHubStep{id: "agent:kimi-prompt-hub", homeDir: r.homeDir})
-		}
 	}
 
 	for _, agent := range r.resolved.Agents {
@@ -2915,19 +2905,6 @@ func (s agentInstallStep) Run() error {
 	return runCommandSequenceWithProgress(commands, s.progress, s.id)
 }
 
-type kimiSystemPromptHubStep struct {
-	id      string
-	homeDir string
-}
-
-func (s kimiSystemPromptHubStep) ID() string {
-	return s.id
-}
-
-func (s kimiSystemPromptHubStep) Run() error {
-	return kimi.NewAdapter().BootstrapTemplate(s.homeDir)
-}
-
 type componentApplyStep struct {
 	id           string
 	component    model.ComponentID
@@ -4525,30 +4502,9 @@ func runPostApplyVerification(input postApplyVerificationInput) verify.Report {
 		})
 	}
 
-	if hasComponent(input.Resolved.OrderedComponents, model.ComponentPersona) && input.Selection.Persona != model.PersonaCustom {
-		for _, adapter := range adapters {
-			if adapter.Agent() != model.AgentCursor {
-				continue
-			}
-			targetDir := componentPathDirScoped(input.HomeDir, input.WorkspaceDir, input.Scope, adapter, model.ComponentPersona)
-			path := adapter.SystemPromptFile(targetDir)
-			checks = append(checks, verify.Check{
-				ID: "verify:cursor:rule-activation:" + path, Description: "Cursor rule activates in every conversation",
-				Run: func(context.Context) error {
-					content, err := os.ReadFile(path)
-					if err != nil {
-						return err
-					}
-					return cursor.ValidateRule(content)
-				},
-			})
-		}
-	}
-
 	if hasComponent(input.Resolved.OrderedComponents, model.ComponentEngram) {
 		checks = append(checks, engramHealthChecks(input.State, input.Resolved.Agents)...)
 	}
-	checks = append(checks, antigravityCollisionCheck(input.Resolved.Agents)...)
 	checks = append(checks, openCodeConfigChecks(input.HomeDir, input.WorkspaceDir, input.Resolved.Agents)...)
 
 	return verify.BuildReport(verify.RunChecks(context.Background(), checks))
@@ -4657,41 +4613,6 @@ func engramHealthChecks(state *runtimeState, agentIDs []model.AgentID) []verify.
 // binary so the warning that reports it is actionable on its own.
 func engramInstallCommand(agentIDs []model.AgentID) string {
 	return fmt.Sprintf("gentle-ai install --agent %s --components engram", joinAgentIDs(agentIDs))
-}
-
-// antigravityCollisionCheck returns a soft verify check that warns the user
-// when Antigravity and Gemini CLI are selected together. These agents
-// intentionally share ~/.gemini/GEMINI.md because Antigravity uses a
-// Gemini-compatible prompt surface; the last synced agent routing guidance
-// controls the shared gentle-ai:agent-routing section.
-func antigravityCollisionCheck(agents []model.AgentID) []verify.Check {
-	hasAntigravitySurface := false
-	hasGemini := false
-	for _, id := range agents {
-		if id == model.AgentAntigravity {
-			hasAntigravitySurface = true
-		}
-		if id == model.AgentGeminiCLI {
-			hasGemini = true
-		}
-	}
-	if !hasAntigravitySurface || !hasGemini {
-		return nil
-	}
-	return []verify.Check{
-		{
-			ID:          "verify:antigravity:rules-collision",
-			Description: "Antigravity and Gemini CLI share ~/.gemini/GEMINI.md",
-			Soft:        true,
-			Run: func(context.Context) error {
-				return fmt.Errorf(
-					"Antigravity and Gemini CLI write rules to ~/.gemini/GEMINI.md\n" +
-						"Antigravity intentionally uses the Gemini-compatible global prompt surface; the last synced agent routing guidance controls the shared gentle-ai:agent-routing section.\n" +
-						"Prefer Antigravity for new installs; keep Gemini CLI selected only when you intentionally want that legacy prompt to be the active one.",
-				)
-			},
-		},
-	}
 }
 
 func engramPathGuidance(shellPath string) string {

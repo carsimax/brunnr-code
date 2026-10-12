@@ -117,28 +117,6 @@ func TestInstallPreflightFindsGoOnPath(t *testing.T) {
 // their missing npm/uv — see agentInstallStepRefusesMissingRuntime tests in
 // run_integration_test.go for the refusal itself.
 
-func TestCheckDependenciesStepDoesNotBlockKimiOnMissingUV(t *testing.T) {
-	restore := installcmd.OverrideLookPath(func(file string) (string, error) {
-		if file == "uv" {
-			return "", errNotFound{}
-		}
-		return "/usr/bin/" + file, nil
-	})
-	t.Cleanup(restore)
-
-	step := checkDependenciesStep{
-		id:      "prepare:check-dependencies",
-		profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true},
-		selection: model.Selection{
-			Agents: []model.AgentID{model.AgentKimi},
-		},
-	}
-
-	if err := step.Run(); err != nil {
-		t.Fatalf("checkDependenciesStep.Run() unexpected error = %v — Kimi is not Pi, so a missing uv is not this step's concern anymore", err)
-	}
-}
-
 func TestCheckDependenciesStepDoesNotRequireUVForOtherAgents(t *testing.T) {
 	// Claude Code requires npm (not uv), and Claude Code is not Pi, so this
 	// step never even reaches a preflight check for it — proving uv is not
@@ -233,7 +211,6 @@ func TestCheckDependenciesStepPassesWhenNpmPresent(t *testing.T) {
 	for _, agent := range []model.AgentID{
 		model.AgentClaudeCode,
 		model.AgentOpenCode,
-		model.AgentKilocode,
 	} {
 		agent := agent
 		t.Run(string(agent), func(t *testing.T) {
@@ -283,27 +260,5 @@ func TestCheckDependenciesStepFailsWhenNpmMissingForPi(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "Node.js") {
 		t.Fatalf("checkDependenciesStep.Run() error = %q, want Node.js remediation hint", err.Error())
-	}
-}
-
-func TestCheckDependenciesStepKimiNotBlockedByNpmPreflight(t *testing.T) {
-	restore := installcmd.OverrideLookPath(func(file string) (string, error) {
-		// npm is missing, uv is also missing
-		return "", errNotFound{}
-	})
-	t.Cleanup(restore)
-
-	step := checkDependenciesStep{
-		id:      "prepare:check-dependencies",
-		profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true},
-		selection: model.Selection{
-			Agents: []model.AgentID{model.AgentKimi},
-		},
-	}
-
-	// Kimi is not Pi, so this step no longer preflights it at all — neither
-	// its absent npm nor its absent uv block the pipeline here anymore.
-	if err := step.Run(); err != nil {
-		t.Fatalf("checkDependenciesStep.Run() unexpected error = %v", err)
 	}
 }
