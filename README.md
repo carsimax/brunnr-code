@@ -44,7 +44,6 @@ Run `brunnr-code` with no arguments to open the interactive TUI, or use a comman
 | `brunnr-code update` / `upgrade` | Check for updates / apply them. |
 | `brunnr-code restore` | Restore a config backup. |
 | `brunnr-code review ...` | Native review workflow (`review mode status` shows whether it is on). |
-| `brunnr-code telemetry status` | Show telemetry state; `telemetry disable` opts out. |
 | `brunnr-code version` | Print the version. |
 
 Every command supports `--help`.

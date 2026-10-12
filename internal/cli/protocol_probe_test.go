@@ -9,17 +9,8 @@ import (
 	"testing"
 
 	"github.com/carsimax/brunnr-code/internal/agents/claude"
-	"github.com/carsimax/brunnr-code/internal/telemetry"
 	"github.com/carsimax/brunnr-code/internal/testenv"
 )
-
-// telemetryTestSpawnRecorder is the RecordingSpawner installed as
-// telemetry.DefaultSpawn for this whole test binary (see TestMain). Tests
-// that need to observe whether a trigger actually attempted a send —
-// without ever starting a real process or reaching the network — read
-// telemetryTestSpawnRecorder.Calls() rather than injecting their own Deps.Spawn,
-// since production call sites like TelemetryTrigger never expose that seam.
-var telemetryTestSpawnRecorder *telemetry.RecordingSpawner
 
 // pinGoCachesBeforeHomeIsolation keeps explicit GOPATH/GOMODCACHE/GOCACHE
 // values and otherwise records Go's HOME-derived defaults as explicit values,
@@ -81,7 +72,7 @@ func TestMain(m *testing.M) {
 	// execution), not the test harness below -- which would swap HOME out
 	// from under the captured environment the continuation was emitted
 	// against. The same LookPath stubs as the harness keep agent discovery
-	// hermetic, and DO_NOT_TRACK is inherited so telemetry stays offline.
+	// hermetic.
 	if os.Getenv("GENTLE_AI_TEST_CLI_STANDIN") == "1" {
 		if err := os.Unsetenv("GENTLE_AI_CHANNEL"); err != nil {
 			panic(err)
@@ -134,25 +125,6 @@ func TestMain(m *testing.M) {
 
 	agentPresent := func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
 	claude.LookPathOverride = agentPresent
-
-	// Telemetry hermeticity for the whole binary: countless tests in this
-	// package exercise install/sync/review-outcome code paths that now call
-	// telemetry.Opportunistic or increment a counter, without any of them
-	// intending to test telemetry itself. Two defaults close that gap
-	// without touching the many tests that already sandbox HOME themselves
-	// (t.Setenv save/restores against whatever this TestMain set, never
-	// against the developer's real environment):
-	//   - DO_NOT_TRACK=1 makes telemetry.Decide refuse before any state file
-	//     is read or written, for every test that does not explicitly
-	//     re-enable it for its own scope.
-	//   - DefaultSpawn is a RecordingSpawner: even a test that does
-	//     re-enable telemetry can never start a real process or reach the
-	//     network merely by calling Opportunistic with no injected Spawn.
-	if err := os.Setenv("DO_NOT_TRACK", "1"); err != nil {
-		panic(err)
-	}
-	telemetryTestSpawnRecorder = telemetry.NewRecordingSpawner()
-	telemetry.DefaultSpawn = telemetryTestSpawnRecorder.Spawn
 
 	code := m.Run()
 	_ = os.RemoveAll(testHome)

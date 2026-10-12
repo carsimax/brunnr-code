@@ -62,9 +62,6 @@ COMPATIBILITY COMMANDS
                Bundle, policy, ledger, fix-delta, evidence, CI, and release flags are compatibility inputs
   update       Check for available updates
   upgrade      Apply updates to managed tools
-  telemetry <status|enable|disable|preview|trigger> [--json]
-               Anonymous, opt-out usage telemetry; preview shows the exact payload without sending it;
-               trigger runs the opportunistic check for hosts that never call install/update/sync
   restore      Restore a config backup
   doctor       Run ecosystem health diagnostics (bounded tool version probes)
   version      Print version

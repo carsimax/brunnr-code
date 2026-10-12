@@ -663,3 +663,11 @@ func TestSelectedAuthorityCaptureHelpersSelectTheSandboxLineage(t *testing.T) {
 		})
 	}
 }
+
+func TestSharedModeCapabilityDoesNotRequireScope(t *testing.T) {
+	sandbox := fakeBinary(t, `echo "Usage: gentle-ai review mode [--cwd <repo>] [--json]"`)
+	supported, reason := newCapabilityProbe(sandbox).supported(modeCapability)
+	if !supported {
+		t.Fatalf("supported = false (%s), want true without --scope", reason)
+	}
+}

@@ -145,7 +145,7 @@ func TestInstallClaudeHooksRespectScope(t *testing.T) {
 					}
 				}
 			}
-			want := map[string]int{"SessionStart": 1, "Stop": 2, "SubagentStop": 1, "UserPromptSubmit": 1}
+			want := map[string]int{"SessionStart": 1, "Stop": 1, "SubagentStop": 0, "UserPromptSubmit": 1}
 			for event, count := range want {
 				if got[event] != count {
 					t.Errorf("managed %s hooks = %d, want %d", event, got[event], count)

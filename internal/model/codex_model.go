@@ -540,13 +540,6 @@ var codexTierGroups = []CodexTierGroup{
 	},
 }
 
-// CodexTierGroups returns the canonical tier group definitions used by the
-// three SDD profile carriles. Callers (e.g. the inject layer) should derive
-// profile assignments from this slice rather than maintaining a separate table.
-func CodexTierGroups() []CodexTierGroup {
-	return codexTierGroups
-}
-
 // DefaultCarrilModels returns the canonical default model id for each carril.
 // Used when state.CodexCarrilModelAssignments is absent (old state files).
 func DefaultCarrilModels() map[string]string {

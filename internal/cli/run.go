@@ -278,7 +278,6 @@ func RunPreparedInstall(prepared PreparedInstall, detection system.DetectionResu
 		return result, persistErr
 	}
 
-	TelemetryTrigger(homeDir)
 	return result, nil
 }
 
@@ -1059,13 +1058,6 @@ func (s agentRoutingGuidanceStep) Run() error {
 	}
 	if s.changedFiles != nil && retainedHooks.Changed {
 		*s.changedFiles = append(*s.changedFiles, retainedHooks.Files...)
-	}
-	telemetryHooks, err := agenthooks.InstallCodexTelemetry(s.homeDir, adapter)
-	if err != nil {
-		return fmt.Errorf("install Codex telemetry hooks for %q: %w", s.agent, err)
-	}
-	if s.changedFiles != nil && telemetryHooks.Changed {
-		*s.changedFiles = append(*s.changedFiles, telemetryHooks.Files...)
 	}
 	hooks, err := agenthooks.InstallSkillRegistry(hookRoot, adapter)
 	if err != nil {

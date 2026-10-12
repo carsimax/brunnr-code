@@ -16,7 +16,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/planner"
 )
 
-// #5256 U2b-2: the Claude routing step installs the retained review/telemetry
+// #5256 U2b-2: the Claude routing step installs the retained review
 // and skill-registry hooks into the scoped settings before it delivers guidance.
 // Install and sync must snapshot that file whatever optional components were
 // selected, so the normal outer rollback undoes the hook writes together with

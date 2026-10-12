@@ -971,7 +971,6 @@ func TestFullAgentClaudeRemovesSkillRegistryHook(t *testing.T) {
     "SubagentStop": [
       {
         "hooks": [
-          {"type": "command", "command": "gentle-ai telemetry runtime codex --json", "async": true},
           {"type": "command", "command": "echo subagent keep"}
         ]
       }
@@ -979,7 +978,6 @@ func TestFullAgentClaudeRemovesSkillRegistryHook(t *testing.T) {
     "Stop": [
       {
         "hooks": [
-          {"type": "command", "command": "gentle-ai telemetry runtime codex --json", "async": true},
           {"type": "command", "command": "echo stop keep"}
         ]
       }
@@ -1007,7 +1005,7 @@ func TestFullAgentClaudeRemovesSkillRegistryHook(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(raw)
-	if strings.Contains(text, "gentle-ai skill-registry refresh") || strings.Contains(text, "gentle-ai telemetry runtime codex") {
+	if strings.Contains(text, "gentle-ai skill-registry refresh") {
 		t.Fatalf("managed hook should be removed:\n%s", text)
 	}
 	if !strings.Contains(text, "echo keep") || !strings.Contains(text, "echo pre") || !strings.Contains(text, "echo subagent keep") || !strings.Contains(text, "echo stop keep") {
@@ -1104,42 +1102,6 @@ func TestFullAgentClaudeRemovesReviewAndPreflightHooks(t *testing.T) {
 	}
 	if !strings.Contains(text, "echo keep") || !strings.Contains(text, "echo pre") || !strings.Contains(text, "echo post keep") || !strings.Contains(text, "echo custom session-start") {
 		t.Fatalf("unrelated hooks should be preserved:\n%s", text)
-	}
-}
-
-func TestFullAgentClaudeRemovesTelemetryHooks(t *testing.T) {
-	homeDir := t.TempDir()
-	svc, err := NewService(homeDir, t.TempDir(), "dev")
-	if err != nil {
-		t.Fatal(err)
-	}
-	adapter, _ := svc.registry.Get(model.AgentClaudeCode)
-	settingsPath := adapter.SettingsPath(homeDir)
-	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	initial := `{"hooks":{"Stop":[{"matcher":"","hooks":[{"type":"command","command":"gentle-ai telemetry runtime claude --json","async":true},{"type":"command","command":"echo keep"}]}],"SubagentStop":[{"matcher":"","hooks":[{"type":"command","command":"gentle-ai telemetry runtime claude --json","async":true}]}]}}`
-	if err := os.WriteFile(settingsPath, []byte(initial), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	built, err := svc.buildPlan([]model.AgentID{adapter.Agent()}, withoutComponent(fullAgentRemovalComponents, model.ComponentSDD))
-	ops := built.operations
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, op := range ops {
-		if op.typeID == opRewriteFile && op.path == settingsPath {
-			if _, _, err := op.apply(op.path); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-	raw, err := os.ReadFile(settingsPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(string(raw), "telemetry runtime claude") || !strings.Contains(string(raw), "echo keep") {
-		t.Fatalf("managed telemetry hook removal failed:\n%s", raw)
 	}
 }
 

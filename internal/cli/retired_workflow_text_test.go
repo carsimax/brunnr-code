@@ -25,7 +25,6 @@ func TestCLIHelpShowsNoRetiredWorkflowText(t *testing.T) {
 		"dry-run": RenderDryRun(InstallResult{Selection: model.Selection{SDDMode: model.SDDModeMulti}}),
 	}
 	for name, run := range map[string]func(*bytes.Buffer) error{
-		"telemetry --help":          func(out *bytes.Buffer) error { return RunTelemetry([]string{"--help"}, out) },
 		"review store-reset --help": func(out *bytes.Buffer) error { return RunReviewStoreReset([]string{"--help"}, out) },
 	} {
 		var out bytes.Buffer

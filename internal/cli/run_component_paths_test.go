@@ -539,13 +539,13 @@ func TestInstallRetainedAgentsWithoutSDD(t *testing.T) {
 	}
 }
 
-func TestInstallCodexTelemetryWithoutSDD(t *testing.T) {
+func TestInstallCodexSkillRegistryHookWithoutSDD(t *testing.T) {
 	home := t.TempDir()
 	selection := model.Selection{Agents: []model.AgentID{model.AgentCodex}}
 	runInstallInjectionSteps(t, newTestInstallRuntime(t, home, selection))
 	path := filepath.Join(home, ".codex", "hooks.json")
 	first := readTextFile(t, path)
-	for _, want := range []string{`"SubagentStop"`, `"Stop"`, `gentle-ai telemetry runtime codex --json`, `gentle-ai skill-registry refresh`} {
+	for _, want := range []string{`gentle-ai skill-registry refresh`} {
 		if !strings.Contains(first, want) {
 			t.Fatalf("missing %q in %s", want, path)
 		}

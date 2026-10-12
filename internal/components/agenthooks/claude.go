@@ -9,7 +9,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/model"
 )
 
-// InstallRetainedClaudeHooks installs review and telemetry hooks independently of SDD.
+// InstallRetainedClaudeHooks installs review hooks independently of SDD.
 func InstallRetainedClaudeHooks(homeDir string, adapter agents.Adapter) (Result, error) {
 	if adapter.Agent() != model.AgentClaudeCode {
 		return Result{}, nil
@@ -47,12 +47,9 @@ func InstallRetainedClaudeHooks(homeDir string, adapter agents.Adapter) (Result,
 	entries := []struct {
 		key, matcher, command string
 		timeout               int
-		async                 bool
 	}{
-		{"Stop", "", command, 60, false},
-		{"SessionStart", "startup|resume|clear|compact", command, 30, false},
-		{"SubagentStop", "", "gentle-ai telemetry runtime claude --json", 5, true},
-		{"Stop", "", "gentle-ai telemetry runtime claude --json", 5, true},
+		{"Stop", "", command, 60},
+		{"SessionStart", "startup|resume|clear|compact", command, 30},
 	}
 	changed := false
 	for _, e := range entries {
@@ -65,9 +62,6 @@ func InstallRetainedClaudeHooks(homeDir string, adapter agents.Adapter) (Result,
 			continue
 		}
 		hook := map[string]any{"type": "command", "command": e.command, "timeout": e.timeout}
-		if e.async {
-			hook["async"] = true
-		}
 		hooks[e.key] = append(list, map[string]any{"matcher": e.matcher, "hooks": []any{hook}})
 		changed = true
 	}

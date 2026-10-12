@@ -7,8 +7,8 @@ import (
 )
 
 // HomeEnv names the folder that replaces ~/.gentle-ai for Gentle AI's own
-// state: state.json, the managed-assets manifest and journal, telemetry
-// state and install backups. A caller that bundles Gentle AI sets it to keep
+// state: state.json, the managed-assets manifest and journal, and install
+// backups. A caller that bundles Gentle AI sets it to keep
 // that state inside its own prefix. It must be absolute.
 const HomeEnv = "GENTLE_AI_HOME"
 

@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	jsoncManagedStop = `"Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "gentle-ai telemetry runtime claude --json", "async": true}]}]`
-	jsoncMixedStop   = `"Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "gentle-ai telemetry runtime claude --json", "async": true}, {"type": "command", "command": "echo keep"}]}]`
+	jsoncManagedStop = `"Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "gentle-ai review stop-hook --agent claude-code"}]}]`
+	jsoncMixedStop   = `"Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "gentle-ai review stop-hook --agent claude-code"}, {"type": "command", "command": "echo keep"}]}]`
 )
 
 // applyClaudeSettingsRewrite runs the full-agent uninstall rewrites planned
@@ -68,7 +68,7 @@ func TestFullAgentClaudeRemovesRetainedHooksFromJSONCSettings(t *testing.T) {
 			if err != nil {
 				t.Fatalf("settings with user text removed: %v", err)
 			}
-			if strings.Contains(string(raw), "telemetry runtime claude") {
+			if strings.Contains(string(raw), "review stop-hook") {
 				t.Fatalf("managed hook kept:\n%s", raw)
 			}
 			for _, want := range tc.keep {

@@ -2222,8 +2222,8 @@ func TestSyncCodexGentlemanConvergesWithHooksJSON(t *testing.T) {
 	}
 	hooksPath := filepath.Join(home, ".codex", "hooks.json")
 	firstHooks := readTextFile(t, hooksPath)
-	if !strings.Contains(firstHooks, "telemetry") || !strings.Contains(firstHooks, "skill") {
-		t.Fatalf("Codex hooks lack telemetry or skill registry: %s", firstHooks)
+	if !strings.Contains(firstHooks, "skill") {
+		t.Fatalf("Codex hooks lack skill registry: %s", firstHooks)
 	}
 	agentPath := filepath.Join(home, ".claude", "agents", "jd-judge-a.md")
 	firstAgent := readTextFile(t, agentPath)
@@ -3402,8 +3402,8 @@ func TestRunSync_DefaultPreservesReviewWithoutSDDPhaseModels(t *testing.T) {
 	if result.Selection.HasComponent(model.ComponentSDD) {
 		t.Fatal("default sync reselected SDD for legacy phase models")
 	}
-	if got := readTextFile(t, filepath.Join(home, ".codex", "hooks.json")); !strings.Contains(got, "telemetry") || !strings.Contains(got, "skill") {
-		t.Fatal("retained Codex telemetry or skill hook missing")
+	if got := readTextFile(t, filepath.Join(home, ".codex", "hooks.json")); !strings.Contains(got, "skill") {
+		t.Fatal("retained Codex skill hook missing")
 	}
 
 	agentsMD := filepath.Join(home, ".codex", "AGENTS.md")

@@ -1095,9 +1095,7 @@ func rewriteSkillRegistryHook(path string) operation {
 func managedRetainedHookCommand(cmd string) bool {
 	return cmd == `gentle-ai skill-registry refresh --quiet --no-gitignore --cwd "${CLAUDE_PROJECT_DIR:-$PWD}" || true` ||
 		cmd == `gentle-ai skill-registry refresh --quiet --no-gitignore --cwd "$PWD" || true` ||
-		cmd == "gentle-ai review stop-hook --agent "+string(model.AgentClaudeCode) ||
-		cmd == "gentle-ai telemetry runtime claude --json" ||
-		cmd == "gentle-ai telemetry runtime codex --json"
+		cmd == "gentle-ai review stop-hook --agent "+string(model.AgentClaudeCode)
 }
 
 // removeSkillRegistryHook removes the managed hook commands. Strict JSON is

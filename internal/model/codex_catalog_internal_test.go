@@ -163,3 +163,39 @@ func TestCodexDiscoveryHelperProcess(t *testing.T) {
 	}
 	os.Exit(0)
 }
+
+func TestCodexTierGroupsAssignAllPhases(t *testing.T) {
+	// Validates that codexTierGroups covers all 14 known phases exactly once
+	// and maps each to one of the three valid carrils.
+	tiers := codexTierGroups
+	validCarrils := map[string]bool{
+		"sdd-strong": true,
+		"sdd-mid":    true,
+		"sdd-cheap":  true,
+	}
+	seen := make(map[string]string) // phase → carril
+	for _, g := range tiers {
+		if !validCarrils[g.Profile] {
+			t.Errorf("codexTierGroups: unknown carril %q", g.Profile)
+		}
+		for _, phase := range g.Phases {
+			if prev, dup := seen[phase]; dup {
+				t.Errorf("phase %q appears in both %q and %q", phase, prev, g.Profile)
+			}
+			seen[phase] = g.Profile
+		}
+	}
+	wantPhases := []string{
+		"sdd-explore", "sdd-research", "sdd-propose", "sdd-spec", "sdd-design", "sdd-tasks",
+		"sdd-apply", "sdd-verify", "sdd-archive", "sdd-onboard",
+		"jd-judge-a", "jd-judge-b", "jd-fix-agent", "default",
+	}
+	for _, phase := range wantPhases {
+		if _, ok := seen[phase]; !ok {
+			t.Errorf("codexTierGroups: phase %q not covered by any carril", phase)
+		}
+	}
+	if len(seen) != 14 {
+		t.Errorf("expected 14 phases total, got %d", len(seen))
+	}
+}

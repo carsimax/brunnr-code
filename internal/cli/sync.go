@@ -34,7 +34,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/planner"
 	"github.com/carsimax/brunnr-code/internal/state"
 	"github.com/carsimax/brunnr-code/internal/system"
-	"github.com/carsimax/brunnr-code/internal/telemetry"
 	"github.com/carsimax/brunnr-code/internal/verify"
 )
 
@@ -200,7 +199,7 @@ FLAGS
   --include-permissions              Include permissions component
   --include-theme                    Include theme component
   --scope global|workspace           Sync scope (env: GENTLE_AI_INSTALL_SCOPE)
-                                     workspace refreshes only workspace-scoped files and never mutates global state, telemetry, backups, plugins, or routing guidance; components managed only globally are skipped
+                                     workspace refreshes only workspace-scoped files and never mutates global state, backups, plugins, or routing guidance; components managed only globally are skipped
   --dry-run                          Preview plan without executing
   --help, -h                         Show this help
 `)
@@ -612,7 +611,7 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 		paths[path] = struct{}{}
 	}
 	for _, adapter := range guidanceAdapters {
-		// The routing step installs the retained review/telemetry and
+		// The routing step installs the retained review and
 		// skill-registry hooks into the home Claude settings, whatever
 		// optional components were selected.
 		if adapter.Agent() == model.AgentClaudeCode {
@@ -746,7 +745,7 @@ func workspaceAdapterManagedGlobally(component model.ComponentID, agent model.Ag
 
 // workspaceRoutingGuidanceGlobalOnly reports whether an agent's routing
 // guidance step mutates home-level state regardless of scope: home-targeted
-// hook installation (Claude Code review hooks, Codex telemetry/skill-registry
+// hook installation (Claude Code review hooks, Codex skill-registry
 // hooks). The step couples those global writes with prompt guidance and
 // lives outside this file's scope, so a workspace sync skips the whole step
 // instead of leaking (issue #1074).
@@ -1758,12 +1757,6 @@ func RunSync(args []string) (SyncResult, error) {
 		return finishPartialSync(result, err, nil)
 	}
 	result.DryRun = false
-	// A workspace sync never mutates the global tree: usage counters and the
-	// telemetry trigger are global-owned, so they are global-scope only.
-	if scope == ScopeGlobal {
-		_ = telemetry.IncrementSyncs(homeDir)
-		TelemetryTrigger(homeDir)
-	}
 	return finishPartialSync(result, nil, nil)
 }
 

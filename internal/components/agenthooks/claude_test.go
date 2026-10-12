@@ -279,7 +279,7 @@ func TestClaudeRetainedHooksPreserveExistingEvents(t *testing.T) {
 	for _, tc := range []struct {
 		command string
 		count   int
-	}{{"gentle-ai review stop-hook --agent claude-code", 2}, {"gentle-ai telemetry runtime claude --json", 2}, {`"async": true`, 2}, {`"matcher": "startup|resume|clear|compact"`, 1}} {
+	}{{"gentle-ai review stop-hook --agent claude-code", 2}, {`"matcher": "startup|resume|clear|compact"`, 1}} {
 		if strings.Count(string(before), tc.command) != tc.count {
 			t.Fatalf("%q count = %d, want %d", tc.command, strings.Count(string(before), tc.command), tc.count)
 		}
@@ -299,7 +299,7 @@ func TestClaudeRetainedHooksRejectMalformedSchemaWithoutWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, seed := range []string{`{"hooks":{"Stop":{}}}`, `{"hooks":{"SubagentStop":{}}}`, `{"hooks":{"SessionStart":{}}}`, `{"hooks":[]}`, `{"hooks":`} {
+	for _, seed := range []string{`{"hooks":{"Stop":{}}}`, `{"hooks":{"SessionStart":{}}}`, `{"hooks":[]}`, `{"hooks":`} {
 		t.Run(seed, func(t *testing.T) {
 			home := t.TempDir()
 			path := adapter.SettingsPath(home)
@@ -352,7 +352,7 @@ func TestClaudeRetainedHooksWithoutSDD(t *testing.T) {
 	if err != nil || !first.Changed {
 		t.Fatalf("first: %+v %v", first, err)
 	}
-	want := []byte("{\n  \"hooks\": {\n    \"SessionStart\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"gentle-ai review stop-hook --agent claude-code\",\n            \"timeout\": 30,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"startup|resume|clear|compact\"\n      }\n    ],\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"echo keep\",\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      },\n      {\n        \"hooks\": [\n          {\n            \"command\": \"gentle-ai review stop-hook --agent claude-code\",\n            \"timeout\": 60,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      },\n      {\n        \"hooks\": [\n          {\n            \"async\": true,\n            \"command\": \"gentle-ai telemetry runtime claude --json\",\n            \"timeout\": 5,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      }\n    ],\n    \"SubagentStop\": [\n      {\n        \"hooks\": [\n          {\n            \"async\": true,\n            \"command\": \"gentle-ai telemetry runtime claude --json\",\n            \"timeout\": 5,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      }\n    ]\n  }\n}\n")
+	want := []byte("{\n  \"hooks\": {\n    \"SessionStart\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"gentle-ai review stop-hook --agent claude-code\",\n            \"timeout\": 30,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"startup|resume|clear|compact\"\n      }\n    ],\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"echo keep\",\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      },\n      {\n        \"hooks\": [\n          {\n            \"command\": \"gentle-ai review stop-hook --agent claude-code\",\n            \"timeout\": 60,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      }\n    ]\n  }\n}\n")
 	got, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -363,7 +363,7 @@ func TestClaudeRetainedHooksWithoutSDD(t *testing.T) {
 	for _, expected := range []struct {
 		command string
 		count   int
-	}{{"gentle-ai review stop-hook --agent claude-code", 2}, {"gentle-ai telemetry runtime claude --json", 2}, {`"async": true`, 2}, {`"matcher": "startup|resume|clear|compact"`, 1}} {
+	}{{"gentle-ai review stop-hook --agent claude-code", 2}, {`"matcher": "startup|resume|clear|compact"`, 1}} {
 		if strings.Count(string(got), expected.command) != expected.count {
 			t.Fatalf("%q count = %d, want %d", expected.command, strings.Count(string(got), expected.command), expected.count)
 		}
