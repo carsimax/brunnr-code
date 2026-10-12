@@ -6151,7 +6151,7 @@
           "stdout_bytes": 240,
           "block": "in_band",
           "git_calls": 0,
-          "message": "Error: the global value in /private/var/folders/3f/3v9dql657451v90kmmjx7nwr0000gn/T/gentle-ai-bench-j31-nonsense-mode-value-3521570908/home/.gentle-ai/state.json is not a mode this product can read; an unreadable switch is not a disabled sw"
+          "message": "Error: the global value in /private/var/folders/3f/3v9dql657451v90kmmjx7nwr0000gn/T/gentle-ai-bench-j31-nonsense-mode-value-3521570908/home/.brunnr-code/state.json is not a mode this product can read; an unreadable switch is not a disabled sw"
         },
         {
           "sequence": 2,
@@ -6167,7 +6167,7 @@
           "stdout_bytes": 0,
           "block": "in_band",
           "git_calls": 0,
-          "message": "Error: the global value in /private/var/folders/3f/3v9dql657451v90kmmjx7nwr0000gn/T/gentle-ai-bench-j31-nonsense-mode-value-3521570908/home/.gentle-ai/state.json is not a mode this product can read; an unreadable switch is not a disabled sw"
+          "message": "Error: the global value in /private/var/folders/3f/3v9dql657451v90kmmjx7nwr0000gn/T/gentle-ai-bench-j31-nonsense-mode-value-3521570908/home/.brunnr-code/state.json is not a mode this product can read; an unreadable switch is not a disabled sw"
         }
       ]
     },

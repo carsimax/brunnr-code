@@ -9,7 +9,7 @@ import (
 )
 
 // OwnershipLedgerFilename identifies the native rendered-agent ownership record.
-const OwnershipLedgerFilename = ".gentle-ai-native-agent-ownership.json"
+const OwnershipLedgerFilename = ".brunnr-code-native-agent-ownership.json"
 
 // The shared managed-ownership ledger reads and validates the native-agent
 // ledger; these wrappers keep the installer reading as it did before the move.

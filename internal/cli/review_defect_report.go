@@ -23,7 +23,7 @@ import (
 const reviewDefectReportIssuesURL = "https://github.com/carsimax/brunnr-code/issues/new/choose"
 
 // reviewDefectReportDirName is the subdirectory under the repository's
-// Git-common-dir "gentle-ai" root (the same convention repository_locator.go
+// Git-common-dir "brunnr-code" root (the same convention repository_locator.go
 // and store.go already use) that holds generated reports. It is never
 // inside the working tree and is never committed — see the maintainer
 // decision recorded in organic-dx tasks.md against 3b.8/3b.9.
@@ -247,7 +247,7 @@ func reviewDefectReportFileName(reasonCode, content string) string {
 }
 
 // writeReviewDefectReport writes the rendered report under
-// <GitCommonDir>/gentle-ai/defect-reports/ and returns the absolute path.
+// <GitCommonDir>/brunnr-code/defect-reports/ and returns the absolute path.
 // GitCommonDir keeps this outside the working tree (repository_locator.go's
 // existing convention), so it never pollutes `git status` and is never
 // committed.
@@ -256,7 +256,7 @@ func writeReviewDefectReport(ctx context.Context, root string, report reviewDefe
 	if err != nil {
 		return "", fmt.Errorf("resolve repository identity for defect report: %w", err)
 	}
-	dir := filepath.Join(lease.Identity().GitCommonDir, "gentle-ai", reviewDefectReportDirName)
+	dir := filepath.Join(lease.Identity().GitCommonDir, reviewtransaction.GitCommonDirName, reviewDefectReportDirName)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", fmt.Errorf("create defect report directory: %w", err)
 	}

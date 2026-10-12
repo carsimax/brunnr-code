@@ -451,7 +451,7 @@ func TestWriteFileAtomicPreservesOriginalOnRenameFailure(t *testing.T) {
 		t.Fatalf("read dir: %v", err)
 	}
 	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), ".gentle-ai-") {
+		if strings.HasPrefix(entry.Name(), ".brunnr-code-") {
 			t.Fatalf("temp file %q left behind after failed rename", entry.Name())
 		}
 	}

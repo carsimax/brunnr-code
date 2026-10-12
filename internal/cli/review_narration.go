@@ -99,8 +99,8 @@ const reviewtransactionEscalationCauseSample = "budget_exceeded"
 // naming the bare `brunnr-code review mode disable` would let a reader
 // silently disable receipt-driven development for every repository on the
 // machine instead of just the one they meant. Verified by execution: the
-// bare form writes ~/.gentle-ai/state.json; this scoped form writes only
-// under the named repository's own .git/gentle-ai directory.
+// bare form writes ~/.brunnr-code/state.json; this scoped form writes only
+// under the named repository's own .git/brunnr-code directory.
 const reviewModeDisableCloneCommand = "brunnr-code review mode disable --scope clone --cwd <repo>"
 
 // reviewModeDisableCloneCaveat is appended everywhere

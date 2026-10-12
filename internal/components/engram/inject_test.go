@@ -107,10 +107,10 @@ func TestInjectClaudeWritesProtocolSection(t *testing.T) {
 	}
 
 	text := string(content)
-	if !strings.Contains(text, "<!-- gentle-ai:engram-protocol -->") {
+	if !strings.Contains(text, "<!-- brunnr-code:engram-protocol -->") {
 		t.Fatal("CLAUDE.md missing open marker for engram-protocol")
 	}
-	if !strings.Contains(text, "<!-- /gentle-ai:engram-protocol -->") {
+	if !strings.Contains(text, "<!-- /brunnr-code:engram-protocol -->") {
 		t.Fatal("CLAUDE.md missing close marker for engram-protocol")
 	}
 	// Real content check.
@@ -1368,7 +1368,7 @@ func TestInjectWithOptionsReInjectConvergesFullToSlimAndBack(t *testing.T) {
 	if !strings.Contains(string(afterFull), "needs_review") {
 		t.Fatalf("expected FULL section after first inject; got:\n%s", afterFull)
 	}
-	if n := strings.Count(string(afterFull), "<!-- gentle-ai:engram-protocol -->"); n != 1 {
+	if n := strings.Count(string(afterFull), "<!-- brunnr-code:engram-protocol -->"); n != 1 {
 		t.Fatalf("expected exactly 1 open marker after first inject, got %d", n)
 	}
 
@@ -1387,10 +1387,10 @@ func TestInjectWithOptionsReInjectConvergesFullToSlimAndBack(t *testing.T) {
 	if !strings.Contains(string(afterSlim), "SessionStart hook") {
 		t.Fatalf("expected SLIM pointer content after re-inject; got:\n%s", afterSlim)
 	}
-	if n := strings.Count(string(afterSlim), "<!-- gentle-ai:engram-protocol -->"); n != 1 {
+	if n := strings.Count(string(afterSlim), "<!-- brunnr-code:engram-protocol -->"); n != 1 {
 		t.Fatalf("expected exactly 1 open marker after re-inject to slim (no duplication), got %d", n)
 	}
-	if n := strings.Count(string(afterSlim), "<!-- /gentle-ai:engram-protocol -->"); n != 1 {
+	if n := strings.Count(string(afterSlim), "<!-- /brunnr-code:engram-protocol -->"); n != 1 {
 		t.Fatalf("expected exactly 1 close marker after re-inject to slim (no duplication), got %d", n)
 	}
 
@@ -1405,7 +1405,7 @@ func TestInjectWithOptionsReInjectConvergesFullToSlimAndBack(t *testing.T) {
 	if !strings.Contains(string(afterBackToFull), "needs_review") {
 		t.Fatalf("expected FULL section after re-inject back to full; got:\n%s", afterBackToFull)
 	}
-	if n := strings.Count(string(afterBackToFull), "<!-- gentle-ai:engram-protocol -->"); n != 1 {
+	if n := strings.Count(string(afterBackToFull), "<!-- brunnr-code:engram-protocol -->"); n != 1 {
 		t.Fatalf("expected exactly 1 open marker after re-inject back to full (no duplication), got %d", n)
 	}
 }

@@ -17,7 +17,7 @@ import (
 // exists at this point, so only the cooldown is seeded and the journey keeps
 // running against a not-installed state.
 func issue3766UpdateCooldownFixture(sandbox *Sandbox) error {
-	statePath := filepath.Join(sandbox.Home, ".gentle-ai", "state.json")
+	statePath := filepath.Join(sandbox.Home, ".brunnr-code", "state.json")
 	state := fmt.Sprintf(`{"last_update_check":%q}`, time.Now().UTC().Format(time.RFC3339Nano))
 	return sandbox.write(statePath, state)
 }

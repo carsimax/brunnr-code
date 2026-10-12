@@ -69,7 +69,7 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 
 		// Codex shares ~/.codex/AGENTS.md with user-authored content and with
 		// other managed sections (engram, SDD) that are appended after persona.
-		// The persona must therefore live inside a <!-- gentle-ai:persona -->
+		// The persona must therefore live inside a <!-- brunnr-code:persona -->
 		// marker section instead of owning the whole file, so install, sync and
 		// uninstall can replace or remove exactly the managed persona content
 		// (issue #981).
@@ -145,11 +145,11 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 }
 
 func injectPersonaBeforeManagedSections(existing, content string) string {
-	if strings.Contains(existing, "<!-- gentle-ai:persona -->") {
+	if strings.Contains(existing, "<!-- brunnr-code:persona -->") {
 		return filemerge.InjectMarkdownSection(existing, "persona", content)
 	}
 
-	firstMarkerIdx := strings.Index(existing, "<!-- gentle-ai:")
+	firstMarkerIdx := strings.Index(existing, "<!-- brunnr-code:")
 	if firstMarkerIdx < 0 {
 		return filemerge.InjectMarkdownSection(existing, "persona", content)
 	}
@@ -225,7 +225,7 @@ func preserveManagedSections(existing, newPersona string) (string, bool) {
 		return "", false
 	}
 
-	idx := strings.Index(existing, "<!-- gentle-ai:")
+	idx := strings.Index(existing, "<!-- brunnr-code:")
 	if idx < 0 {
 		return "", false
 	}

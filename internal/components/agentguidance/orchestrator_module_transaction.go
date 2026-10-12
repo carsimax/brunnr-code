@@ -114,7 +114,7 @@ func commitPreparedOrchestratorCore(configDir string, merge guidanceMerge, prepa
 // module name, used or not, and the ledger. Backups must be planned from this
 // list before the commit, never from its Result.
 func orchestratorCorePaths(configDir string) []string {
-	dir := filepath.Join(configDir, "gentle-ai", "orchestrator")
+	dir := filepath.Join(configDir, "brunnr-code", "orchestrator")
 	paths := []string{filepath.Join(configDir, "CLAUDE.md")}
 	for _, name := range orchestratorModuleNames {
 		paths = append(paths, filepath.Join(dir, orchestratorModuleFile(name)))

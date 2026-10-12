@@ -299,7 +299,7 @@ func writeReviewCLIJSON(t *testing.T, path string, value any) {
 func reviewCLIAuthorityRoot(t *testing.T, repo string) string {
 	t.Helper()
 	commonDir := filepath.Clean(strings.TrimSpace(runReviewCLIGit(t, repo, "rev-parse", "--path-format=absolute", "--git-common-dir")))
-	return filepath.Join(commonDir, "gentle-ai", "review-transactions")
+	return filepath.Join(commonDir, "brunnr-code", "review-transactions")
 }
 
 // writeReconcileCLIRecord persists one compact-v2 record directly to disk

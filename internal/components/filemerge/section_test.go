@@ -8,7 +8,7 @@ import (
 func TestInjectMarkdownSection_EmptyFile(t *testing.T) {
 	result := InjectMarkdownSection("", "sdd", "## SDD Config\nSome content here.\n")
 
-	want := "<!-- gentle-ai:sdd -->\n## SDD Config\nSome content here.\n<!-- /gentle-ai:sdd -->\n"
+	want := "<!-- brunnr-code:sdd -->\n## SDD Config\nSome content here.\n<!-- /brunnr-code:sdd -->\n"
 	if result != want {
 		t.Fatalf("empty file inject:\ngot:  %q\nwant: %q", result, want)
 	}
@@ -71,17 +71,17 @@ func TestInjectMarkdownSection_AppendToExistingContent(t *testing.T) {
 	existing := "# My Config\n\nSome existing content.\n"
 	result := InjectMarkdownSection(existing, "persona", "You are a senior architect.\n")
 
-	want := "# My Config\n\nSome existing content.\n\n<!-- gentle-ai:persona -->\nYou are a senior architect.\n<!-- /gentle-ai:persona -->\n"
+	want := "# My Config\n\nSome existing content.\n\n<!-- brunnr-code:persona -->\nYou are a senior architect.\n<!-- /brunnr-code:persona -->\n"
 	if result != want {
 		t.Fatalf("append to existing:\ngot:  %q\nwant: %q", result, want)
 	}
 }
 
 func TestInjectMarkdownSection_UpdateExistingSection(t *testing.T) {
-	existing := "# Config\n\n<!-- gentle-ai:sdd -->\nOld SDD content.\n<!-- /gentle-ai:sdd -->\n\nOther stuff.\n"
+	existing := "# Config\n\n<!-- brunnr-code:sdd -->\nOld SDD content.\n<!-- /brunnr-code:sdd -->\n\nOther stuff.\n"
 	result := InjectMarkdownSection(existing, "sdd", "New SDD content.\n")
 
-	want := "# Config\n\n<!-- gentle-ai:sdd -->\nNew SDD content.\n<!-- /gentle-ai:sdd -->\n\nOther stuff.\n"
+	want := "# Config\n\n<!-- brunnr-code:sdd -->\nNew SDD content.\n<!-- /brunnr-code:sdd -->\n\nOther stuff.\n"
 	if result != want {
 		t.Fatalf("update existing section:\ngot:  %q\nwant: %q", result, want)
 	}
@@ -89,15 +89,15 @@ func TestInjectMarkdownSection_UpdateExistingSection(t *testing.T) {
 
 func TestInjectMarkdownSection_CollapsesDuplicateTargetSections(t *testing.T) {
 	const (
-		open  = "<!-- gentle-ai:persona -->"
-		close = "<!-- /gentle-ai:persona -->"
+		open  = "<!-- brunnr-code:persona -->"
+		close = "<!-- /brunnr-code:persona -->"
 	)
 
 	first := open + "\nfirst\n" + close
 	second := open + "\nsecond\n" + close
 	third := open + "\nthird\n" + close
 	canonical := open + "\ncurrent\n" + close
-	sdd := "<!-- gentle-ai:sdd -->\nkeep sdd\n<!-- /gentle-ai:sdd -->"
+	sdd := "<!-- brunnr-code:sdd -->\nkeep sdd\n<!-- /brunnr-code:sdd -->"
 
 	tests := []struct {
 		name        string
@@ -153,23 +153,23 @@ func TestInjectMarkdownSection_CollapsesDuplicateTargetSections(t *testing.T) {
 }
 
 func TestInjectMarkdownSection_MultipleSectionsOnlyTargetedOneUpdated(t *testing.T) {
-	existing := "# Config\n\n<!-- gentle-ai:persona -->\nPersona content.\n<!-- /gentle-ai:persona -->\n\n<!-- gentle-ai:sdd -->\nOld SDD.\n<!-- /gentle-ai:sdd -->\n\n<!-- gentle-ai:skills -->\nSkills content.\n<!-- /gentle-ai:skills -->\n"
+	existing := "# Config\n\n<!-- brunnr-code:persona -->\nPersona content.\n<!-- /brunnr-code:persona -->\n\n<!-- brunnr-code:sdd -->\nOld SDD.\n<!-- /brunnr-code:sdd -->\n\n<!-- brunnr-code:skills -->\nSkills content.\n<!-- /brunnr-code:skills -->\n"
 
 	result := InjectMarkdownSection(existing, "sdd", "Updated SDD.\n")
 
 	// persona and skills should be unchanged
-	want := "# Config\n\n<!-- gentle-ai:persona -->\nPersona content.\n<!-- /gentle-ai:persona -->\n\n<!-- gentle-ai:sdd -->\nUpdated SDD.\n<!-- /gentle-ai:sdd -->\n\n<!-- gentle-ai:skills -->\nSkills content.\n<!-- /gentle-ai:skills -->\n"
+	want := "# Config\n\n<!-- brunnr-code:persona -->\nPersona content.\n<!-- /brunnr-code:persona -->\n\n<!-- brunnr-code:sdd -->\nUpdated SDD.\n<!-- /brunnr-code:sdd -->\n\n<!-- brunnr-code:skills -->\nSkills content.\n<!-- /brunnr-code:skills -->\n"
 	if result != want {
 		t.Fatalf("multiple sections:\ngot:  %q\nwant: %q", result, want)
 	}
 }
 
 func TestInjectMarkdownSection_PreserveUserContentBeforeAndAfter(t *testing.T) {
-	existing := "# User's custom intro\n\nHand-written notes.\n\n<!-- gentle-ai:persona -->\nAuto persona.\n<!-- /gentle-ai:persona -->\n\n# User's custom footer\n\nMore hand-written content.\n"
+	existing := "# User's custom intro\n\nHand-written notes.\n\n<!-- brunnr-code:persona -->\nAuto persona.\n<!-- /brunnr-code:persona -->\n\n# User's custom footer\n\nMore hand-written content.\n"
 
 	result := InjectMarkdownSection(existing, "persona", "Updated persona.\n")
 
-	want := "# User's custom intro\n\nHand-written notes.\n\n<!-- gentle-ai:persona -->\nUpdated persona.\n<!-- /gentle-ai:persona -->\n\n# User's custom footer\n\nMore hand-written content.\n"
+	want := "# User's custom intro\n\nHand-written notes.\n\n<!-- brunnr-code:persona -->\nUpdated persona.\n<!-- /brunnr-code:persona -->\n\n# User's custom footer\n\nMore hand-written content.\n"
 	if result != want {
 		t.Fatalf("preserve user content:\ngot:  %q\nwant: %q", result, want)
 	}
@@ -177,7 +177,7 @@ func TestInjectMarkdownSection_PreserveUserContentBeforeAndAfter(t *testing.T) {
 
 func TestInjectMarkdownSection_MalformedMarkersTreatedAsNotFound(t *testing.T) {
 	// Only opening marker, no closing marker — treat as not found, append.
-	existing := "# Config\n\n<!-- gentle-ai:sdd -->\nOrphaned content.\n"
+	existing := "# Config\n\n<!-- brunnr-code:sdd -->\nOrphaned content.\n"
 	result := InjectMarkdownSection(existing, "sdd", "New SDD content.\n")
 
 	// Should append since closing marker is missing.
@@ -186,7 +186,7 @@ func TestInjectMarkdownSection_MalformedMarkersTreatedAsNotFound(t *testing.T) {
 	}
 
 	// Result should contain the new properly-formed section.
-	wantOpen := "<!-- gentle-ai:sdd -->\nNew SDD content.\n<!-- /gentle-ai:sdd -->\n"
+	wantOpen := "<!-- brunnr-code:sdd -->\nNew SDD content.\n<!-- /brunnr-code:sdd -->\n"
 	if !strings.Contains(result, wantOpen) {
 		t.Fatalf("malformed markers: result should contain proper section:\ngot: %q", result)
 	}
@@ -194,11 +194,11 @@ func TestInjectMarkdownSection_MalformedMarkersTreatedAsNotFound(t *testing.T) {
 
 func TestInjectMarkdownSection_CloseBeforeOpenTreatedAsNotFound(t *testing.T) {
 	// Closing marker appears before opening — treat as not found.
-	existing := "<!-- /gentle-ai:sdd -->\nSome content.\n<!-- gentle-ai:sdd -->\n"
+	existing := "<!-- /brunnr-code:sdd -->\nSome content.\n<!-- brunnr-code:sdd -->\n"
 	result := InjectMarkdownSection(existing, "sdd", "New content.\n")
 
 	// Should append the section, not replace.
-	wantSuffix := "<!-- gentle-ai:sdd -->\nNew content.\n<!-- /gentle-ai:sdd -->\n"
+	wantSuffix := "<!-- brunnr-code:sdd -->\nNew content.\n<!-- /brunnr-code:sdd -->\n"
 	if !strings.HasSuffix(result, wantSuffix) {
 		t.Fatalf("close-before-open: expected appended section:\ngot: %q\nwant suffix: %q", result, wantSuffix)
 	}
@@ -208,8 +208,8 @@ func TestInjectMarkdownSection_CloseBeforeOpenTreatedAsNotFound(t *testing.T) {
 // infinite block accumulation caused by orphan closing markers being mishandled.
 func TestInjectMarkdownSection_OrphanRepair(t *testing.T) {
 	const sid = "engram-protocol"
-	open := "<!-- gentle-ai:" + sid + " -->"
-	close := "<!-- /gentle-ai:" + sid + " -->"
+	open := "<!-- brunnr-code:" + sid + " -->"
+	close := "<!-- /brunnr-code:" + sid + " -->"
 	newContent := "Engram protocol content.\n"
 
 	oneBlock := open + "\n" + newContent + close + "\n"
@@ -329,7 +329,7 @@ func TestInjectMarkdownSection_OrphanRepair(t *testing.T) {
 }
 
 func TestInjectMarkdownSection_EmptyContentRemovesSection(t *testing.T) {
-	existing := "# Config\n\n<!-- gentle-ai:sdd -->\nSDD content here.\n<!-- /gentle-ai:sdd -->\n\nOther stuff.\n"
+	existing := "# Config\n\n<!-- brunnr-code:sdd -->\nSDD content here.\n<!-- /brunnr-code:sdd -->\n\nOther stuff.\n"
 	result := InjectMarkdownSection(existing, "sdd", "")
 
 	want := "# Config\n\nOther stuff.\n"
@@ -350,7 +350,7 @@ func TestInjectMarkdownSection_EmptyContentOnMissingSectionNoOp(t *testing.T) {
 func TestInjectMarkdownSection_ContentWithoutTrailingNewline(t *testing.T) {
 	result := InjectMarkdownSection("", "test", "no trailing newline")
 
-	want := "<!-- gentle-ai:test -->\nno trailing newline\n<!-- /gentle-ai:test -->\n"
+	want := "<!-- brunnr-code:test -->\nno trailing newline\n<!-- /brunnr-code:test -->\n"
 	if result != want {
 		t.Fatalf("content without trailing newline:\ngot:  %q\nwant: %q", result, want)
 	}
@@ -360,7 +360,7 @@ func TestInjectMarkdownSection_ExistingWithoutTrailingNewline(t *testing.T) {
 	existing := "# Title"
 	result := InjectMarkdownSection(existing, "test", "Content.\n")
 
-	want := "# Title\n\n<!-- gentle-ai:test -->\nContent.\n<!-- /gentle-ai:test -->\n"
+	want := "# Title\n\n<!-- brunnr-code:test -->\nContent.\n<!-- /brunnr-code:test -->\n"
 	if result != want {
 		t.Fatalf("existing without trailing newline:\ngot:  %q\nwant: %q", result, want)
 	}

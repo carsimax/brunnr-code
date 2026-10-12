@@ -14,7 +14,7 @@ import (
 // pointing outside the repository, so every ancestor walk over it refuses.
 func damageReviewAuthorityTree(t *testing.T, repo string) {
 	t.Helper()
-	gentle := filepath.Join(repo, ".git", "gentle-ai")
+	gentle := filepath.Join(repo, ".git", "brunnr-code")
 	if err := os.MkdirAll(gentle, 0o700); err != nil {
 		t.Fatal(err)
 	}

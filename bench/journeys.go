@@ -833,7 +833,7 @@ func assertReviewParseRefusalsPreflight(run *journeyRun, operation, booleanFlag 
 					return fmt.Errorf("%s %s plain usage %t, want %t", operation, test.name, got, test.usage)
 				}
 			}
-			if _, err := os.Stat(filepath.Join(run.sandbox.Repo, ".git", "gentle-ai", "defect-reports")); !errors.Is(err, os.ErrNotExist) {
+			if _, err := os.Stat(filepath.Join(run.sandbox.Repo, ".git", "brunnr-code", "defect-reports")); !errors.Is(err, os.ErrNotExist) {
 				if err == nil {
 					return fmt.Errorf("%s %s %s refusal wrote a defect report", operation, test.name, mode)
 				}

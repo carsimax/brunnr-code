@@ -10,11 +10,11 @@ import (
 // can exist below it. Snapshot and restore must treat those paths as absent
 // and leave the blocking file alone instead of failing the whole operation.
 
-// writeBlockedTargets creates root/.claude/gentle-ai as a user regular file and
+// writeBlockedTargets creates root/.claude/brunnr-code as a user regular file and
 // returns planned paths below it, a module and the ledger name.
 func writeBlockedTargets(t *testing.T, root string) (blocker string, targets []string) {
 	t.Helper()
-	blocker = filepath.Join(root, ".claude", "gentle-ai")
+	blocker = filepath.Join(root, ".claude", "brunnr-code")
 	if err := os.MkdirAll(filepath.Dir(blocker), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +24,7 @@ func writeBlockedTargets(t *testing.T, root string) (blocker string, targets []s
 	moduleDir := filepath.Join(blocker, "orchestrator")
 	return blocker, []string{
 		filepath.Join(moduleDir, "orchestrator-delegation.md"),
-		filepath.Join(moduleDir, ".gentle-ai-orchestrator-module-ownership.json"),
+		filepath.Join(moduleDir, ".brunnr-code-orchestrator-module-ownership.json"),
 	}
 }
 

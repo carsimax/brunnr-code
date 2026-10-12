@@ -1200,7 +1200,7 @@ func TestRunInstallUpgradeIdempotency(t *testing.T) {
 	// 3. No duplicate brunnr-code marker blocks — each section's open marker
 	// must appear exactly once.
 	for _, sectionID := range []string{"engram-protocol"} {
-		openMarker := "<!-- gentle-ai:" + sectionID + " -->"
+		openMarker := "<!-- brunnr-code:" + sectionID + " -->"
 		count := strings.Count(content, openMarker)
 		if count != 1 {
 			t.Errorf("CLAUDE.md contains %d occurrences of marker %q, want exactly 1:\n%s",

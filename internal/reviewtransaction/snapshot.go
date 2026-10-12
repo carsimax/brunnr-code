@@ -333,7 +333,7 @@ func (builder SnapshotBuilder) buildHeadWithIntended(ctx context.Context, intend
 func createSnapshotIndex(gitDir string) (*os.File, func(), error) {
 	base, baseErr := filepath.Abs(os.TempDir())
 	if baseErr == nil && snapshotTempBaseSafe(base) {
-		directory, err := os.MkdirTemp(base, ".gentle-ai-review-index-*")
+		directory, err := os.MkdirTemp(base, ".brunnr-code-review-index-*")
 		if err == nil {
 			err = validatePrivateRARDirectory(directory)
 			if err == nil {
@@ -348,7 +348,7 @@ func createSnapshotIndex(gitDir string) (*os.File, func(), error) {
 			}
 		}
 	}
-	file, err := os.CreateTemp(gitDir, ".gentle-ai-review-index-*")
+	file, err := os.CreateTemp(gitDir, ".brunnr-code-review-index-*")
 	if err != nil {
 		return nil, nil, err
 	}

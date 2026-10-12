@@ -64,7 +64,7 @@ func TestCompactStatusLoadContextCancelsUnderExclusiveMaintenance(t *testing.T) 
 }
 
 func TestMaintenanceLockModesAndRelease(t *testing.T) {
-	path := filepath.Join(canonicalTempDir(t), "gentle-ai", "review-transactions", "MAINTENANCE.lock")
+	path := filepath.Join(canonicalTempDir(t), "brunnr-code", "review-transactions", "MAINTENANCE.lock")
 	shared, err := acquireMaintenanceLock(context.Background(), path, maintenanceShared)
 	if err != nil {
 		t.Fatal(err)
@@ -106,7 +106,7 @@ func TestMaintenanceLockModesAndRelease(t *testing.T) {
 
 func TestMaintenanceLockRejectsSymlinksAndStaleBytesAreNotOwnership(t *testing.T) {
 	dir := canonicalTempDir(t)
-	path := filepath.Join(dir, "gentle-ai", "review-transactions", "MAINTENANCE.lock")
+	path := filepath.Join(dir, "brunnr-code", "review-transactions", "MAINTENANCE.lock")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestEnsureMaintenanceLockPathRejectsRelativePaths(t *testing.T) {
 }
 
 func TestEnsureMaintenanceLockPathAcceptsCanonicalAbsolutePath(t *testing.T) {
-	path := filepath.Join(canonicalTempDir(t), "gentle-ai", "REVIEW-MAINTENANCE.lock")
+	path := filepath.Join(canonicalTempDir(t), "brunnr-code", "REVIEW-MAINTENANCE.lock")
 	if err := ensureMaintenanceLockPath(path); err != nil {
 		t.Fatalf("canonical absolute maintenance lock path was rejected: %v", err)
 	}
@@ -327,10 +327,10 @@ func TestMaintenanceLockUsesGitCommonDirAcrossWorktrees(t *testing.T) {
 func TestMaintenanceLockRejectsSymlinkedAuthorityComponent(t *testing.T) {
 	dir := t.TempDir()
 	outside := t.TempDir()
-	if err := os.Symlink(outside, filepath.Join(dir, "gentle-ai")); err != nil {
+	if err := os.Symlink(outside, filepath.Join(dir, "brunnr-code")); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(dir, "gentle-ai", "review-transactions", "MAINTENANCE.lock")
+	path := filepath.Join(dir, "brunnr-code", "review-transactions", "MAINTENANCE.lock")
 	if _, err := acquireMaintenanceLock(context.Background(), path, maintenanceShared); err == nil {
 		t.Fatal("symlinked authority root was accepted")
 	}

@@ -26,7 +26,7 @@ import (
 // run created it), and on this mount class every path reports 0777.
 func precreateWorldAccessibleSwitchRoot(t *testing.T, repo string) {
 	t.Helper()
-	root := filepath.Join(repo, ".git", "gentle-ai", "review-mode", "rar-authority")
+	root := filepath.Join(repo, ".git", "brunnr-code", "review-mode", "rar-authority")
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestReviewModeStatusStillRepairsOnCapableFilesystem(t *testing.T) {
 	if !strings.Contains(output.String(), "clone-local: unset") {
 		t.Fatalf("status did not resolve the repaired clone-local source:\n%s", output.String())
 	}
-	info, statErr := os.Lstat(filepath.Join(repo, ".git", "gentle-ai", "review-mode", "rar-authority"))
+	info, statErr := os.Lstat(filepath.Join(repo, ".git", "brunnr-code", "review-mode", "rar-authority"))
 	if statErr != nil || info.Mode().Perm() != 0o700 {
 		t.Fatalf("switch root leaf = %v (%v), want it repaired to 0700 by the read walk", info, statErr)
 	}

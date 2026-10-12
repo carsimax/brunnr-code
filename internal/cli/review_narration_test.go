@@ -104,9 +104,9 @@ func TestReviewNarrationNamesAUniversalOrBetterExit(t *testing.T) {
 // (review_mode.go's own flag default), so any narration naming the bare
 // `brunnr-code review mode disable` would let an orchestrator silently
 // disable receipt-driven development for every repository on the machine.
-// Verified by execution: the bare form writes ~/.gentle-ai/state.json;
+// Verified by execution: the bare form writes ~/.brunnr-code/state.json;
 // `--scope clone --cwd <repo>` writes only under that repository's own
-// .git/gentle-ai directory.
+// .git/brunnr-code directory.
 func TestReviewNarrationReviewModeDisableIsAlwaysCloneScoped(t *testing.T) {
 	re := regexp.MustCompile("`brunnr-code review mode disable[^`]*`")
 	found := 0
@@ -114,7 +114,7 @@ func TestReviewNarrationReviewModeDisableIsAlwaysCloneScoped(t *testing.T) {
 		for _, invocation := range re.FindAllString(statement, -1) {
 			found++
 			if !strings.Contains(invocation, "--scope clone") || !strings.Contains(invocation, "--cwd <repo>") {
-				t.Errorf("stop reason %q: %s defaults to global scope if run as printed (verified by execution: omitting --scope writes ~/.gentle-ai/state.json machine-wide) -- name --scope clone --cwd <repo> instead", code, invocation)
+				t.Errorf("stop reason %q: %s defaults to global scope if run as printed (verified by execution: omitting --scope writes ~/.brunnr-code/state.json machine-wide) -- name --scope clone --cwd <repo> instead", code, invocation)
 			}
 		}
 	}

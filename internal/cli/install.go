@@ -30,12 +30,12 @@ FLAGS
   --preset <name>                    Preset to apply
   --scope global|workspace           Install scope (env: GENTLE_AI_INSTALL_SCOPE)
   --claude-orchestrator-modules      Global Claude only: install the orchestrator as a core plus on-demand modules
-                                     under ~/.claude/gentle-ai/orchestrator/ (default off)
+                                     under ~/.claude/brunnr-code/orchestrator/ (default off)
   --dry-run                          Preview plan without executing
   --help, -h                         Show this help
 
 ISOLATED INSTALLS (absolute paths; all unset by default)
-  GENTLE_AI_HOME=<dir>               Brunnr-Code state and backups instead of ~/.gentle-ai
+  GENTLE_AI_HOME=<dir>               Brunnr-Code state and backups instead of ~/.brunnr-code
   GENTLE_AI_ENGRAM_BIN=<file>        Use this Engram executable: no brew, download, go install or PATH change,
                                      and dependency detection runs no git, curl, node, npm, brew or go command
 

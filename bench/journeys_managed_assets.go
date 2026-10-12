@@ -27,7 +27,7 @@ func staleManagedAssetState(sandbox *Sandbox) error {
 	if got := fmt.Sprintf("%x", sha256.Sum256(historicalManagedAssetState)); got != historicalManagedAssetStateSHA256 {
 		return fmt.Errorf("historical managed asset state SHA-256 = %s, want %s", got, historicalManagedAssetStateSHA256)
 	}
-	path := filepath.Join(sandbox.Home, ".gentle-ai", "state.json")
+	path := filepath.Join(sandbox.Home, ".brunnr-code", "state.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}

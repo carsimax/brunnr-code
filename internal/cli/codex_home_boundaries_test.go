@@ -66,7 +66,7 @@ func TestCodexHomeStandaloneRestoreExternalRoot(t *testing.T) {
 			if err := os.WriteFile(path, []byte("before\n"), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			manifest, err := backup.NewSnapshotter().Create(filepath.Join(home, ".gentle-ai", "backups", "codex-root"), []string{path})
+			manifest, err := backup.NewSnapshotter().Create(filepath.Join(home, ".brunnr-code", "backups", "codex-root"), []string{path})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -120,7 +120,7 @@ func TestCodexHomeRestoreStillRejectsUnrelatedRoot(t *testing.T) {
 			if err := os.WriteFile(path, []byte("before"), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			_, err := backup.NewSnapshotter().Create(filepath.Join(home, ".gentle-ai", "backups", "unrelated"), []string{path})
+			_, err := backup.NewSnapshotter().Create(filepath.Join(home, ".brunnr-code", "backups", "unrelated"), []string{path})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -150,7 +150,7 @@ func TestCodexHomeRestorePreservesOrdinaryHomeScope(t *testing.T) {
 	if err := os.WriteFile(path, []byte("before"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	manifest, err := backup.NewSnapshotter().Create(filepath.Join(home, ".gentle-ai", "backups", "ordinary"), []string{path})
+	manifest, err := backup.NewSnapshotter().Create(filepath.Join(home, ".brunnr-code", "backups", "ordinary"), []string{path})
 	if err != nil {
 		t.Fatal(err)
 	}

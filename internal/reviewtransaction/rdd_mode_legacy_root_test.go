@@ -37,7 +37,7 @@ func TestLegacyCloneOverrideStillDecides(t *testing.T) {
 		if idErr != nil {
 			t.Fatal(idErr)
 		}
-		base := filepath.Join(identity.GitCommonDir, "gentle-ai", "review-transactions", rarAuthorityDirectory, rarAuthorityVersion)
+		base := filepath.Join(identity.GitCommonDir, "brunnr-code", "review-transactions", rarAuthorityDirectory, rarAuthorityVersion)
 		if err := ensureRARRepositoryRoot(identity.GitCommonDir, base, true); err != nil {
 			t.Fatal(err)
 		}
@@ -259,7 +259,7 @@ func legacyCloneOverrideForTest(t *testing.T, ctx context.Context, repo string, 
 		if identityErr != nil {
 			t.Fatal(identityErr)
 		}
-		base := filepath.Join(identity.GitCommonDir, "gentle-ai", "review-transactions", rarAuthorityDirectory, rarAuthorityVersion)
+		base := filepath.Join(identity.GitCommonDir, "brunnr-code", "review-transactions", rarAuthorityDirectory, rarAuthorityVersion)
 		if err := ensureRARRepositoryRoot(identity.GitCommonDir, base, true); err != nil {
 			t.Fatal(err)
 		}

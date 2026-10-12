@@ -88,7 +88,7 @@ func assertIssue2906MissingContractPreflight(run *journeyRun) error {
 		if gitAfter != gitBefore || headAfter != headBefore {
 			return fmt.Errorf("%s mutated repository: status %q -> %q, HEAD %q -> %q", test.name, gitBefore, gitAfter, headBefore, headAfter)
 		}
-		authorityRoot := filepath.Join(caseSandbox.Repo, ".git", "gentle-ai")
+		authorityRoot := filepath.Join(caseSandbox.Repo, ".git", "brunnr-code")
 		if _, err := os.Stat(authorityRoot); !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("%s created authority state: %v", test.name, err)
 		}

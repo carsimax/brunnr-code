@@ -23,7 +23,7 @@ func installClaudeModulePilot(t *testing.T) (home, configDir, moduleDir string) 
 	t.Helper()
 	home = t.TempDir()
 	configDir = filepath.Join(home, ".claude")
-	moduleDir = filepath.Join(configDir, "gentle-ai", "orchestrator")
+	moduleDir = filepath.Join(configDir, "brunnr-code", "orchestrator")
 	writeModuleTestFile(t, filepath.Join(configDir, "CLAUDE.md"), coreTransactionUserCore, 0o600)
 	writeModuleTestFile(t, filepath.Join(configDir, "agents", "review-risk.md"), claudeNativeAgentSentinel, 0o600)
 	if _, err := InjectRoutingWithOptions(home, model.AgentClaudeCode, claudeModuleOptions); err != nil {
@@ -122,7 +122,7 @@ func TestRetireClaudeGlobalModulesWithoutLedgerChangesNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 	// A module-named file without a ledger is never claimed.
-	stray := filepath.Join(home, ".claude", "gentle-ai", "orchestrator", orchestratorModuleFile("delegation"))
+	stray := filepath.Join(home, ".claude", "brunnr-code", "orchestrator", orchestratorModuleFile("delegation"))
 	writeModuleTestFile(t, stray, "user file\n", 0o644)
 	before := snapshotModuleTree(t, home)
 
@@ -143,8 +143,8 @@ func TestClaudeGlobalModulesUserFileAncestorMeansNoLedger(t *testing.T) {
 		ancestor string
 		managed  bool
 	}{
-		{ancestor: "gentle-ai", managed: true},
-		{ancestor: filepath.Join("gentle-ai", "orchestrator")},
+		{ancestor: "brunnr-code", managed: true},
+		{ancestor: filepath.Join("brunnr-code", "orchestrator")},
 	}
 	for _, tc := range cases {
 		t.Run(tc.ancestor, func(t *testing.T) {

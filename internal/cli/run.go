@@ -308,7 +308,7 @@ func mergeFullInstallState(existing, fresh state.InstallState) state.InstallStat
 }
 
 // mergeExplicitAgentInstallState merges a fresh single-agent install's state
-// into the previously persisted ~/.gentle-ai/state.json (so `install --agent
+// into the previously persisted ~/.brunnr-code/state.json (so `install --agent
 // X` preserves other previously installed agents and model assignments).
 //
 // When the existing state file is simply absent (first install, or an agent

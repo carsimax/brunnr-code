@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	orchestratorOpenMarker       = "<!-- gentle-ai:orchestrator -->"
-	legacyOrchestratorOpenMarker = "<!-- gentle-ai:sdd-orchestrator -->"
+	orchestratorOpenMarker       = "<!-- brunnr-code:orchestrator -->"
+	legacyOrchestratorOpenMarker = "<!-- brunnr-code:sdd-orchestrator -->"
 )
 
 // orchestratorRuntimesForInstall lists every runtime whose installed prompt
@@ -141,8 +141,8 @@ func TestInstallUpgradesV370OrchestratorBlockAndKeepsUserText(t *testing.T) {
 			home := t.TempDir()
 			promptPath := systemPromptFileFor(t, home, model.AgentClaudeCode)
 			legacy := "# My own rules\n\nAlways answer briefly.\n\n" +
-				legacyOrchestratorOpenMarker + "\n# Agent Teams Lite — Orchestrator Instructions\n\n### SDD Workflow\n\nArtifact Store Mode\n<!-- /gentle-ai:sdd-orchestrator -->\n\n" +
-				"<!-- gentle-ai:agent-routing -->\nstale routing\n<!-- /gentle-ai:agent-routing -->\n\n" +
+				legacyOrchestratorOpenMarker + "\n# Agent Teams Lite — Orchestrator Instructions\n\n### SDD Workflow\n\nArtifact Store Mode\n<!-- /brunnr-code:sdd-orchestrator -->\n\n" +
+				"<!-- brunnr-code:agent-routing -->\nstale routing\n<!-- /brunnr-code:agent-routing -->\n\n" +
 				"User footer.\n"
 			mustWriteFile(t, promptPath, []byte(legacy))
 			selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}}

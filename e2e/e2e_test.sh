@@ -400,7 +400,7 @@ test_cc_engram_injection() {
 
         # CLAUDE.md section
         assert_file_exists "$HOME/.claude/CLAUDE.md" "CLAUDE.md exists"
-        assert_file_contains "$HOME/.claude/CLAUDE.md" "gentle-ai:engram-protocol" "CLAUDE.md has engram-protocol section marker"
+        assert_file_contains "$HOME/.claude/CLAUDE.md" "brunnr-code:engram-protocol" "CLAUDE.md has engram-protocol section marker"
         assert_file_contains "$HOME/.claude/CLAUDE.md" "mem_save" "CLAUDE.md has real Engram content (mem_save)"
         assert_file_size_min "$HOME/.claude/CLAUDE.md" 500 "CLAUDE.md has substantial content"
     else
@@ -415,7 +415,7 @@ test_cc_persona() {
 
     if $BINARY install --agent claude-code --component persona 2>&1; then
         assert_file_exists "$HOME/.claude/CLAUDE.md" "CLAUDE.md exists"
-        assert_file_contains "$HOME/.claude/CLAUDE.md" "gentle-ai:persona" "CLAUDE.md has persona section marker"
+        assert_file_contains "$HOME/.claude/CLAUDE.md" "brunnr-code:persona" "CLAUDE.md has persona section marker"
         # Claude has an active output-style channel — the CLAUDE.md persona
         # section is now a residual; the mentor identity lives in the output
         # style (design.md Decision 1).
@@ -607,9 +607,9 @@ test_full_preset_claude_code() {
 
         # ODD routing, memory and persona coexist without duplicate sections.
         assert_file_exists "$claude_md" "CLAUDE.md exists"
-        assert_file_contains "$claude_md" "gentle-ai:agent-routing" "Has ODD routing section"
-        assert_file_contains "$claude_md" "gentle-ai:engram-protocol" "Has memory section"
-        assert_file_contains "$claude_md" "gentle-ai:persona" "Has persona section"
+        assert_file_contains "$claude_md" "brunnr-code:agent-routing" "Has ODD routing section"
+        assert_file_contains "$claude_md" "brunnr-code:engram-protocol" "Has memory section"
+        assert_file_contains "$claude_md" "brunnr-code:persona" "Has persona section"
         assert_no_duplicate_section "$claude_md" "agent-routing" "No duplicate ODD routing section"
         assert_no_duplicate_section "$claude_md" "persona" "No duplicate persona section"
 
@@ -644,10 +644,10 @@ test_minimal_preset_claude_only_engram() {
     if $BINARY install --agent claude-code --preset minimal 2>&1; then
         # Engram should be installed (MCP + CLAUDE.md)
         assert_file_exists "$HOME/.claude/CLAUDE.md" "CLAUDE.md exists"
-        assert_file_contains "$HOME/.claude/CLAUDE.md" "gentle-ai:engram-protocol" "Engram protocol section"
+        assert_file_contains "$HOME/.claude/CLAUDE.md" "brunnr-code:engram-protocol" "Engram protocol section"
 
         # The Neutral persona is part of every managed preset
-        assert_file_contains "$HOME/.claude/CLAUDE.md" "gentle-ai:persona" "Persona in minimal"
+        assert_file_contains "$HOME/.claude/CLAUDE.md" "brunnr-code:persona" "Persona in minimal"
         # No permissions settings.json
         if [ -f "$HOME/.claude/settings.json" ]; then
             assert_file_not_contains "$HOME/.claude/settings.json" '"permissions"' "No permissions in minimal"
@@ -672,12 +672,12 @@ test_ecosystem_both_agents() {
     if $BINARY install --agent claude-code --agent codex --component engram --component skills --component context7 --preset ecosystem-only 2>&1; then
         # Claude Code
         assert_file_exists "$HOME/.claude/CLAUDE.md" "Claude CLAUDE.md"
-        assert_file_contains "$HOME/.claude/CLAUDE.md" "gentle-ai:agent-routing" "Claude has ODD routing"
+        assert_file_contains "$HOME/.claude/CLAUDE.md" "brunnr-code:agent-routing" "Claude has ODD routing"
         assert_file_contains "$HOME/.claude.json" '"context7"' "Claude context7 MCP"
         assert_file_count_min "$HOME/.claude/skills" "SKILL.md" 8 "Claude foundation skills"
 
         # Codex
-        assert_file_contains "$HOME/.codex/AGENTS.md" "gentle-ai:agent-routing" "Codex has ODD routing"
+        assert_file_contains "$HOME/.codex/AGENTS.md" "brunnr-code:agent-routing" "Codex has ODD routing"
         assert_file_count_min "$HOME/.codex/skills" "SKILL.md" 8 "Codex foundation skills"
         assert_file_contains "$HOME/.codex/config.toml" "context7" "Codex context7"
 
@@ -699,7 +699,7 @@ test_content_claude_md_sections_substantial() {
 
     local claude_md="$HOME/.claude/CLAUDE.md"
     if [ -f "$claude_md" ]; then
-        assert_file_contains "$claude_md" "gentle-ai:agent-routing" "CLAUDE.md has ODD routing"
+        assert_file_contains "$claude_md" "brunnr-code:agent-routing" "CLAUDE.md has ODD routing"
         assert_file_size_min "$claude_md" 1000 "CLAUDE.md with routing, memory and persona >= 1000 bytes"
     else
         log_fail "CLAUDE.md not created"
@@ -908,8 +908,8 @@ test_edge_theme_not_in_presets() {
         # or other optional components.
         if [ -f "$HOME/.claude/CLAUDE.md" ]; then
             local sections
-            sections=$(grep -o '<!-- gentle-ai:[a-z0-9-]* -->' "$HOME/.claude/CLAUDE.md" | sort -u | tr '\n' ' ')
-            if [ "$(printf '%s' "$sections" | xargs)" = "<!-- gentle-ai:agent-routing --> <!-- gentle-ai:orchestrator --> <!-- gentle-ai:remote-authorization -->" ]; then
+            sections=$(grep -o '<!-- brunnr-code:[a-z0-9-]* -->' "$HOME/.claude/CLAUDE.md" | sort -u | tr '\n' ' ')
+            if [ "$(printf '%s' "$sections" | xargs)" = "<!-- brunnr-code:agent-routing --> <!-- brunnr-code:orchestrator --> <!-- brunnr-code:remote-authorization -->" ]; then
                 log_pass "Theme-only: CLAUDE.md carries orchestrator, routing and remote authorization only"
             else
                 log_fail "Theme-only install wrote component sections: $sections"
@@ -1009,7 +1009,7 @@ test_backup_created_on_install() {
 
     if $BINARY install --agent claude-code --component permissions 2>&1; then
         local backup_count
-        backup_count=$(find "$HOME/.gentle-ai/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+        backup_count=$(find "$HOME/.brunnr-code/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
         if [ "$backup_count" -gt 0 ]; then
             log_pass "Backup directory created ($backup_count snapshots)"
         else
@@ -1027,7 +1027,7 @@ test_backup_contains_original_files() {
 
     if $BINARY install --agent claude-code --component permissions 2>&1; then
         local latest_backup
-        latest_backup=$(find "$HOME/.gentle-ai/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)
+        latest_backup=$(find "$HOME/.brunnr-code/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)
         if [ -n "$latest_backup" ]; then
             local file_count
             file_count=$(find "$latest_backup" -type f 2>/dev/null | wc -l | tr -d ' ')
@@ -1051,7 +1051,7 @@ test_backup_manifest_exists() {
 
     if $BINARY install --agent claude-code --component permissions 2>&1; then
         local latest_backup
-        latest_backup=$(find "$HOME/.gentle-ai/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)
+        latest_backup=$(find "$HOME/.brunnr-code/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)
         if [ -n "$latest_backup" ]; then
             if [ -f "$latest_backup/manifest.json" ]; then
                 assert_valid_json "$latest_backup/manifest.json" "Backup manifest is valid JSON"
@@ -1095,7 +1095,7 @@ test_backup_multiple_snapshots() {
     $BINARY install --agent claude-code --component claude-theme 2>&1 || true
 
     local backup_count
-    backup_count=$(find "$HOME/.gentle-ai/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+    backup_count=$(find "$HOME/.brunnr-code/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
     if [ "$backup_count" -ge 2 ]; then
         log_pass "Multiple backup snapshots created ($backup_count)"
     else
@@ -1110,7 +1110,7 @@ test_backup_claude_code_files() {
 
     if $BINARY install --agent claude-code --component permissions 2>&1; then
         local latest_backup
-        latest_backup=$(find "$HOME/.gentle-ai/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)
+        latest_backup=$(find "$HOME/.brunnr-code/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)
         if [ -n "$latest_backup" ] && [ -f "$latest_backup/manifest.json" ]; then
             log_pass "Claude Code backup snapshot with manifest created"
         else

@@ -13,7 +13,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/model"
 )
 
-const stateDir = ".gentle-ai"
+const stateDir = ".brunnr-code"
 const stateFile = "state.json"
 
 // CodexOrchestratorAssignmentState is the persisted main-session assignment.
@@ -234,7 +234,7 @@ func MergeAgents(existing InstallState, newAgents []string) InstallState {
 }
 
 // Write persists the full install state to disk under the given home directory.
-// It creates the .gentle-ai directory if it does not already exist.
+// It creates the .brunnr-code directory if it does not already exist.
 func Write(homeDir string, s InstallState) error {
 	dir := Dir(homeDir)
 	if err := os.MkdirAll(dir, 0o755); err != nil {

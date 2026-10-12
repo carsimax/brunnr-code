@@ -290,7 +290,7 @@ func TestBuildSyncSelectionDefaultScopeIncludesManagedComponents(t *testing.T) {
 	sel := BuildSyncSelection(flags, agents)
 
 	// Default sync includes managed ODD dependencies, not the legacy SDD component.
-	// Persona is included because the content between <!-- gentle-ai:persona -->
+	// Persona is included because the content between <!-- brunnr-code:persona -->
 	// markers is harness-managed; sync must propagate embedded-asset changes to
 	// users who already have a persona installed. Content outside the markers
 	// is preserved by InjectMarkdownSection.
@@ -749,7 +749,7 @@ func TestRunSyncRefreshesPersistedVisualComponents(t *testing.T) {
 		filepath.Join(home, ".claude", "agents", "review-reliability.md"),
 		filepath.Join(home, ".claude", "agents", "review-resilience.md"),
 		filepath.Join(home, ".claude", "agents", "review-risk.md"),
-		filepath.Join(home, ".claude", "agents", ".gentle-ai-native-agent-ownership.json"),
+		filepath.Join(home, ".claude", "agents", ".brunnr-code-native-agent-ownership.json"),
 		filepath.Join(home, ".claude", "settings.json"),
 		filepath.Join(home, ".claude", "CLAUDE.md"),
 		filepath.Join(home, ".codex", "hooks.json"),
@@ -894,7 +894,7 @@ func TestRunSyncRollbackRestoresClaudeEngramMigrationSource(t *testing.T) {
 			}
 		}
 	}
-	backups, err := os.ReadDir(filepath.Join(home, ".gentle-ai", "backups"))
+	backups, err := os.ReadDir(filepath.Join(home, ".brunnr-code", "backups"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1089,7 +1089,7 @@ func TestCodeGraphGuidanceSyncStepRepairsCodexConfigOnlyGuidance(t *testing.T) {
 		t.Fatalf("ReadFile(%q) error = %v", agentsPath, err)
 	}
 	text := string(body)
-	for _, want := range []string{"<!-- gentle-ai:codegraph-guidance -->", "immediately run `brunnr-code codegraph init --cwd <project-root>`"} {
+	for _, want := range []string{"<!-- brunnr-code:codegraph-guidance -->", "immediately run `brunnr-code codegraph init --cwd <project-root>`"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("Codex AGENTS.md missing managed CodeGraph guidance %q:\n%s", want, text)
 		}
@@ -2232,9 +2232,9 @@ func TestRunSyncRegeneratesPersonaBlockBetweenMarkers(t *testing.T) {
 	// Write a stale managed persona block — what an older version of brunnr-code
 	// would have emitted. The sync must replace this with the v1.26 directive.
 	stalePersona := "# pre-existing notes by user\n\n" +
-		"<!-- gentle-ai:persona -->\n" +
+		"<!-- brunnr-code:persona -->\n" +
 		"## Skills (Auto-load based on context)\n\nstale 2-row table here.\n" +
-		"<!-- /gentle-ai:persona -->\n"
+		"<!-- /brunnr-code:persona -->\n"
 	claudeMD := filepath.Join(home, ".claude", "CLAUDE.md")
 	if err := os.WriteFile(claudeMD, []byte(stalePersona), 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
@@ -2303,7 +2303,7 @@ func TestRunSyncWithSelection_UnreadablePersistedStateFailsClosed(t *testing.T) 
 			if err := os.MkdirAll(filepath.Join(home, ".claude"), 0o755); err != nil {
 				t.Fatalf("MkdirAll: %v", err)
 			}
-			originalPersona := "<!-- gentle-ai:persona -->\nexisting valid persona\n<!-- /gentle-ai:persona -->\n"
+			originalPersona := "<!-- brunnr-code:persona -->\nexisting valid persona\n<!-- /brunnr-code:persona -->\n"
 			personaPath := filepath.Join(home, ".claude", "CLAUDE.md")
 			if err := os.WriteFile(personaPath, []byte(originalPersona), 0o644); err != nil {
 				t.Fatalf("WriteFile persona: %v", err)
@@ -2492,7 +2492,7 @@ func TestCodexODDAssignmentSyncPropagatesSavedSelections(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, want := range []string{
-			"<!-- gentle-ai:agent-routing -->", personal,
+			"<!-- brunnr-code:agent-routing -->", personal,
 			"| `odd-explorer` | `gpt-cheap` | `high` |",
 			"| `odd-worker` | `gpt-explicit` | `xhigh` |",
 			"| `odd-verify` | `gpt-strong` | `medium` |",
@@ -2840,7 +2840,7 @@ func TestSyncRemoteAuthorizationUpdatesExistingInstallation(t *testing.T) {
 	selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}}
 	runSyncInjectionSteps(t, home, selection)
 	first := readTextFile(t, path)
-	if !strings.Contains(first, personal) || !strings.Contains(first, "<!-- gentle-ai:remote-authorization -->") {
+	if !strings.Contains(first, personal) || !strings.Contains(first, "<!-- brunnr-code:remote-authorization -->") {
 		t.Fatal("component-independent sync lost personal text or omitted remote authorization")
 	}
 	runSyncInjectionSteps(t, home, selection)
@@ -2878,7 +2878,7 @@ func TestSyncRoutingGuidanceIsIndependentOfSDDSelection(t *testing.T) {
 			if !strings.Contains(prompt, routingOpenMarker) || !strings.Contains(prompt, routingCloseMarker) || !strings.Contains(prompt, "Implementation Routing") {
 				t.Fatalf("sync lost routing guidance for %s:\n%s", tc.name, prompt)
 			}
-			if strings.Contains(prompt, "<!-- gentle-ai:sdd-orchestrator -->") {
+			if strings.Contains(prompt, "<!-- brunnr-code:sdd-orchestrator -->") {
 				t.Fatalf("sync reintroduced retired SDD instructions for %s:\n%s", tc.name, prompt)
 			}
 		})

@@ -1065,7 +1065,7 @@ func TestWindowsRuntimeIncludesRepairAndMaintenanceLockRegressions(t *testing.T)
 // bound and the assessment is driven through the CLI, never constructed.
 func TestReviewRepairPreflightNamesAWayForwardWhenTheStoreExceedsTheBound(t *testing.T) {
 	repo := initReviewCLIRepo(t)
-	compactRoot := filepath.Join(repo, ".git", "gentle-ai", "review-transactions", "v2")
+	compactRoot := filepath.Join(repo, ".git", "brunnr-code", "review-transactions", "v2")
 	// Comfortably past the bounded assessment's ceiling, and past the
 	// 271-lineage store the report measured, without this test naming an
 	// internal constant it does not own.

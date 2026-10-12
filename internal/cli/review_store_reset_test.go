@@ -313,15 +313,15 @@ func TestReviewStoreResetIsNotOnTheNegotiatedRoute(t *testing.T) {
 func TestReviewStoreResetWithdrawsTheUntouchedPromiseWhenARestoreFailed(t *testing.T) {
 	report := reviewtransaction.StoreResetReport{
 		Schema: reviewtransaction.StoreResetReportSchema, Operation: reviewtransaction.StoreResetApplied,
-		Repository: "/repo", StoreRoot: "/repo/.git/gentle-ai",
+		Repository: "/repo", StoreRoot: "/repo/.git/brunnr-code",
 		Removable: []reviewtransaction.StoreResetEntry{{
 			Name: "candidate-views", Present: true, Files: 4, Bytes: 2048,
 			Skipped: "simulated staging failure; and the worktree administrative directories moved aside for it could not be restored: simulated restore failure",
 		}},
-		Residue: "/repo/.git/gentle-ai/.store-reset-42",
+		Residue: "/repo/.git/brunnr-code/.store-reset-42",
 		UnrestoredAdminDirs: []reviewtransaction.StoreResetUnrestoredAdminDir{{
 			Original: "/repo/.git/worktrees/view-a",
-			Staged:   "/repo/.git/gentle-ai/.store-reset-42/worktrees-view-a",
+			Staged:   "/repo/.git/brunnr-code/.store-reset-42/worktrees-view-a",
 		}},
 		Complete: false,
 	}
@@ -336,7 +336,7 @@ func TestReviewStoreResetWithdrawsTheUntouchedPromiseWhenARestoreFailed(t *testi
 	}
 	for _, want := range []string{
 		"/repo/.git/worktrees/view-a",
-		"/repo/.git/gentle-ai/.store-reset-42/worktrees-view-a",
+		"/repo/.git/brunnr-code/.store-reset-42/worktrees-view-a",
 	} {
 		if !strings.Contains(rendered, want) {
 			t.Fatalf("the output does not name %q:\n%s", want, rendered)
@@ -350,7 +350,7 @@ func TestReviewStoreResetWithdrawsTheUntouchedPromiseWhenARestoreFailed(t *testi
 func TestReviewStoreResetKeepsTheUntouchedPromiseForAnOrdinaryPartialRun(t *testing.T) {
 	report := reviewtransaction.StoreResetReport{
 		Schema: reviewtransaction.StoreResetReportSchema, Operation: reviewtransaction.StoreResetApplied,
-		Repository: "/repo", StoreRoot: "/repo/.git/gentle-ai",
+		Repository: "/repo", StoreRoot: "/repo/.git/brunnr-code",
 		Removable: []reviewtransaction.StoreResetEntry{{
 			Name: "review-transactions/v2", Present: true, Files: 4, Bytes: 2048, Skipped: "permission denied",
 		}},

@@ -79,7 +79,7 @@ func TestReviewModeStatusReportsBothSourcesWithoutMutating(t *testing.T) {
 	if err != nil || !bytes.Equal(after, before) {
 		t.Fatalf("status changed global user state: err=%v before=%q after=%q", err, before, after)
 	}
-	if _, err := os.Lstat(filepath.Join(repo, ".git", "gentle-ai")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Lstat(filepath.Join(repo, ".git", "brunnr-code")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("status created repository state: %v", err)
 	}
 }
@@ -333,7 +333,7 @@ func TestReviewModeCloneScopeEnableIsIdempotentWhenGlobalOn(t *testing.T) {
 		result.Status.Source != reviewtransaction.RDDModeSourceGlobal || result.Status.Revision != "" {
 		t.Fatalf("clone enable result = %#v", result.Status)
 	}
-	if _, err := os.Lstat(filepath.Join(repo, ".git", "gentle-ai")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Lstat(filepath.Join(repo, ".git", "brunnr-code")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("idempotent clone enable created repository state: %v", err)
 	}
 }
@@ -357,7 +357,7 @@ func TestReviewModeCloneScopeEnableMigratesLegacyRevision(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read current record: %v", err)
 	}
-	legacyRoot := filepath.Join(repo, ".git", "gentle-ai", "review-transactions")
+	legacyRoot := filepath.Join(repo, ".git", "brunnr-code", "review-transactions")
 	// The seeding write publishes into both locations, because the switch is
 	// machine state rather than build state (#3284). This fixture is the clone
 	// that only ever had the pre-relocation one, so its mirror is dropped
@@ -365,10 +365,10 @@ func TestReviewModeCloneScopeEnableMigratesLegacyRevision(t *testing.T) {
 	if err := os.RemoveAll(legacyRoot); err != nil {
 		t.Fatalf("drop the mirrored fixture copy: %v", err)
 	}
-	if err := os.Rename(filepath.Join(repo, ".git", "gentle-ai", "review-mode"), legacyRoot); err != nil {
+	if err := os.Rename(filepath.Join(repo, ".git", "brunnr-code", "review-mode"), legacyRoot); err != nil {
 		t.Fatalf("relocate secure legacy fixture: %v", err)
 	}
-	if _, err := os.Lstat(filepath.Join(repo, ".git", "gentle-ai", "review-mode")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Lstat(filepath.Join(repo, ".git", "brunnr-code", "review-mode")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("legacy fixture left a separately created private directory: %v", err)
 	}
 	legacy := filepath.Join(legacyRoot, "rar-authority", "v1", "rdd-mode", filepath.Base(current))
@@ -415,7 +415,7 @@ func TestReviewModeCloneScopeEnableRejectsGlobalOffWithoutLocalOverride(t *testi
 		result.Status.Source != reviewtransaction.RDDModeSourceGlobal || result.Status.Revision != "" {
 		t.Fatalf("clone enable result = %#v", result.Status)
 	}
-	if _, err := os.Lstat(filepath.Join(repo, ".git", "gentle-ai")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Lstat(filepath.Join(repo, ".git", "brunnr-code")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("rejected clone enable created repository state: %v", err)
 	}
 }
@@ -1029,7 +1029,7 @@ func TestReviewModeCloneScopeEnableInheritsDefaultOnWhileGlobalUnset(t *testing.
 	if strings.Contains(output.String(), "--scope global") {
 		t.Fatalf("the JSON envelope must stay unchanged; the exit is derived from source=default:\n%s", output.String())
 	}
-	if _, err := os.Lstat(filepath.Join(repo, ".git", "gentle-ai")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Lstat(filepath.Join(repo, ".git", "brunnr-code")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("no-op clone enable created repository state: %v", err)
 	}
 

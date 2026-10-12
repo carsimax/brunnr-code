@@ -24,8 +24,8 @@ func writeStoreResetFile(t *testing.T, path, contents string) {
 	}
 }
 
-// storeResetGentleAIRoot returns <git-common-dir>/gentle-ai for a fixture repo.
-func storeResetGentleAIRoot(t *testing.T, repo string) string {
+// storeResetBrunnrRoot returns <git-common-dir>/brunnr-code for a fixture repo.
+func storeResetBrunnrRoot(t *testing.T, repo string) string {
 	t.Helper()
 	authority, _, err := reviewAuthorityRoot(context.Background(), repo)
 	if err != nil {
@@ -37,7 +37,7 @@ func storeResetGentleAIRoot(t *testing.T, repo string) string {
 // seedStoreResetLineage writes one compact-v2 lineage holding the given state.
 func seedStoreResetLineage(t *testing.T, repo, lineage string, state State) {
 	t.Helper()
-	seedStoreResetLineageAt(t, storeResetGentleAIRoot(t, repo), lineage, state)
+	seedStoreResetLineageAt(t, storeResetBrunnrRoot(t, repo), lineage, state)
 }
 
 // seedStoreResetLineageAt writes the same lineage against an already-resolved
@@ -53,7 +53,7 @@ func seedStoreResetLineageAt(t *testing.T, root, lineage string, state State) {
 // current location and the pre-#2882 mirror that still-installed builds read.
 func seedStoreResetKillSwitch(t *testing.T, repo string) (current, legacy string) {
 	t.Helper()
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	current = filepath.Join(root, "review-mode", "rar-authority", "v1", "rdd-mode", "gen-0000000001.json")
 	legacy = filepath.Join(root, "review-transactions", "rar-authority", "v1", "rdd-mode", "gen-0000000001.json")
 	writeStoreResetFile(t, current, `{"schema":"gentle-ai.rdd-mode-override/v1","mode":"off"}`+"\n")
@@ -83,7 +83,7 @@ func stubStoreResetAcquireLease(t *testing.T, acquire func(ctx context.Context, 
 // administrative directory that registers it, linked the way Git links them.
 func seedStoreResetCandidateView(t *testing.T, repo, name string) (view, admin string) {
 	t.Helper()
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	view = filepath.Join(root, "candidate-views", name)
 	admin = filepath.Join(filepath.Dir(root), "worktrees", name)
 	writeStoreResetFile(t, filepath.Join(view, "README.md"), "checkout\n")
@@ -108,7 +108,7 @@ func storeResetEntryByName(t *testing.T, entries []StoreResetEntry, name string)
 // exactly where it found it.
 func TestSurveyReviewStoreReportsEveryCategoryWithoutMutating(t *testing.T) {
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	seedStoreResetLineage(t, repo, "review-settled", StateApproved)
 	writeStoreResetFile(t, filepath.Join(root, "candidate-views", "1a09d6f9", "README.md"), "checkout\n")
 	seedStoreResetKillSwitch(t, repo)
@@ -165,7 +165,7 @@ func TestSurveyReviewStoreCreatesNoStateOnACleanClone(t *testing.T) {
 			t.Fatalf("clean clone reported %q present", entry.Name)
 		}
 	}
-	if _, err := os.Lstat(storeResetGentleAIRoot(t, repo)); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Lstat(storeResetBrunnrRoot(t, repo)); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("survey created review state: %v", err)
 	}
 }
@@ -178,7 +178,7 @@ func TestResetReviewStoreRefusesWhileLineagesAreInFlight(t *testing.T) {
 	seedStoreResetLineage(t, repo, "review-settled", StateApproved)
 	seedStoreResetLineage(t, repo, "review-active", StateReviewing)
 	seedStoreResetLineage(t, repo, "review-correcting", StateCorrectionRequired)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 
 	report, err := ResetReviewStore(context.Background(), repo, StoreResetRequest{})
 	var inFlight *StoreResetInFlightError
@@ -218,7 +218,7 @@ func TestResetReviewStoreRefusesWhileLineagesAreInFlight(t *testing.T) {
 // the work.
 func TestResetReviewStoreUnreadableLineageCountsAsInFlight(t *testing.T) {
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	writeStoreResetFile(t, filepath.Join(root, "review-transactions", "v2", "review-damaged", "review-state.json"), "{not json\n")
 
 	_, err := ResetReviewStore(context.Background(), repo, StoreResetRequest{})
@@ -236,7 +236,7 @@ func TestResetReviewStoreUnreadableLineageCountsAsInFlight(t *testing.T) {
 // required and the store empties.
 func TestResetReviewStoreRemovesSettledLineagesWithoutAnOverride(t *testing.T) {
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	seedStoreResetLineage(t, repo, "review-approved", StateApproved)
 	seedStoreResetLineage(t, repo, "review-escalated", StateEscalated)
 	seedStoreResetLineage(t, repo, "review-invalidated", StateInvalidated)
@@ -277,7 +277,7 @@ func TestResetReviewStoreRemovesSettledLineagesWithoutAnOverride(t *testing.T) {
 // works once the user asks for it explicitly.
 func TestResetReviewStoreOverrideRemovesInFlightLineages(t *testing.T) {
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	seedStoreResetLineage(t, repo, "review-active", StateReviewing)
 
 	report, err := ResetReviewStore(context.Background(), repo, StoreResetRequest{IncludeInFlight: true})
@@ -320,7 +320,7 @@ func TestResetReviewStorePreservesTheKillSwitchInBothLocations(t *testing.T) {
 // and left alone, never guessed at.
 func TestResetReviewStorePreservesEverythingItDoesNotOwn(t *testing.T) {
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	seedStoreResetLineage(t, repo, "review-approved", StateApproved)
 	preserved := map[string]string{
 		"sdd-runtime":      filepath.Join(root, "sdd-runtime", "v1", "some-change", "HEAD"),
@@ -365,7 +365,7 @@ func TestResetReviewStorePreservesEverythingItDoesNotOwn(t *testing.T) {
 // the repository's worktree list pointing at nothing.
 func TestResetReviewStoreRemovesCandidateViewWorktreeAdminDirs(t *testing.T) {
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	commonDir := filepath.Dir(root)
 	view := filepath.Join(root, "candidate-views", "1a09d6f9")
 	admin := filepath.Join(commonDir, "worktrees", "1a09d6f9")
@@ -400,7 +400,7 @@ func TestResetReviewStoreRemovesReadOnlyCandidateViews(t *testing.T) {
 		t.Skip("root ignores the permission bits this test depends on")
 	}
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	view := filepath.Join(root, "candidate-views", "read-only-view")
 	writeStoreResetFile(t, filepath.Join(view, "nested", "file.txt"), "frozen\n")
 	for _, path := range []string{filepath.Join(view, "nested"), view} {
@@ -427,7 +427,7 @@ func TestResetReviewStoreRemovesReadOnlyCandidateViews(t *testing.T) {
 // count it as removed, and must not claim it succeeded.
 func TestResetReviewStoreReportsPartialFailureHonestly(t *testing.T) {
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	seedStoreResetLineage(t, repo, "review-approved", StateApproved)
 	writeStoreResetFile(t, filepath.Join(root, "candidate-views", "view", "README.md"), "checkout\n")
 
@@ -468,7 +468,7 @@ func TestResetReviewStoreReportsPartialFailureHonestly(t *testing.T) {
 // another.
 func TestResetReviewStoreLeavesNoStagingResidue(t *testing.T) {
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	seedStoreResetLineage(t, repo, "review-approved", StateApproved)
 
 	if _, err := ResetReviewStore(context.Background(), repo, StoreResetRequest{}); err != nil {
@@ -503,7 +503,7 @@ func TestResetReviewStoreLeavesNoStagingResidue(t *testing.T) {
 // strictly before the lease it is waiting for is free.
 func TestResetReviewStoreClassifiesLineagesUnderTheMaintenanceLease(t *testing.T) {
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	seedStoreResetLineageAt(t, root, "review-approved", StateApproved)
 
 	writer, err := acquireMaintenanceLock(context.Background(),
@@ -604,7 +604,7 @@ func TestResetReviewStoreReleasesTheLeaseAfterRefusing(t *testing.T) {
 // the report calls the category SKIPPED, meaning untouched.
 func TestResetReviewStoreRestoresWorktreeAdminDirsWhenTheCategoryCannotMove(t *testing.T) {
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	view, admin := seedStoreResetCandidateView(t, repo, "1a09d6f9")
 
 	stubStoreResetRename(t, func(oldpath, newpath string) error {
@@ -722,7 +722,7 @@ func stubStoreResetRemoveTree(t *testing.T, remove func(path string) error) {
 // report has to point at them.
 func TestResetReviewStoreKeepsWorktreeAdminDirsItCouldNotRestore(t *testing.T) {
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	firstView, firstAdmin := seedStoreResetCandidateView(t, repo, "view-a")
 	_, secondAdmin := seedStoreResetCandidateView(t, repo, "view-b")
 
@@ -790,7 +790,7 @@ func TestResetReviewStoreKeepsWorktreeAdminDirsItCouldNotRestore(t *testing.T) {
 // into keeping everything. A category that really was removed still goes.
 func TestResetReviewStoreStillClearsStagingAroundAnUnrestorableRegistration(t *testing.T) {
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	seedStoreResetLineage(t, repo, "review-approved", StateApproved)
 	seedStoreResetCandidateView(t, repo, "view-a")
 	seedStoreResetCandidateView(t, repo, "view-b")
@@ -928,7 +928,7 @@ func TestResetReviewStoreLeaseDeadlineTracksTheRealBound(t *testing.T) {
 
 	// And the bound the constant claims to track is the one that fires.
 	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
+	root := storeResetBrunnrRoot(t, repo)
 	seedStoreResetLineageAt(t, root, "review-approved", StateApproved)
 
 	ctx, cancel := context.WithTimeout(context.Background(), storeResetLockTimeout)

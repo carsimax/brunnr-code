@@ -29,7 +29,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	testHome, err := os.MkdirTemp("", "gentle-ai-reviewtransaction-test-home-*")
+	testHome, err := os.MkdirTemp("", "brunnr-code-reviewtransaction-test-home-*")
 	if err != nil {
 		panic(err)
 	}
@@ -1057,7 +1057,7 @@ func TestSnapshotTempIndexesAreRemovedAfterGitAddErrors(t *testing.T) {
 			if _, err := (SnapshotBuilder{Repo: repo}).Build(context.Background(), target); err == nil {
 				t.Fatal("Build() accepted an unsupported worktree entry")
 			}
-			matches, err := filepath.Glob(filepath.Join(tempDir, "gentle-ai-review-index-*"))
+			matches, err := filepath.Glob(filepath.Join(tempDir, "brunnr-code-review-index-*"))
 			if err != nil || len(matches) != 0 {
 				t.Fatalf("temporary indexes remain: %v, err=%v", matches, err)
 			}
@@ -2105,7 +2105,7 @@ func initSnapshotRepo(t *testing.T) string {
 
 func snapshotRepoTemplate() (string, error) {
 	snapshotRepoTemplateOnce.Do(func() {
-		template, err := os.MkdirTemp("", "gentle-ai-snapshot-repo-*")
+		template, err := os.MkdirTemp("", "brunnr-code-snapshot-repo-*")
 		if err != nil {
 			snapshotRepoTemplateErr = fmt.Errorf("create template directory: %w", err)
 			return

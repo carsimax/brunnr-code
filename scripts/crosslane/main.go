@@ -68,7 +68,7 @@ func run() int {
 		fmt.Fprintf(os.Stderr, "crosslane: %v\n", err)
 		return 2
 	}
-	workRoot, err := os.MkdirTemp("", "gentle-ai-crosslane-")
+	workRoot, err := os.MkdirTemp("", "brunnr-code-crosslane-")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "crosslane: %v\n", err)
 		return 2

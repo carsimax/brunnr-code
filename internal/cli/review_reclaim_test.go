@@ -13,7 +13,7 @@ import (
 func incompleteCompactResidueDir(t *testing.T, repo, lineage string) string {
 	t.Helper()
 	commonDir := filepath.Clean(strings.TrimSpace(runReviewCLIGit(t, repo, "rev-parse", "--path-format=absolute", "--git-common-dir")))
-	residue := filepath.Join(commonDir, "gentle-ai", "review-transactions", "v2", lineage)
+	residue := filepath.Join(commonDir, "brunnr-code", "review-transactions", "v2", lineage)
 	if err := os.MkdirAll(residue, 0o755); err != nil {
 		t.Fatal(err)
 	}

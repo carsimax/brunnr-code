@@ -17,7 +17,7 @@ import (
 // proves that a model reads a module when its pointer fires.
 
 const (
-	testModuleDir      = "~/.claude/gentle-ai/orchestrator"
+	testModuleDir      = "~/.claude/brunnr-code/orchestrator"
 	testModuleContract = "Fake native review execution contract for module tests."
 )
 
@@ -213,7 +213,7 @@ func TestOrchestratorModuleCoreKeepsCriticalPolicy(t *testing.T) {
 }
 
 func TestBuildOrchestratorModulesAcceptsNativeAbsoluteBinding(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), ".claude", "gentle-ai", "orchestrator")
+	dir := filepath.Join(t.TempDir(), ".claude", "brunnr-code", "orchestrator")
 	bundle, err := buildOrchestratorModules(model.AgentClaudeCode, fakeModuleContract, dir)
 	if err != nil {
 		t.Fatalf("buildOrchestratorModules(native absolute path) error = %v", err)
@@ -236,14 +236,14 @@ func TestBuildOrchestratorModulesRejectsUnsupportedBindings(t *testing.T) {
 		{"codex runtime", model.AgentCodex, testModuleDir, errOrchestratorModulesUnsupported},
 		{"empty binding", model.AgentClaudeCode, "", errInvalidOrchestratorModuleDir},
 		{"blank binding", model.AgentClaudeCode, "   ", errInvalidOrchestratorModuleDir},
-		{"project-relative binding", model.AgentClaudeCode, ".claude/gentle-ai/orchestrator", errInvalidOrchestratorModuleDir},
+		{"project-relative binding", model.AgentClaudeCode, ".claude/brunnr-code/orchestrator", errInvalidOrchestratorModuleDir},
 		{"dot-relative binding", model.AgentClaudeCode, "./orchestrator", errInvalidOrchestratorModuleDir},
 		{"drive-relative binding", model.AgentClaudeCode, `C:orchestrator`, errInvalidOrchestratorModuleDir},
-		{"root-relative Windows binding", model.AgentClaudeCode, `\.claude\gentle-ai\orchestrator`, errInvalidOrchestratorModuleDir},
-		{"padded Windows binding", model.AgentClaudeCode, ` C:\home\.claude\gentle-ai\orchestrator`, errInvalidOrchestratorModuleDir},
+		{"root-relative Windows binding", model.AgentClaudeCode, `\.claude\brunnr-code\orchestrator`, errInvalidOrchestratorModuleDir},
+		{"padded Windows binding", model.AgentClaudeCode, ` C:\home\.claude\brunnr-code\orchestrator`, errInvalidOrchestratorModuleDir},
 		{"backtick Windows binding", model.AgentClaudeCode, "C:\\home\\.claude\\`orchestrator`", errInvalidOrchestratorModuleDir},
 		{"current-volume binding", model.AgentClaudeCode, `\orchestrator`, errInvalidOrchestratorModuleDir},
-		{"import binding", model.AgentClaudeCode, "@~/.claude/gentle-ai/orchestrator", errInvalidOrchestratorModuleDir},
+		{"import binding", model.AgentClaudeCode, "@~/.claude/brunnr-code/orchestrator", errInvalidOrchestratorModuleDir},
 		{"multiline binding", model.AgentClaudeCode, "~/.claude\n/orchestrator", errInvalidOrchestratorModuleDir},
 		{"backtick binding", model.AgentClaudeCode, "~/.claude/`x`", errInvalidOrchestratorModuleDir},
 	} {

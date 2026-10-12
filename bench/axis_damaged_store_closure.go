@@ -323,7 +323,7 @@ func requireUnrelatedPredecessorByteIdentical(r *journeyRun) error {
 
 // reviewTransactionsBase resolves the same base directory
 // internal/reviewtransaction's reviewAuthorityRoot derives — the git common
-// directory's gentle-ai/review-transactions subtree — so ds11 can author a
+// directory's brunnr-code/review-transactions subtree — so ds11 can author a
 // crash-position quarantine state directly, exactly like this axis's other
 // fixtures author review-state.json directly (file doc comment above): this
 // state (a real forward-only resume mid-transaction) is unreachable through
@@ -333,7 +333,7 @@ func reviewTransactionsBase(sandbox *Sandbox) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(common, "gentle-ai", "review-transactions"), nil
+	return filepath.Join(common, "brunnr-code", "review-transactions"), nil
 }
 
 // requireForgedResumeMovedNothingFurther is fix cycle 1's CRITICAL-1

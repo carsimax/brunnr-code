@@ -19,7 +19,7 @@ import (
 // #5256 U1a: the private installer for the user-global Claude orchestrator
 // modules, driven only by the core transaction (commitPreparedOrchestratorCore)
 // for the explicit global opt-in and for uninstall. It owns only the module
-// files and their ledger under <Claude config dir>/gentle-ai/orchestrator; the
+// files and their ledger under <Claude config dir>/brunnr-code/orchestrator; the
 // core that points at them, its ownership and the cross-file ordering belong
 // to that transaction.
 //
@@ -44,7 +44,7 @@ import (
 
 // orchestratorModuleLedgerName records the bytes Brunnr-Code installed for each
 // module file, next to the modules.
-const orchestratorModuleLedgerName = ".gentle-ai-orchestrator-module-ownership.json"
+const orchestratorModuleLedgerName = ".brunnr-code-orchestrator-module-ownership.json"
 
 // orchestratorModuleLedger is the module ledger's own type, so JSON decode
 // errors name it; its layout is the shared managedownership ledger.
@@ -75,7 +75,7 @@ type orchestratorModuleInstall struct {
 
 // prepareOrchestratorModuleInstall plans installing modules under configDir,
 // the absolute Claude config directory. configDir may itself be or sit under
-// a symlink, as the atomic writer allows; the gentle-ai/orchestrator
+// a symlink, as the atomic writer allows; the brunnr-code/orchestrator
 // directories this installer owns must be real directories when present.
 //
 // A referenced module is written when absent or hash-owned by the ledger,
@@ -121,7 +121,7 @@ func prepareDesiredOrchestratorModules(configDir string, desired map[string][]by
 	if !filepath.IsAbs(configDir) {
 		return nil, fmt.Errorf("orchestrator module config directory %q is not absolute", configDir)
 	}
-	dir := filepath.Join(configDir, "gentle-ai", "orchestrator")
+	dir := filepath.Join(configDir, "brunnr-code", "orchestrator")
 	for _, path := range []string{filepath.Dir(dir), dir} {
 		info, err := os.Lstat(path)
 		if os.IsNotExist(err) {

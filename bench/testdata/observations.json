@@ -55,7 +55,7 @@
       "--cwd",
       "/SANDBOX/demo"
     ],
-    "stdout": "{\n  \"operation\": \"review/finalize\",\n  \"lineage_id\": \"review-9dc2bb05f350e857\",\n  \"state\": \"approved\",\n  \"action\": \"validate delivery with brunnr-code review validate --gate \\u003cgate\\u003e\",\n  \"store_revision\": \"sha256:8b966441d332a265a1aaa1e813d723645cf16c83c54f8b2a8fabe752031032d6\",\n  \"receipt_path\": \"/SANDBOX/demo/.git/gentle-ai/review-transactions/v2/review-9dc2bb05f350e857/review-receipt.json\"\n}",
+    "stdout": "{\n  \"operation\": \"review/finalize\",\n  \"lineage_id\": \"review-9dc2bb05f350e857\",\n  \"state\": \"approved\",\n  \"action\": \"validate delivery with brunnr-code review validate --gate \\u003cgate\\u003e\",\n  \"store_revision\": \"sha256:8b966441d332a265a1aaa1e813d723645cf16c83c54f8b2a8fabe752031032d6\",\n  \"receipt_path\": \"/SANDBOX/demo/.git/brunnr-code/review-transactions/v2/review-9dc2bb05f350e857/review-receipt.json\"\n}",
     "stderr": "",
     "exit_code": 0,
     "stdout_captured": true,

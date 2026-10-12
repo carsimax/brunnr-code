@@ -67,7 +67,7 @@ type orchestratorModuleBundle struct {
 
 // buildOrchestratorModules splits the rendered orchestrator of agent into a
 // core and on-demand modules referenced under moduleDir, a user-global
-// directory reference such as "~/.claude/gentle-ai/orchestrator".
+// directory reference such as "~/.claude/brunnr-code/orchestrator".
 func buildOrchestratorModules(agent model.AgentID, source ReviewContractSource, moduleDir string) (orchestratorModuleBundle, error) {
 	if agent != model.AgentClaudeCode {
 		return orchestratorModuleBundle{}, fmt.Errorf("build orchestrator modules for %q: %w", agent, errOrchestratorModulesUnsupported)

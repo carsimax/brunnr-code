@@ -307,7 +307,7 @@ func storeLineageDir(sandbox *Sandbox, lineage string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(common, "gentle-ai", "review-transactions", "v2", lineage), nil
+	return filepath.Join(common, "brunnr-code", "review-transactions", "v2", lineage), nil
 }
 
 // ---------------------------------------------------------------------------

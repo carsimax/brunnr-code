@@ -62,7 +62,7 @@ func requireNoReviewProcessTempResidue(t *testing.T, repo string) {
 				return err
 			}
 			name := entry.Name()
-			if strings.HasPrefix(name, ".gentle-ai-review-index-") || strings.HasPrefix(name, ".gentle-ai-frozen-git-") {
+			if strings.HasPrefix(name, ".brunnr-code-review-index-") || strings.HasPrefix(name, ".brunnr-code-frozen-git-") {
 				t.Errorf("review left a temporary Git artifact behind: %s", path)
 			}
 			return nil

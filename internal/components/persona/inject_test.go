@@ -202,7 +202,7 @@ func TestInjectClaudeHealDoesNotTouchNonPersonaContent(t *testing.T) {
 		t.Fatal("user content was erased — heal was too aggressive")
 	}
 	// Persona section must be appended.
-	if !strings.Contains(text, "<!-- gentle-ai:persona -->") {
+	if !strings.Contains(text, "<!-- brunnr-code:persona -->") {
 		t.Fatal("persona section not appended")
 	}
 }
@@ -536,8 +536,8 @@ func TestInjectCodexPreservesUserPrefaceContent(t *testing.T) {
 	if !strings.Contains(text, "Always answer in Spanish.") || !strings.Contains(text, "Keep PRs small.") {
 		t.Fatal("user-authored rules were stripped")
 	}
-	if strings.Count(text, "<!-- gentle-ai:persona -->") != 1 {
-		t.Fatalf("expected exactly 1 persona marker, got %d", strings.Count(text, "<!-- gentle-ai:persona -->"))
+	if strings.Count(text, "<!-- brunnr-code:persona -->") != 1 {
+		t.Fatalf("expected exactly 1 persona marker, got %d", strings.Count(text, "<!-- brunnr-code:persona -->"))
 	}
 }
 
@@ -605,8 +605,8 @@ func TestInjectCodexIsIdempotent(t *testing.T) {
 		t.Fatalf("ReadFile() error = %v", err)
 	}
 	text := string(content)
-	if strings.Count(text, "<!-- gentle-ai:persona -->") != 1 {
-		t.Fatalf("expected exactly 1 persona marker after re-injection, got %d", strings.Count(text, "<!-- gentle-ai:persona -->"))
+	if strings.Count(text, "<!-- brunnr-code:persona -->") != 1 {
+		t.Fatalf("expected exactly 1 persona marker after re-injection, got %d", strings.Count(text, "<!-- brunnr-code:persona -->"))
 	}
 	if strings.Count(text, "Senior Architect") != 1 {
 		t.Fatalf("expected persona content exactly once after re-injection, got %d occurrences", strings.Count(text, "Senior Architect"))
@@ -627,8 +627,8 @@ func TestInjectCodexNeutralFreshInstallWrapsPersonaInMarkers(t *testing.T) {
 		t.Fatalf("ReadFile() error = %v", err)
 	}
 	text := string(content)
-	if strings.Count(text, "<!-- gentle-ai:persona -->") != 1 {
-		t.Fatalf("expected exactly 1 persona marker, got %d", strings.Count(text, "<!-- gentle-ai:persona -->"))
+	if strings.Count(text, "<!-- brunnr-code:persona -->") != 1 {
+		t.Fatalf("expected exactly 1 persona marker, got %d", strings.Count(text, "<!-- brunnr-code:persona -->"))
 	}
 	if !strings.Contains(text, assets.MustRead("generic/persona-neutral.md")) {
 		t.Fatal("neutral persona content missing from managed section")

@@ -11,13 +11,13 @@ func TestDirDefaultsToDotGentleAIUnderHome(t *testing.T) {
 	t.Setenv(HomeEnv, "")
 	home := t.TempDir()
 
-	if got, want := Dir(home), filepath.Join(home, ".gentle-ai"); got != want {
+	if got, want := Dir(home), filepath.Join(home, ".brunnr-code"); got != want {
 		t.Fatalf("Dir() = %q, want %q", got, want)
 	}
-	if got, want := Path(home), filepath.Join(home, ".gentle-ai", "state.json"); got != want {
+	if got, want := Path(home), filepath.Join(home, ".brunnr-code", "state.json"); got != want {
 		t.Fatalf("Path() = %q, want %q", got, want)
 	}
-	if got, want := ManifestPath(home), filepath.Join(home, ".gentle-ai", "managed-assets.manifest.json"); got != want {
+	if got, want := ManifestPath(home), filepath.Join(home, ".brunnr-code", "managed-assets.manifest.json"); got != want {
 		t.Fatalf("ManifestPath() = %q, want %q", got, want)
 	}
 	if err := ValidateHomeEnv(); err != nil {
@@ -48,8 +48,8 @@ func TestHomeEnvRoutesStateAndManifestFiles(t *testing.T) {
 			t.Fatalf("%s not written under %s: %v", name, HomeEnv, err)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(home, ".gentle-ai")); !os.IsNotExist(err) {
-		t.Fatalf("~/.gentle-ai must not be created when %s is set (stat err = %v)", HomeEnv, err)
+	if _, err := os.Stat(filepath.Join(home, ".brunnr-code")); !os.IsNotExist(err) {
+		t.Fatalf("~/.brunnr-code must not be created when %s is set (stat err = %v)", HomeEnv, err)
 	}
 }
 

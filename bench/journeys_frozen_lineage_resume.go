@@ -62,7 +62,7 @@ func frozenAuthorityInventory(r *journeyRun) ([]byte, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	root := filepath.Join(strings.TrimSpace(common), "gentle-ai", "review-transactions", "v2")
+	root := filepath.Join(strings.TrimSpace(common), "brunnr-code", "review-transactions", "v2")
 	entries, err := os.ReadDir(root)
 	if err != nil {
 		return nil, 0, err

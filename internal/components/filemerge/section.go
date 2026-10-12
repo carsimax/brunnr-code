@@ -20,9 +20,9 @@ func ExtractHTMLCommentSection(content, name string) string {
 }
 
 const (
-	markerPrefix = "<!-- gentle-ai:"
+	markerPrefix = "<!-- brunnr-code:"
 	markerSuffix = " -->"
-	closePrefix  = "<!-- /gentle-ai:"
+	closePrefix  = "<!-- /brunnr-code:"
 )
 
 // openMarker returns the opening marker for a section ID.
@@ -84,7 +84,7 @@ func stripOrphanMarkers(content, open, close string) string {
 }
 
 // InjectMarkdownSection replaces or appends a marked section in a markdown file.
-// Markers use HTML comments: <!-- gentle-ai:SECTION_ID --> ... <!-- /gentle-ai:SECTION_ID -->
+// Markers use HTML comments: <!-- brunnr-code:SECTION_ID --> ... <!-- /brunnr-code:SECTION_ID -->
 // If the section already exists, its content is replaced.
 // If it doesn't exist, it's appended at the end.
 // Content outside markers is never touched.

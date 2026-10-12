@@ -22,7 +22,7 @@ const (
 	manifestFileName = "managed-assets.manifest.json"
 	journalFileName  = "managed-assets.journal"
 	journalCapBytes  = 1 << 20 // 1 MiB
-	StateDirName     = ".gentle-ai"
+	StateDirName     = ".brunnr-code"
 )
 
 // Producer is the binary identity that wrote a manifest.

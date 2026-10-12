@@ -47,7 +47,7 @@ type stagedFile interface {
 // createStagedFile stages a replacement in dir. Package-level var for the fault
 // injection described on stagedFile.
 var createStagedFile = func(dir string) (stagedFile, error) {
-	return os.CreateTemp(dir, ".gentle-ai-*.tmp")
+	return os.CreateTemp(dir, ".brunnr-code-*.tmp")
 }
 
 var syncDirFn = func(dir string) error {

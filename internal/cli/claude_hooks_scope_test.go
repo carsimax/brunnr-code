@@ -76,8 +76,8 @@ func TestInstallClaudeHooksRollbackWithoutPersona(t *testing.T) {
 					t.Error("install/rollback changed opposite-scope settings")
 				}
 				// Backups are expected, but no install state may be published on failure.
-				statePath := filepath.Join(home, ".gentle-ai", "state.json")
-				if _, exists := before[filepath.Join(".gentle-ai", "state.json")]; !exists {
+				statePath := filepath.Join(home, ".brunnr-code", "state.json")
+				if _, exists := before[filepath.Join(".brunnr-code", "state.json")]; !exists {
 					if _, err := os.Stat(statePath); !os.IsNotExist(err) {
 						t.Errorf("failed install published state: %v", err)
 					}

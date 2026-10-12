@@ -54,7 +54,7 @@ func (adapter *ClaudeAdapter) Review(ctx context.Context, invocation Invocation)
 		return nil, fmt.Errorf("claude reviewer transport unavailable: %w", err)
 	}
 
-	scratch, err := os.MkdirTemp("", "gentle-ai-claude-reviewer-*")
+	scratch, err := os.MkdirTemp("", "brunnr-code-claude-reviewer-*")
 	if err != nil {
 		return nil, fmt.Errorf("claude reviewer transport unavailable: create scratch directory: %w", err)
 	}

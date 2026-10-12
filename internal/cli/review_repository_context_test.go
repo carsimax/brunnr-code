@@ -389,7 +389,7 @@ func TestNegotiatedStartPublishesStableOpaqueRepositoryContext(t *testing.T) {
 		!strings.HasPrefix(started.RepositoryContext.Handle, "rctx2_") || !validReviewCapabilitySHA256(started.RepositoryContext.Revision) {
 		t.Fatalf("START emitted legacy or invalid repository context = %#v", started.RepositoryContext)
 	}
-	if _, err := os.Stat(filepath.Join(os.Getenv("HOME"), ".gentle-ai", "review-contexts")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(os.Getenv("HOME"), ".brunnr-code", "review-contexts")); !os.IsNotExist(err) {
 		t.Fatalf("START persisted a retired repository-context locator: %v", err)
 	}
 	if bytes.Contains(first.Bytes(), []byte(repo)) || bytes.Contains(first.Bytes(), []byte(filepath.Join(repo, ".git"))) {

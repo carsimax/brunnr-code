@@ -766,7 +766,7 @@ func authorityRepairRoot(root string) (string, string, error) {
 	}
 	sum := sha256.Sum256([]byte("gentle-ai.review-repository-binding/v1\n" + common))
 	binding := "sha256:" + hex.EncodeToString(sum[:])
-	return filepath.Join(common, "gentle-ai", "review-transactions"), binding, nil
+	return filepath.Join(common, GitCommonDirName, "review-transactions"), binding, nil
 }
 
 func (assessment AuthorityRepairAssessment) Validate() error {

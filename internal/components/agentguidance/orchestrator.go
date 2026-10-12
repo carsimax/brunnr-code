@@ -385,8 +385,8 @@ func migrateLegacyOrchestratorSection(existing string) string {
 	return filemerge.InjectMarkdownSection(existing, legacyOrchestratorSectionID, "")
 }
 
-func managedOpenMarker(sectionID string) string  { return "<!-- gentle-ai:" + sectionID + " -->" }
-func managedCloseMarker(sectionID string) string { return "<!-- /gentle-ai:" + sectionID + " -->" }
+func managedOpenMarker(sectionID string) string  { return "<!-- brunnr-code:" + sectionID + " -->" }
+func managedCloseMarker(sectionID string) string { return "<!-- /brunnr-code:" + sectionID + " -->" }
 
 // lineStartIndex returns the first index of needle that starts a line.
 func lineStartIndex(content, needle string) int {

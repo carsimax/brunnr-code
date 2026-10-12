@@ -293,11 +293,11 @@ func quarantineCompactStoreEntry(ctx context.Context, base, dir string, record C
 // before a quarantine operation can create, inspect, or rename inside them.
 func ensureCanonicalReviewQuarantineRoot(base, quarantineRoot string) error {
 	commonDir := filepath.Dir(filepath.Dir(base))
-	if filepath.Clean(base) != filepath.Join(commonDir, "gentle-ai", "review-transactions") ||
+	if filepath.Clean(base) != filepath.Join(commonDir, GitCommonDirName, "review-transactions") ||
 		filepath.Clean(quarantineRoot) != filepath.Join(base, "quarantine") {
 		return errors.New("review quarantine refused noncanonical authority root")
 	}
-	for _, component := range []string{"gentle-ai", "review-transactions", "quarantine"} {
+	for _, component := range []string{GitCommonDirName, "review-transactions", "quarantine"} {
 		path := filepath.Join(commonDir, component)
 		if component == "review-transactions" {
 			path = base

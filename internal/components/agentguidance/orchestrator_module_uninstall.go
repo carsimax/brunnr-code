@@ -66,7 +66,7 @@ func claudeGlobalModuleLedger(homeDir string) (configDir string, present bool, e
 	if !filepath.IsAbs(configDir) {
 		return "", false, fmt.Errorf("%w: Claude global modules need an absolute config dir, got %q", ErrInvalidTarget, configDir)
 	}
-	_, err = os.Lstat(filepath.Join(configDir, "gentle-ai", "orchestrator", orchestratorModuleLedgerName))
+	_, err = os.Lstat(filepath.Join(configDir, "brunnr-code", "orchestrator", orchestratorModuleLedgerName))
 	// ENOTDIR: a user file sits where a module directory would be, so no ledger.
 	if os.IsNotExist(err) || errors.Is(err, syscall.ENOTDIR) {
 		return configDir, false, nil

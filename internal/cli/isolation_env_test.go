@@ -18,12 +18,12 @@ func TestBackupRootsHonorGentleAIHome(t *testing.T) {
 		name     string
 		override bool
 	}{
-		{name: "default stays under ~/.gentle-ai"},
+		{name: "default stays under ~/.brunnr-code"},
 		{name: "GENTLE_AI_HOME moves backups", override: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			home := t.TempDir()
-			want := filepath.Join(home, ".gentle-ai", "backups")
+			want := filepath.Join(home, ".brunnr-code", "backups")
 			t.Setenv(state.HomeEnv, "")
 			if tt.override {
 				override := filepath.Join(t.TempDir(), "brunnr-code")
@@ -53,8 +53,8 @@ func TestBackupRootsHonorGentleAIHome(t *testing.T) {
 				t.Fatalf("restore backupRootDir() = %q, want %q", got, want)
 			}
 			if tt.override {
-				if _, err := os.Stat(filepath.Join(home, ".gentle-ai")); !os.IsNotExist(err) {
-					t.Fatalf("~/.gentle-ai created despite %s (stat err = %v)", state.HomeEnv, err)
+				if _, err := os.Stat(filepath.Join(home, ".brunnr-code")); !os.IsNotExist(err) {
+					t.Fatalf("~/.brunnr-code created despite %s (stat err = %v)", state.HomeEnv, err)
 				}
 			}
 		})

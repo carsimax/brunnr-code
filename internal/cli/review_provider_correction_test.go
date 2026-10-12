@@ -79,7 +79,7 @@ func rejectedResultsDir(t *testing.T, repo, lineage string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return filepath.Join(lease.Identity().GitCommonDir, "gentle-ai", reviewRejectedResultDirName, lineage)
+	return filepath.Join(lease.Identity().GitCommonDir, "brunnr-code", reviewRejectedResultDirName, lineage)
 }
 
 func readRejectedResults(t *testing.T, dir string) map[string]reviewRejectedResultEnvelope {

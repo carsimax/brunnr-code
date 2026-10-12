@@ -70,7 +70,7 @@ func snapshotAuthorityTree(t *testing.T, root string) string {
 // validate` gates  — with the
 // kill switch off, twice against the identical fixture (same-fixture
 // double-eval), and proves the entire
-// .git/gentle-ai subtree is byte-identical before and after each pass.
+// .git/brunnr-code subtree is byte-identical before and after each pass.
 func TestNewLineageKillSwitchOffProducesZeroSideEffectsAcrossEntrySurfaces(t *testing.T) {
 	reviewModeHome(t)
 	repo := initReviewCLIRepo(t)
@@ -80,7 +80,7 @@ func TestNewLineageKillSwitchOffProducesZeroSideEffectsAcrossEntrySurfaces(t *te
 	runReviewCLIGit(t, repo, "add", "tracked.txt")
 	disableReviewForClone(t, repo)
 
-	authorityRoot := filepath.Join(repo, ".git", "gentle-ai")
+	authorityRoot := filepath.Join(repo, ".git", "brunnr-code")
 	runFullPass := func(pass string) {
 		before := snapshotAuthorityTree(t, authorityRoot)
 		for _, gate := range []reviewtransaction.GateKind{
@@ -109,7 +109,7 @@ func TestNewLineageKillSwitchOffProducesZeroSideEffectsAcrossEntrySurfaces(t *te
 
 		after := snapshotAuthorityTree(t, authorityRoot)
 		if before != after {
-			t.Fatalf("%s: .git/gentle-ai changed while the kill switch was off:\nbefore:\n%s\nafter:\n%s", pass, before, after)
+			t.Fatalf("%s: .git/brunnr-code changed while the kill switch was off:\nbefore:\n%s\nafter:\n%s", pass, before, after)
 		}
 	}
 

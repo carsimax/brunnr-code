@@ -288,7 +288,7 @@ func TestReviewStatusValidatesStartOptionsLikeStart(t *testing.T) {
 		{"without next transition", []string{"--next-transition=false", "--request-context", requestPath}, "require --next-transition"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			before := reviewStartPreflightSideEffects(t, filepath.Join(repo, ".git", "gentle-ai"), home)
+			before := reviewStartPreflightSideEffects(t, filepath.Join(repo, ".git", "brunnr-code"), home)
 			var output bytes.Buffer
 			err := RunReview(append([]string{"status", "--contract", ReviewIntegrationContractV2, "--cwd", repo, "--next-transition"}, tt.args...), &output)
 			if err == nil {
@@ -299,7 +299,7 @@ func TestReviewStatusValidatesStartOptionsLikeStart(t *testing.T) {
 				failure.MutationOutcome != ReviewMutationNotStarted || !strings.Contains(failure.Cause, tt.want) {
 				t.Fatalf("STATUS preflight failure = %#v, want cause %q", failure, tt.want)
 			}
-			if after := reviewStartPreflightSideEffects(t, filepath.Join(repo, ".git", "gentle-ai"), home); !reflect.DeepEqual(after, before) {
+			if after := reviewStartPreflightSideEffects(t, filepath.Join(repo, ".git", "brunnr-code"), home); !reflect.DeepEqual(after, before) {
 				t.Fatalf("refused STATUS preflight wrote state:\nbefore=%v\nafter=%v", before, after)
 			}
 		})
@@ -330,7 +330,7 @@ func TestReviewStatusRefusesStartOptionsWithoutAFreshStart(t *testing.T) {
 			t.Fatal(negotiatedReviewStartFailure(err, output.String()))
 		}
 		record := loadRequestContextRecord(t, repo, "preflight-existing")
-		before := reviewStartPreflightSideEffects(t, filepath.Join(repo, ".git", "gentle-ai"), home)
+		before := reviewStartPreflightSideEffects(t, filepath.Join(repo, ".git", "brunnr-code"), home)
 		_, payload, err := runStartPreflightStatus(t, ReviewIntegrationContractV2, repo, "--lineage", "preflight-existing",
 			"--escalate-item", "2", "--escalate-reason", escalationReasonFixture)
 		if err == nil {
@@ -344,7 +344,7 @@ func TestReviewStatusRefusesStartOptionsWithoutAFreshStart(t *testing.T) {
 		if after := loadRequestContextRecord(t, repo, "preflight-existing"); after.Revision != record.Revision {
 			t.Fatal("a refused STATUS preflight rewrote the lineage")
 		}
-		if after := reviewStartPreflightSideEffects(t, filepath.Join(repo, ".git", "gentle-ai"), home); !reflect.DeepEqual(after, before) {
+		if after := reviewStartPreflightSideEffects(t, filepath.Join(repo, ".git", "brunnr-code"), home); !reflect.DeepEqual(after, before) {
 			t.Fatalf("refused STATUS preflight wrote state:\nbefore=%v\nafter=%v", before, after)
 		}
 		if _, _, err := runStartPreflightStatus(t, ReviewIntegrationContractV2, repo, "--lineage", "preflight-existing"); err != nil {

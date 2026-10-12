@@ -129,7 +129,7 @@ func HasManagedCodeGraphGuidance(homeDir string) bool {
 		if err != nil {
 			continue
 		}
-		if strings.Contains(string(data), "<!-- gentle-ai:"+codeGraphGuidanceSectionID+" -->") {
+		if strings.Contains(string(data), "<!-- brunnr-code:"+codeGraphGuidanceSectionID+" -->") {
 			return true
 		}
 	}
@@ -506,7 +506,7 @@ func hasCodeGraphGuidance(path string) bool {
 		return false
 	}
 	content := strings.ToLower(string(data))
-	return strings.Contains(content, "gentle-ai:"+codeGraphGuidanceSectionID) ||
+	return strings.Contains(content, "brunnr-code:"+codeGraphGuidanceSectionID) ||
 		(strings.Contains(content, "codegraph") && strings.Contains(content, "brunnr-code codegraph init --cwd <project-root>"))
 }
 

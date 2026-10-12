@@ -206,7 +206,7 @@ func TestAdapterSubAgentsStayFalse(t *testing.T) {
 // TestAdapterSystemPromptStrategyStaysFileReplaceForMarkerPersona pins the
 // #981 fix contract: Codex keeps StrategyFileReplace (the strategy other
 // components switch on), while the persona component special-cases
-// model.AgentCodex to wrap the persona in a <!-- gentle-ai:persona --> marker
+// model.AgentCodex to wrap the persona in a <!-- brunnr-code:persona --> marker
 // section inside ~/.codex/AGENTS.md instead of letting it own the whole file.
 // Flipping the strategy or the agent ID would silently change which injection
 // path Codex takes — e.g. falling back to the generic whole-file replace.

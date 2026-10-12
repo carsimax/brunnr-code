@@ -22,7 +22,7 @@ func temporaryUserHome(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	home, err := os.MkdirTemp(root, ".gentle-ai-compatibility-test-")
+	home, err := os.MkdirTemp(root, ".brunnr-code-compatibility-test-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestRunSyncDryRunMatchesZeroAgentCompatibilityRefresh(t *testing.T) {
 	if err != nil || dryRun.NoOp || !slices.ContainsFunc(dryRun.Plan.Apply, func(step pipeline.Step) bool { return step.ID() == "sync:compatibility-skills-refresh" }) {
 		t.Fatalf("compatibility refresh plan missing without agents: no-op=%t, err=%v", dryRun.NoOp, err)
 	}
-	backupRoot := filepath.Join(home, ".gentle-ai", "backups")
+	backupRoot := filepath.Join(home, ".brunnr-code", "backups")
 	if _, statErr := os.Stat(backupRoot); !os.IsNotExist(statErr) {
 		t.Fatalf("agentless compatibility dry-run created backup root %q: %v", backupRoot, statErr)
 	}

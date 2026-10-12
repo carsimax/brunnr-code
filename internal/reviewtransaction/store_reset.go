@@ -15,7 +15,7 @@ import (
 
 // Clone-scoped review store reset.
 //
-// Review authority accumulates without bound under <git-common-dir>/gentle-ai:
+// Review authority accumulates without bound under <git-common-dir>/brunnr-code:
 // every candidate leaves a lineage behind, every lineage stays after delivery,
 // and nothing removes a delivered one. `review abandon` refuses terminal
 // states and `review reclaim` refuses any entry holding authoritative
@@ -103,7 +103,7 @@ var storeResetRemoveTree = os.RemoveAll
 // after the lease is held.
 var storeResetAcquireLease = AcquireReviewMaintenanceExclusive
 
-// storeResetTarget names one path under <git-common-dir>/gentle-ai and why it
+// storeResetTarget names one path under <git-common-dir>/brunnr-code and why it
 // is in the list it is in. The reason is not decoration: this command destroys
 // data, and every entry it touches or spares has to be able to justify itself
 // to the person reading the preview.
@@ -296,7 +296,7 @@ func (err *StoreResetIncompleteError) Error() string {
 	return message
 }
 
-// storeResetRoot resolves <git-common-dir>/gentle-ai for one clone.
+// storeResetRoot resolves <git-common-dir>/brunnr-code for one clone.
 //
 // It deliberately does not apply the receipt-driven-development gate. The kill
 // switch decides whether reviews happen; it does not decide whether a user may
@@ -310,7 +310,7 @@ func storeResetRoot(ctx context.Context, repo string) (root, repository string, 
 		return "", "", err
 	}
 	identity := lease.Identity()
-	return filepath.Join(identity.GitCommonDir, "gentle-ai"), identity.RepositoryRoot, nil
+	return filepath.Join(identity.GitCommonDir, GitCommonDirName), identity.RepositoryRoot, nil
 }
 
 // SurveyReviewStore reports what a reset would remove without touching

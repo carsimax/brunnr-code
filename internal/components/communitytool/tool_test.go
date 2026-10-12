@@ -324,7 +324,7 @@ func TestCodeGraphGuidanceInjectsForRepresentativeAgents(t *testing.T) {
 			t.Fatalf("ReadFile(%q) error = %v", path, err)
 		}
 		text := string(content)
-		if !strings.Contains(text, "<!-- gentle-ai:codegraph-guidance -->") || !strings.Contains(text, "brunnr-code codegraph init --cwd <project-root>") {
+		if !strings.Contains(text, "<!-- brunnr-code:codegraph-guidance -->") || !strings.Contains(text, "brunnr-code codegraph init --cwd <project-root>") {
 			t.Fatalf("%q missing CodeGraph guidance:\n%s", path, text)
 		}
 	}
@@ -373,9 +373,9 @@ func TestDetectStatusReportsCLIAndPerAgentWiring(t *testing.T) {
 	mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph"}}}`)
 	mustWrite(t, filepath.Join(home, ".claude", "CLAUDE.md"), strings.Join([]string{
 		"existing Claude guidance",
-		"<!-- gentle-ai:codegraph-guidance -->",
+		"<!-- brunnr-code:codegraph-guidance -->",
 		"CodeGraph guidance with `brunnr-code codegraph init --cwd <project-root>`",
-		"<!-- /gentle-ai:codegraph-guidance -->",
+		"<!-- /brunnr-code:codegraph-guidance -->",
 	}, "\n"))
 
 	status := DetectStatus(model.CommunityToolCodeGraph, home, DetectorFunc(func(name string) (string, error) {

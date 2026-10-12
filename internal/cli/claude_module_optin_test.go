@@ -178,7 +178,7 @@ func TestClaudeModuleOptInCreatesPilotAndKeepsItOnRerun(t *testing.T) {
 
 	// The pre-install snapshot planned all nine paths, recording the absent
 	// ones, so restoring it removes the pilot again.
-	manifests, err := filepath.Glob(filepath.Join(home, ".gentle-ai", "backups", "*", backup.ManifestFilename))
+	manifests, err := filepath.Glob(filepath.Join(home, ".brunnr-code", "backups", "*", backup.ManifestFilename))
 	if err != nil || len(manifests) != 1 {
 		t.Fatalf("install snapshots = %v, %v; want exactly one", manifests, err)
 	}

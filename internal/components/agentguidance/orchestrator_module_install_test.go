@@ -26,7 +26,7 @@ func moduleInstallFixture(t *testing.T) (base, configDir, dir string, modules []
 	}
 	base = t.TempDir()
 	configDir = filepath.Join(base, "claude")
-	return base, configDir, filepath.Join(configDir, "gentle-ai", "orchestrator"), modules
+	return base, configDir, filepath.Join(configDir, "brunnr-code", "orchestrator"), modules
 }
 
 func writeModuleTestFile(t *testing.T, path, content string, mode fs.FileMode) {
@@ -171,7 +171,7 @@ func TestOrchestratorModuleInstallStagesThenFinalizesLedger(t *testing.T) {
 			if err := install.finalize(); err == nil {
 				t.Fatal("finalize before stage succeeded")
 			}
-			if _, err := os.Lstat(filepath.Join(configDir, "gentle-ai")); !os.IsNotExist(err) {
+			if _, err := os.Lstat(filepath.Join(configDir, "brunnr-code")); !os.IsNotExist(err) {
 				t.Fatalf("prepare or early finalize created directories: %v", err)
 			}
 			if err := install.stage(); err != nil {

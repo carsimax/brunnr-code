@@ -20,6 +20,10 @@ import (
 
 const RecordSchema = "gentle-ai.review-record/v1"
 
+// GitCommonDirName names the directory under <git-common-dir> that holds
+// every piece of Brunnr-Code review authority for one clone.
+const GitCommonDirName = "brunnr-code"
+
 var ErrConcurrentUpdate = errors.New("review transaction changed concurrently")
 var ErrInvalidSuccessor = errors.New("review transaction successor is invalid")
 
@@ -160,7 +164,7 @@ func reviewAuthorityRoot(ctx context.Context, repo string) (string, string, erro
 	if err != nil {
 		return "", "", fmt.Errorf("resolve repository Git identity: %w", err)
 	}
-	authorityRoot := filepath.Join(identity.GitCommonDir, "gentle-ai", "review-transactions")
+	authorityRoot := filepath.Join(identity.GitCommonDir, GitCommonDirName, "review-transactions")
 	return authorityRoot, identity.RepositoryRoot, nil
 }
 

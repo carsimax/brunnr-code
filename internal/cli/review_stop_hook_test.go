@@ -110,7 +110,7 @@ func decodeReviewStopHookResult(t *testing.T, stdout []byte) reviewStopHookOutpu
 }
 
 func reviewStopHookStateFile(home, sessionID string) string {
-	return filepath.Join(home, ".gentle-ai", "review-stop-hook", "v1", sessionID+".json")
+	return filepath.Join(home, ".brunnr-code", "review-stop-hook", "v1", sessionID+".json")
 }
 
 func TestReviewStopHookFailedWriteDoesNotPersistReminder(t *testing.T) {
@@ -304,7 +304,7 @@ func TestReviewStopHookInvalidSessionIDRemindsWithoutPersisting(t *testing.T) {
 	if decodeReviewStopHookResult(t, stdout.Bytes()).Decision != "block" {
 		t.Fatalf("invalid session id should still remind: %s", stdout.String())
 	}
-	dir := filepath.Join(home, ".gentle-ai", "review-stop-hook", "v1")
+	dir := filepath.Join(home, ".brunnr-code", "review-stop-hook", "v1")
 	entries, err := os.ReadDir(dir)
 	if err != nil && !os.IsNotExist(err) {
 		t.Fatal(err)

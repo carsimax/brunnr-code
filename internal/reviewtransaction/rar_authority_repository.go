@@ -223,7 +223,7 @@ func OpenRARAuthorityRepositoryWithRepositoryIdentityLease(
 	identity := reviewRepositoryIdentityRecordFromLease(lease)
 	root := filepath.Join(
 		identity.GitCommonDir,
-		"gentle-ai",
+		GitCommonDirName,
 		"review-transactions",
 		rarAuthorityDirectory,
 		rarAuthorityVersion,
@@ -568,7 +568,7 @@ func (repository *RARAuthorityRepository) validateIdentity(ctx context.Context) 
 	}
 	wantRoot := filepath.Join(
 		live.GitCommonDir,
-		"gentle-ai",
+		GitCommonDirName,
 		"review-transactions",
 		rarAuthorityDirectory,
 		rarAuthorityVersion,

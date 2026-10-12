@@ -1,4 +1,4 @@
-<!-- gentle-ai:engram-protocol -->
+<!-- brunnr-code:engram-protocol -->
 ## Engram Persistent Memory
 
 Engram persistent memory is ACTIVE. The full protocol (save format, lifecycle,
@@ -38,4 +38,4 @@ MCP server instructions and the SessionStart hook. Always-on rules:
   from `available_projects`, then retry the write tool with `project`,
   `project_choice_reason=user_selected_after_ambiguous_project`, and the
   returned `recovery_token`.
-<!-- /gentle-ai:engram-protocol -->
+<!-- /brunnr-code:engram-protocol -->

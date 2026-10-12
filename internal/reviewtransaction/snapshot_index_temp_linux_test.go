@@ -83,7 +83,7 @@ func TestSnapshotIndexTemporaryPlacementAndCleanup(t *testing.T) {
 					t.Fatal("owned scratch directory/lock survived cleanup")
 				}
 			} else {
-				if filepath.Dir(path) != gitDir || !strings.HasPrefix(filepath.Base(path), ".gentle-ai-review-index-") {
+				if filepath.Dir(path) != gitDir || !strings.HasPrefix(filepath.Base(path), ".brunnr-code-review-index-") {
 					t.Fatal("restricted process temporaries lost the Git-local fallback")
 				}
 				cleanup()

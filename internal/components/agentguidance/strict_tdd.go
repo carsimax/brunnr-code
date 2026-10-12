@@ -37,7 +37,7 @@ func InjectStrictTDDWithOptions(targetDir string, agent model.AgentID, enabled b
 		return Result{}, err
 	}
 	exists := err == nil
-	if !enabled && (!exists || !strings.Contains(string(current), "<!-- gentle-ai:strict-tdd-mode -->")) {
+	if !enabled && (!exists || !strings.Contains(string(current), "<!-- brunnr-code:strict-tdd-mode -->")) {
 		return Result{}, nil
 	}
 	content := strictTDDContent

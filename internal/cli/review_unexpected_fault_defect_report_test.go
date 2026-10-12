@@ -32,7 +32,7 @@ func reviewDefectReportDir(t *testing.T, repo string) string {
 	if !filepath.IsAbs(commonDir) {
 		commonDir = filepath.Join(repo, commonDir)
 	}
-	return filepath.Join(commonDir, "gentle-ai", reviewDefectReportDirName)
+	return filepath.Join(commonDir, "brunnr-code", reviewDefectReportDirName)
 }
 
 // injectReviewStartFault forces an unanticipated internal fault at the
@@ -133,10 +133,10 @@ func TestDefectReportSaveFailureNeverMasksTheEnvelopeOrError(t *testing.T) {
 	if !filepath.IsAbs(commonDir) {
 		commonDir = filepath.Join(repo, commonDir)
 	}
-	if err := os.MkdirAll(filepath.Join(commonDir, "gentle-ai"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(commonDir, "brunnr-code"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(commonDir, "gentle-ai", reviewDefectReportDirName), []byte("occupied"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(commonDir, "brunnr-code", reviewDefectReportDirName), []byte("occupied"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 

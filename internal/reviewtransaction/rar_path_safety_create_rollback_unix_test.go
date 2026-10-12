@@ -180,7 +180,7 @@ func TestCreatePrivateRARDirectoryNeverRepairsADirectoryHoldingState(t *testing.
 // process restart could not see.
 func TestEnsureRARDirectoryChainRepairsAPreExistingPrivateDirectory(t *testing.T) {
 	commonDir := resolvedTempDir(t)
-	privateParent := filepath.Join(commonDir, "gentle-ai", "review-transactions", rarAuthorityDirectory)
+	privateParent := filepath.Join(commonDir, "brunnr-code", "review-transactions", rarAuthorityDirectory)
 	root := filepath.Join(privateParent, rarAuthorityVersion)
 	// The parent is pre-created already owner-only, exactly as a prior,
 	// successful run of this same chain would leave it -- an intermediate
@@ -218,7 +218,7 @@ func TestEnsureRARDirectoryChainRepairsAPreExistingPrivateDirectory(t *testing.T
 // trust bypass.
 func TestEnsureRARDirectoryChainStillRefusesAnUnrepairablePreExistingDirectory(t *testing.T) {
 	commonDir := resolvedTempDir(t)
-	privateParent := filepath.Join(commonDir, "gentle-ai", "review-transactions", rarAuthorityDirectory)
+	privateParent := filepath.Join(commonDir, "brunnr-code", "review-transactions", rarAuthorityDirectory)
 	root := filepath.Join(privateParent, rarAuthorityVersion)
 	if err := os.MkdirAll(privateParent, 0o700); err != nil {
 		t.Fatal(err)

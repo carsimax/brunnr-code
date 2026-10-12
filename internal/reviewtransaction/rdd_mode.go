@@ -273,7 +273,7 @@ func (err *RDDModePartialApplyError) Error() string {
 		decision, verb = "disables", "disable"
 	}
 	return fmt.Sprintf(
-		"%v: this clone %s receipt-driven development for this brunnr-code, but publishing the same decision under gentle-ai/%s/%s/%s/%s failed, so a brunnr-code installed before the switch moved still reads the value it already has there and keeps enforcing it: %v; rerun `brunnr-code review mode %s --scope clone` to publish it in both places",
+		"%v: this clone %s receipt-driven development for this brunnr-code, but publishing the same decision under brunnr-code/%s/%s/%s/%s failed, so a brunnr-code installed before the switch moved still reads the value it already has there and keeps enforcing it: %v; rerun `brunnr-code review mode %s --scope clone` to publish it in both places",
 		ErrRDDModePartiallyApplied,
 		decision,
 		rddModeLegacySwitchDirectory,
@@ -802,7 +802,7 @@ func cloneLocalRDDModeRoot(ctx context.Context, repo string, create bool) (strin
 	if err != nil {
 		return "", err
 	}
-	base := filepath.Join(identity.GitCommonDir, "gentle-ai", rddModeSwitchDirectory, rarAuthorityDirectory, rarAuthorityVersion)
+	base := filepath.Join(identity.GitCommonDir, GitCommonDirName, rddModeSwitchDirectory, rarAuthorityDirectory, rarAuthorityVersion)
 	if err := ensureRARSwitchRoot(identity.GitCommonDir, base, create); err != nil {
 		return "", err
 	}
@@ -828,7 +828,7 @@ func cloneLocalRDDModeLegacyRoot(ctx context.Context, repo string, create bool) 
 	}
 	base := filepath.Join(
 		identity.GitCommonDir,
-		"gentle-ai",
+		GitCommonDirName,
 		rddModeLegacySwitchDirectory,
 		rarAuthorityDirectory,
 		rarAuthorityVersion,

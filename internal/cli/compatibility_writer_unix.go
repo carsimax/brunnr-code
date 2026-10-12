@@ -253,7 +253,7 @@ func createCompatibilityTempFile(dirFD int, perm fs.FileMode) (string, *os.File,
 		if _, err := rand.Read(token[:]); err != nil {
 			return "", nil, fmt.Errorf("generate compatibility temp file name: %w", err)
 		}
-		name := ".gentle-ai-" + hex.EncodeToString(token[:]) + ".tmp"
+		name := ".brunnr-code-" + hex.EncodeToString(token[:]) + ".tmp"
 		fd, err := unix.Openat(dirFD, name, unix.O_WRONLY|unix.O_CREAT|unix.O_EXCL|unix.O_NOFOLLOW|unix.O_CLOEXEC, uint32(perm))
 		if err == unix.EEXIST {
 			continue

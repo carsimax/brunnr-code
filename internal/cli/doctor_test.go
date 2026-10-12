@@ -316,7 +316,7 @@ func TestCheckStateJSON_Missing(t *testing.T) {
 
 func TestCheckStateJSON_Malformed(t *testing.T) {
 	homeDir := t.TempDir()
-	stateDir := filepath.Join(homeDir, ".gentle-ai")
+	stateDir := filepath.Join(homeDir, ".brunnr-code")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -336,7 +336,7 @@ func TestCheckStateJSON_Malformed(t *testing.T) {
 
 func TestCheckStateJSON_AgentConfigDirMissing(t *testing.T) {
 	homeDir := t.TempDir()
-	stateDir := filepath.Join(homeDir, ".gentle-ai")
+	stateDir := filepath.Join(homeDir, ".brunnr-code")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -360,12 +360,12 @@ func TestCheckStateJSON_AgentConfigDirMissing(t *testing.T) {
 
 func TestCheckStateJSON_AbsentAncestorChainKeepsSyncRemedy(t *testing.T) {
 	homeDir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(homeDir, ".gentle-ai"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(homeDir, ".brunnr-code"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	// The Claude config dir does not exist, so the path is genuinely missing
 	// and sync must stay.
-	if err := os.WriteFile(filepath.Join(homeDir, ".gentle-ai", "state.json"), []byte(`{"installed_agents":["claude-code"]}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(homeDir, ".brunnr-code", "state.json"), []byte(`{"installed_agents":["claude-code"]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -384,7 +384,7 @@ func TestCheckStateJSON_AbsentAncestorChainKeepsSyncRemedy(t *testing.T) {
 
 func TestCheckStateJSON_HealthySymlinkAncestorKeepsSyncRemedy(t *testing.T) {
 	homeDir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(homeDir, ".gentle-ai"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(homeDir, ".brunnr-code"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	realConfigRoot := filepath.Join(t.TempDir(), "real-config-root")
@@ -395,7 +395,7 @@ func TestCheckStateJSON_HealthySymlinkAncestorKeepsSyncRemedy(t *testing.T) {
 		t.Skipf("symlink creation unavailable: %v", err)
 	}
 	// ~/.config resolves fine; only the Claude config dir is absent.
-	if err := os.WriteFile(filepath.Join(homeDir, ".gentle-ai", "state.json"), []byte(`{"installed_agents":["claude-code"]}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(homeDir, ".brunnr-code", "state.json"), []byte(`{"installed_agents":["claude-code"]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -414,7 +414,7 @@ func TestCheckStateJSON_HealthySymlinkAncestorKeepsSyncRemedy(t *testing.T) {
 
 func TestCheckStateJSON_OK(t *testing.T) {
 	homeDir := t.TempDir()
-	stateDir := filepath.Join(homeDir, ".gentle-ai")
+	stateDir := filepath.Join(homeDir, ".brunnr-code")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -440,7 +440,7 @@ func TestCheckStateJSON_OK(t *testing.T) {
 
 func TestCheckInstalledAssetVersion_MatchingPass(t *testing.T) {
 	homeDir := t.TempDir()
-	stateDir := filepath.Join(homeDir, ".gentle-ai")
+	stateDir := filepath.Join(homeDir, ".brunnr-code")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -457,7 +457,7 @@ func TestCheckInstalledAssetVersion_MatchingPass(t *testing.T) {
 
 func TestCheckInstalledAssetVersion_SkewWarning(t *testing.T) {
 	homeDir := t.TempDir()
-	stateDir := filepath.Join(homeDir, ".gentle-ai")
+	stateDir := filepath.Join(homeDir, ".brunnr-code")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -801,7 +801,7 @@ func TestRunDoctor_IntegrationAllMocked(t *testing.T) {
 	}()
 
 	homeDir := t.TempDir()
-	stateDir := filepath.Join(homeDir, ".gentle-ai")
+	stateDir := filepath.Join(homeDir, ".brunnr-code")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -851,7 +851,7 @@ func TestRunDoctor_IntegrationAllMocked(t *testing.T) {
 
 Summary: 7 passed, 0 failed, 0 warnings
 Status:  healthy
-`, configPath, filepath.Join(homeDir, ".gentle-ai"))
+`, configPath, filepath.Join(homeDir, ".brunnr-code"))
 	if got := buf.String(); got != want {
 		t.Fatalf("RunDoctor output mismatch\ngot:\n%s\nwant:\n%s", got, want)
 	}
@@ -1095,7 +1095,7 @@ func TestRunDoctor_OnlySelectedAgentsAreRequired(t *testing.T) {
 	executableExtsFn = func() []string { return []string{""} }
 
 	homeDir := t.TempDir()
-	stateDir := filepath.Join(homeDir, ".gentle-ai")
+	stateDir := filepath.Join(homeDir, ".brunnr-code")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -1175,7 +1175,7 @@ func setupDanglingCodexFixture(t *testing.T, statePayload, symlinkTarget string)
 	if err := os.MkdirAll(filepath.Dir(configDir), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(homeDir, ".gentle-ai"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(homeDir, ".brunnr-code"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if symlinkTarget == "" {
@@ -1185,7 +1185,7 @@ func setupDanglingCodexFixture(t *testing.T, statePayload, symlinkTarget string)
 	if err := os.Symlink(targetPath, configDir); err != nil {
 		t.Skipf("symlink creation unavailable: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(homeDir, ".gentle-ai", "state.json"), []byte(statePayload), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(homeDir, ".brunnr-code", "state.json"), []byte(statePayload), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	return homeDir, configDir, targetPath
@@ -1245,7 +1245,7 @@ func TestRunDoctor_DanglingConfigSymlinkIsReadOnly(t *testing.T) {
 	}()
 
 	homeDir, configDir, missingTarget := setupDanglingCodexFixture(t, `{"installed_agents":["codex"]}`, "")
-	statePath := filepath.Join(homeDir, ".gentle-ai", "state.json")
+	statePath := filepath.Join(homeDir, ".brunnr-code", "state.json")
 	stateDir := filepath.Dir(statePath)
 	stateBefore, err := os.ReadFile(statePath)
 	if err != nil {
@@ -1301,7 +1301,7 @@ func TestRunDoctor_DanglingConfigSymlinkIsReadOnly(t *testing.T) {
 
 func TestDoctorSyncDisagreement_RealCLIBoundary(t *testing.T) {
 	homeDir, configDir, missingTarget := setupDanglingCodexFixture(t, `{"installed_agents":["codex"]}`, "")
-	statePath := filepath.Join(homeDir, ".gentle-ai", "state.json")
+	statePath := filepath.Join(homeDir, ".brunnr-code", "state.json")
 	stateBefore, err := os.ReadFile(statePath)
 	if err != nil {
 		t.Fatal(err)

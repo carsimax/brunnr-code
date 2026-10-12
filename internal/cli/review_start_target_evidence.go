@@ -153,7 +153,7 @@ func reviewConsentStaleMarkerPath(home, repo string) string {
 		}
 	}
 	digest := sha256.Sum256([]byte(filepath.Clean(canonical)))
-	return filepath.Join(home, ".gentle-ai", "review-stop-hook", "v1", "consent-stale", hex.EncodeToString(digest[:])+".json")
+	return filepath.Join(home, ".brunnr-code", "review-stop-hook", "v1", "consent-stale", hex.EncodeToString(digest[:])+".json")
 }
 
 // recordReviewConsentStaleRefusal records that a spent consent answer was

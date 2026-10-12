@@ -167,7 +167,7 @@ func TestRunArgsReviewValidateDoesNotReadOrMutateAuthority(t *testing.T) {
 	}
 	baseline := invoke(t)
 
-	lockPath := filepath.Join(repo, ".git", "gentle-ai", "review-transactions", "v2", "LOCK")
+	lockPath := filepath.Join(repo, ".git", "brunnr-code", "review-transactions", "v2", "LOCK")
 	if err := os.MkdirAll(filepath.Dir(lockPath), 0o755); err != nil {
 		t.Fatal(err)
 	}

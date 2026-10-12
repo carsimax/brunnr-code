@@ -136,7 +136,7 @@ func compatHyphenatedStartArgs(sandbox *Sandbox) ([]string, error) {
 
 // compatAssertHyphenatedStartRefuses checks the one property that makes cw02
 // worth pinning: the refusal explicitly redirects to the real verb, `review
-// start` (with a space), not just to "gentle-ai" generically -- a caller who
+// start` (with a space), not just to "brunnr-code" generically -- a caller who
 // typed the retired hyphenated form needs to land on the live one.
 func compatAssertHyphenatedStartRefuses(_ *Sandbox, observation Observation) error {
 	if err := compatAssertNamedRefusal(observation, "hyphenated `review-start` v1-compatibility verb"); err != nil {

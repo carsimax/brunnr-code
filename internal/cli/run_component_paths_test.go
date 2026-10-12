@@ -377,10 +377,10 @@ func containsPath(paths []string, want string) bool {
 // the optional SDD component must still receive it (issue #1794).
 
 const (
-	routingOpenMarker  = "<!-- gentle-ai:" + agentguidance.RoutingSectionID + " -->"
-	routingCloseMarker = "<!-- /gentle-ai:" + agentguidance.RoutingSectionID + " -->"
+	routingOpenMarker  = "<!-- brunnr-code:" + agentguidance.RoutingSectionID + " -->"
+	routingCloseMarker = "<!-- /brunnr-code:" + agentguidance.RoutingSectionID + " -->"
 
-	legacyTriggerRulesOpenMarker = "<!-- gentle-ai:trigger-rules -->"
+	legacyTriggerRulesOpenMarker = "<!-- brunnr-code:trigger-rules -->"
 )
 
 // newTestInstallRuntime builds an install runtime whose resolved plan mirrors
@@ -457,7 +457,7 @@ func TestInstallRemoteAuthorizationIndependentOfComponents(t *testing.T) {
 			}
 			runInstallInjectionSteps(t, newTestInstallRuntime(t, home, selection))
 			prompt := readTextFile(t, systemPromptFileFor(t, home, model.AgentClaudeCode))
-			if !strings.Contains(prompt, "<!-- gentle-ai:remote-authorization -->") {
+			if !strings.Contains(prompt, "<!-- brunnr-code:remote-authorization -->") {
 				t.Fatal("install omitted remote authorization without SDD/default persona")
 			}
 		})
@@ -541,7 +541,7 @@ func TestInstallRoutingGuidanceIsIndependentOfSDDSelection(t *testing.T) {
 			if !strings.Contains(prompt, routingOpenMarker) || !strings.Contains(prompt, routingCloseMarker) || !strings.Contains(prompt, "Implementation Routing") {
 				t.Fatalf("routing guidance missing from %s:\n%s", tc.name, prompt)
 			}
-			if strings.Contains(prompt, "<!-- gentle-ai:sdd-orchestrator -->") {
+			if strings.Contains(prompt, "<!-- brunnr-code:sdd-orchestrator -->") {
 				t.Fatalf("retired SDD orchestration appeared in %s:\n%s", tc.name, prompt)
 			}
 		})

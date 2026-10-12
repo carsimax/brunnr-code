@@ -152,7 +152,7 @@ func TestCloneLocalRDDOverrideStaysInsideItsClone(t *testing.T) {
 		t.Fatalf("SetCloneLocalRDDMode(off) error = %v", err)
 	}
 
-	overridePath := filepath.Join(repo, ".git", "gentle-ai", "review-mode", "rar-authority", "v1", "rdd-mode")
+	overridePath := filepath.Join(repo, ".git", "brunnr-code", "review-mode", "rar-authority", "v1", "rdd-mode")
 	if _, err := os.Stat(overridePath); err != nil {
 		t.Fatalf("clone-local override is not stored under the Git common directory: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestResolveRDDModeNeverCreatesState(t *testing.T) {
 	if status.Effective != RDDModeOn || status.Source != RDDModeSourceDefault {
 		t.Fatalf("unconfigured status = %#v", status)
 	}
-	if _, err := os.Lstat(filepath.Join(repo, ".git", "gentle-ai")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Lstat(filepath.Join(repo, ".git", "brunnr-code")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("read-only resolution created repository state: %v", err)
 	}
 }
@@ -513,7 +513,7 @@ func TestUnknownRDDModeFailsClosedAsDisabled(t *testing.T) {
 	if _, err := SetCloneLocalRDDMode(context.Background(), repo, RDDModeOff, "", RDDGlobalMode{Value: "on"}); err != nil {
 		t.Fatalf("SetCloneLocalRDDMode(off) error = %v", err)
 	}
-	corrupt := filepath.Join(repo, ".git", "gentle-ai", "review-mode", "rar-authority", "v1", "rdd-mode", "gen-0000000001.json")
+	corrupt := filepath.Join(repo, ".git", "brunnr-code", "review-mode", "rar-authority", "v1", "rdd-mode", "gen-0000000001.json")
 	if err := os.WriteFile(corrupt, []byte("{not json}\n"), 0o600); err != nil {
 		t.Fatalf("corrupt override: %v", err)
 	}
@@ -534,7 +534,7 @@ func TestResolveRDDModeUnsafePrivatePathIsNotACorruptHead(t *testing.T) {
 	if _, err := SetCloneLocalRDDMode(context.Background(), repo, RDDModeOff, "", RDDGlobalMode{}); err != nil {
 		t.Fatalf("disable clone-local mode: %v", err)
 	}
-	modeRecord := filepath.Join(repo, ".git", "gentle-ai", "review-mode", "rar-authority", "v1", "rdd-mode", "gen-0000000001.json")
+	modeRecord := filepath.Join(repo, ".git", "brunnr-code", "review-mode", "rar-authority", "v1", "rdd-mode", "gen-0000000001.json")
 	if err := os.Chmod(modeRecord, 0o644); err != nil {
 		t.Fatalf("make private RAR file unsafe: %v", err)
 	}

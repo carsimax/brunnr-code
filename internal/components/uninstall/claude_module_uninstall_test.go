@@ -113,7 +113,7 @@ func TestClaudeUninstallRetiresModulePilotOnlyOnFullRemoval(t *testing.T) {
 		t.Fatal(err)
 	}
 	routing := readTestFile(t, corePath)
-	routing = routing[strings.Index(routing, "<!-- gentle-ai:agent-routing -->"):]
+	routing = routing[strings.Index(routing, "<!-- brunnr-code:agent-routing -->"):]
 
 	result, err := svc.PartialUninstall([]model.AgentID{model.AgentClaudeCode}, nil)
 	if err != nil {
@@ -164,14 +164,14 @@ func TestClaudeUninstallLeavesMonolithicInstallUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path := range snapshots.existed {
-		if strings.Contains(path, filepath.Join(".claude", "gentle-ai")) {
+		if strings.Contains(path, filepath.Join(".claude", "brunnr-code")) {
 			t.Fatalf("monolithic uninstall planned module path %s", path)
 		}
 	}
 	if readTestFile(t, corePath) != before {
 		t.Fatal("monolithic orchestrator guidance changed")
 	}
-	if _, err := os.Lstat(filepath.Join(home, ".claude", "gentle-ai")); !os.IsNotExist(err) {
+	if _, err := os.Lstat(filepath.Join(home, ".claude", "brunnr-code")); !os.IsNotExist(err) {
 		t.Fatalf("monolithic uninstall created module storage: %v", err)
 	}
 }

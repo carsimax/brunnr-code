@@ -22,7 +22,7 @@ import (
 const reviewStopHookSchema = "gentle-ai.review-stop-hook/v1"
 
 // reviewStopHookReminderSchema identifies the small per-session record kept
-// under ~/.gentle-ai/review-stop-hook/v1. The schema name is unchanged from
+// under ~/.brunnr-code/review-stop-hook/v1. The schema name is unchanged from
 // its first shape; it now optionally carries baseline_target_identity
 // alongside target_identity (see reviewStopHookReminderRecord).
 const reviewStopHookReminderSchema = "gentle-ai.review-stop-hook-reminder/v1"
@@ -305,7 +305,7 @@ func reviewStopHookReasonText(targetIdentity, root, runtimeAgent, startCommand s
 
 // reviewStopHookRecordPath is the per-session state file path for sessionID.
 func reviewStopHookRecordPath(home, sessionID string) string {
-	return filepath.Join(home, ".gentle-ai", "review-stop-hook", "v1", sessionID+".json")
+	return filepath.Join(home, ".brunnr-code", "review-stop-hook", "v1", sessionID+".json")
 }
 
 // readReviewStopHookRecord reads sessionID's existing record, if any. A

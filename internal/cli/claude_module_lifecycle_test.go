@@ -117,7 +117,7 @@ func TestClaudeInstalledModulePilotLeavesOtherRoutingUnchanged(t *testing.T) {
 			agents: []model.AgentID{model.AgentClaudeCode},
 			scope:  ScopeGlobal,
 			seed: func(t *testing.T, home string) {
-				mustWriteFile(t, filepath.Join(home, ".claude", "gentle-ai"), []byte("user file\n"))
+				mustWriteFile(t, filepath.Join(home, ".claude", "brunnr-code"), []byte("user file\n"))
 			},
 			want: func(t *testing.T, home, _ string) []string { return prompt(t, home, model.AgentClaudeCode) },
 		},
@@ -158,7 +158,7 @@ func TestClaudeInstalledModulePilotLeavesOtherRoutingUnchanged(t *testing.T) {
 				}
 			}
 			// The step continues a pilot but never creates one.
-			moduleDir := filepath.Join(".claude", "gentle-ai", "orchestrator")
+			moduleDir := filepath.Join(".claude", "brunnr-code", "orchestrator")
 			if _, created := homeAfter[moduleDir]; created && !tc.pilot {
 				t.Fatalf("routing step created module directory %q under home", moduleDir)
 			}
@@ -172,7 +172,7 @@ func TestClaudeInstalledModulePilotLeavesOtherRoutingUnchanged(t *testing.T) {
 func TestClaudeInstalledModulePilotSurvivesGlobalRoutingStep(t *testing.T) {
 	home := t.TempDir()
 	seedClaudeModulePilot(t, home)
-	pilot := snapshotTree(t, filepath.Join(home, ".claude", "gentle-ai"))
+	pilot := snapshotTree(t, filepath.Join(home, ".claude", "brunnr-code"))
 	core := readTextFile(t, systemPromptFileFor(t, home, model.AgentClaudeCode))
 
 	for _, run := range []string{"reinjection", "identical second run"} {
@@ -183,7 +183,7 @@ func TestClaudeInstalledModulePilotSurvivesGlobalRoutingStep(t *testing.T) {
 		if got := readTextFile(t, systemPromptFileFor(t, home, model.AgentClaudeCode)); got != core {
 			t.Fatalf("%s rewrote the pilot core CLAUDE.md:\n%s", run, got)
 		}
-		if got := snapshotTree(t, filepath.Join(home, ".claude", "gentle-ai")); !maps.Equal(got, pilot) {
+		if got := snapshotTree(t, filepath.Join(home, ".claude", "brunnr-code")); !maps.Equal(got, pilot) {
 			t.Fatalf("%s changed the pilot modules or ledger", run)
 		}
 		if run == "identical second run" && len(changed) != 0 {

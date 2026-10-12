@@ -120,10 +120,10 @@ func TestRunDoctorToolExecution(t *testing.T) {
 				t.Fatal(err)
 			}
 			if tt.tool == "claude" {
-				if err := os.Mkdir(filepath.Join(home, ".gentle-ai"), 0o755); err != nil {
+				if err := os.Mkdir(filepath.Join(home, ".brunnr-code"), 0o755); err != nil {
 					t.Fatal(err)
 				}
-				if err := os.WriteFile(filepath.Join(home, ".gentle-ai", "state.json"), []byte(`{"installed_agents":["claude-code"]}`), 0o644); err != nil {
+				if err := os.WriteFile(filepath.Join(home, ".brunnr-code", "state.json"), []byte(`{"installed_agents":["claude-code"]}`), 0o644); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -196,7 +196,7 @@ func TestRunDoctorToolExecution(t *testing.T) {
 				t.Fatalf("doctor mutated isolated home: %v, %v", after, err)
 			}
 			if tt.tool == "claude" {
-				data, err := os.ReadFile(filepath.Join(home, ".gentle-ai", "state.json"))
+				data, err := os.ReadFile(filepath.Join(home, ".brunnr-code", "state.json"))
 				if err != nil || string(data) != `{"installed_agents":["claude-code"]}` {
 					t.Fatalf("doctor mutated state: %s, %v", data, err)
 				}

@@ -442,7 +442,7 @@ func ExecuteWithOptions(ctx context.Context, results []update.UpdateResult, prof
 	backupWarning := ""
 	if !dryRun && len(executable) > 0 && !options.SkipBackup {
 		sp := NewSpinner(pw, "Creating pre-upgrade backup")
-		snapshotDir := filepath.Join(homeDir, ".gentle-ai", "backups",
+		snapshotDir := filepath.Join(homeDir, ".brunnr-code", "backups",
 			fmt.Sprintf("upgrade-%s", time.Now().UTC().Format("20060102T150405Z")))
 		manifest, err := snapshotCreator(snapshotDir, configPathsForBackup(homeDir, options.BackupDiagnostics))
 		if err != nil {
@@ -468,7 +468,7 @@ func ExecuteWithOptions(ctx context.Context, results []update.UpdateResult, prof
 		// snapshot fails due to disk pressure caused by prior accumulated
 		// backups, pruning is the recovery path. Non-fatal: a prune failure
 		// must not prevent the upgrade from completing.
-		backupRoot := filepath.Join(homeDir, ".gentle-ai", "backups")
+		backupRoot := filepath.Join(homeDir, ".brunnr-code", "backups")
 		if _, pruneErr := backup.Prune(backupRoot, backup.DefaultRetentionCount); pruneErr != nil {
 			log.Printf("backup: prune: %v", pruneErr)
 		}

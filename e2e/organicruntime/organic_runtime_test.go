@@ -1539,7 +1539,7 @@ func TestOrganicKillSwitchStopsAtTheDeliveryBoundary(t *testing.T) {
 
 	// Zero effects: no review authority, no additional compare-and-swap
 	// generation, and a remote that never moved.
-	if _, err := os.Stat(filepath.Join(harness.commonDir(), "gentle-ai", "review-transactions", "v2")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(harness.commonDir(), "brunnr-code", "review-transactions", "v2")); !os.IsNotExist(err) {
 		t.Fatalf("a disabled start still created review authority: %v", err)
 	}
 	if after := harness.reviewModeGenerations(); !equalOrganicStrings(after, generationsAfterDisable) {
@@ -1727,7 +1727,7 @@ func TestOrganicTerminalAuthoritySurvivesWithdrawalAndReplaysWithoutEffect(t *te
 	if _, _, err := harness.gentleAllowFailure("review", "finalize", "--cwd", harness.repo.worktree, "--lineage", lineage); err == nil {
 		t.Fatal("terminal finalize replay reused burned authority")
 	}
-	if _, err := os.Stat(filepath.Join(harness.commonDir(), "gentle-ai", "review-transactions", "v2", lineage)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(harness.commonDir(), "brunnr-code", "review-transactions", "v2", lineage)); !os.IsNotExist(err) {
 		t.Fatalf("terminal replay recreated authority: %v", err)
 	}
 
@@ -2047,7 +2047,7 @@ func (harness *organicHarness) assertReviewAcknowledgedAndBurned(lineage string,
 	if _, _, err := harness.gentleAllowFailure(exact...); err == nil {
 		harness.t.Fatal("replayed acknowledgement recreated or burned authority")
 	}
-	authority := filepath.Join(harness.commonDir(), "gentle-ai", "review-transactions", "v2", lineage)
+	authority := filepath.Join(harness.commonDir(), "brunnr-code", "review-transactions", "v2", lineage)
 	if _, err := os.Stat(authority); !os.IsNotExist(err) {
 		harness.t.Fatalf("approved review %q retained authority after acknowledgement at %q: %v", lineage, authority, err)
 	}
@@ -2307,7 +2307,7 @@ func (harness *organicHarness) runNamedReviewStart(tokens []string, extra ...str
 // records. Their count is how a rejected operation proves it wrote nothing.
 func (harness *organicHarness) reviewModeGenerations() []string {
 	harness.t.Helper()
-	root := filepath.Join(harness.commonDir(), "gentle-ai", "review-mode", "rar-authority", "v1", "rdd-mode")
+	root := filepath.Join(harness.commonDir(), "brunnr-code", "review-mode", "rar-authority", "v1", "rdd-mode")
 	entries, err := os.ReadDir(root)
 	if os.IsNotExist(err) {
 		return nil
@@ -2329,7 +2329,7 @@ func (harness *organicHarness) reviewModeGenerations() []string {
 // prove it changed nothing at all, not merely that it reported the same state.
 func (harness *organicHarness) lineageDigest(lineage string) string {
 	harness.t.Helper()
-	root := filepath.Join(harness.commonDir(), "gentle-ai", "review-transactions", "v2", lineage)
+	root := filepath.Join(harness.commonDir(), "brunnr-code", "review-transactions", "v2", lineage)
 	var builder strings.Builder
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
@@ -2357,7 +2357,7 @@ func (harness *organicHarness) lineageDigest(lineage string) string {
 
 func (harness *organicHarness) assertSingleReviewLineage(expected string) {
 	harness.t.Helper()
-	root := filepath.Join(harness.commonDir(), "gentle-ai", "review-transactions", "v2")
+	root := filepath.Join(harness.commonDir(), "brunnr-code", "review-transactions", "v2")
 	entries, err := os.ReadDir(root)
 	if err != nil {
 		harness.t.Fatalf("read review authority: %v", err)
@@ -2390,7 +2390,7 @@ func (harness *organicHarness) hasSDDArtifacts() bool {
 
 func (harness *organicHarness) sddArtifact() (string, bool) {
 	harness.t.Helper()
-	root := filepath.Join(harness.commonDir(), "gentle-ai")
+	root := filepath.Join(harness.commonDir(), "brunnr-code")
 	entries, err := os.ReadDir(root)
 	if os.IsNotExist(err) {
 		return "", false

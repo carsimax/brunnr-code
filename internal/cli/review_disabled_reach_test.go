@@ -41,7 +41,7 @@ func enableReviewForClone(t *testing.T, repo string) {
 // genuine damage to the review authority store rather than a stale receipt.
 func corruptReviewAuthorityInventory(t *testing.T, repo string) {
 	t.Helper()
-	broken := filepath.Join(repo, ".git", "gentle-ai", "review-transactions", "v2", "corrupt-reach")
+	broken := filepath.Join(repo, ".git", "brunnr-code", "review-transactions", "v2", "corrupt-reach")
 	if err := os.MkdirAll(broken, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -412,7 +412,7 @@ func TestDisabledGateNeverEmitsAllowOrCreatesReceipt(t *testing.T) {
 // mutated no state.
 func reviewAuthorityFingerprint(t *testing.T, repo string) string {
 	t.Helper()
-	root := filepath.Join(repo, ".git", "gentle-ai", "review-transactions")
+	root := filepath.Join(repo, ".git", "brunnr-code", "review-transactions")
 	var entries []string
 	err := filepath.Walk(root, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {

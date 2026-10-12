@@ -119,7 +119,7 @@ func TestRepositorySelectionRejectsAliasesThatAreNotTheSameRepository(t *testing
 				if lease, err := OpenRepositoryIdentityLease(context.Background(), tt.alias); err == nil && lease.StorageKey() == canonical.StorageKey() {
 					t.Fatalf("OpenRepositoryIdentityLease(%q) reused the requested repository authority", tt.alias)
 				}
-				if _, err := os.Lstat(filepath.Join(tt.alias, "gentle-ai")); !os.IsNotExist(err) {
+				if _, err := os.Lstat(filepath.Join(tt.alias, "brunnr-code")); !os.IsNotExist(err) {
 					t.Fatalf("rejected alias %q created storage: %v", tt.alias, err)
 				}
 			})

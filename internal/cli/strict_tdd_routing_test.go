@@ -29,7 +29,7 @@ func TestStrictTDDLegacyCarrierRetiredByInstallAndSync(t *testing.T) {
 				t.Fatal(err)
 			}
 			raw, err := os.ReadFile(path)
-			if err != nil || strings.Contains(string(raw), "gentle-ai:strict-tdd-mode") || !strings.Contains(string(raw), "user content") || !strings.Contains(string(raw), "relevant runnable deterministic test") {
+			if err != nil || strings.Contains(string(raw), "brunnr-code:strict-tdd-mode") || !strings.Contains(string(raw), "user content") || !strings.Contains(string(raw), "relevant runnable deterministic test") {
 				t.Fatalf("legacy marker or missing routing/user content: %s %v", raw, err)
 			}
 			changed := []string{}

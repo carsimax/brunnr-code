@@ -634,7 +634,7 @@ const (
 
 // reviewConsentNoticeDirName and reviewConsentNoticeMarkerFile locate the
 // once-per-clone marker for reviewConsentSkippedNotice, mirroring the
-// existing <GitCommonDir>/gentle-ai/<subdir> convention this package already
+// existing <GitCommonDir>/brunnr-code/<subdir> convention this package already
 // uses for clone-local, uncommitted state (see writeReviewDefectReport).
 const (
 	reviewConsentNoticeDirName    = "review-mode"
@@ -678,7 +678,7 @@ func reviewConsentNoticeMarkerPath(ctx context.Context, repo string) (string, er
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(lease.Identity().GitCommonDir, "gentle-ai", reviewConsentNoticeDirName, reviewConsentNoticeMarkerFile), nil
+	return filepath.Join(lease.Identity().GitCommonDir, reviewtransaction.GitCommonDirName, reviewConsentNoticeDirName, reviewConsentNoticeMarkerFile), nil
 }
 
 // reviewConsentSession is the console the one-time question uses.

@@ -26,7 +26,7 @@ func TestRenderUninstallResultIncludesManualCleanup(t *testing.T) {
 }
 
 func TestRenderUninstallResultFailureShowsManualActions(t *testing.T) {
-	const action = "Inspect /home/u/.claude/CLAUDE.md and /home/u/.claude/gentle-ai/orchestrator before rerunning the uninstall"
+	const action = "Inspect /home/u/.claude/CLAUDE.md and /home/u/.claude/brunnr-code/orchestrator before rerunning the uninstall"
 	for _, actions := range [][]string{{action}, nil} {
 		result := componentuninstall.Result{FailedAgents: []model.AgentID{model.AgentClaudeCode}, ManualActions: actions}
 		result.Manifest.ID = "backup-test"

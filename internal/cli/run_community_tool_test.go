@@ -122,9 +122,9 @@ func TestNativeReviewCodeGraphGuidanceMarkdownOnlyWhenSelected(t *testing.T) {
 			setupHome: func(t *testing.T, home string) {
 				mustWriteFile(t, filepath.Join(home, ".claude", "CLAUDE.md"), []byte(strings.Join([]string{
 					"existing Claude guidance",
-					"<!-- gentle-ai:codegraph-guidance -->",
+					"<!-- brunnr-code:codegraph-guidance -->",
 					"CodeGraph guidance with `brunnr-code codegraph init --cwd <project-root>`",
-					"<!-- /gentle-ai:codegraph-guidance -->",
+					"<!-- /brunnr-code:codegraph-guidance -->",
 				}, "\n")))
 			},
 			lookPath: func(string) (string, error) { return "/bin/codegraph", nil },

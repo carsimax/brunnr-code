@@ -70,7 +70,7 @@ func TestRunDoctor_AgentConfigSpecialCases(t *testing.T) {
 				}
 			}
 			output := runDoctorAgentConfigFixture(t, home, tt.payload)
-			want := strings.ReplaceAll(tt.want, "{state}", filepath.Join(home, ".gentle-ai", "state.json"))
+			want := strings.ReplaceAll(tt.want, "{state}", filepath.Join(home, ".brunnr-code", "state.json"))
 			if !strings.Contains(output, want+"\n") {
 				t.Fatalf("missing exact state result %q:\n%s", want, output)
 			}
@@ -106,7 +106,7 @@ func runDoctorAgentConfigFixture(t *testing.T, home, payload string) string {
 	osExecutableDoctor = func() (string, error) { return filepath.Join(home, "bin", "brunnr-code"), nil }
 	t.Setenv(engramHealthEnvVar, "https://engram.example.test")
 	httpGetFn = func(string, time.Duration) (int, error) { return 200, nil }
-	statePath := filepath.Join(home, ".gentle-ai", "state.json")
+	statePath := filepath.Join(home, ".brunnr-code", "state.json")
 	if err := os.MkdirAll(filepath.Dir(statePath), 0o755); err != nil {
 		t.Fatal(err)
 	}

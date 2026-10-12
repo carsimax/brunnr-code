@@ -22,7 +22,7 @@ var claudeModuleOptions = RoutingOptions{ClaudeGlobalModules: true, ReviewContra
 // plannedClaudeModulePaths is the complete backup plan for a Claude config
 // directory: the core, every known module name and the ledger.
 func plannedClaudeModulePaths(configDir string) []string {
-	dir := filepath.Join(configDir, "gentle-ai", "orchestrator")
+	dir := filepath.Join(configDir, "brunnr-code", "orchestrator")
 	paths := []string{filepath.Join(configDir, "CLAUDE.md")}
 	for _, name := range orchestratorModuleNames {
 		paths = append(paths, filepath.Join(dir, orchestratorModuleFile(name)))
@@ -83,7 +83,7 @@ func TestClaudeModuleDeliveryInjectsCoreModulesAndLedger(t *testing.T) {
 	configDir := filepath.Join(home, ".claude")
 	corePath := filepath.Join(configDir, "CLAUDE.md")
 	writeModuleTestFile(t, corePath, coreTransactionUserCore, 0o600)
-	moduleDir := filepath.Join(configDir, "gentle-ai", "orchestrator")
+	moduleDir := filepath.Join(configDir, "brunnr-code", "orchestrator")
 	bundle, err := buildOrchestratorModules(model.AgentClaudeCode, fakeModuleContract, moduleDir)
 	if err != nil {
 		t.Fatal(err)
@@ -109,8 +109,8 @@ func TestClaudeModuleDeliveryInjectsCoreModulesAndLedger(t *testing.T) {
 	core := string(data)
 	for _, want := range []string{
 		strings.TrimSpace(bundle.core),
-		"<!-- gentle-ai:" + RoutingSectionID + " -->",
-		"<!-- gentle-ai:remote-authorization -->",
+		"<!-- brunnr-code:" + RoutingSectionID + " -->",
+		"<!-- brunnr-code:remote-authorization -->",
 	} {
 		if !strings.Contains(core, want) {
 			t.Fatalf("core lacks %.80q", want)
@@ -216,7 +216,7 @@ func TestClaudeModuleDeliveryLeavesDefaultAndOtherAgentsMonolithic(t *testing.T)
 	if data, err := os.ReadFile(corePath); err != nil || !strings.Contains(string(data), strings.TrimSpace(public)) {
 		t.Fatalf("default core lacks the public monolith: %v", err)
 	}
-	if _, err := os.Lstat(filepath.Join(home, ".claude", "gentle-ai")); !os.IsNotExist(err) {
+	if _, err := os.Lstat(filepath.Join(home, ".claude", "brunnr-code")); !os.IsNotExist(err) {
 		t.Fatalf("default inject created module storage: %v", err)
 	}
 }

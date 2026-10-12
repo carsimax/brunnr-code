@@ -77,7 +77,7 @@ func (err *PrivateModeIneffectiveError) Unwrap() error { return err.Cause }
 
 func ensureRARRepositoryRoot(commonDir, root string, create bool) error {
 	want := filepath.Join(
-		"gentle-ai",
+		GitCommonDirName,
 		"review-transactions",
 		rarAuthorityDirectory,
 		rarAuthorityVersion,
@@ -96,7 +96,7 @@ func ensureRARSwitchRoot(commonDir, root string, create bool) error {
 	// The shape mirrors the authority path exactly -- two shared ancestors,
 	// then owner-only from rar-authority down -- so the switch inherits the
 	// proven permission layout and differs only in its second component.
-	want := filepath.Join("gentle-ai", rddModeSwitchDirectory, rarAuthorityDirectory, rarAuthorityVersion)
+	want := filepath.Join(GitCommonDirName, rddModeSwitchDirectory, rarAuthorityDirectory, rarAuthorityVersion)
 	return ensureRARDirectoryChain(commonDir, root, want, 2, create)
 }
 

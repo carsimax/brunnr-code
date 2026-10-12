@@ -41,7 +41,7 @@ func TestCodexODDRoutingInjectionPreservesUserTextAndResync(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{personal, "<!-- gentle-ai:agent-routing -->", "| `odd-worker` | `gpt-custom-worker` | `xhigh` |", "| `odd-explorer` | `gpt-custom-cheap` |", "| `odd-verify` | `gpt-custom-strong` |"} {
+	for _, want := range []string{personal, "<!-- brunnr-code:agent-routing -->", "| `odd-worker` | `gpt-custom-worker` | `xhigh` |", "| `odd-explorer` | `gpt-custom-cheap` |", "| `odd-verify` | `gpt-custom-strong` |"} {
 		if !strings.Contains(string(body), want) {
 			t.Errorf("installed guidance missing %q", want)
 		}
@@ -88,7 +88,7 @@ func TestRemoteAuthorizationPrimaryCarriers(t *testing.T) {
 			}
 			prompt := deliveredGuidance(t, first.Files[0])
 			for _, required := range []string{
-				"<!-- gentle-ai:remote-authorization -->",
+				"<!-- brunnr-code:remote-authorization -->",
 				"destination", "operation", "credential/session",
 				"SSH agents", "ControlMaster", "not a sandbox",
 			} {
@@ -167,10 +167,10 @@ func TestInjectRoutingInstallsGuidanceForEverySupportedAgent(t *testing.T) {
 			if !strings.Contains(written, rendered) {
 				t.Fatalf("InjectRouting(%q) did not write the rendered guidance:\n%s", agent.ID, written)
 			}
-			if !strings.Contains(written, "<!-- gentle-ai:"+RoutingSectionID+" -->") {
+			if !strings.Contains(written, "<!-- brunnr-code:"+RoutingSectionID+" -->") {
 				t.Fatalf("InjectRouting(%q) did not open the managed section:\n%s", agent.ID, written)
 			}
-			if !strings.Contains(written, "<!-- /gentle-ai:"+RoutingSectionID+" -->") {
+			if !strings.Contains(written, "<!-- /brunnr-code:"+RoutingSectionID+" -->") {
 				t.Fatalf("InjectRouting(%q) did not close the managed section:\n%s", agent.ID, written)
 			}
 			if !strings.Contains(written, "First establish whether the requested outcome explicitly authorizes a change.") {
@@ -539,8 +539,8 @@ func deliveredGuidance(t *testing.T, path string) string {
 // managedRoutingBlock returns only the content Brunnr-Code owns, so assertions
 // about the block never accidentally inspect surrounding user content.
 func managedRoutingBlock(content string) string {
-	open := "<!-- gentle-ai:" + RoutingSectionID + " -->"
-	closing := "<!-- /gentle-ai:" + RoutingSectionID + " -->"
+	open := "<!-- brunnr-code:" + RoutingSectionID + " -->"
+	closing := "<!-- /brunnr-code:" + RoutingSectionID + " -->"
 
 	start := strings.Index(content, open)
 	end := strings.Index(content, closing)

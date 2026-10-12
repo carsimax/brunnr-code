@@ -505,7 +505,7 @@ func createWindowsCompatibilityTempFile(parent windows.Handle, perm fs.FileMode)
 		if _, err := rand.Read(token[:]); err != nil {
 			return "", nil, fmt.Errorf("generate compatibility temp file name: %w", err)
 		}
-		name := ".gentle-ai-" + hex.EncodeToString(token[:]) + ".tmp"
+		name := ".brunnr-code-" + hex.EncodeToString(token[:]) + ".tmp"
 		handle, err := openWindowsCompatibilityFileAt(parent, name, windows.FILE_GENERIC_READ|windows.FILE_GENERIC_WRITE|windows.DELETE, windows.FILE_CREATE)
 		if windowsCompatibilityAlreadyExists(err) {
 			continue

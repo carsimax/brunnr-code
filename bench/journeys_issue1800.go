@@ -51,7 +51,7 @@ func issue1800State(r *journeyRun) ([]byte, issue1800Authority, error) {
 	if err != nil {
 		return nil, issue1800Authority{}, err
 	}
-	stateBytes, err := os.ReadFile(filepath.Join(strings.TrimSpace(common), "gentle-ai", "review-transactions", "v2", issue1800Lineage, "review-state.json"))
+	stateBytes, err := os.ReadFile(filepath.Join(strings.TrimSpace(common), "brunnr-code", "review-transactions", "v2", issue1800Lineage, "review-state.json"))
 	var record struct {
 		State issue1800Authority `json:"state"`
 	}

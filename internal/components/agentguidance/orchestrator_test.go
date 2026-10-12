@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	orchestratorOpenMarker       = "<!-- gentle-ai:" + OrchestratorSectionID + " -->"
-	orchestratorCloseMarker      = "<!-- /gentle-ai:" + OrchestratorSectionID + " -->"
-	legacyOrchestratorOpenMarker = "<!-- gentle-ai:sdd-orchestrator -->"
-	routingOpenMarkerForTest     = "<!-- gentle-ai:" + RoutingSectionID + " -->"
+	orchestratorOpenMarker       = "<!-- brunnr-code:" + OrchestratorSectionID + " -->"
+	orchestratorCloseMarker      = "<!-- /brunnr-code:" + OrchestratorSectionID + " -->"
+	legacyOrchestratorOpenMarker = "<!-- brunnr-code:sdd-orchestrator -->"
+	routingOpenMarkerForTest     = "<!-- brunnr-code:" + RoutingSectionID + " -->"
 )
 
 // orchestratorRuntimes lists every agent whose installed prompt carries the
@@ -193,9 +193,9 @@ func TestInjectRoutingReplacesLegacySDDOrchestratorBlockInPlace(t *testing.T) {
 			}
 			promptPath := adapter.SystemPromptFile(targetDir)
 			legacy := "USER PREAMBLE\n\n" +
-				legacyOrchestratorOpenMarker + "\n# SDD Workflow\nArtifact Store Mode\n<!-- /gentle-ai:sdd-orchestrator -->\n\n" +
+				legacyOrchestratorOpenMarker + "\n# SDD Workflow\nArtifact Store Mode\n<!-- /brunnr-code:sdd-orchestrator -->\n\n" +
 				"USER MIDDLE\n\n" +
-				routingOpenMarkerForTest + "\nstale routing\n<!-- /gentle-ai:" + RoutingSectionID + " -->\n\n" +
+				routingOpenMarkerForTest + "\nstale routing\n<!-- /brunnr-code:" + RoutingSectionID + " -->\n\n" +
 				"USER EPILOGUE\n"
 			if err := os.MkdirAll(filepath.Dir(promptPath), 0o755); err != nil {
 				t.Fatal(err)
@@ -244,7 +244,7 @@ func TestInjectRoutingDropsLegacyOrchestratorBesideCurrentBlock(t *testing.T) {
 	}
 	promptPath := adapter.SystemPromptFile(targetDir)
 	existing := "USER\n\n" + orchestratorOpenMarker + "\nold current\n" + orchestratorCloseMarker + "\n\n" +
-		legacyOrchestratorOpenMarker + "\nlegacy\n<!-- /gentle-ai:sdd-orchestrator -->\n"
+		legacyOrchestratorOpenMarker + "\nlegacy\n<!-- /brunnr-code:sdd-orchestrator -->\n"
 	if err := os.MkdirAll(filepath.Dir(promptPath), 0o755); err != nil {
 		t.Fatal(err)
 	}

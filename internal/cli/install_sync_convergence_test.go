@@ -36,12 +36,12 @@ func snapshotManagedTree(t *testing.T, root string) map[string]string {
 		}
 		rel, _ := filepath.Rel(root, path)
 		if d.IsDir() {
-			if rel == filepath.Join(".gentle-ai", "backups") {
+			if rel == filepath.Join(".brunnr-code", "backups") {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		if rel == filepath.Join(".gentle-ai", "state.json") {
+		if rel == filepath.Join(".brunnr-code", "state.json") {
 			return nil
 		}
 		data, readErr := os.ReadFile(path)

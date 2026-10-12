@@ -56,7 +56,7 @@ func (adapter *CodexAdapter) Review(ctx context.Context, invocation Invocation) 
 			return nil, fmt.Errorf("codex reviewer transport unavailable: %w", err)
 		}
 	}
-	scratch, err := os.MkdirTemp(scratchParent, "gentle-ai-codex-reviewer-*")
+	scratch, err := os.MkdirTemp(scratchParent, "brunnr-code-codex-reviewer-*")
 	if err != nil {
 		return nil, fmt.Errorf("codex reviewer transport unavailable: create scratch directory: %w", err)
 	}

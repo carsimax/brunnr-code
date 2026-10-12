@@ -253,7 +253,7 @@ func backupRootDir(homeDir string) string {
 	if os.Getenv(state.HomeEnv) != "" {
 		return state.BackupsDir(homeDir)
 	}
-	return homeDir + "/.gentle-ai/backups"
+	return homeDir + "/.brunnr-code/backups"
 }
 
 // defaultRestorer authorizes the current validated Codex root for managed backups.

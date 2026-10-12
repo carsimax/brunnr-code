@@ -109,7 +109,7 @@ func TestReviewAuthorityRootRejectsLegacyOptionEchoWithoutMutation(t *testing.T)
 	if _, err := os.Lstat(malformedPath); err == nil {
 		t.Fatalf("malformed Git output created %q", malformedPath)
 	}
-	path := filepath.Join(repo, "gentle-ai")
+	path := filepath.Join(repo, "brunnr-code")
 	if _, err := os.Lstat(path); !os.IsNotExist(err) {
 		t.Fatalf("malformed Git output created authority storage %q", path)
 	}
@@ -149,7 +149,7 @@ func TestReviewAuthorityRootPreservesSymlinkedGitDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(externalGitDir, "gentle-ai", "review-transactions")
+	want := filepath.Join(externalGitDir, "brunnr-code", "review-transactions")
 	if root != want || resolvedRepo != repo {
 		t.Fatalf("reviewAuthorityRoot() = %q, %q; want %q, %q", root, resolvedRepo, want, repo)
 	}
@@ -273,7 +273,7 @@ func TestGitCommonDirectoryMismatchFailsBeforeAuthorityMutation(t *testing.T) {
 			if err := operation.run(ctx, repo); err == nil {
 				t.Error("operation accepted an unrelated Git common directory")
 			}
-			for _, path := range []string{filepath.Join(unrelated, "gentle-ai"), filepath.Join(home, ".gentle-ai")} {
+			for _, path := range []string{filepath.Join(unrelated, "brunnr-code"), filepath.Join(home, ".brunnr-code")} {
 				if _, err := os.Lstat(path); !os.IsNotExist(err) {
 					t.Errorf("rejected common directory mutated %q: %v", path, err)
 				}
@@ -335,7 +335,7 @@ func TestReviewAuthorityRootRejectsMidQueryGitControlReplacement(t *testing.T) {
 	if _, _, err := reviewAuthorityRoot(context.Background(), repo); err == nil {
 		t.Fatal("mid-query Git control replacement derived an authority root")
 	}
-	if _, err := os.Lstat(filepath.Join(repo, ".git", "gentle-ai")); !os.IsNotExist(err) {
+	if _, err := os.Lstat(filepath.Join(repo, ".git", "brunnr-code")); !os.IsNotExist(err) {
 		t.Fatalf("rejected replacement mutated authority: %v", err)
 	}
 }

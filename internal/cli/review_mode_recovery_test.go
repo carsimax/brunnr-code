@@ -160,7 +160,7 @@ func reviewModeCorruptPaths(t *testing.T, corruption reviewModeCorruption, repo 
 
 func reviewModeCloneRecordPath(t *testing.T, repo string) string {
 	t.Helper()
-	root := filepath.Join(repo, ".git", "gentle-ai", "review-mode", "rar-authority", "v1", "rdd-mode")
+	root := filepath.Join(repo, ".git", "brunnr-code", "review-mode", "rar-authority", "v1", "rdd-mode")
 	entries, err := os.ReadDir(root)
 	if err != nil {
 		t.Fatalf("clone-local override directory: %v", err)

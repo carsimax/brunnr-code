@@ -15,7 +15,7 @@ import (
 // #5256 U1b covers the private core/module transaction against a temporary
 // Claude config directory. Nothing here wires it into a public install.
 
-const coreTransactionUserCore = "# My rules\n\nprefix text\n\n<!-- gentle-ai:orchestrator -->\nold monolith\n<!-- /gentle-ai:orchestrator -->\n\nsuffix text\n"
+const coreTransactionUserCore = "# My rules\n\nprefix text\n\n<!-- brunnr-code:orchestrator -->\nold monolith\n<!-- /brunnr-code:orchestrator -->\n\nsuffix text\n"
 
 var errCoreTransactionInjected = errors.New("injected failure after core publication")
 
@@ -31,7 +31,7 @@ func newCoreTransactionFixture(t *testing.T) coreTransactionFixture {
 	t.Helper()
 	f := coreTransactionFixture{bundle: buildClaudeTestModules(t)}
 	f.configDir = filepath.Join(t.TempDir(), "claude")
-	dir := filepath.Join(f.configDir, "gentle-ai", "orchestrator")
+	dir := filepath.Join(f.configDir, "brunnr-code", "orchestrator")
 	f.corePath = filepath.Join(f.configDir, "CLAUDE.md")
 	f.ledgerPath = filepath.Join(dir, orchestratorModuleLedgerName)
 	writeModuleTestFile(t, f.corePath, coreTransactionUserCore, 0o600)
@@ -77,8 +77,8 @@ func TestOrchestratorCoreTransactionPublishesCoreThenFinalizesModules(t *testing
 	}
 
 	core := f.mergedCore()
-	if !strings.HasPrefix(core, "# My rules\n\nprefix text\n\n<!-- gentle-ai:orchestrator -->\n") ||
-		!strings.HasSuffix(core, "<!-- /gentle-ai:orchestrator -->\n\nsuffix text\n") ||
+	if !strings.HasPrefix(core, "# My rules\n\nprefix text\n\n<!-- brunnr-code:orchestrator -->\n") ||
+		!strings.HasSuffix(core, "<!-- /brunnr-code:orchestrator -->\n\nsuffix text\n") ||
 		strings.Contains(core, "old monolith") || !strings.Contains(core, strings.TrimSpace(f.bundle.core)) {
 		t.Fatalf("merged core does not replace the managed block in place:\n%s", core)
 	}

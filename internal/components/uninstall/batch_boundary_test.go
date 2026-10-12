@@ -171,7 +171,7 @@ func TestPartialUninstallCommitsSucceededAgentsWhenAnotherAgentFails(t *testing.
 	codexPrompt := filepath.Join(home, ".codex", "AGENTS.md")
 
 	writeBatchFile(t, claudeSettings, `{"theme":"brunnr",`)
-	writeBatchFile(t, codexPrompt, "user instructions\n<!-- gentle-ai:persona -->\nmanaged\n<!-- /gentle-ai:persona -->\n")
+	writeBatchFile(t, codexPrompt, "user instructions\n<!-- brunnr-code:persona -->\nmanaged\n<!-- /brunnr-code:persona -->\n")
 	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code", "codex"}}); err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +208,7 @@ func TestPartialUninstallCommitsSucceededAgentsWhenAnotherAgentFails(t *testing.
 	}
 
 	prompt := string(mustReadServiceFile(t, codexPrompt))
-	if strings.Contains(prompt, "gentle-ai:persona") {
+	if strings.Contains(prompt, "brunnr-code:persona") {
 		t.Fatalf("codex prompt = %s, want the managed block removed: the batch must not abandon later agents", prompt)
 	}
 	if !strings.Contains(prompt, "user instructions") {

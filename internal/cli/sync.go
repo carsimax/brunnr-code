@@ -211,7 +211,7 @@ FLAGS
 // Permissions and Theme can be opted-in via flags.
 //
 // Persona is included because its content lives between
-// <!-- gentle-ai:persona --> markers — that block is harness-managed and
+// <!-- brunnr-code:persona --> markers — that block is harness-managed and
 // must propagate embedded-asset changes across versions. Content outside
 // the markers (user-authored sections) is preserved by InjectMarkdownSection.
 //
@@ -1027,7 +1027,7 @@ func (s componentSyncStep) Run() error {
 
 	case model.ComponentPersona:
 		// Sync regenerates the persona block between
-		// <!-- gentle-ai:persona --> markers and (when supported) refreshes
+		// <!-- brunnr-code:persona --> markers and (when supported) refreshes
 		// the managed output-style overlay.
 		for _, adapter := range adapters {
 			targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)

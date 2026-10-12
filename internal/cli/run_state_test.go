@@ -252,7 +252,7 @@ func TestMergeExplicitAgentInstallStatePreservesFreshAssignments(t *testing.T) {
 // from TestMergeExplicitAgentInstallStateSkipsCorruptState (install/sync
 // surface audit finding 2). The old assertion (ok == false, no error) let
 // RunInstall silently return (result, nil) on an unreadable/corrupted
-// ~/.gentle-ai/state.json — the pipeline ran to completion, but the user's
+// ~/.brunnr-code/state.json — the pipeline ran to completion, but the user's
 // agent selection was never persisted and the CLI reported success anyway.
 // The honest contract is: an unreadable existing state during an explicit
 // `--agent` install must fail loudly instead of vanishing.
@@ -274,7 +274,7 @@ func TestMergeExplicitAgentInstallStateFailsHonestlyOnCorruptState(t *testing.T)
 
 // TestRunInstallFailsHonestlyWhenExistingStateIsCorruptDuringExplicitAgentInstall
 // closes install/sync surface audit finding 2: previously, `brunnr-code install
-// --agent X` against a corrupted ~/.gentle-ai/state.json completed the whole
+// --agent X` against a corrupted ~/.brunnr-code/state.json completed the whole
 // pipeline (files written, verification passed) and RunInstall returned
 // (result, nil) -- reported success -- WITHOUT ever calling state.Write. The
 // user believed the install fully completed; state.json stayed corrupted

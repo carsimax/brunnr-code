@@ -19,7 +19,7 @@ func TestHistoricalRctx1ContextIsReadOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, err := os.ReadFile(filepath.Join(os.Getenv("HOME"), ".gentle-ai", "review-contexts", "v1", handle+".json"))
+	before, err := os.ReadFile(filepath.Join(os.Getenv("HOME"), ".brunnr-code", "review-contexts", "v1", handle+".json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestHistoricalRctx1ContextIsReadOnly(t *testing.T) {
 	if _, err := ResolveReviewRepositoryContext(t.Context(), repo, handle, binding); err == nil {
 		t.Fatal("current lifecycle resolver accepted historical rctx1")
 	}
-	after, err := os.ReadFile(filepath.Join(os.Getenv("HOME"), ".gentle-ai", "review-contexts", "v1", handle+".json"))
+	after, err := os.ReadFile(filepath.Join(os.Getenv("HOME"), ".brunnr-code", "review-contexts", "v1", handle+".json"))
 	if err != nil || string(after) != string(before) {
 		t.Fatalf("historical rctx1 read changed locator bytes: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestRctx2HandleResolvesAgainstTheCallerRepositoryWithoutMutation(t *testing
 	if err != nil || root != fixture.store.repo || resolved != binding {
 		t.Fatalf("rctx2 resolution after sibling Rn advance = root %q, binding %#v, error %v", root, resolved, err)
 	}
-	if _, err := os.Stat(filepath.Join(os.Getenv("HOME"), ".gentle-ai", "review-contexts")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(filepath.Join(os.Getenv("HOME"), ".brunnr-code", "review-contexts")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("rctx2 core created a v1 locator: %v", err)
 	}
 }

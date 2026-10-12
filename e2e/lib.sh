@@ -79,7 +79,7 @@ cleanup_test_env() {
     rm -rf "$HOME/.claude" 2>/dev/null || true
     rm -f "$HOME/.claude.json" 2>/dev/null || true
     rm -rf "$HOME/.codex" 2>/dev/null || true
-    rm -rf "$HOME/.gentle-ai" 2>/dev/null || true
+    rm -rf "$HOME/.brunnr-code" 2>/dev/null || true
     mkdir -p "$HOME/.config"
 }
 
@@ -97,7 +97,7 @@ setup_fake_engram_binary() {
         return 0
     fi
 
-    local fake_bin_dir="$HOME/.gentle-ai-e2e/bin"
+    local fake_bin_dir="$HOME/.brunnr-code-e2e/bin"
     local fake_engram="$fake_bin_dir/engram"
 
     mkdir -p "$fake_bin_dir"
@@ -379,7 +379,7 @@ assert_no_duplicate_section() {
         log_fail "Cannot check sections — file not found: $file"
         return 1
     fi
-    local marker="<!-- gentle-ai:${section_id} -->"
+    local marker="<!-- brunnr-code:${section_id} -->"
     local count
     # `grep -c` prints "0" AND exits 1 on zero matches, so `|| echo 0` would
     # yield the two-line string "0\n0" and break the numeric comparisons below.

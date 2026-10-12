@@ -267,7 +267,7 @@ func assertPairwiseDistinct(t *testing.T, messages map[string]string, want int) 
 }
 
 func reviewCLICompactStoreDir(repo, lineage string) string {
-	return filepath.Join(repo, ".git", "gentle-ai", "review-transactions", "v2", lineage)
+	return filepath.Join(repo, ".git", "brunnr-code", "review-transactions", "v2", lineage)
 }
 
 func reviewCLICompactStatePath(repo, lineage string) string {

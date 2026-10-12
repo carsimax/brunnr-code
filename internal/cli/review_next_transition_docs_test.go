@@ -215,9 +215,9 @@ var reviewModeDisableInvocationRegexp = regexp.MustCompile("`brunnr-code review 
 // `global` (review_mode.go's own flag default), so `brunnr-code review mode
 // disable` with no `--scope` disables receipt-driven development for every
 // repository on the machine, not just the one the orchestrator meant.
-// Verified by execution: the bare form writes ~/.gentle-ai/state.json;
+// Verified by execution: the bare form writes ~/.brunnr-code/state.json;
 // `--scope clone --cwd <B>` writes only under the selected target root's
-// .git/gentle-ai directory. Every invocation in the shipped asset must name
+// .git/brunnr-code directory. Every invocation in the shipped asset must name
 // that clone-scoped target-root form.
 func TestNamedReviewModeDisableIsAlwaysCloneScoped(t *testing.T) {
 	content := assets.MustRead(reviewLedgerContractAsset)
@@ -227,7 +227,7 @@ func TestNamedReviewModeDisableIsAlwaysCloneScoped(t *testing.T) {
 	}
 	for _, invocation := range invocations {
 		if !strings.Contains(invocation, "--scope clone") || !strings.Contains(invocation, "--cwd <B>") {
-			t.Errorf("shipped asset: %s defaults to global scope if run as printed (verified by execution: omitting --scope writes ~/.gentle-ai/state.json machine-wide) -- name --scope clone --cwd <B> instead", invocation)
+			t.Errorf("shipped asset: %s defaults to global scope if run as printed (verified by execution: omitting --scope writes ~/.brunnr-code/state.json machine-wide) -- name --scope clone --cwd <B> instead", invocation)
 		}
 	}
 }

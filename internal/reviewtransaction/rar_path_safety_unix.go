@@ -228,7 +228,7 @@ var rarPOSIXPrivateModeIneffective = posixPrivateModeIneffective
 // reports "effective": an inconclusive probe is not grounds to guess a new
 // refusal.
 func posixPrivateModeIneffective(dir string) bool {
-	file, err := os.CreateTemp(dir, ".gentle-ai-private-mode-probe-")
+	file, err := os.CreateTemp(dir, ".brunnr-code-private-mode-probe-")
 	if err != nil {
 		return false
 	}

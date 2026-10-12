@@ -107,7 +107,7 @@ func TestNegotiatedPrivacyGuardStillRejectsProviderPrivateFields(t *testing.T) {
 		},
 		{
 			name:    "provider handle beside the published token is rejected",
-			payload: `{"next_transition":{"kind":"collect","collect":{"inputs":[{"arguments":[{"name":"lineage","token":"--lineage=review-abc","store_path":"/home/u/.gentle-ai/review"}]}]}}}`,
+			payload: `{"next_transition":{"kind":"collect","collect":{"inputs":[{"arguments":[{"name":"lineage","token":"--lineage=review-abc","store_path":"/home/u/.brunnr-code/review"}]}]}}}`,
 			want:    "next_transition.collect.inputs[].arguments[].store_path",
 		},
 		{
@@ -122,7 +122,7 @@ func TestNegotiatedPrivacyGuardStillRejectsProviderPrivateFields(t *testing.T) {
 		},
 		{
 			name:    "handle wearing the published name and position is still rejected",
-			payload: `{"next_transition":{"kind":"execute","execute":{"arguments":[{"name":"lineage","token":"/home/u/.gentle-ai/review/authority.json"}]}}}`,
+			payload: `{"next_transition":{"kind":"execute","execute":{"arguments":[{"name":"lineage","token":"/home/u/.brunnr-code/review/authority.json"}]}}}`,
 			want:    "next_transition.execute.arguments[].token",
 		},
 		{
@@ -154,7 +154,7 @@ func TestNegotiatedPrivacyGuardMatchesTheNameCheckWhenNothingIsPublished(t *test
 	payloads := []string{
 		`{"next_transition":{"kind":"collect","collect":{"inputs":[{"arguments":[{"name":"lineage","token":"--lineage=review-abc"}]}]}}}`,
 		`{"next_transition":{"kind":"execute","execute":{"arguments":[{"name":"lineage","token":"--lineage=review-abc"}]}}}`,
-		`{"authority":{"store_path":"/home/u/.gentle-ai"}}`,
+		`{"authority":{"store_path":"/home/u/.brunnr-code"}}`,
 		`{"next_transition":{"kind":"stop","reason_code":"native_stop_required"}}`,
 	}
 	for _, payload := range payloads {

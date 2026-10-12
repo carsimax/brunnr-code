@@ -37,7 +37,7 @@ func TestReviewValidateReportsDisabledUnmanagedDeliveryWithoutAuthority(t *testi
 		})
 	}
 
-	authorityRoot := filepath.Join(repo, ".git", "gentle-ai", "review-transactions", "v2")
+	authorityRoot := filepath.Join(repo, ".git", "brunnr-code", "review-transactions", "v2")
 	if _, err := os.Stat(authorityRoot); !os.IsNotExist(err) {
 		t.Fatalf("disabled delivery validation created review authority: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestReviewValidateReportsDisabledUnmanagedDeliveryWhenNoUpstreamConfigured(
 		t.Fatalf("disabled pre-push delivery without upstream is not replay stable:\nfirst:\n%s\nreplay:\n%s", output.String(), replay.String())
 	}
 
-	authorityRoot := filepath.Join(repo, ".git", "gentle-ai", "review-transactions", "v2")
+	authorityRoot := filepath.Join(repo, ".git", "brunnr-code", "review-transactions", "v2")
 	if _, err := os.Stat(authorityRoot); !os.IsNotExist(err) {
 		t.Fatalf("disabled pre-push validation without upstream created review authority: %v", err)
 	}
