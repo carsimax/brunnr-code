@@ -47,13 +47,13 @@ func runPortableBrewFixture() int {
 	case args == "tap Gentleman-Programming/homebrew-tap":
 	case strings.HasPrefix(args, "trust --formula gentleman-programming/tap/"):
 		formula := strings.TrimPrefix(args, "trust --formula gentleman-programming/tap/")
-		if os.Getenv("GENTLE_AI_TEST_BREW_DENY") == "1" || (formula != "engram" && formula != "gga") {
+		if os.Getenv("GENTLE_AI_TEST_BREW_DENY") == "1" || formula != "engram" {
 			fmt.Fprintln(os.Stderr, "fixture: trust refused")
 			code = 7
 		} else {
 			state.Trusted = formula
 		}
-	case args == "install engram" || args == "reinstall gga":
+	case args == "install engram":
 		formula := strings.Fields(args)[1]
 		if os.Getenv("GENTLE_AI_TEST_BREW_LEGACY") != "1" && state.Trusted != formula {
 			fmt.Fprintln(os.Stderr, "fixture: formula is untrusted")
@@ -107,7 +107,7 @@ func TestPortableHomebrewComponentPipeline(t *testing.T) {
 	restore := SetCommandOutputStreaming(false)
 	t.Cleanup(restore)
 
-	for _, component := range []model.ComponentID{model.ComponentEngram, model.ComponentGGA} {
+	for _, component := range []model.ComponentID{model.ComponentEngram} {
 		for _, mode := range []string{"modern", "legacy", "denied", "untrusted-control"} {
 			t.Run(string(component)+"/"+mode, func(t *testing.T) {
 				t.Setenv("GENTLE_AI_TEST_BREW_STATE", filepath.Join(t.TempDir(), "state.json"))
@@ -130,9 +130,6 @@ func TestPortableHomebrewComponentPipeline(t *testing.T) {
 				err = runCommandSequence(withResolvedBrewCommand(commands))
 				formula := string(component)
 				action := "install"
-				if component == model.ComponentGGA {
-					action = "reinstall"
-				}
 				want := portableBrewState{Commands: []string{"help trust", "tap Gentleman-Programming/homebrew-tap"}}
 				if mode != "legacy" && mode != "untrusted-control" {
 					want.Commands = append(want.Commands, "trust --formula gentleman-programming/tap/"+formula)

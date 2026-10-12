@@ -65,7 +65,7 @@ func TestResolveComponentInstallHomebrewExecutable(t *testing.T) {
 
 func TestResolveComponentInstallHomebrewTrust(t *testing.T) {
 	for _, os := range []string{"darwin", "linux"} {
-		for _, component := range []model.ComponentID{model.ComponentEngram, model.ComponentGGA} {
+		for _, component := range []model.ComponentID{model.ComponentEngram} {
 			for _, supported := range []bool{true, false} {
 				t.Run(fmt.Sprintf("%s/%s/trust=%t", os, component, supported), func(t *testing.T) {
 					original := cmdBrewHelpTrust
@@ -80,9 +80,6 @@ func TestResolveComponentInstallHomebrewTrust(t *testing.T) {
 					t.Cleanup(func() { cmdBrewHelpTrust = original })
 					name := string(component)
 					action := "install"
-					if component == model.ComponentGGA {
-						action = "reinstall"
-					}
 					want := CommandSequence{{"brew", "tap", "Gentleman-Programming/homebrew-tap"}}
 					if supported {
 						want = append(want, []string{"brew", "trust", "--formula", "gentleman-programming/tap/" + name})

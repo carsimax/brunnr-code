@@ -440,7 +440,7 @@ func runUpdate(ctx context.Context, profile system.PlatformProfile, stdout io.Wr
 // runUpgrade handles the `gentle-ai upgrade [--dry-run] [tool...]` command.
 //
 // This command:
-//   - Checks for available updates for managed tools (engram, gga)
+//   - Checks for available updates for managed tools (engram)
 //   - Snapshots agent config paths before execution (config preservation by design)
 //   - Executes binary-only upgrades; does NOT invoke install or sync pipelines
 //

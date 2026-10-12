@@ -18,7 +18,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/agentguidance"
 	"github.com/carsimax/brunnr-code/internal/components/engram"
 	"github.com/carsimax/brunnr-code/internal/components/filemerge"
-	"github.com/carsimax/brunnr-code/internal/components/gga"
 	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
 	"github.com/carsimax/brunnr-code/internal/components/skills"
 	"github.com/carsimax/brunnr-code/internal/components/theme"
@@ -86,7 +85,6 @@ var (
 		model.ComponentSkills,
 		model.ComponentTheme,
 		model.ComponentClaudeTheme,
-		model.ComponentGGA,
 	}
 	fullAgentRemovalComponents = []model.ComponentID{
 		model.ComponentPersona,
@@ -210,9 +208,8 @@ func (s *Service) PartialUninstallWithEngramScope(agentIDs []model.AgentID, comp
 }
 
 // partialUninstall is the shared body of PartialUninstall and
-// PartialUninstallWithEngramScope. It resolves the requested components,
-// downgrades any that are still shared with an agent this run is not
-// removing (see reconcileSharedComponents), and executes the resulting plan.
+// PartialUninstallWithEngramScope. It resolves the requested components and
+// executes the resulting plan.
 func (s *Service) partialUninstall(agentIDs []model.AgentID, componentIDs []model.ComponentID) (Result, error) {
 	if slices.Contains(componentIDs, model.ComponentSDD) {
 		return Result{}, fmt.Errorf("component %q is retired and cannot be uninstalled; existing files and settings were preserved", model.ComponentSDD)
@@ -221,22 +218,11 @@ func (s *Service) partialUninstall(agentIDs []model.AgentID, componentIDs []mode
 		return Result{}, fmt.Errorf("partial uninstall requires at least one agent")
 	}
 
-	// explicitGGA tracks whether the caller itself named "gga" (as opposed to
-	// it only being present because the component list defaulted to
-	// allManagedComponents). It decides whether an unreadable install state
-	// fails the whole command or is merely downgraded to a kept-GGA note.
-	explicitGGA := slices.Contains(componentIDs, model.ComponentGGA)
-
 	components := componentIDs
 	if len(components) == 0 {
 		components = slices.Clone(allManagedComponents)
 	}
 	components = expandVisualPolishUninstallComponents(components)
-
-	components, sharedNote, err := s.reconcileSharedComponents(agentIDs, components, explicitGGA)
-	if err != nil {
-		return Result{}, err
-	}
 
 	plan, err := s.buildPlan(agentIDs, components)
 	if err != nil {
@@ -245,103 +231,7 @@ func (s *Service) partialUninstall(agentIDs []model.AgentID, componentIDs []mode
 
 	stateRemovals := stateAgentsToRemove(agentIDs, components)
 	result, err := s.executePlan(plan, stateRemovals)
-	if err != nil {
-		return result, err
-	}
-	if sharedNote != "" {
-		result.ManualActions = append(result.ManualActions, sharedNote)
-	}
-	return result, nil
-}
-
-// reconcileSharedComponents downgrades components that are shared across all
-// installed agents (currently just GGA's global config) when at least one
-// agent outside agentIDs is still installed. Ownership is derived from the
-// persisted install state (state.json's InstalledAgents) rather than probing
-// disk, so it stays correct even when files were hand-edited (#3534).
-//
-// A missing state file is treated as "no other agent is recorded", matching
-// the pre-existing behavior of an install predating state.json. Any other
-// read failure (corrupt JSON, permission error, ...) fails closed toward
-// preservation: GGA is kept and a note explains why, and the rest of the
-// uninstall still proceeds — unless the caller explicitly asked for
-// "--components gga", in which case there is nothing safe left to do for
-// that explicit request and the error is returned instead.
-func (s *Service) reconcileSharedComponents(agentIDs []model.AgentID, componentIDs []model.ComponentID, explicitGGA bool) ([]model.ComponentID, string, error) {
-	if !slices.Contains(componentIDs, model.ComponentGGA) {
-		return componentIDs, "", nil
-	}
-
-	remaining, err := otherInstalledAgents(s.homeDir, agentIDs)
-	if err != nil {
-		if explicitGGA {
-			return nil, "", fmt.Errorf("check remaining installed agents for shared GGA config: %w", err)
-		}
-		note := fmt.Sprintf(
-			"No action needed: kept the shared GGA config (%s) because the install state could not be read (%v), so it is unclear whether another installed agent still depends on it.",
-			gga.ConfigPath(s.homeDir), err,
-		)
-		return withoutComponent(componentIDs, model.ComponentGGA), note, nil
-	}
-	if len(remaining) == 0 {
-		return componentIDs, "", nil
-	}
-
-	note := fmt.Sprintf(
-		"No action needed: kept the shared GGA config (%s) because installed agent(s) still use it: %s. It is removed automatically once those agents are also uninstalled.",
-		gga.ConfigPath(s.homeDir), strings.Join(remaining, ", "),
-	)
-	return withoutComponent(componentIDs, model.ComponentGGA), note, nil
-}
-
-// withoutComponent returns componentIDs with every occurrence of excluded
-// removed, preserving order.
-func withoutComponent(componentIDs []model.ComponentID, excluded model.ComponentID) []model.ComponentID {
-	kept := make([]model.ComponentID, 0, len(componentIDs))
-	for _, componentID := range componentIDs {
-		if componentID != excluded {
-			kept = append(kept, componentID)
-		}
-	}
-	return kept
-}
-
-// isStateNotFound reports whether err indicates the install state file does
-// not exist. It uses errors.Is against fs.ErrNotExist (rather than
-// os.IsNotExist) so a caller that wraps state.Read's error — e.g. via
-// fmt.Errorf's %w — is still classified correctly instead of falling through
-// to the "unreadable state" path.
-func isStateNotFound(err error) bool {
-	return errors.Is(err, fs.ErrNotExist)
-}
-
-// otherInstalledAgents returns the sorted IDs of agents recorded as installed
-// in state.json that are not in agentIDs. It answers "which agents remain
-// installed after this uninstall" for components shared across every
-// installed agent.
-func otherInstalledAgents(homeDir string, agentIDs []model.AgentID) ([]string, error) {
-	current, err := state.Read(homeDir)
-	if err != nil {
-		if isStateNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	removing := make(map[string]struct{}, len(agentIDs))
-	for _, agentID := range agentIDs {
-		removing[string(agentID)] = struct{}{}
-	}
-
-	remaining := make([]string, 0, len(current.InstalledAgents))
-	for _, installed := range model.SupportedAgentIDs(current.InstalledAgents) {
-		if _, ok := removing[installed]; ok {
-			continue
-		}
-		remaining = append(remaining, installed)
-	}
-	slices.Sort(remaining)
-	return remaining, nil
+	return result, err
 }
 
 func expandVisualPolishUninstallComponents(components []model.ComponentID) []model.ComponentID {
@@ -441,16 +331,6 @@ func (s *Service) buildPlan(agentIDs []model.AgentID, componentIDs []model.Compo
 				existing.agents = appendUniqueAgents(existing.agents, op.agents...)
 				operationsByKey[key] = existing
 			}
-		}
-	}
-
-	for _, target := range globalBackupTargets(s.homeDir) {
-		files, err := expandBackupTarget(target)
-		if err != nil {
-			return plan{}, fmt.Errorf("expand backup target %q: %w", target, err)
-		}
-		for _, file := range files {
-			backupTargets[file] = struct{}{}
 		}
 	}
 
@@ -870,12 +750,6 @@ func (s *Service) componentOperations(adapter agents.Adapter, componentID model.
 		targets = append(targets, marker)
 		ops = append(ops, removeRegularFile(marker))
 		ops = append(ops, removeDirIfEmpty(filepath.Join(skillDir, "_shared")))
-	case model.ComponentGGA:
-		for _, path := range globalBackupTargets(homeDir) {
-			targets = append(targets, path)
-			ops = append(ops, removeFile(path))
-		}
-		ops = append(ops, removeDirIfEmpty(filepath.Dir(gga.ConfigPath(homeDir))))
 	default:
 		return nil, nil, fmt.Errorf("unsupported component ID %q", componentID)
 	}
@@ -1503,13 +1377,6 @@ func removesAllAgentComponents(componentIDs []model.ComponentID) bool {
 		}
 	}
 	return true
-}
-
-func globalBackupTargets(homeDir string) []string {
-	return []string{
-		gga.ConfigPath(homeDir),
-		gga.AgentsTemplatePath(homeDir),
-	}
 }
 
 func stateAgentsToRemove(agentIDs []model.AgentID, componentIDs []model.ComponentID) []model.AgentID {

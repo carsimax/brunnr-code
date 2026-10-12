@@ -25,7 +25,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/assets"
 	"github.com/carsimax/brunnr-code/internal/backup"
 	"github.com/carsimax/brunnr-code/internal/components/agentguidance"
-	"github.com/carsimax/brunnr-code/internal/components/gga"
 	"github.com/carsimax/brunnr-code/internal/components/legacyassets"
 	"github.com/carsimax/brunnr-code/internal/components/skills"
 	"github.com/carsimax/brunnr-code/internal/components/theme"
@@ -277,10 +276,6 @@ func presentPaths(paths []string) []string {
 func managedGlobalBackupPaths(homeDir string) []string {
 	return []string{
 		state.Path(homeDir),
-		gga.ConfigPath(homeDir),
-		gga.AgentsTemplatePath(homeDir),
-		gga.RuntimePRModePath(homeDir),
-		gga.RuntimePS1Path(homeDir),
 	}
 }
 

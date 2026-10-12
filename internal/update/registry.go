@@ -9,7 +9,6 @@ import (
 // InstallMethod controls which non-Homebrew upgrade strategy the executor uses:
 //   - InstallBrew: explicitly managed via Homebrew
 //   - InstallBinary: downloaded binary from GitHub Releases
-//   - InstallScript: the project's install script
 //
 // On platforms where Homebrew is available, the executor selects brew only
 // when Homebrew confirms it owns the specific tool. Otherwise this field is
@@ -41,32 +40,6 @@ var Tools = []ToolInfo{
 			// the binary installer places it here, which may not be in PATH yet).
 			if homeDir != "" {
 				paths = append(paths, filepath.Join(homeDir, ".local", "bin", "engram"))
-			}
-			return paths
-		},
-	},
-	{
-		Name:          "gga",
-		Owner:         "Gentleman-Programming",
-		Repo:          "gentleman-guardian-angel",
-		DetectCmd:     []string{"gga", "--version"},
-		VersionPrefix: "v",
-		// gga: Homebrew when the package is brew-owned, install.sh script elsewhere.
-		// GGA does not publish pre-built release binary assets — only source archives.
-		// Using InstallScript runs curl | bash via the project's install.sh.
-		InstallMethod: InstallScript,
-		// FallbackPaths covers the Windows stale-PATH scenario: gga installs a
-		// PowerShell shim to ~/bin/gga.ps1, and the bash script to ~/.local/bin/gga.
-		// Both locations may not be in PATH immediately after install.
-		FallbackPaths: func(homeDir, localAppData string) []string {
-			var paths []string
-			if homeDir != "" {
-				// Windows: ~/bin/gga.ps1 (PowerShell shim, callable as "gga" in PS)
-				paths = append(paths, filepath.Join(homeDir, "bin", "gga.ps1"))
-				// Linux/macOS: ~/.local/bin/gga
-				paths = append(paths, filepath.Join(homeDir, ".local", "bin", "gga"))
-				// Linux/macOS: ~/bin/gga
-				paths = append(paths, filepath.Join(homeDir, "bin", "gga"))
 			}
 			return paths
 		},

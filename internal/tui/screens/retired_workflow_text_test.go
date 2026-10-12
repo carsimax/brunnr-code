@@ -25,7 +25,7 @@ func TestScreensShowNoRetiredWorkflowText(t *testing.T) {
 
 func TestEcosystemPresetDescribesItsComponents(t *testing.T) {
 	view := RenderPreset(model.PresetEcosystemOnly, 0)
-	if !regexp.MustCompile(`Memory \+ skills \+ docs \+ GGA`).MatchString(view) {
+	if !regexp.MustCompile(`Memory \+ skills \+ docs`).MatchString(view) {
 		t.Fatalf("Dev Stack description does not list its components:\n%s", view)
 	}
 }

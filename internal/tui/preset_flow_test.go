@@ -217,8 +217,6 @@ Toggle components with enter or space.
     Managed agent behavior and conversation tone
   [ ] permissions
     Security-first defaults and guardrails
-  [ ] gga
-    Gentleman Guardian Angel — AI provider switcher
   [ ] theme
     Visual polish: Gentleman color theme
   [ ] claude-theme

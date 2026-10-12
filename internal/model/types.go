@@ -45,7 +45,6 @@ const (
 	ComponentContext7    ComponentID = "context7"
 	ComponentPersona     ComponentID = "persona"
 	ComponentPermission  ComponentID = "permissions"
-	ComponentGGA         ComponentID = "gga"
 	ComponentTheme       ComponentID = "theme"
 	ComponentClaudeTheme ComponentID = "claude-theme"
 )

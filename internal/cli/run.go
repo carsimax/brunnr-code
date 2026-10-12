@@ -24,7 +24,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/communitytool"
 	"github.com/carsimax/brunnr-code/internal/components/engram"
 	"github.com/carsimax/brunnr-code/internal/components/filemerge"
-	"github.com/carsimax/brunnr-code/internal/components/gga"
 	"github.com/carsimax/brunnr-code/internal/components/legacyassets"
 	"github.com/carsimax/brunnr-code/internal/components/mcp"
 	"github.com/carsimax/brunnr-code/internal/components/permissions"
@@ -66,14 +65,9 @@ var (
 	pathEnvEntries               = func(profile system.PlatformProfile) []string {
 		return splitPathForOS(os.Getenv("PATH"), profile.OS)
 	}
-	addUserPath          = system.AddToUserPath
-	ensureUserPathFirst  = system.PrioritizeUserPath
-	userPathEntries      = system.UserPathEntries
-	cleanupGGAInstallDir = gga.CleanupInstallDir
-
-	// ggaAvailableCheck is an optional override for ggaAvailable behavior.
-	// When set, it is called instead of the default filesystem check.
-	ggaAvailableCheck func(system.PlatformProfile) bool
+	addUserPath         = system.AddToUserPath
+	ensureUserPathFirst = system.PrioritizeUserPath
+	userPathEntries     = system.UserPathEntries
 
 	// engramDownloadFn is the function used to download the engram binary on non-brew platforms.
 	// Package-level var for testability — tests can replace this to avoid real HTTP calls.
@@ -388,9 +382,6 @@ func mergeExplicitAgentInstallState(homeDir string, newState state.InstallState,
 func withPostInstallNotes(report verify.Report, resolved planner.ResolvedPlan) verify.Report {
 	report = withReadyAgentRunNote(report, resolved)
 	report = withFailedVerificationNote(report, resolved)
-	if hasComponent(resolved.OrderedComponents, model.ComponentGGA) && report.Ready {
-		report.FinalNote = report.FinalNote + "\n\nGGA is now installed globally. To enable project hooks, run in each repo:\n- gga init\n- gga install"
-	}
 	report = withGoInstallPathNote(report, resolved)
 	return report
 }
@@ -1551,56 +1542,6 @@ func (s componentApplyStep) Run() error {
 			}
 		}
 		return nil
-	case model.ComponentGGA:
-		if !ggaAvailable(s.profile) {
-			// GGA not found on any known PATH — install it.
-			if s.profile.OS == "windows" {
-				if err := cleanupGGAInstallDir(); err != nil {
-					return err
-				}
-			}
-			commands, err := gga.InstallCommand(s.profile)
-			if err != nil {
-				return fmt.Errorf("resolve install command for component %q: %w", s.component, err)
-			}
-			installErr := runCommandSequence(commands)
-			if installErr != nil {
-				if ggaAvailable(s.profile) {
-					// The GGA install script uses `set -e` and `read -p` for
-					// the "already installed" confirmation. Without a TTY
-					// (common in automated/re-run scenarios), `read` fails
-					// with exit code 1 and `set -e` kills the script before
-					// it can exit 0. If GGA is actually available after the
-					// script ran, the install succeeded functionally — treat
-					// as success but warn the user.
-					fmt.Fprintf(os.Stderr, "WARNING: gga install command reported an error but gga is available — continuing. Error was: %v\n", installErr)
-				} else {
-					return installErr
-				}
-			}
-		}
-		if err := gga.EnsureRuntimeAssets(s.homeDir); err != nil {
-			return fmt.Errorf("ensure gga runtime assets: %w", err)
-		}
-		if runtime.GOOS == "windows" {
-			if err := gga.EnsurePowerShellShim(s.homeDir); err != nil {
-				return fmt.Errorf("ensure gga powershell shim: %w", err)
-			}
-			if err := gga.EnsureCommandShim(s.homeDir); err != nil {
-				return fmt.Errorf("ensure gga command shim: %w", err)
-			}
-			// Add GGA bin dir to the user PATH persistently on Windows.
-			// GGA's install.sh drops the binary into ~/bin which is not on PATH by default.
-			ggaBinDir := filepath.Join(s.homeDir, "bin")
-			if err := addUserPath(ggaBinDir); err != nil {
-				// Non-fatal: warn but continue — GGA was installed successfully.
-				fmt.Fprintf(os.Stderr, "WARNING: could not add %s to PATH: %v\n", ggaBinDir, err)
-			}
-		}
-		if _, err := gga.Inject(s.homeDir, s.agents); err != nil {
-			return fmt.Errorf("inject gga config: %w", err)
-		}
-		return nil
 	case model.ComponentTheme:
 		for _, adapter := range adapters {
 			if _, err := theme.Inject(s.homeDir, adapter); err != nil {
@@ -1705,48 +1646,6 @@ func ResolveInstallProfile(detection system.DetectionResult) system.PlatformProf
 		PackageManager: "brew",
 		Supported:      true,
 	}
-}
-
-// ggaAvailable reports whether the gga binary is reachable. gga is often
-// installed to ~/.local/bin (the default for install.sh on Linux and macOS)
-// or ~/bin (the default for install.sh on Windows), which may not be on PATH.
-// On macOS with Homebrew, gga may be in /opt/homebrew/bin or /usr/local/bin.
-// We check the filesystem directly to avoid spawning a subprocess and to work
-// regardless of whether the install directory has been added to PATH.
-func ggaAvailable(profile system.PlatformProfile) bool {
-	// Allow test override.
-	if ggaAvailableCheck != nil {
-		return ggaAvailableCheck(profile)
-	}
-	if _, err := cmdLookPath("gga"); err == nil {
-		return true
-	}
-	homeDir, err := osUserHomeDir()
-	if err != nil {
-		return false
-	}
-	if _, err := osStat(filepath.Join(homeDir, ".local", "bin", "gga")); err == nil {
-		return true
-	}
-	// Check well-known Homebrew prefixes for macOS (arm64 and x86).
-	// gga may be installed via brew but not yet in the shell PATH
-	// (e.g. new terminal session, Rosetta environment mismatch).
-	if profile.OS == "darwin" || profile.PackageManager == "brew" {
-		for _, brewBin := range []string{
-			"/opt/homebrew/bin/gga",
-			"/usr/local/bin/gga",
-		} {
-			if _, err := osStat(brewBin); err == nil {
-				return true
-			}
-		}
-	}
-	if profile.OS == "windows" {
-		if _, err := osStat(filepath.Join(homeDir, "bin", "gga")); err == nil {
-			return true
-		}
-	}
-	return false
 }
 
 func isExecutableFile(path string) bool {
@@ -2253,9 +2152,6 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 			if p := permissions.TargetPath(homeDir, adapter); p != "" {
 				paths = append(paths, p)
 			}
-		case model.ComponentGGA:
-			paths = append(paths, gga.ConfigPath(homeDir))
-			paths = append(paths, gga.AgentsTemplatePath(homeDir))
 		case model.ComponentTheme:
 			if p := adapter.SettingsPath(homeDir); p != "" {
 				paths = append(paths, p)

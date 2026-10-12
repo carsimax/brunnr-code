@@ -16,7 +16,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/agents"
 	"github.com/carsimax/brunnr-code/internal/backup"
 	"github.com/carsimax/brunnr-code/internal/components/agentguidance"
-	"github.com/carsimax/brunnr-code/internal/components/gga"
 	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/state"
@@ -57,8 +56,8 @@ func TestExecute_NoopWhenNothingIsExecutable(t *testing.T) {
 	results := []update.UpdateResult{
 		makeResult("gentle-ai", update.UpToDate, "1.0.0", "1.0.0", update.InstallBinary),
 		makeResult("engram", update.NotInstalled, "", "0.4.0", update.InstallBinary),
-		// gga: CheckFailed — should also be omitted from results.
-		makeResult("gga", update.CheckFailed, "", "", update.InstallScript),
+		// CheckFailed — should also be omitted from results.
+		makeResult("other", update.CheckFailed, "", "", update.InstallBinary),
 	}
 
 	report := Execute(context.Background(), results, brewProfile(), t.TempDir(), false)
@@ -815,50 +814,6 @@ func TestConfigPathsForBackup_CoversRegistryAgentsNotInOldList(t *testing.T) {
 
 	if _, ok := pathSet[codexFile]; !ok {
 		t.Errorf("configPathsForBackup() missing codex managed file %q — must cover registry agents, not just old hardcoded 4; got paths: %v", codexFile, paths)
-	}
-}
-
-// TestConfigPathsForBackup_GGAExtrasAreIncluded verifies that GGA-specific
-// paths (config file, runtime lib dir) are included in the backup paths even
-// though GGA is not an agent in the adapter registry. These are approved
-// non-agent extras that must be preserved outside the canonical managed set.
-func TestConfigPathsForBackup_GGAExtrasAreIncluded(t *testing.T) {
-	homeDir := t.TempDir()
-
-	if runtime.GOOS == "windows" {
-		t.Setenv("APPDATA", filepath.Join(homeDir, "AppData", "Roaming"))
-	}
-
-	// Create GGA config file at the platform-appropriate path
-	ggaConfigFile := gga.ConfigPath(homeDir)
-	if err := os.MkdirAll(filepath.Dir(ggaConfigFile), 0o755); err != nil {
-		t.Fatalf("MkdirAll gga config: %v", err)
-	}
-	if err := os.WriteFile(ggaConfigFile, []byte("gga-config"), 0o644); err != nil {
-		t.Fatalf("WriteFile gga config: %v", err)
-	}
-
-	// Create GGA runtime lib file at the platform-appropriate path
-	ggaLibFile := gga.RuntimePRModePath(homeDir)
-	if err := os.MkdirAll(filepath.Dir(ggaLibFile), 0o755); err != nil {
-		t.Fatalf("MkdirAll gga lib: %v", err)
-	}
-	if err := os.WriteFile(ggaLibFile, []byte("#!/bin/sh"), 0o755); err != nil {
-		t.Fatalf("WriteFile gga lib: %v", err)
-	}
-
-	paths := configPathsForBackup(homeDir)
-
-	pathSet := make(map[string]struct{}, len(paths))
-	for _, p := range paths {
-		pathSet[p] = struct{}{}
-	}
-
-	if _, ok := pathSet[ggaConfigFile]; !ok {
-		t.Errorf("configPathsForBackup() missing GGA config file %q — GGA extras must remain in backup; got paths: %v", ggaConfigFile, paths)
-	}
-	if _, ok := pathSet[ggaLibFile]; !ok {
-		t.Errorf("configPathsForBackup() missing GGA lib file %q — GGA extras must remain in backup; got paths: %v", ggaLibFile, paths)
 	}
 }
 

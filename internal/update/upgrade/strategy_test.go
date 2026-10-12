@@ -3,8 +3,6 @@ package upgrade
 import (
 	"context"
 	"errors"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -117,10 +115,9 @@ func TestRunStrategy_BrewUpgradeFailure(t *testing.T) {
 
 // --- TestEffectiveMethod_NonGentleAIToolsOnWindowsUseBinary ---
 
-// TestEffectiveMethod_NonGentleAIToolsOnWindowsUseBinary verifies that tools
-// OTHER than gentle-ai on Windows still use their declared install method
-// (binary, script, etc.).
-func TestEffectiveMethod_NonGentleAIToolsOnWindowsUseBinary(t *testing.T) {
+// TestEffectiveMethod_ToolsOnWindowsUseDeclaredMethod verifies that tools on
+// Windows use their declared install method.
+func TestEffectiveMethod_ToolsOnWindowsUseDeclaredMethod(t *testing.T) {
 	tests := []struct {
 		name string
 		tool update.ToolInfo
@@ -130,11 +127,6 @@ func TestEffectiveMethod_NonGentleAIToolsOnWindowsUseBinary(t *testing.T) {
 			name: "engram uses binary",
 			tool: update.ToolInfo{Name: "engram", InstallMethod: update.InstallBinary},
 			want: update.InstallBinary,
-		},
-		{
-			name: "gga uses script",
-			tool: update.ToolInfo{Name: "gga", InstallMethod: update.InstallScript},
-			want: update.InstallScript,
 		},
 		{
 			name: "unknown tool uses binary",
@@ -176,14 +168,7 @@ func TestEffectiveMethod(t *testing.T) {
 		},
 		{
 			name:          "brew-owned package overrides binary",
-			tool:          update.ToolInfo{Name: "gga", InstallMethod: update.InstallBinary},
-			profile:       system.PlatformProfile{PackageManager: "brew"},
-			brewInstalled: true,
-			want:          update.InstallBrew,
-		},
-		{
-			name:          "brew-owned package overrides script",
-			tool:          update.ToolInfo{Name: "gga", InstallMethod: update.InstallScript},
+			tool:          update.ToolInfo{Name: "other", InstallMethod: update.InstallBinary},
 			profile:       system.PlatformProfile{PackageManager: "brew"},
 			brewInstalled: true,
 			want:          update.InstallBrew,
@@ -196,15 +181,9 @@ func TestEffectiveMethod(t *testing.T) {
 		},
 		{
 			name:    "apt profile respects declared method (binary)",
-			tool:    update.ToolInfo{Name: "gga", InstallMethod: update.InstallBinary},
+			tool:    update.ToolInfo{Name: "other", InstallMethod: update.InstallBinary},
 			profile: system.PlatformProfile{PackageManager: "apt"},
 			want:    update.InstallBinary,
-		},
-		{
-			name:    "apt profile respects declared method (script)",
-			tool:    update.ToolInfo{Name: "gga", InstallMethod: update.InstallScript},
-			profile: system.PlatformProfile{PackageManager: "apt"},
-			want:    update.InstallScript,
 		},
 	}
 
@@ -507,385 +486,15 @@ func TestRunStrategy_ExecErrorWrapped(t *testing.T) {
 
 // --- TestRunStrategy_ScriptUpgradeSuccess ---
 
-func TestRunStrategy_ScriptUpgradeSuccess(t *testing.T) {
-	origExecCommand := execCommand
-	origHTTPClient := scriptHTTPClient
-	origInstallScriptURL := installScriptURLFn
-	t.Cleanup(func() {
-		execCommand = origExecCommand
-		scriptHTTPClient = origHTTPClient
-		installScriptURLFn = origInstallScriptURL
-	})
-
-	// Serve a fake install.sh that succeeds.
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("#!/bin/bash\necho 'install ok'\n"))
-	}))
-	defer server.Close()
-
-	scriptHTTPClient = server.Client()
-
-	// Override installScriptURL to point to our test server.
-	installScriptURLFn = func(owner, repo, version string) (string, error) {
-		return server.URL + "/install.sh", nil
-	}
-
-	var gotScriptContent string
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		// Capture the script content passed via bash -c.
-		if name == "bash" && len(args) >= 2 && args[0] == "-c" {
-			gotScriptContent = args[1]
-		}
-		return mockCmd("echo", "ok")
-	}
-
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "gga",
-			Owner:         "Gentleman-Programming",
-			Repo:          "gentleman-guardian-angel",
-			InstallMethod: update.InstallScript,
-		},
-		LatestVersion: "2.8.0",
-	}
-	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-
-	err := scriptUpgrade(context.Background(), r, profile)
-	if err != nil {
-		t.Fatalf("scriptUpgrade: unexpected error: %v", err)
-	}
-
-	// Verify that bash was called with the install.sh content.
-	if !containsAny(gotScriptContent, "install ok", "#!/bin/bash") {
-		t.Errorf("bash -c did not receive install.sh content; got: %q", gotScriptContent)
-	}
-}
-
 // --- TestRunStrategy_ScriptUpgradeDownloadFailure ---
-
-func TestRunStrategy_ScriptUpgradeDownloadFailure(t *testing.T) {
-	origHTTPClient := scriptHTTPClient
-	origInstallScriptURL := installScriptURLFn
-	t.Cleanup(func() {
-		scriptHTTPClient = origHTTPClient
-		installScriptURLFn = origInstallScriptURL
-	})
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer server.Close()
-	scriptHTTPClient = server.Client()
-	installScriptURLFn = func(owner, repo, version string) (string, error) {
-		return server.URL + "/install.sh", nil
-	}
-
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "gga",
-			Owner:         "Gentleman-Programming",
-			Repo:          "gentleman-guardian-angel",
-			InstallMethod: update.InstallScript,
-		},
-		LatestVersion: "2.8.0",
-	}
-	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-
-	err := scriptUpgrade(context.Background(), r, profile)
-	if err == nil {
-		t.Errorf("expected error when install.sh download fails, got nil")
-	}
-}
 
 // --- TestRunStrategy_ScriptUpgradeWindowsManualFallback ---
 
-func TestRunStrategy_ScriptUpgradeWindowsManualFallback(t *testing.T) {
-	origExecCommand := execCommand
-	t.Cleanup(func() { execCommand = origExecCommand })
-
-	execCalled := false
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		execCalled = true
-		return mockCmd("echo", "should not run")
-	}
-
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "gga",
-			Owner:         "Gentleman-Programming",
-			Repo:          "gentleman-guardian-angel",
-			InstallMethod: update.InstallScript,
-		},
-		LatestVersion: "2.8.0",
-	}
-	profile := system.PlatformProfile{OS: "windows", PackageManager: "winget"}
-
-	err := scriptUpgrade(context.Background(), r, profile)
-	if err == nil {
-		t.Errorf("expected manual fallback error for Windows script upgrade, got nil")
-	}
-
-	if execCalled {
-		t.Errorf("exec should NOT be called for Windows script manual fallback")
-	}
-}
-
 // --- TestGGAScriptUpgradeUsesGitClone ---
-
-// TestGGAScriptUpgradeUsesGitClone verifies that ggaScriptUpgrade:
-// 1. First calls `git clone --depth=1 --branch v<version> <repo-url> <tmpDir>`
-// 2. Then calls `bash <path-to-install.sh>`
-// — not `bash -c <script-content>` like the generic scriptUpgrade.
-// The clone is pinned to the target release tag so that install.sh matches the
-// version being upgraded to, not whatever is on main at upgrade time.
-func TestGGAScriptUpgradeUsesGitClone(t *testing.T) {
-	origExecCommand := execCommand
-	origDetectOS := detectOS
-	t.Cleanup(func() {
-		execCommand = origExecCommand
-		detectOS = origDetectOS
-	})
-	detectOS = func() string { return "linux" }
-
-	type call struct {
-		name string
-		args []string
-	}
-	var calls []call
-
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		calls = append(calls, call{name: name, args: args})
-		return mockCmd("echo", "ok")
-	}
-
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "gga",
-			Owner:         "Gentleman-Programming",
-			Repo:          "gentleman-guardian-angel",
-			InstallMethod: update.InstallScript,
-		},
-		LatestVersion: "2.8.0",
-	}
-
-	err := ggaScriptUpgrade(context.Background(), r)
-	if err != nil {
-		t.Fatalf("ggaScriptUpgrade: unexpected error: %v", err)
-	}
-
-	// Must have at least 4 exec calls (git init, git fetch, git checkout, bash install.sh).
-	if len(calls) < 4 {
-		t.Fatalf("expected at least 4 exec calls (git init + fetch + checkout + bash install.sh), got %d: %v", len(calls), calls)
-	}
-
-	// First call: git init
-	if calls[0].name != "git" || len(calls[0].args) == 0 || calls[0].args[0] != "init" {
-		t.Errorf("first exec call = %v, want git init", calls[0])
-	}
-
-	// Second call: git -C <dir> fetch --depth=1 <repoURL> refs/tags/v2.8.0:refs/tags/v2.8.0
-	fetchArgs := calls[1].args
-	foundRepoURL := false
-	foundTagRef := false
-	for _, a := range fetchArgs {
-		if containsAny(a, "gentleman-guardian-angel") {
-			foundRepoURL = true
-		}
-		if a == "refs/tags/v2.8.0:refs/tags/v2.8.0" {
-			foundTagRef = true
-		}
-	}
-	if !foundRepoURL {
-		t.Errorf("git fetch args %v should include the repo URL (gentleman-guardian-angel)", fetchArgs)
-	}
-	if !foundTagRef {
-		t.Errorf("git fetch args %v should include refs/tags/v2.8.0:refs/tags/v2.8.0 to pin to the release tag", fetchArgs)
-	}
-
-	// Third call: git -C <dir> checkout -f refs/tags/v2.8.0
-	checkoutArgs := calls[2].args
-	foundCheckoutTag := false
-	for _, a := range checkoutArgs {
-		if a == "refs/tags/v2.8.0" {
-			foundCheckoutTag = true
-		}
-	}
-	if !foundCheckoutTag {
-		t.Errorf("git checkout args %v should include refs/tags/v2.8.0", checkoutArgs)
-	}
-
-	// Fourth call must be `bash <path-to-install.sh>` (not bash -c <content>).
-	if calls[3].name != "bash" {
-		t.Errorf("fourth exec call name = %q, want %q", calls[3].name, "bash")
-	}
-	if len(calls[3].args) == 0 {
-		t.Fatalf("fourth exec call has no args")
-	}
-	installScriptArg := calls[3].args[0]
-	if !containsAny(installScriptArg, "install.sh") {
-		t.Errorf("bash arg = %q, want path containing install.sh", installScriptArg)
-	}
-	// Must NOT be bash -c (inline script content) — must be a file path.
-	if installScriptArg == "-c" {
-		t.Errorf("bash was called with -c (inline script), expected a file path to install.sh")
-	}
-}
 
 // --- TestGGAScriptUpgradeWindowsManualFallback ---
 
-// TestGGAScriptUpgradeWindowsManualFallback verifies that on Windows,
-// ggaScriptUpgrade returns a ManualFallbackError without calling exec.
-func TestGGAScriptUpgradeWindowsManualFallback(t *testing.T) {
-	origExecCommand := execCommand
-	t.Cleanup(func() { execCommand = origExecCommand })
-
-	execCalled := false
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		execCalled = true
-		return mockCmd("echo", "should not run")
-	}
-
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "gga",
-			Owner:         "Gentleman-Programming",
-			Repo:          "gentleman-guardian-angel",
-			InstallMethod: update.InstallScript,
-		},
-		LatestVersion: "2.8.0",
-	}
-
-	err := ggaScriptUpgradeForOS(context.Background(), r, "windows")
-	if err == nil {
-		t.Errorf("expected ManualFallbackError for Windows, got nil")
-	}
-	var mfe *ManualFallbackError
-	if !errors.As(err, &mfe) {
-		t.Errorf("expected *ManualFallbackError, got %T: %v", err, err)
-	}
-	if execCalled {
-		t.Errorf("exec should NOT be called on Windows for ggaScriptUpgrade")
-	}
-}
-
 // --- TestRunStrategy_GGAUsesGitClone ---
-
-// TestRunStrategy_GGAUsesGitClone verifies that when runStrategy is called with
-// a GGA tool (InstallScript), it routes to ggaScriptUpgrade (git clone approach)
-// rather than the generic scriptUpgrade (bash -c <content>).
-func TestRunStrategy_GGAUsesGitClone(t *testing.T) {
-	origExecCommand := execCommand
-	origDetectOS := detectOS
-	t.Cleanup(func() {
-		execCommand = origExecCommand
-		detectOS = origDetectOS
-	})
-	detectOS = func() string { return "linux" }
-
-	type call struct {
-		name string
-		args []string
-	}
-	var calls []call
-
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		calls = append(calls, call{name: name, args: args})
-		return mockCmd("echo", "ok")
-	}
-
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "gga",
-			Owner:         "Gentleman-Programming",
-			Repo:          "gentleman-guardian-angel",
-			InstallMethod: update.InstallScript,
-		},
-		LatestVersion: "2.8.0",
-	}
-	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-
-	_, err := runStrategy(context.Background(), r, profile)
-	if err != nil {
-		t.Fatalf("runStrategy GGA: unexpected error: %v", err)
-	}
-
-	// Must have used git init + fetch (not bash -c).
-	if len(calls) < 4 {
-		t.Fatalf("expected at least 4 calls (git init + fetch + checkout + bash), got %d: %v", len(calls), calls)
-	}
-	if calls[0].name != "git" || (len(calls[0].args) > 0 && calls[0].args[0] != "init") {
-		t.Errorf("expected first call to be `git init`, got: %q %v", calls[0].name, calls[0].args)
-	}
-}
-
-// --- TestInstallScriptURL ---
-
-func TestInstallScriptURL(t *testing.T) {
-	tests := []struct {
-		name        string
-		owner       string
-		repo        string
-		version     string
-		wantURL     string
-		wantErr     bool
-		wantContain string
-	}{
-		{
-			name:        "pins to release tag",
-			owner:       "Gentleman-Programming",
-			repo:        "gentleman-guardian-angel",
-			version:     "1.31.0",
-			wantURL:     "https://raw.githubusercontent.com/Gentleman-Programming/gentleman-guardian-angel/v1.31.0/install.sh",
-			wantContain: "v1.31.0",
-		},
-		{
-			name:    "empty version returns error",
-			owner:   "Gentleman-Programming",
-			repo:    "gentle-ai",
-			version: "",
-			wantErr: true,
-		},
-		{
-			name:    "whitespace-only version returns error",
-			owner:   "Gentleman-Programming",
-			repo:    "gentle-ai",
-			version: "   ",
-			wantErr: true,
-		},
-		{
-			name:        "does not reference main",
-			owner:       "Gentleman-Programming",
-			repo:        "gentle-ai",
-			version:     "2.0.0",
-			wantContain: "v2.0.0",
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			url, err := installScriptURL(tc.owner, tc.repo, tc.version)
-			if tc.wantErr {
-				if err == nil {
-					t.Errorf("installScriptURL(%q, %q, %q): want error, got nil (url=%q)", tc.owner, tc.repo, tc.version, url)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("installScriptURL(%q, %q, %q): unexpected error: %v", tc.owner, tc.repo, tc.version, err)
-			}
-			if tc.wantURL != "" && url != tc.wantURL {
-				t.Errorf("installScriptURL = %q, want %q", url, tc.wantURL)
-			}
-			if tc.wantContain != "" && !containsAny(url, tc.wantContain) {
-				t.Errorf("installScriptURL = %q, want it to contain %q", url, tc.wantContain)
-			}
-			if containsAny(url, "/main/") {
-				t.Errorf("installScriptURL = %q must NOT reference /main/", url)
-			}
-		})
-	}
-}
 
 // --- TestEngramUpgradeUsesDownloadNotGoInstall ---
 
@@ -986,47 +595,6 @@ func TestEngramUpgradeLinuxUsesDownload(t *testing.T) {
 }
 
 // --- TestRunStrategy_ScriptUpgradeExecFailure ---
-
-func TestRunStrategy_ScriptUpgradeExecFailure(t *testing.T) {
-	origExecCommand := execCommand
-	origHTTPClient := scriptHTTPClient
-	origInstallScriptURL := installScriptURLFn
-	t.Cleanup(func() {
-		execCommand = origExecCommand
-		scriptHTTPClient = origHTTPClient
-		installScriptURLFn = origInstallScriptURL
-	})
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("#!/bin/bash\nexit 1\n"))
-	}))
-	defer server.Close()
-	scriptHTTPClient = server.Client()
-	installScriptURLFn = func(owner, repo, version string) (string, error) {
-		return server.URL + "/install.sh", nil
-	}
-
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		return mockCmd("false")
-	}
-
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "gga",
-			Owner:         "Gentleman-Programming",
-			Repo:          "gentleman-guardian-angel",
-			InstallMethod: update.InstallScript,
-		},
-		LatestVersion: "2.8.0",
-	}
-	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-
-	err := scriptUpgrade(context.Background(), r, profile)
-	if err == nil {
-		t.Errorf("expected error when install.sh execution fails, got nil")
-	}
-}
 
 // TestEngramBinaryUpgrade_CallsDownloadFn verifies that engramBinaryUpgrade
 // delegates to engramDownloadFn (the release-download path) and never execs.

@@ -212,14 +212,13 @@ test_preset_ecosystem_components() {
     # driven by Selection.Persona (decoupled from preset).
     output=$($BINARY install --preset ecosystem-only --persona custom --agent claude-code --dry-run 2>&1) || true
 
-    # ecosystem-only (without persona) includes engram, skills, context7 and gga.
+    # ecosystem-only (without persona) includes engram, skills and context7.
     local components_line
     components_line=$(echo "$output" | grep "Components order:")
 
     assert_output_contains "$components_line" "engram" "Ecosystem includes engram"
     assert_output_contains "$components_line" "skills" "Ecosystem includes skills"
     assert_output_contains "$components_line" "context7" "Ecosystem includes context7"
-    assert_output_contains "$components_line" "gga" "Ecosystem includes gga"
     assert_output_not_contains "$components_line" "persona" "Ecosystem + persona=custom excludes persona"
     assert_output_not_contains "$components_line" "permissions" "Ecosystem excludes permissions"
 }
@@ -252,7 +251,6 @@ test_preset_full_components() {
     assert_output_contains "$components_line" "context7" "Full includes context7"
     assert_output_contains "$components_line" "persona" "Full includes persona"
     assert_output_contains "$components_line" "permissions" "Full includes permissions"
-    assert_output_contains "$components_line" "gga" "Full includes gga"
     assert_output_contains "$components_line" "claude-theme" "Full includes Claude Gentleman theme"
 }
 
@@ -369,12 +367,6 @@ test_dry_run_component_permissions() {
     log_test "Dry-run with --component permissions"
     output=$($BINARY install --agent claude-code --component permissions --dry-run 2>&1) || true
     assert_output_contains "$output" "permissions" "Shows permissions component"
-}
-
-test_dry_run_component_gga() {
-    log_test "Dry-run with --component gga"
-    output=$($BINARY install --agent claude-code --component gga --dry-run 2>&1) || true
-    assert_output_contains "$output" "gga" "Shows gga component"
 }
 
 test_dry_run_component_theme() {
@@ -1047,55 +1039,6 @@ test_edge_persona_switch() {
     assert_no_duplicate_section "$HOME/.claude/CLAUDE.md" "persona" "No duplicate persona after switch"
 }
 
-# --- Category: GGA tests ---
-
-test_gga_config() {
-    log_test "GGA component writes config file"
-    cleanup_test_env
-
-    # GGA binary install may fail in Docker (go install needs time/network),
-    # but we test the output regardless.
-    if $BINARY install --agent claude-code --component gga 2>&1; then
-        local config="$HOME/.config/gga/config"
-        assert_file_exists "$config" "GGA config"
-        assert_file_contains "$config" 'PROVIDER=' "Has provider key"
-        assert_file_contains "$config" 'FILE_PATTERNS=' "Has file patterns key"
-
-        local agents_md="$HOME/.config/gga/AGENTS.md"
-        assert_file_exists "$agents_md" "GGA AGENTS.md template"
-    else
-        log_skip "GGA install failed (expected — binary install may require network)"
-    fi
-}
-
-test_gga_runtime_pr_mode_installed() {
-    log_test "GGA runtime includes pr_mode.sh"
-    cleanup_test_env
-
-    if $BINARY install --agent claude-code --component gga 2>&1; then
-        local pr_mode="$HOME/.local/share/gga/lib/pr_mode.sh"
-        assert_file_exists "$pr_mode" "GGA pr_mode.sh exists"
-        assert_file_contains "$pr_mode" 'detect_base_branch' "pr_mode.sh has PR mode functions"
-    else
-        log_skip "GGA install failed (expected — binary install may require network)"
-    fi
-}
-
-test_gga_reinstall_is_idempotent() {
-    log_test "GGA install is idempotent on second run"
-    cleanup_test_env
-
-    if $BINARY install --agent claude-code --component gga 2>&1; then
-        if $BINARY install --agent claude-code --component gga 2>&1; then
-            log_pass "Second GGA install completed successfully"
-        else
-            log_fail "Second GGA install failed"
-        fi
-    else
-        log_skip "GGA first install failed (expected — binary install may require network)"
-    fi
-}
-
 # --- Category 12: Codex context7 TOML injection ---
 
 test_codex_context7_in_toml() {
@@ -1325,7 +1268,6 @@ test_dry_run_component_skills
 test_dry_run_component_context7
 test_dry_run_component_persona
 test_dry_run_component_permissions
-test_dry_run_component_gga
 test_dry_run_component_theme
 
 # Category 1g: Invalid inputs
@@ -1376,11 +1318,6 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
     test_edge_theme_not_in_presets
     test_edge_multiple_agents_same_component
     test_edge_persona_switch
-
-    # GGA
-    test_gga_config
-    test_gga_runtime_pr_mode_installed
-    test_gga_reinstall_is_idempotent
 
     # Category 7: Injection integrity (issue #4 regression guard)
     test_integrity_full_preset_all_skills_nonempty

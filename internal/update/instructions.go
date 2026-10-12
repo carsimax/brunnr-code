@@ -11,8 +11,6 @@ func updateHint(tool ToolInfo, profile system.PlatformProfile) string {
 	switch tool.Name {
 	case "engram":
 		return engramHint(profile)
-	case "gga":
-		return ggaHint(profile)
 	default:
 		return ""
 	}
@@ -30,11 +28,4 @@ func engramHint(profile system.PlatformProfile) string {
 		return "brew upgrade engram"
 	}
 	return "gentle-ai upgrade (downloads pre-built binary)"
-}
-
-func ggaHint(profile system.PlatformProfile) string {
-	if profile.PackageManager == "brew" && homebrewPackageInstalled("gga") {
-		return "brew upgrade gga"
-	}
-	return "See https://github.com/Gentleman-Programming/gentleman-guardian-angel"
 }

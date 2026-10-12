@@ -32,12 +32,7 @@ internal/components/engram/verify.go	CountVersionCallsForTest
 internal/components/engram/verify.go	SetVersionForTest
 internal/components/filemerge/toml.go	RemoveTOMLTableKeys
 internal/components/filemerge/toml.go	UpsertCodexMCPServerBlock
-internal/components/gga/config.go	InjectionResult.FilesWritten
-internal/components/gga/config.go	PostInstallMessages
-internal/components/gga/install.go	ShouldInstall
-internal/components/gga/runtime.go	RuntimeBinDir
 internal/components/mcp/inject.go	context7Args
-internal/installcmd/resolver.go	GitBashPath
 internal/installcmd/resolver.go	validateGoForModuleInstall
 internal/installcmd/testhelper.go	OverrideGetenv
 internal/installcmd/testhelper.go	OverrideGoVersion

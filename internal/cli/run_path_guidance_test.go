@@ -130,7 +130,7 @@ func TestWithGoInstallPathNoteSkipsWhenInPATH(t *testing.T) {
 func TestWithGoInstallPathNoteSkipsWithoutEngram(t *testing.T) {
 	report := verify.Report{Ready: true, FinalNote: "You're ready."}
 	resolved := planner.ResolvedPlan{
-		OrderedComponents: []model.ComponentID{model.ComponentGGA},
+		OrderedComponents: []model.ComponentID{model.ComponentContext7},
 		PlatformDecision:  planner.PlatformDecision{PackageManager: "apt"},
 	}
 

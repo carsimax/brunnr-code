@@ -44,7 +44,7 @@ Run `brunnr-code` with no arguments to open the interactive TUI, or use a comman
 | `brunnr-code sync` | Sync agent configs and skills to the current version. |
 | `brunnr-code uninstall` | Remove managed files from this machine. |
 | `brunnr-code doctor` | Run health diagnostics. |
-| `brunnr-code update` / `upgrade` | Check for Engram and GGA updates / apply them. |
+| `brunnr-code update` / `upgrade` | Check for Engram updates / apply them. |
 | `brunnr-code restore` | Restore a config backup. |
 | `brunnr-code review ...` | Native review workflow (`review mode status` shows whether it is on). |
 | `brunnr-code version` | Print the version. |

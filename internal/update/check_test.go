@@ -494,8 +494,6 @@ func TestCheckAll(t *testing.T) {
 		path := r.URL.Path
 		var release githubRelease
 		switch {
-		case contains(path, "gentleman-guardian-angel"):
-			release = githubRelease{TagName: "v2.0.0", HTMLURL: "https://github.com/Gentleman-Programming/gentleman-guardian-angel/releases/tag/v2.0.0"}
 		case contains(path, "sub-agent-statusline"):
 			release = githubRelease{TagName: "v0.4.0", HTMLURL: "https://github.com/Joaquinvesapa/sub-agent-statusline/releases/tag/v0.4.0"}
 		case contains(path, "sdd-engram-plugin"):
@@ -544,15 +542,12 @@ func TestCheckAll(t *testing.T) {
 	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
 	results := CheckAll(context.Background(), profile)
 
-	if len(results) != 2 {
-		t.Fatalf("len(results) = %d, want 2", len(results))
+	if len(results) != 1 {
+		t.Fatalf("len(results) = %d, want 1", len(results))
 	}
 
 	// engram: 0.3.2 local < 0.4.0 remote → UpdateAvailable
 	assertResult(t, results[0], "engram", UpdateAvailable, "0.3.2", "0.4.0")
-
-	// gga: not installed
-	assertResult(t, results[1], "gga", NotInstalled, "", "2.0.0")
 }
 
 func TestCheckSingleTool_EngramUsesBinaryReleaseChannel(t *testing.T) {
@@ -642,9 +637,6 @@ func TestCheckAll_NetworkError(t *testing.T) {
 	if results[0].Err == nil {
 		t.Fatalf("engram expected error, got nil")
 	}
-	if results[1].Status != CheckFailed {
-		t.Fatalf("gga status = %q, want %q", results[1].Status, CheckFailed)
-	}
 }
 
 func TestCheckFiltered_FetchErrorPreservesCheckFailedForMissingTool(t *testing.T) {
@@ -721,25 +713,6 @@ func TestUpdateHint(t *testing.T) {
 			tool:    ToolInfo{Name: "engram"},
 			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget"},
 			want:    "gentle-ai upgrade (downloads pre-built binary)",
-		},
-		{
-			name:          "gga macOS brew-owned",
-			tool:          ToolInfo{Name: "gga"},
-			profile:       system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
-			brewInstalled: true,
-			want:          "brew upgrade gga",
-		},
-		{
-			name:    "gga macOS non-brew",
-			tool:    ToolInfo{Name: "gga"},
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
-			want:    "See https://github.com/Gentleman-Programming/gentleman-guardian-angel",
-		},
-		{
-			name:    "gga linux",
-			tool:    ToolInfo{Name: "gga"},
-			profile: system.PlatformProfile{OS: "linux", PackageManager: "apt"},
-			want:    "See https://github.com/Gentleman-Programming/gentleman-guardian-angel",
 		},
 		{
 			name:    "unknown tool",
@@ -924,8 +897,8 @@ func TestParseVersionFromOutput(t *testing.T) {
 
 // TestRegistryContents verifies the registry has all expected tools.
 func TestRegistryContents(t *testing.T) {
-	if len(Tools) != 2 {
-		t.Fatalf("len(Tools) = %d, want 2", len(Tools))
+	if len(Tools) != 1 {
+		t.Fatalf("len(Tools) = %d, want 1", len(Tools))
 	}
 
 	expected := map[string]struct {
@@ -933,7 +906,6 @@ func TestRegistryContents(t *testing.T) {
 		repo  string
 	}{
 		"engram": {owner: "Gentleman-Programming", repo: "engram"},
-		"gga":    {owner: "Gentleman-Programming", repo: "gentleman-guardian-angel"},
 	}
 
 	for _, tool := range Tools {
@@ -949,15 +921,11 @@ func TestRegistryContents(t *testing.T) {
 		}
 	}
 
-	// engram and gga must have non-nil DetectCmd.
 	if Tools[0].DetectCmd == nil {
 		t.Fatalf("engram DetectCmd should not be nil")
 	}
 	if Tools[0].ReleaseTagPattern != `^v[0-9]+\.[0-9]+\.[0-9]+$` {
 		t.Fatalf("engram ReleaseTagPattern = %q, want binary v* channel pattern", Tools[0].ReleaseTagPattern)
-	}
-	if Tools[1].DetectCmd == nil {
-		t.Fatalf("gga DetectCmd should not be nil")
 	}
 }
 
@@ -1167,14 +1135,14 @@ func TestNoUpdatesPath(t *testing.T) {
 	httpClient.Transport = &testTransport{server: server}
 
 	// Absence includes fallback locations, not just PATH. Never let a local
-	// GGA PowerShell shim escape the command fixture and run on the host.
+	// PowerShell shim escape the command fixture and run on the host.
 	osStat = func(string) (os.FileInfo, error) { return nil, os.ErrNotExist }
 	runPowerShell = func(context.Context, ...string) ([]byte, error) {
 		t.Error("absent-tool detection must not execute PowerShell")
 		return nil, fmt.Errorf("unexpected PowerShell execution")
 	}
 
-	// engram is at v0.3.2 (same as remote), gga is not installed
+	// engram is at v0.3.2 (same as remote), the absent tool is not installed
 	lookPath = func(name string) (string, error) {
 		if name == "engram" {
 			return "/usr/local/bin/engram", nil
@@ -1187,8 +1155,8 @@ func TestNoUpdatesPath(t *testing.T) {
 		}
 		return mockCmd("false")
 	}
-	// Only engram and gga for this test
-	Tools = []ToolInfo{Tools[0], Tools[1]}
+	// engram plus a tool that is not installed
+	Tools = []ToolInfo{Tools[0], {Name: "absent", Owner: "example", Repo: "absent", DetectCmd: []string{"absent", "--version"}, InstallMethod: InstallBinary}}
 
 	profile := system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}
 
@@ -1202,9 +1170,9 @@ func TestNoUpdatesPath(t *testing.T) {
 		t.Fatalf("engram status = %q, want UpToDate", results[0].Status)
 	}
 
-	// gga: not installed
+	// absent: not installed
 	if results[1].Status != NotInstalled {
-		t.Fatalf("gga status = %q, want NotInstalled", results[1].Status)
+		t.Fatalf("absent status = %q, want NotInstalled", results[1].Status)
 	}
 }
 

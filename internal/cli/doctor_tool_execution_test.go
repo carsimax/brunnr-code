@@ -34,15 +34,14 @@ func TestRunDoctorToolExecution(t *testing.T) {
 		name, tool, arg                             string
 		broken, hangs, launcher, powershell, cancel bool
 	}{
-		{name: "missing launcher target", tool: "gga", arg: "--version", broken: true},
-		{name: "valid launcher", tool: "gga", arg: "--version"},
+		{name: "missing launcher target", tool: "engram", arg: "version", broken: true},
 		{name: "valid engram version subcommand", tool: "engram", arg: "version"},
 		{name: "valid installed agent", tool: "claude", arg: "--version"},
-		{name: "hanging executable", tool: "gga", hangs: true},
-		{name: "hanging launcher child", tool: "gga", hangs: true, launcher: true},
-		{name: "canceled launcher child", tool: "gga", hangs: true, launcher: true, cancel: true},
-		{name: "valid PowerShell launcher", tool: "gga", arg: "--version", powershell: true},
-		{name: "hanging PowerShell child", tool: "gga", hangs: true, launcher: true, powershell: true},
+		{name: "hanging executable", tool: "engram", hangs: true},
+		{name: "hanging launcher child", tool: "engram", hangs: true, launcher: true},
+		{name: "canceled launcher child", tool: "engram", hangs: true, launcher: true, cancel: true},
+		{name: "valid PowerShell launcher", tool: "engram", arg: "version", powershell: true},
+		{name: "hanging PowerShell child", tool: "engram", hangs: true, launcher: true, powershell: true},
 	}
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {

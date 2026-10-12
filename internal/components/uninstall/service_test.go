@@ -2,7 +2,6 @@ package uninstall
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/fs"
 	"maps"
 	"os"
@@ -17,7 +16,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/agents/codex"
 	"github.com/carsimax/brunnr-code/internal/backup"
 	"github.com/carsimax/brunnr-code/internal/components/engram"
-	"github.com/carsimax/brunnr-code/internal/components/gga"
 	"github.com/carsimax/brunnr-code/internal/components/skills"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
@@ -157,212 +155,6 @@ func TestCompleteUninstallPreservesNativeReviewAndJudgmentDayAgents(t *testing.T
 }
 
 type stubSnapshotter struct{}
-
-// TestPartialUninstallKeepsSharedGGAWhileOtherAgentInstalled covers #3534:
-// uninstalling one agent must not wipe the shared GGA config that another
-// still-installed agent depends on, while agent-scoped assets are still
-// removed as before.
-func TestPartialUninstallKeepsSharedGGAWhileOtherAgentInstalled(t *testing.T) {
-	homeDir := t.TempDir()
-	if err := state.Write(homeDir, state.InstallState{
-		InstalledAgents: []string{"claude-code", "codex"},
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	configPath := gga.ConfigPath(homeDir)
-	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(configPath, []byte("shared gga config"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	svc, err := NewService(homeDir, t.TempDir(), "dev")
-	if err != nil {
-		t.Fatal(err)
-	}
-	svc.snapshotter = stubSnapshotter{}
-
-	result, err := svc.PartialUninstall([]model.AgentID{model.AgentCodex}, allManagedComponents)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := os.Stat(configPath); err != nil {
-		t.Fatalf("shared GGA config = %v, want it to survive because claude-code is still installed", err)
-	}
-
-	foundNote := false
-	for _, action := range result.ManualActions {
-		if strings.Contains(action, "GGA") && strings.Contains(action, "claude-code") {
-			foundNote = true
-		}
-	}
-	if !foundNote {
-		t.Fatalf("manual actions = %v, want a note explaining the kept shared GGA config", result.ManualActions)
-	}
-
-	got, err := state.Read(homeDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Equal(got.InstalledAgents, []string{"claude-code"}) {
-		t.Fatalf("installed agents after uninstall = %v, want [claude-code]", got.InstalledAgents)
-	}
-}
-
-// TestPartialUninstallRemovesSharedGGAOnLastAgent covers the other half of
-// #3534: once the last agent that depends on GGA is uninstalled, the shared
-// config is removed like any other managed component.
-func TestPartialUninstallRemovesSharedGGAOnLastAgent(t *testing.T) {
-	homeDir := t.TempDir()
-	if err := state.Write(homeDir, state.InstallState{
-		InstalledAgents: []string{"codex"},
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	configPath := gga.ConfigPath(homeDir)
-	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(configPath, []byte("shared gga config"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	svc, err := NewService(homeDir, t.TempDir(), "dev")
-	if err != nil {
-		t.Fatal(err)
-	}
-	svc.snapshotter = stubSnapshotter{}
-
-	result, err := svc.PartialUninstall([]model.AgentID{model.AgentCodex}, allManagedComponents)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
-		t.Fatalf("shared GGA config stat error = %v, want removed once no agent needs it", err)
-	}
-	if !slices.Contains(result.RemovedFiles, configPath) {
-		t.Fatalf("removed files = %v, want %q", result.RemovedFiles, configPath)
-	}
-	for _, action := range result.ManualActions {
-		if strings.Contains(action, "GGA") {
-			t.Fatalf("manual actions = %v, want no kept-GGA note on last-agent removal", result.ManualActions)
-		}
-	}
-}
-
-// TestPartialUninstallExplicitGGARequestSkippedWhileSharedWithAnotherAgent
-// covers requesting `--components gga` explicitly for one agent while
-// another installed agent still relies on it: the safer behavior is to skip
-// the shared removal (rather than fail the whole command) and say why,
-// instead of silently deleting a config another agent still needs.
-func TestPartialUninstallExplicitGGARequestSkippedWhileSharedWithAnotherAgent(t *testing.T) {
-	homeDir := t.TempDir()
-	if err := state.Write(homeDir, state.InstallState{
-		InstalledAgents: []string{"claude-code", "codex"},
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	configPath := gga.ConfigPath(homeDir)
-	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(configPath, []byte("shared gga config"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	svc, err := NewService(homeDir, t.TempDir(), "dev")
-	if err != nil {
-		t.Fatal(err)
-	}
-	svc.snapshotter = stubSnapshotter{}
-
-	result, err := svc.PartialUninstall([]model.AgentID{model.AgentCodex}, []model.ComponentID{model.ComponentGGA})
-	if err != nil {
-		t.Fatalf("explicit --components gga while shared should be skipped, not fail: %v", err)
-	}
-
-	if _, err := os.Stat(configPath); err != nil {
-		t.Fatalf("shared GGA config = %v, want it to survive an explicit but unsafe removal request", err)
-	}
-	foundNote := false
-	for _, action := range result.ManualActions {
-		if strings.Contains(action, "GGA") && strings.Contains(action, "claude-code") {
-			foundNote = true
-		}
-	}
-	if !foundNote {
-		t.Fatalf("manual actions = %v, want a note explaining why the explicit gga removal was skipped", result.ManualActions)
-	}
-}
-
-// TestIsStateNotFoundUnwrapsWrappedError guards the classification used by
-// otherInstalledAgents: it must follow the error-wrap chain (via errors.Is)
-// rather than only recognizing a bare *fs.PathError the way os.IsNotExist
-// effectively does for a caller that wraps state.Read's error further.
-func TestIsStateNotFoundUnwrapsWrappedError(t *testing.T) {
-	wrapped := fmt.Errorf("read install state: %w", fs.ErrNotExist)
-	if !isStateNotFound(wrapped) {
-		t.Fatalf("isStateNotFound(%v) = false, want true for a wrapped not-exist error", wrapped)
-	}
-
-	other := fmt.Errorf("read install state: %w", os.ErrPermission)
-	if isStateNotFound(other) {
-		t.Fatalf("isStateNotFound(%v) = true, want false for a non-not-exist error", other)
-	}
-}
-
-// TestReconcileSharedComponentsWithUnreadableState covers a corrupt
-// state.json: reconcileSharedComponents cannot tell whether another agent
-// still needs GGA, so it fails closed toward preservation — GGA is dropped
-// from the returned component set and a note explains why — instead of
-// aborting the caller's partial uninstall, unless the caller explicitly
-// requested "--components gga", where there is nothing safe left to do for
-// that explicit request and the error is returned instead.
-func TestReconcileSharedComponentsWithUnreadableState(t *testing.T) {
-	homeDir := t.TempDir()
-	if err := os.MkdirAll(filepath.Dir(state.Path(homeDir)), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(state.Path(homeDir), []byte("{not valid json"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	svc, err := NewService(homeDir, t.TempDir(), "dev")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("default components keep GGA and continue", func(t *testing.T) {
-		components, note, err := svc.reconcileSharedComponents(
-			[]model.AgentID{model.AgentCodex}, slices.Clone(allManagedComponents), false)
-		if err != nil {
-			t.Fatalf("reconcileSharedComponents() error = %v, want nil (fail closed, don't abort)", err)
-		}
-		if slices.Contains(components, model.ComponentGGA) {
-			t.Fatalf("components = %v, want GGA dropped when state cannot be read", components)
-		}
-		if !slices.Contains(components, model.ComponentTheme) {
-			t.Fatalf("components = %v, want unrelated components preserved so the rest of the uninstall proceeds", components)
-		}
-		if !strings.Contains(note, "GGA") || !strings.Contains(note, "could not be read") {
-			t.Fatalf("note = %q, want it to explain the state could not be read", note)
-		}
-	})
-
-	t.Run("explicit gga request fails instead of silently skipping", func(t *testing.T) {
-		_, _, err := svc.reconcileSharedComponents(
-			[]model.AgentID{model.AgentCodex}, []model.ComponentID{model.ComponentGGA}, true)
-		if err == nil {
-			t.Fatal("reconcileSharedComponents() error = nil, want an error for an explicit --components gga request when state is unreadable")
-		}
-	})
-}
 
 func mustReadServiceFile(t *testing.T, path string) []byte {
 	t.Helper()
@@ -1321,4 +1113,16 @@ func TestUninstallSkillsRemovesLegacySharedMarkerAfterUpgrade(t *testing.T) {
 			}
 		})
 	}
+}
+
+// withoutComponent returns componentIDs with every occurrence of excluded
+// removed, preserving order.
+func withoutComponent(componentIDs []model.ComponentID, excluded model.ComponentID) []model.ComponentID {
+	kept := make([]model.ComponentID, 0, len(componentIDs))
+	for _, componentID := range componentIDs {
+		if componentID != excluded {
+			kept = append(kept, componentID)
+		}
+	}
+	return kept
 }
