@@ -695,13 +695,6 @@ go build -trimpath -o "$OUT" -ldflags "-X $LINKER_TARGET=$canonical" ./cmd/gentl
 	})
 }
 
-func TestReleaseDocumentationStatesArchiveDownloadCeiling(t *testing.T) {
-	docs := readRepositoryFile(t, "docs", "release-signing.md") + readRepositoryFile(t, "README.md")
-	if !strings.Contains(docs, "128 MiB") {
-		t.Fatal("release documentation does not state the updater's 128 MiB archive ceiling")
-	}
-}
-
 func TestIsolatedMinisignTestPublicKeyFixture(t *testing.T) {
 	fixture := strings.TrimSpace(readRepositoryFile(t, "internal", "update", "upgrade", "testdata", "minisign-test.pub"))
 	const expected = "RWS5glvo7U0Evs9J03vF/Lma+BY/2PMol//qa7T4gLxl7+KLNlSIDk0X"

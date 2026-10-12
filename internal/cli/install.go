@@ -36,7 +36,7 @@ FLAGS
   --scope global|workspace           Install scope (env: GENTLE_AI_INSTALL_SCOPE)
   --channel stable|beta|nightly      Release channel; nightly is an alias for beta (env: GENTLE_AI_CHANNEL)
   --claude-orchestrator-modules      Global Claude only: install the orchestrator as a core plus on-demand modules
-                                     under ~/.claude/gentle-ai/orchestrator/ (default off; see docs/rollback.md)
+                                     under ~/.claude/gentle-ai/orchestrator/ (default off)
   --dry-run                          Preview plan without executing
   --help, -h                         Show this help
 

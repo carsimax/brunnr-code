@@ -26,64 +26,15 @@ const reviewStopReasonDocsTableHeading = "### Continue after a stop reason code"
 var reviewStopReasonDocsTableRowRegexp = regexp.MustCompile("(?m)^\\| ((?:`[a-z_]+`(?:, )?)+) \\| (.+) \\|$")
 var reviewStopReasonCodeRegexp = regexp.MustCompile("`([a-z_]+)`")
 
-// TestEveryReviewStopReasonCodeHasADocsContinuation pins that every stop
-// reason code newReviewNextTransition (and its helpers) can emit from
-// internal/cli/review_next_transition.go has exactly one row in the
-// "Continue after a stop reason code" table in docs/review-integration.md.
-// It fails closed in both directions: a reason code added to the Go source
-// without a matching docs row, and a docs row naming a reason code the
-// source no longer emits — so the table can never silently drift from the
-// wire contract it documents.
-func TestEveryReviewStopReasonCodeHasADocsContinuation(t *testing.T) {
-	source, err := os.ReadFile("review_next_transition.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	matches := reviewStopTransitionCallRegexp.FindAllStringSubmatch(string(source), -1)
-	if len(matches) == 0 {
-		t.Fatal("found no reviewStopTransition(\"...\") call sites in review_next_transition.go; the extraction regexp is stale")
-	}
-	sourceCodes := map[string]bool{}
-	for _, match := range matches {
-		sourceCodes[match[1]] = true
-	}
-
-	docs, err := os.ReadFile("../../docs/review-integration.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	section := reviewStopReasonDocsSection(t, string(docs))
-	docCodes := reviewStopReasonDocsContinuations(t, section)
-	if len(docCodes) == 0 {
-		t.Fatal("found no codes in the \"Continue after a stop reason code\" table in docs/review-integration.md; the table heading or row shape moved")
-	}
-
-	for code := range sourceCodes {
-		if _, documented := docCodes[code]; !documented {
-			t.Errorf("reason code %q is emitted by review_next_transition.go but has no entry in the docs/review-integration.md stop-reason-code table", code)
-		}
-	}
-	for code := range docCodes {
-		if !sourceCodes[code] {
-			t.Errorf("docs/review-integration.md documents reason code %q, which review_next_transition.go no longer emits", code)
-		}
-	}
-}
-
 // reviewLedgerContractAsset is the shipped, embedded orchestrator contract
 // every runtime's rendered review protocol draws from (internal/assets is
-// go:embed'd into the binary; docs/ is not — see internal/assets/assets.go).
-// A consuming orchestrator can read this file; it cannot read docs/.
+// go:embed'd into the binary — see internal/assets/assets.go).
 const reviewLedgerContractAsset = "skills/_shared/review-ledger-contract.md"
 
-// TestEveryReviewStopReasonCodeHasAShippedContinuation is
-// TestEveryReviewStopReasonCodeHasADocsContinuation's sibling for the
-// channel an orchestrator can actually read. docs/review-integration.md's
-// "Continue after a stop reason code" table is correct and complete, but
-// internal/assets/assets.go's go:embed tree does not cover docs/, so nothing
-// shipped ever carries it to a consumer that is contractually forbidden from
-// routing off anything but the returned next_transition and the shipped
-// contract. This test requires the SAME heading and row shape to exist,
+// TestEveryReviewStopReasonCodeHasAShippedContinuation pins the stop-reason
+// continuation table for the channel an orchestrator can actually read: a
+// consumer is contractually forbidden from routing off anything but the
+// returned next_transition and the shipped contract. This test requires the SAME heading and row shape to exist,
 // covering the SAME codes, inside the shipped
 // internal/assets/skills/_shared/review-ledger-contract.md asset — the one
 // file every runtime's rendered orchestrator prompt actually embeds.
@@ -179,17 +130,11 @@ func TestReviewStopReasonDocsSectionStopsAtTheNextHeadingOfAnyLevel(t *testing.T
 }
 
 // reviewStopReasonDocsCompleteDocuments is the shared document set both
-// completeness guards below scan: the shipped asset every runtime embeds,
-// and the docs/review-integration.md source it was distilled from.
+// completeness guards below scan: the shipped asset every runtime embeds.
 func reviewStopReasonDocsCompleteDocuments(t *testing.T) map[string]string {
 	t.Helper()
-	docsBytes, err := os.ReadFile("../../docs/review-integration.md")
-	if err != nil {
-		t.Fatal(err)
-	}
 	return map[string]string{
 		"shipped asset (" + reviewLedgerContractAsset + ")": assets.MustRead(reviewLedgerContractAsset),
-		"docs/review-integration.md":                        string(docsBytes),
 	}
 }
 
@@ -330,8 +275,7 @@ var reviewStopReasonDocsNextHeadingRegexp = regexp.MustCompile(`(?m)^#{1,6} `)
 // reviewStopReasonDocsSection returns the text of the given document
 // strictly between the reviewStopReasonDocsTableHeading heading and the next
 // heading at any depth, so the row regexp only ever sees this one table.
-// Shared by the docs/review-integration.md check and the shipped-asset
-// check; both name their own source in the failure message.
+// Shared by the shipped-asset checks.
 func reviewStopReasonDocsSection(t *testing.T, docs string) string {
 	t.Helper()
 	start := strings.Index(docs, reviewStopReasonDocsTableHeading)

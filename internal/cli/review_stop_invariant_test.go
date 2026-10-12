@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 )
 
 // The stop-reason table may group codes with the same continuation. Its
@@ -14,7 +16,7 @@ import (
 // concrete command or condition itself.
 
 // reviewStopReasonDocsTerminalPrefix is the exact literal marker
-// docs/review-integration.md uses to open an entry that has no caller-side,
+// the shipped review-ledger contract uses to open an entry that has no caller-side,
 // flag-driven continuation. See reviewStopReasonDocsRowTextRegexp.
 const reviewStopReasonDocsTerminalPrefix = "Terminal"
 
@@ -221,7 +223,7 @@ func TestReviewStopInvariantReasonCodesAreClassified(t *testing.T) {
 // negative scenario: "GIVEN a stop reason code whose documented continuation
 // table row names a concrete command, WHEN the stop-invariant classification
 // is built, THEN classifying that code as terminal fails the invariant
-// test." It derives, from docs/review-integration.md's own row text, whether
+// test." It derives, from the shipped review-ledger contract's own row text, whether
 // each code's row opens with the literal "Terminal" marker (the docs' own
 // convention for "no flag-driven continuation exists" — see
 // reviewStopReasonDocsRowTextRegexp) and fails if that disagrees with
@@ -231,14 +233,10 @@ func TestReviewStopInvariantReasonCodesAreClassified(t *testing.T) {
 func TestReviewStopInvariantTerminalClassificationAgreesWithDocs(t *testing.T) {
 	t.Parallel()
 
-	docs, err := os.ReadFile("../../docs/review-integration.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	section := reviewStopReasonDocsSection(t, string(docs))
+	section := reviewStopReasonDocsSection(t, assets.MustRead(reviewLedgerContractAsset))
 	continuations := reviewStopReasonDocsContinuations(t, section)
 	if len(continuations) == 0 {
-		t.Fatal("found no codes in the \"Continue after a stop reason code\" table in docs/review-integration.md; the table heading or row shape moved")
+		t.Fatal("found no codes in the \"Continue after a stop reason code\" table in the shipped review-ledger contract; the table heading or row shape moved")
 	}
 	docsTerminal := map[string]bool{}
 	for code, text := range continuations {
@@ -252,7 +250,7 @@ func TestReviewStopInvariantTerminalClassificationAgreesWithDocs(t *testing.T) {
 			continue
 		}
 		if disposition.Terminal != docsSaysTerminal {
-			t.Errorf("reason code %q classified Terminal=%v here, but its docs/review-integration.md row %s open with the literal %q marker — a code whose docs row names a concrete command must not be classified terminal, and a code whose docs row is genuinely terminal must not be classified caller-continuable",
+			t.Errorf("reason code %q classified Terminal=%v here, but its shipped contract row %s open with the literal %q marker — a code whose docs row names a concrete command must not be classified terminal, and a code whose docs row is genuinely terminal must not be classified caller-continuable",
 				code, disposition.Terminal, map[bool]string{true: "does", false: "does not"}[docsSaysTerminal], reviewStopReasonDocsTerminalPrefix)
 		}
 	}

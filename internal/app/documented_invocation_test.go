@@ -98,33 +98,8 @@ func collectDocumentedInvocations(t *testing.T) []documentedInvocation {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// docs/: the human-facing instruction surface. Historical audit snapshots
-	// are not runnable guidance.
-	err = filepath.WalkDir(filepath.Join("..", "..", "docs"), func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() {
-			if entry.Name() == "audits" {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if !strings.HasSuffix(path, ".md") {
-			return nil
-		}
-		content, readErr := os.ReadFile(path)
-		if readErr != nil {
-			return readErr
-		}
-		corpus = append(corpus, extractInvocations(filepath.ToSlash(path), string(content))...)
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
 	if len(corpus) == 0 {
-		t.Fatal("extracted no documented invocations from assets or docs; the extractor is stale")
+		t.Fatal("extracted no documented invocations from assets; the extractor is stale")
 	}
 	return corpus
 }
@@ -379,35 +354,9 @@ func registrySurfaceViolation(words []string) string {
 var documentedInvocationKnownFailures = map[string]string{}
 
 func TestDocumentedInvocationsRunAsDocumented(t *testing.T) {
-	// Retired workflow documents must not remain in the current documentation tree.
-	for _, name := range []string{"openspec-config.md", "antigravity-sdd-workaround.md"} {
-		path := filepath.Join("..", "..", "docs", name)
-		if _, err := os.Stat(path); err == nil {
-			t.Errorf("retired workflow document remains: %s", path)
-		} else if !os.IsNotExist(err) {
-			t.Errorf("cannot inspect retired document %s: %v", path, err)
-		}
-	}
-	// Secondary live guides must not promise the removed SDD workflow.
-	for name, retiredClaims := range map[string][]string{
-		"CONTRIBUTING.md":                      {"Delivery Strategy for SDD Changes", "Before `sdd-apply` starts"},
-		"docs/codebase/sync-and-cloud.md":      {"Default sync scope includes SDD"},
-		"docs/codebase/integrations.md":        {"| SDD assets |"},
-		"docs/codebase/maintainer-playbook.md": {"| SDD workflow |"},
-	} {
-		content, err := os.ReadFile(filepath.Join("..", "..", name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, claim := range retiredClaims {
-			if strings.Contains(string(content), claim) {
-				t.Errorf("%s still promises retired workflow: %q", name, claim)
-			}
-		}
-	}
 	// Retired terms across all living docs are guarded by
 	// TestLivingDocsDoNotAdvertiseRetiredTerms.
-	for _, name := range []string{"README.md", "docs/intended-usage.md", "docs/agents.md"} {
+	for _, name := range []string{"README.md"} {
 		content, err := os.ReadFile(filepath.Join("..", "..", name))
 		if err != nil {
 			t.Fatal(err)

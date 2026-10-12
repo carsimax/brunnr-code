@@ -17,8 +17,7 @@ import (
 // These distributions count install-days, not distinct installs: an
 // install active on 30 different days within the window contributes to the
 // count 30 times, once per day it reported that attribute. This matches
-// how the values are produced (a per-day rollup keyed by install) and is
-// documented in docs/telemetry-collector.md.
+// how the values are produced (a per-day rollup keyed by install).
 const distributionWindowDays = 30
 
 // MonthlyCount is one month's worth of unique active installs.

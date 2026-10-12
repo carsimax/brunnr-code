@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 )
 
 // This file generalizes the pattern already proven by
@@ -18,7 +20,7 @@ import (
 // have a docs continuation row) and review_next_transition_test.go's schema
 // validation (an emitted payload is validated against the published JSON
 // schema). It exists so the community-reported defect class from this task
-// -- docs/review-integration.md promising a name or invocation no emitter
+// -- the shipped review-ledger contract promising a name or invocation no emitter
 // actually backs, and an unnegotiated CLI response silently omitting data the
 // contract requires without saying so -- cannot ship again.
 //
@@ -26,9 +28,9 @@ import (
 // English prose" checker is not tractable. This file covers three precise,
 // mechanically-extracted, enumerable subsets instead:
 //
-//  1. Every gentle-ai.*/vN schema identifier literal docs/review-integration.md
+//  1. Every gentle-ai.*/vN schema identifier literal the shipped review-ledger contract
 //     quotes in backticks (Guard A).
-//  2. Every `gentle-ai review <verb>` command docs/review-integration.md names
+//  2. Every `gentle-ai review <verb>` command the shipped review-ledger contract names
 //     as required (Guard B).
 //  3. The mode-completeness rule: every command that branches on negotiated
 //     --contract (found via the reviewIntegrationNegotiation call sites, not
@@ -38,7 +40,7 @@ import (
 // What this deliberately does NOT cover: free-form prose promises (e.g. "the
 // provider validates X"), field names inside Markdown tables that are not
 // also backtick-quoted schema identifiers or gentle-ai commands, and doc
-// sections outside docs/review-integration.md. A narrow guard that genuinely
+// sections outside the shipped review-ledger contract. A narrow guard that genuinely
 // fails closed beats a broad one that silently passes.
 
 // reviewIntegrationDocSchemaIDRegexp extracts every backtick-quoted
@@ -50,25 +52,24 @@ var reviewIntegrationDocSchemaIDRegexp = regexp.MustCompile("`(gentle-ai\\.[a-z0
 // inline code spans (both use the same literal token sequence).
 var reviewIntegrationDocCommandVerbRegexp = regexp.MustCompile(`gentle-ai review ([a-z][a-z-]*)`)
 
+// readReviewIntegrationDoc returns the shipped review contract every runtime's
+// rendered orchestrator prompt embeds; it is the documentation surface the
+// guards below check.
 func readReviewIntegrationDoc(t *testing.T) string {
 	t.Helper()
-	docs, err := os.ReadFile("../../docs/review-integration.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return string(docs)
+	return assets.MustRead(reviewLedgerContractAsset)
 }
 
 // TestEveryDocumentedSchemaIdentityIsImplemented is Guard A. It fails closed
 // in the one direction that matters for a documentation promise: a schema
-// identity docs/review-integration.md quotes but no production Go source
+// identity the shipped review-ledger contract quotes but no production Go source
 // (internal/cli, internal/reviewtransaction) ever emits is a promise nothing
 // satisfies.
 func TestEveryDocumentedSchemaIdentityIsImplemented(t *testing.T) {
 	docs := readReviewIntegrationDoc(t)
 	matches := reviewIntegrationDocSchemaIDRegexp.FindAllStringSubmatch(docs, -1)
 	if len(matches) == 0 {
-		t.Fatal("found no gentle-ai.*/vN schema identifiers in docs/review-integration.md; the extraction regexp is stale")
+		t.Fatal("found no gentle-ai.*/vN schema identifiers in the shipped review-ledger contract; the extraction regexp is stale")
 	}
 	ids := map[string]bool{}
 	for _, match := range matches {
@@ -85,7 +86,7 @@ func TestEveryDocumentedSchemaIdentityIsImplemented(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Errorf("docs/review-integration.md documents schema identity %q, but no production Go source under internal/cli or internal/reviewtransaction emits that literal", id)
+			t.Errorf("the shipped review-ledger contract documents schema identity %q, but no production Go source under internal/cli or internal/reviewtransaction emits that literal", id)
 		}
 	}
 }
@@ -98,7 +99,7 @@ func TestEveryDocumentedReviewCommandIsReal(t *testing.T) {
 	docs := readReviewIntegrationDoc(t)
 	matches := reviewIntegrationDocCommandVerbRegexp.FindAllStringSubmatch(docs, -1)
 	if len(matches) == 0 {
-		t.Fatal("found no `gentle-ai review <verb>` commands in docs/review-integration.md; the extraction regexp is stale")
+		t.Fatal("found no `gentle-ai review <verb>` commands in the shipped review-ledger contract; the extraction regexp is stale")
 	}
 	documented := map[string]bool{}
 	for _, match := range matches {
@@ -114,87 +115,9 @@ func TestEveryDocumentedReviewCommandIsReal(t *testing.T) {
 	dispatched := reviewDispatchableReviewVerbs(t)
 	for verb := range documented {
 		if !dispatched[verb] {
-			t.Errorf("docs/review-integration.md requires `gentle-ai review %s`, but no dispatch reaches it from the facade switches or the app pre-dispatch", verb)
+			t.Errorf("the shipped review-ledger contract requires `gentle-ai review %s`, but no dispatch reaches it from the facade switches or the app pre-dispatch", verb)
 		}
 	}
-}
-
-// reviewIntegrationTestingGuidePath is the community-facing testing guide.
-// Its Flow 11 is the flow an external tester reported as FAIL: step 3 told the
-// tester to copy-paste the emitted command, and no emitter produced one.
-const reviewIntegrationTestingGuidePath = "../../docs/testing/organic-rdd-testing-guide.md"
-
-// reviewIntegrationGuideTransitionFieldRegexp extracts every backtick-quoted
-// next_transition field path the testing guide points a tester at, e.g.
-// `next_transition.execute.command`. It is deliberately rooted at
-// next_transition: a general dotted-token extractor also matches operation
-// names ("review.start") and filenames ("requirements.txt"), which are not
-// payload paths at all. A narrow guard that genuinely fails closed beats a
-// broad one that has to be taught about exceptions.
-var reviewIntegrationGuideTransitionFieldRegexp = regexp.MustCompile("`(next_transition(?:\\.[a-z_]+)+)`")
-
-// TestEveryTestingGuideTransitionFieldIsEmitted is Guard D. It generalizes the
-// exact defect this change closed: docs/testing/organic-rdd-testing-guide.md
-// Flow 11 instructed a tester to copy-paste an emitted command, and no
-// emitter produced one anywhere in the payload. Every next_transition field
-// path the guide quotes must be backed by a real JSON tag on a production Go
-// struct under internal/cli or internal/reviewtransaction.
-func TestEveryTestingGuideTransitionFieldIsEmitted(t *testing.T) {
-	guide, err := os.ReadFile(reviewIntegrationTestingGuidePath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	matches := reviewIntegrationGuideTransitionFieldRegexp.FindAllStringSubmatch(string(guide), -1)
-	if len(matches) == 0 {
-		t.Fatal("found no backtick-quoted next_transition field paths in the testing guide; the extraction regexp is stale")
-	}
-	source, err := os.ReadFile("review_next_transition.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, match := range matches {
-		segments := strings.Split(match[1], ".")
-		// next_transition is the STATUS property whose value is a
-		// ReviewNextTransition; the walk starts inside that struct.
-		structName := "ReviewNextTransition"
-		for _, segment := range segments[1:] {
-			next, found := reviewStructFieldType(t, string(source), structName, segment)
-			if !found {
-				t.Errorf("the testing guide points a tester at %q, but %s carries no %q JSON field", match[1], structName, segment)
-				break
-			}
-			structName = next
-		}
-	}
-}
-
-// reviewStructFieldRegexp matches one struct field line and captures its Go
-// type and its JSON name, e.g. `Execute *ReviewTransitionExecution
-// \`json:"execute,omitempty"\“.
-var reviewStructFieldRegexp = regexp.MustCompile("^\\s*\\w+\\s+([\\[\\]\\*\\w.]+)\\s+`json:\"([a-z0-9_]+)")
-
-// reviewStructFieldType finds one named JSON field inside one named struct in
-// the given source and returns the Go type name it points at, so Guard D can
-// walk a dotted payload path struct by struct instead of accepting any
-// same-named tag anywhere in the tree.
-func reviewStructFieldType(t *testing.T, source, structName, jsonName string) (string, bool) {
-	t.Helper()
-	marker := regexp.MustCompile(`(?m)^type ` + regexp.QuoteMeta(structName) + ` struct \{$`)
-	loc := marker.FindStringIndex(source)
-	if loc == nil {
-		t.Fatalf("struct %s not found in review_next_transition.go", structName)
-	}
-	for _, line := range strings.Split(source[loc[1]:], "\n") {
-		if strings.HasPrefix(line, "}") {
-			break
-		}
-		field := reviewStructFieldRegexp.FindStringSubmatch(line)
-		if field == nil || field[2] != jsonName {
-			continue
-		}
-		return strings.TrimLeft(field[1], "*[]"), true
-	}
-	return "", false
 }
 
 // reviewIntegrationProductionSources reads every non-test .go file under

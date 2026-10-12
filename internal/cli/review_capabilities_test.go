@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -683,62 +682,5 @@ func TestReviewCapabilitiesBootstrapIsOptionalForExistingV1Consumers(t *testing.
 	legacy.Bootstrap = nil
 	if err := legacy.Validate(); err != nil {
 		t.Fatalf("existing v1 capability surface rejected: %v", err)
-	}
-}
-
-func TestReviewIntegrationDocumentationMatchesRuntimeContract(t *testing.T) {
-	payload, err := os.ReadFile(filepath.Join("..", "..", "docs", "review-integration.md"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	document := string(payload)
-	for _, required := range []string{
-		"`stop`", "`legacy_v1_read_only`", "`mutation_outcome`", "`not_started`", "`unknown`", "`committed`",
-		"retry and replay disabled", "Historical `ordinary_4r` legacy status omits `frozen`",
-		"START, BIND-SDD, invalidation, and direct append",
-		"`native_frozen_candidate_context`", "`base_tree`", "`candidate_tree`", "`changed_path_manifest`",
-		"`opaque_repository_context`", "`provider_targeted_validation_request`",
-		"`provider_artifact_admission`", "`validating_result_reopen`", "`recovered_correction_evidence`",
-		"`artifact_subjects`", "`subject_hash`", "`admission_decision: completed`",
-		"`native_low_risk_verification`", "`selected_lenses: []`", "`receipt_scope_changed`",
-		"25-second aggregate budget", "120-second budget", "180-second budget", "one-second wait delay",
-		"Persistent compact `LOCK` JSON is advisory diagnostics", "`context.scope_change`", "`review.recover`",
-	} {
-		if !strings.Contains(document, required) {
-			t.Fatalf("review integration documentation is missing %q", required)
-		}
-	}
-	for _, stale := range []string{"five strict JSON Schemas", "nine strict JSON Schemas", "ten strict JSON Schemas", "sixteen strict JSON Schemas", "eighteen strict JSON Schemas", "twenty strict JSON Schemas", "twenty-two strict JSON Schemas", "eleven deterministic conformance fixtures", "eighteen deterministic conformance fixtures", "nineteen deterministic conformance fixtures", "twenty-one deterministic conformance fixtures", "twenty-four deterministic conformance fixtures", "twenty-six deterministic conformance fixtures"} {
-		if strings.Contains(document, stale) {
-			t.Fatalf("review integration documentation retains stale claim %q", stale)
-		}
-	}
-}
-
-func TestReviewIntegrationDocumentationMatchesPublishedArtifactInventory(t *testing.T) {
-	document := readReviewIntegrationDoc(t)
-	for _, inventory := range []struct {
-		directory string
-		claim     string
-	}{
-		{directory: "schemas", claim: "strict JSON Schemas"},
-		{directory: "fixtures", claim: "deterministic conformance fixtures"},
-	} {
-		path := filepath.Join("..", "..", "contracts", "review-integration", "v1", inventory.directory)
-		entries, err := os.ReadDir(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		count := 0
-		for _, entry := range entries {
-			if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
-				t.Fatalf("published %s inventory contains unexpected entry %q", inventory.directory, entry.Name())
-			}
-			count++
-		}
-		want := fmt.Sprintf("%d %s", count, inventory.claim)
-		if !strings.Contains(document, want) {
-			t.Fatalf("review integration documentation is missing published inventory claim %q", want)
-		}
 	}
 }

@@ -49,7 +49,7 @@ type CompactionReport struct {
 // checkpoint run), and runs VACUUM only when at least compactFreePercent of
 // a file of at least compactMinPages pages is free AND the live data fits
 // under compactMaxLivePages; otherwise the rewrite is reported as deferred
-// for an offline operator step (see docs/telemetry-collector.md).
+// for an offline operator step.
 func (s *Storage) Compact(ctx context.Context) (CompactionReport, error) {
 	var report CompactionReport
 	if err := s.db.QueryRowContext(ctx, `PRAGMA page_count`).Scan(&report.PageCount); err != nil {

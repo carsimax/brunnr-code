@@ -10,7 +10,7 @@ import (
 // "pattern" — the two ways this schema closes off free text. This is the
 // guard against a future field landing as unconstrained user-authored
 // text: the dataset this collector produces is meant to be statistical
-// only (see docs/telemetry-collector.md), and a plain string property with
+// only, and a plain string property with
 // neither would silently reopen that door.
 func TestEventSchema_EveryStringPropertyIsClosed(t *testing.T) {
 	var doc map[string]any

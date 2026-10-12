@@ -1,7 +1,6 @@
 package app_test
 
 import (
-	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -31,71 +30,20 @@ var retiredDocTerms = []struct {
 // v4.0.0" notes and the legacy sdd-* telemetry schema values.
 var retirementNote = regexp.MustCompile(`(?i)\b(retired|legacy)\b`)
 
-// historicalBanner marks a page as a point-in-time record. Such pages open
-// with a "> **Historical ..." callout near the top.
-var historicalBanner = regexp.MustCompile(`^>\s*\*\*Historical\b`)
-
 func TestLivingDocsDoNotAdvertiseRetiredTerms(t *testing.T) {
-	root := filepath.Join("..", "..")
-	for _, name := range livingDocs(t, root) {
-		content, err := os.ReadFile(filepath.Join(root, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		lines := strings.Split(string(content), "\n")
-		if isHistoricalDoc(lines) {
-			continue
-		}
-		for index, line := range lines {
-			if retirementNote.MatchString(line) {
-				continue
-			}
-			for _, term := range retiredDocTerms {
-				if term.pattern.MatchString(line) {
-					t.Errorf("%s:%d advertises retired term %q", name, index+1, term.name)
-				}
-			}
-		}
-	}
-}
-
-// livingDocs returns README.md, CONTRIBUTING.md and docs/**/*.md as
-// slash-separated repository paths, without the historical trees.
-func livingDocs(t *testing.T, root string) []string {
-	t.Helper()
-	docs := []string{"README.md", "CONTRIBUTING.md"}
-	err := filepath.WalkDir(filepath.Join(root, "docs"), func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, err := filepath.Rel(root, path)
-		if err != nil {
-			return err
-		}
-		rel = filepath.ToSlash(rel)
-		if entry.IsDir() {
-			if rel == "docs/audits" || rel == "docs/releases" {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if !strings.HasSuffix(rel, ".md") || strings.HasPrefix(rel, "docs/architecture/rdd-") {
-			return nil
-		}
-		docs = append(docs, rel)
-		return nil
-	})
+	const name = "README.md"
+	content, err := os.ReadFile(filepath.Join("..", "..", name))
 	if err != nil {
 		t.Fatal(err)
 	}
-	return docs
-}
-
-func isHistoricalDoc(lines []string) bool {
-	for _, line := range lines[:min(12, len(lines))] {
-		if historicalBanner.MatchString(line) {
-			return true
+	for index, line := range strings.Split(string(content), "\n") {
+		if retirementNote.MatchString(line) {
+			continue
+		}
+		for _, term := range retiredDocTerms {
+			if term.pattern.MatchString(line) {
+				t.Errorf("%s:%d advertises retired term %q", name, index+1, term.name)
+			}
 		}
 	}
-	return false
 }

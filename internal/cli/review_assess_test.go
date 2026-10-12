@@ -416,7 +416,7 @@ func TestReviewAssessInvalidAgentRefusesTyped(t *testing.T) {
 
 // TestReviewAssessDispatchedFromReviewCommand proves the verb is reachable
 // through the plain review facade dispatch, the same route
-// docs/review-integration.md's guard requires.
+// the shipped review contract's guard requires.
 func TestReviewAssessDispatchedFromReviewCommand(t *testing.T) {
 	source, err := os.ReadFile("review_facade.go")
 	if err != nil {

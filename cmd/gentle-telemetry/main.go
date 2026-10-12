@@ -1,7 +1,5 @@
 // Command gentle-telemetry is the self-hosted collector for gentle-ai's
-// anonymous telemetry events. See docs/telemetry-collector.md for the
-// deploy story and docs/telemetry-collector.md#answering-how-many-people-use-it
-// for how to read /v1/summary.
+// anonymous telemetry events. The deploy story lives in deploy/telemetry/.
 package main
 
 import (

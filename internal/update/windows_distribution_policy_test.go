@@ -525,18 +525,3 @@ const releasePolicyArtifactsFixture = `[
 ]`
 
 const releasePolicyRunID = "release-policy-test-run"
-
-func TestWindowsDistributionRestorationGateIsDocumented(t *testing.T) {
-	docs := readRepositoryFile(t, "README.md") + readRepositoryFile(t, "docs", "release-signing.md")
-	for _, required := range []string{
-		"publicly trusted RSA Authenticode",
-		"Azure Artifact Signing",
-		"amd64 and arm64",
-		"before archive and checksum generation",
-		"fails if either executable is unsigned",
-	} {
-		if !strings.Contains(docs, required) {
-			t.Errorf("Windows distribution restoration gate is missing %q", required)
-		}
-	}
-}

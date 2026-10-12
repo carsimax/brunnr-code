@@ -60,7 +60,7 @@ func run() int {
 	// `go build` reports "gentle-ai dev"), which would otherwise surface as a
 	// misleading "binary unavailable" lane failure.
 	if output, versionErr := exec.Command(resolved, "--version").Output(); versionErr != nil || !semverVersionLine.Match(output) {
-		fmt.Fprintf(os.Stderr, "crosslane: binary %q must report a semver version (got %q); build it with -ldflags \"-X main.version=$(git describe --tags --abbrev=0 | sed s/^v//)-dev\" (see CONTRIBUTING.md)\n", *binary, strings.TrimSpace(string(output)))
+		fmt.Fprintf(os.Stderr, "crosslane: binary %q must report a semver version (got %q); build it with -ldflags \"-X main.version=$(git describe --tags --abbrev=0 | sed s/^v//)-dev\"\n", *binary, strings.TrimSpace(string(output)))
 		return 2
 	}
 	repoRoot, err := os.Getwd()

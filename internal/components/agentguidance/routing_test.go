@@ -3,8 +3,6 @@ package agentguidance
 import (
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"unicode"
@@ -781,32 +779,6 @@ func routingSemantics(rendered string) []string {
 		}
 	}
 	return facts
-}
-
-// The user-facing usage guide describes the same spec-by-reference contract the
-// canonical routing renders, so it cannot drift silently (review follow-up).
-func TestUsageGuideDescribesTheSpecByReferenceFeatureDocument(t *testing.T) {
-	t.Parallel()
-
-	body, err := os.ReadFile(filepath.Join("..", "..", "..", "docs", "usage.md"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, clause := range []string{
-		"`## Specs`",
-		"`## Tasks`",
-		"`## Log`",
-		"exact strings, error messages, and examples verbatim",
-		"`L1` is your original request verbatim",
-		"A requirement change rewrites only the affected spec and reopens only its task",
-		"never a paraphrase of your request",
-		"runs the spec's examples you authorized, against isolated state when they mutate data",
-		"reproduced before anyone decides it already works",
-	} {
-		if !strings.Contains(string(body), clause) {
-			t.Errorf("docs/usage.md is missing %q", clause)
-		}
-	}
 }
 
 // Task size is decided by understanding, contained risk,
