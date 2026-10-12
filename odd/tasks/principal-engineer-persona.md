@@ -27,7 +27,7 @@ The Neutral style carries theatrical rules inherited from the old Gentleman pers
 - [x] T1: Claude output style. Add the asset, delete `output-style-neutral.md`, update `resources.go`/`inject.go` naming, clean up the legacy `neutral.md`, update tests and goldens. Route: delegated (multi-file writer).
 - [x] T2: Persona blocks. Rename `persona-neutral-residual.md` → `persona-residual.md` and `generic/persona-neutral.md` → `generic/persona.md`. Rewrite the generic voice to Principal Engineer and update the residual "Persona Voice" pointer. Update the assets/language-contract tests and goldens. Route: delegated.
 - [x] T4: Make the persona component mandatory: remove it from the selectable components in the Custom preset/TUI so it is always installed (user decision 2026-10-12). Route: delegated.
-- [ ] T3: Update the e2e script (`e2e/e2e_test.sh`) and the stale comments (`sync.go`, `presets.go`). Route: inline or delegated, based on size.
+- [x] T3: Update the e2e script (`e2e/e2e_test.sh`) and the stale comments (`sync.go`, `presets.go`). Route: inline or delegated, based on size.
 
 ## Acceptance criteria
 
@@ -50,4 +50,6 @@ Strategy: `single-pr` (single maintainer, no chained PRs). Forecast: ~400–600 
   - Exposed pre-existing bug: persona merged Claude `settings.json` with a comment-dropping merge. Now uses `filemerge.MergeJSONCObjects`; uninstall removes `outputStyle` comment-preserving via `RemoveJSONCMembers`.
   - Known limitation: if a comment is attached right before `outputStyle`, uninstall leaves the key (same policy as retained hooks) rather than deleting the user's comment.
   - Checks: gofmtcheck ok; go vet ok; go test components/app/catalog/model/planner/tui ok; go test ./internal/cli full ok (557s).
-- Next: T3.
+- T3 done (inline). e2e script wording updated; custom-preset tests now assert the mandatory persona (matches real `install --dry-run` output: `persona` / `persona,engram,skills`). Stale `sync.go`/`presets.go` comments were already fixed in T1/T2.
+  - Checks: gofmtcheck ok; `go test ./... -count=1` ok (no FAIL). `bash -n e2e/e2e_test.sh` ok. Docker e2e not run.
+- Feature complete. Commits: T1 0423fc22, T2 112ad3bf, T4 4f3b0846, T3 (this commit). Next: maintainer decides merge/push.

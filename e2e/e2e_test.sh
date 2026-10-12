@@ -180,9 +180,9 @@ test_dry_run_preset_custom() {
 
 
 test_preset_minimal_with_default_persona_includes_persona() {
-    log_test "Preset minimal includes the Neutral persona"
+    log_test "Preset minimal includes the managed persona"
 
-    # The Neutral persona is installed with every managed preset.
+    # The managed persona is installed with every preset.
     output=$($BINARY install --preset minimal --agent claude-code --dry-run 2>&1) || true
 
     local components_line
@@ -197,7 +197,7 @@ test_preset_ecosystem_components() {
 
     output=$($BINARY install --preset ecosystem-only --agent claude-code --dry-run 2>&1) || true
 
-    # ecosystem-only includes engram, skills and the Neutral persona.
+    # ecosystem-only includes engram, skills and the managed persona.
     local components_line
     components_line=$(echo "$output" | grep "Components order:")
 
@@ -251,15 +251,16 @@ test_dry_run_full_preset_persona_before_engram() {
 }
 
 test_preset_custom_no_components() {
-    log_test "Preset custom with no --component produces empty component list"
+    log_test "Preset custom with no --component installs only the mandatory persona"
 
     output=$($BINARY install --preset custom --agent claude-code --dry-run 2>&1) || true
 
-    # Custom preset without explicit components = empty
+    # Custom preset without explicit components = mandatory persona only
     local components_line
     components_line=$(echo "$output" | grep "Components order:")
     assert_output_not_contains "$components_line" "engram" "Custom preset without components excludes engram"
     assert_output_not_contains "$components_line" "skills" "Custom preset without components excludes skills"
+    assert_output_contains "$components_line" "persona" "Custom preset without components includes mandatory persona"
 }
 
 test_preset_custom_explicit_components() {
@@ -271,7 +272,7 @@ test_preset_custom_explicit_components() {
     components_line=$(echo "$output" | grep "Components order:")
     assert_output_contains "$components_line" "engram" "Custom + explicit components includes engram"
     assert_output_contains "$components_line" "skills" "Custom + explicit components includes skills"
-    assert_output_not_contains "$components_line" "persona" "Custom + explicit components excludes persona"
+    assert_output_contains "$components_line" "persona" "Custom + explicit components includes mandatory persona"
 }
 
 # --- Category 1f: Individual component flags ---
@@ -564,7 +565,7 @@ test_minimal_preset_claude_only_engram() {
         assert_file_exists "$HOME/.claude/CLAUDE.md" "CLAUDE.md exists"
         assert_file_contains "$HOME/.claude/CLAUDE.md" "brunnr-code:engram-protocol" "Engram protocol section"
 
-        # The Neutral persona is part of every managed preset
+        # The managed persona is part of every preset
         assert_file_contains "$HOME/.claude/CLAUDE.md" "brunnr-code:persona" "Persona in minimal"
         # No permissions settings.json
         if [ -f "$HOME/.claude/settings.json" ]; then
