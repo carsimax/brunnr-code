@@ -220,7 +220,6 @@ test_preset_full_components() {
     assert_output_contains "$components_line" "skills" "Full includes skills"
     assert_output_contains "$components_line" "persona" "Full includes persona"
     assert_output_contains "$components_line" "permissions" "Full includes permissions"
-    assert_output_contains "$components_line" "claude-theme" "Full includes Claude Brunnr theme"
 }
 
 test_dry_run_full_preset_persona_before_engram() {
@@ -249,36 +248,6 @@ test_dry_run_full_preset_persona_before_engram() {
     else
         log_fail "Persona must appear before engram in component order: $order_str"
     fi
-}
-
-test_preset_no_legacy_theme_in_any_preset() {
-    log_test "Presets exclude the unsafe generic theme component"
-
-    local full_order_str=""
-    for preset in minimal ecosystem-only full; do
-        output=$($BINARY install --preset "$preset" --agent claude-code --dry-run 2>&1) || true
-        local components_line
-        components_line=$(echo "$output" | grep "Components order:")
-        local order_str
-        order_str=${components_line#*Components order:}
-        order_str=${order_str# }
-        if echo "$order_str" | tr ',' '\n' | grep -qx "theme"; then
-            log_fail "Preset '$preset' unexpectedly includes unsafe generic theme component"
-        else
-            log_pass "Preset '$preset' excludes unsafe generic theme component"
-        fi
-        if [ "$preset" = "full" ]; then
-            full_order_str=$order_str
-        fi
-    done
-
-    for component in claude-theme; do
-        if echo "$full_order_str" | tr ',' '\n' | grep -qx "$component"; then
-            log_pass "Preset 'full' includes safe visual component '$component'"
-        else
-            log_fail "Preset 'full' must include safe visual component '$component'"
-        fi
-    done
 }
 
 test_preset_custom_no_components() {
@@ -329,12 +298,6 @@ test_dry_run_component_permissions() {
     log_test "Dry-run with --component permissions"
     output=$($BINARY install --agent claude-code --component permissions --dry-run 2>&1) || true
     assert_output_contains "$output" "permissions" "Shows permissions component"
-}
-
-test_dry_run_component_theme() {
-    log_test "Dry-run with --component theme"
-    output=$($BINARY install --agent claude-code --component theme --dry-run 2>&1) || true
-    assert_output_contains "$output" "theme" "Shows theme component"
 }
 
 # --- Category 1g: Invalid input rejection ---
@@ -550,21 +513,6 @@ test_cc_permissions_injection() {
     fi
 }
 
-test_cc_theme_injection() {
-    log_test "Claude Code: theme injection"
-    cleanup_test_env
-
-    if $BINARY install --agent claude-code --component theme 2>&1; then
-        local settings="$HOME/.claude/settings.json"
-        assert_file_exists "$settings" "Claude settings.json"
-        assert_file_contains "$settings" '"theme"' "Has theme key"
-        assert_file_contains "$settings" 'brunnr' "Has brunnr theme"
-        assert_valid_json "$settings" "settings.json is valid JSON"
-    else
-        log_fail "theme install command failed"
-    fi
-}
-
 # --- Category 4: Full preset integration ---
 
 test_full_preset_claude_code() {
@@ -572,7 +520,7 @@ test_full_preset_claude_code() {
     cleanup_test_env
 
     # Exercise independent injection components without invoking package downloads.
-    if $BINARY install --agent claude-code --component engram --component persona --component skills --component permissions --component theme --preset full 2>&1; then
+    if $BINARY install --agent claude-code --component engram --component persona --component skills --component permissions --preset full 2>&1; then
         local claude_md="$HOME/.claude/CLAUDE.md"
         local settings="$HOME/.claude/settings.json"
 
@@ -584,10 +532,9 @@ test_full_preset_claude_code() {
         assert_no_duplicate_section "$claude_md" "agent-routing" "No duplicate ODD routing section"
         assert_no_duplicate_section "$claude_md" "persona" "No duplicate persona section"
 
-        # settings.json should have permissions + theme
+        # settings.json should have permissions
         assert_file_exists "$settings" "settings.json exists"
         assert_file_contains "$settings" '"permissions"' "Has permissions"
-        assert_file_contains "$settings" '"theme"' "Has theme"
         assert_valid_json "$settings" "settings.json is valid JSON"
 
         # MCP registration lives in the ~/.claude.json user registry, the only
@@ -831,7 +778,7 @@ test_idempotent_full_claude() {
     log_test "Idempotency: full injection-only on Claude Code"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component persona --component permissions --component theme --preset full 2>&1 || true
+    $BINARY install --agent claude-code --component persona --component permissions --preset full 2>&1 || true
     local first_md_hash
     first_md_hash=$(md5sum "$HOME/.claude/CLAUDE.md" 2>/dev/null | cut -d' ' -f1)
     # Snapshot settings.json for semantic comparison (engram setup may reorder
@@ -839,7 +786,7 @@ test_idempotent_full_claude() {
     # serialization). Byte-exact hashing would false-fail on harmless reorder.
     cp "$HOME/.claude/settings.json" /tmp/gai_settings_run1.json 2>/dev/null || true
 
-    $BINARY install --agent claude-code --component persona --component permissions --component theme --preset full 2>&1 || true
+    $BINARY install --agent claude-code --component persona --component permissions --preset full 2>&1 || true
     local second_md_hash
     second_md_hash=$(md5sum "$HOME/.claude/CLAUDE.md" 2>/dev/null | cut -d' ' -f1)
 
@@ -862,30 +809,30 @@ test_idempotent_full_claude() {
 
 # --- Category 8: Edge cases ---
 
-test_edge_theme_not_in_presets() {
-    log_test "Edge case: --component theme (not in any preset)"
+test_edge_permissions_only_no_persona() {
+    log_test "Edge case: --component permissions alone"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --component theme 2>&1; then
-        assert_file_exists "$HOME/.claude/settings.json" "Theme creates settings.json"
-        assert_file_contains "$HOME/.claude/settings.json" '"theme"' "Theme key present"
+    if $BINARY install --agent claude-code --component permissions 2>&1; then
+        assert_file_exists "$HOME/.claude/settings.json" "Permissions creates settings.json"
+        assert_file_contains "$HOME/.claude/settings.json" '"permissions"' "Permissions key present"
         # The orchestrator, routing and remote authorization are
         # unconditional agent guidance, not optional components. Require
-        # exactly those managed sections; theme-only must not inject persona
+        # exactly those managed sections; permissions-only must not inject persona
         # or other optional components.
         if [ -f "$HOME/.claude/CLAUDE.md" ]; then
             local sections
             sections=$(grep -o '<!-- brunnr-code:[a-z0-9-]* -->' "$HOME/.claude/CLAUDE.md" | sort -u | tr '\n' ' ')
             if [ "$(printf '%s' "$sections" | xargs)" = "<!-- brunnr-code:agent-routing --> <!-- brunnr-code:orchestrator --> <!-- brunnr-code:remote-authorization -->" ]; then
-                log_pass "Theme-only: CLAUDE.md carries orchestrator, routing and remote authorization only"
+                log_pass "Permissions-only: CLAUDE.md carries orchestrator, routing and remote authorization only"
             else
-                log_fail "Theme-only install wrote component sections: $sections"
+                log_fail "Permissions-only install wrote component sections: $sections"
             fi
         else
-            log_fail "Theme-only: CLAUDE.md missing required orchestrator, routing and remote authorization"
+            log_fail "Permissions-only: CLAUDE.md missing required orchestrator, routing and remote authorization"
         fi
     else
-        log_fail "Theme-only install command failed"
+        log_fail "Permissions-only install command failed"
     fi
 }
 
@@ -1031,7 +978,7 @@ test_backup_multiple_snapshots() {
 
     $BINARY install --agent claude-code --component permissions 2>&1 || true
     sleep 0.1
-    $BINARY install --agent claude-code --component claude-theme 2>&1 || true
+    $BINARY install --agent claude-code --component persona 2>&1 || true
 
     local backup_count
     backup_count=$(find "$HOME/.brunnr-code/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
@@ -1092,7 +1039,6 @@ test_preset_minimal_with_default_persona_includes_persona
 test_preset_ecosystem_components
 test_preset_full_components
 test_dry_run_full_preset_persona_before_engram
-test_preset_no_legacy_theme_in_any_preset
 test_preset_custom_no_components
 test_preset_custom_explicit_components
 
@@ -1101,7 +1047,6 @@ test_dry_run_component_engram
 test_dry_run_component_skills
 test_dry_run_component_persona
 test_dry_run_component_permissions
-test_dry_run_component_theme
 
 # Category 1g: Invalid inputs
 test_invalid_component_rejected
@@ -1121,8 +1066,7 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
     test_cc_custom_skills_with_flag
     test_cc_custom_no_skills_flag_installs_nothing
     test_cc_permissions_injection
-    test_cc_theme_injection
-
+    
     # Category 4: Full preset integration
     test_full_preset_claude_code
     test_minimal_preset_claude_only_engram
@@ -1144,7 +1088,7 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
     test_codex_engram_idempotent
 
     # Category 8: Edge cases
-    test_edge_theme_not_in_presets
+    test_edge_permissions_only_no_persona
     test_edge_multiple_agents_same_component
 
     # Category 7: Injection integrity (issue #4 regression guard)

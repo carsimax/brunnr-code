@@ -5,16 +5,10 @@ import (
 	"testing"
 )
 
-func TestComponentsForPresetFullUsesInstallSafeVisualInventory(t *testing.T) {
-	got := ComponentsForPreset(PresetFull)
-
-	if slices.Contains(got, ComponentTheme) {
-		t.Fatalf("ComponentsForPreset() includes generic ComponentTheme: %v", got)
-	}
-	for _, want := range []ComponentID{ComponentClaudeTheme} {
-		if !slices.Contains(got, want) {
-			t.Errorf("ComponentsForPreset() missing safe visual component %q: %v", want, got)
-		}
+func TestComponentsForPresetFullIsDevStackPlusPermissions(t *testing.T) {
+	want := []ComponentID{ComponentEngram, ComponentSkills, ComponentPermission, ComponentPersona}
+	if got := ComponentsForPreset(PresetFull); !slices.Equal(got, want) {
+		t.Fatalf("ComponentsForPreset(%q) = %v, want %v", PresetFull, got, want)
 	}
 }
 
@@ -29,13 +23,6 @@ func TestComponentsForPresetAlwaysInstallsNeutralPersona(t *testing.T) {
 	}
 	if got := ComponentsForPreset(PresetCustom); got != nil {
 		t.Errorf("ComponentsForPreset(%q) = %v, want nil", PresetCustom, got)
-	}
-}
-
-func TestVisualPolishComponentsReturnsCompleteManagedCleanupInventory(t *testing.T) {
-	want := []ComponentID{ComponentTheme, ComponentClaudeTheme}
-	if got := VisualPolishComponents(); !slices.Equal(got, want) {
-		t.Fatalf("VisualPolishComponents() = %v, want complete cleanup inventory %v", got, want)
 	}
 }
 

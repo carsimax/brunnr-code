@@ -119,7 +119,7 @@ func TestBuildPlanAttributesOperationsToTheAgentsThatContributedThem(t *testing.
 		t.Fatal(err)
 	}
 
-	built, err := svc.buildPlan([]model.AgentID{model.AgentClaudeCode, model.AgentCodex}, []model.ComponentID{model.ComponentTheme, model.ComponentPersona})
+	built, err := svc.buildPlan([]model.AgentID{model.AgentClaudeCode, model.AgentCodex}, []model.ComponentID{model.ComponentPermission, model.ComponentPersona})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3523,7 +3523,7 @@ func TestPinErrClearedOnScreenReentry(t *testing.T) {
 	}
 }
 
-func TestCustomPresetCanSelectEngramWithoutPersonaOrPolish(t *testing.T) {
+func TestCustomPresetCanSelectEngramWithoutPersona(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenPreset
 	m.Cursor = len(screens.PresetOptions()) - 1 // Custom preset
@@ -3558,10 +3558,8 @@ func TestCustomPresetCanSelectEngramWithoutPersonaOrPolish(t *testing.T) {
 	if !slices.Equal(state.Selection.Components, []model.ComponentID{model.ComponentEngram}) {
 		t.Fatalf("components = %v, want only Engram selected", state.Selection.Components)
 	}
-	for _, unwanted := range append([]model.ComponentID{model.ComponentPersona}, model.VisualPolishComponents()...) {
-		if slices.Contains(state.Selection.Components, unwanted) {
-			t.Fatalf("custom preset should not auto-select %v; components: %v", unwanted, state.Selection.Components)
-		}
+	if slices.Contains(state.Selection.Components, model.ComponentPersona) {
+		t.Fatalf("custom preset should not auto-select %v; components: %v", model.ComponentPersona, state.Selection.Components)
 	}
 }
 

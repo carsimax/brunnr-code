@@ -13,8 +13,6 @@ var mvpComponents = []Component{
 	{ID: model.ComponentSkills, Name: "Skills", Description: "Curated coding skill library"},
 	{ID: model.ComponentPersona, Name: "Persona", Description: "Managed agent behavior and conversation tone"},
 	{ID: model.ComponentPermission, Name: "Permissions", Description: "Security-first defaults and guardrails"},
-	{ID: model.ComponentTheme, Name: "Brunnr Theme", Description: "Visual polish: Brunnr color theme"},
-	{ID: model.ComponentClaudeTheme, Name: "Brunnr Visual Themes", Description: "Visual polish: Brunnr and Brunnr Cute theme assets"},
 }
 
 func MVPComponents() []Component {

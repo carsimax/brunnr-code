@@ -39,12 +39,10 @@ const (
 type ComponentID string
 
 const (
-	ComponentEngram      ComponentID = "engram"
-	ComponentSkills      ComponentID = "skills"
-	ComponentPersona     ComponentID = "persona"
-	ComponentPermission  ComponentID = "permissions"
-	ComponentTheme       ComponentID = "theme"
-	ComponentClaudeTheme ComponentID = "claude-theme"
+	ComponentEngram     ComponentID = "engram"
+	ComponentSkills     ComponentID = "skills"
+	ComponentPersona    ComponentID = "persona"
+	ComponentPermission ComponentID = "permissions"
 )
 
 // knownComponentIDs lists every component this build ships. The catalog test
@@ -54,8 +52,6 @@ var knownComponentIDs = []ComponentID{
 	ComponentSkills,
 	ComponentPersona,
 	ComponentPermission,
-	ComponentTheme,
-	ComponentClaudeTheme,
 }
 
 // ShippedComponentIDs returns a copy of every component ID this build ships.

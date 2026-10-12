@@ -15,7 +15,7 @@ func TestRunArgsPreparedInstallPreservesValidDispatch(t *testing.T) {
 		args       []string
 		components string
 	}{
-		{"implicit persona", []string{"--component", "theme"}, "theme"},
+		{"implicit persona", []string{"--component", "permissions"}, "permissions"},
 		{"managed persona", []string{"--component", "persona"}, "persona"},
 		{"skill", []string{"--component", "skills", "--skill", "go-testing"}, "skills"},
 		{"skills alias", []string{"--components", "skills", "--skills", "go-testing"}, "skills"},

@@ -215,10 +215,6 @@ Toggle components with enter or space.
     Managed agent behavior and conversation tone
   [ ] permissions
     Security-first defaults and guardrails
-  [ ] theme
-    Visual polish: Brunnr color theme
-  [ ] claude-theme
-    Visual polish: Brunnr and Brunnr Cute theme assets
 
   Continue
   Back

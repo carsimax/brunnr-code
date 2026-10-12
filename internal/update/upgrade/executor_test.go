@@ -537,10 +537,8 @@ func TestConfigPathsForBackup_CoversManagedAgentPaths(t *testing.T) {
 	homeDir := t.TempDir()
 
 	managedFiles := map[string]string{
-		".claude.json":                    `{"oauthAccount":{"emailAddress":"user@example.com"},"mcpServers":{"engram":{"command":"engram"}}}`,
-		".claude/CLAUDE.md":               "# Claude",
-		".claude/themes/brunnr.json":      `{"name":"brunnr"}`,
-		".claude/themes/brunnr-cute.json": `{"name":"Brunnr Cute"}`,
+		".claude.json":      `{"oauthAccount":{"emailAddress":"user@example.com"},"mcpServers":{"engram":{"command":"engram"}}}`,
+		".claude/CLAUDE.md": "# Claude",
 	}
 	unmanagedFile := filepath.Join(homeDir, ".claude", "conversation-transcript.md")
 

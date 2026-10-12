@@ -80,9 +80,6 @@ func TestParseSyncFlagsDefaults(t *testing.T) {
 	if flags.IncludePermissions {
 		t.Errorf("IncludePermissions = true, want false")
 	}
-	if flags.IncludeTheme {
-		t.Errorf("IncludeTheme = true, want false")
-	}
 }
 
 func TestParseSyncFlagsAgentsCSV(t *testing.T) {
@@ -130,16 +127,13 @@ func TestRunSyncRejectsUnsupportedAgent(t *testing.T) {
 	}
 }
 
-func TestParseSyncFlagsIncludePermissionsAndTheme(t *testing.T) {
-	flags, err := ParseSyncFlags([]string{"--include-permissions", "--include-theme"})
+func TestParseSyncFlagsIncludePermissions(t *testing.T) {
+	flags, err := ParseSyncFlags([]string{"--include-permissions"})
 	if err != nil {
 		t.Fatalf("ParseSyncFlags() error = %v", err)
 	}
 	if !flags.IncludePermissions {
 		t.Errorf("IncludePermissions = false, want true")
-	}
-	if !flags.IncludeTheme {
-		t.Errorf("IncludeTheme = false, want true")
 	}
 }
 
@@ -268,7 +262,7 @@ func TestBuildSyncSelectionDefaultScopeIncludesManagedComponents(t *testing.T) {
 	}
 }
 
-func TestBuildSyncSelectionDefaultExcludesPermissionsTheme(t *testing.T) {
+func TestBuildSyncSelectionDefaultExcludesPermissions(t *testing.T) {
 	agents := []model.AgentID{model.AgentCodex}
 	flags := SyncFlags{}
 
@@ -276,7 +270,6 @@ func TestBuildSyncSelectionDefaultExcludesPermissionsTheme(t *testing.T) {
 
 	excluded := []model.ComponentID{
 		model.ComponentPermission,
-		model.ComponentTheme,
 	}
 
 	for _, comp := range excluded {
@@ -303,24 +296,6 @@ func TestBuildSyncSelectionIncludePermissionsWhenFlagSet(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("BuildSyncSelection() expected ComponentPermission when --include-permissions is set")
-	}
-}
-
-func TestBuildSyncSelectionIncludeThemeWhenFlagSet(t *testing.T) {
-	agents := []model.AgentID{model.AgentClaudeCode}
-	flags := SyncFlags{IncludeTheme: true}
-
-	sel := BuildSyncSelection(flags, agents)
-
-	found := false
-	for _, comp := range sel.Components {
-		if comp == model.ComponentTheme {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("BuildSyncSelection() expected ComponentTheme when --include-theme is set")
 	}
 }
 
@@ -626,79 +601,6 @@ func TestComponentSyncStepCodexRuntimeGate(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestRunSyncRefreshesPersistedVisualComponents(t *testing.T) {
-	workspace, err := filepath.EvalSymlinks(t.TempDir())
-	if err != nil {
-		t.Fatalf("EvalSymlinks(workspace) error = %v", err)
-	}
-	t.Chdir(workspace)
-	home, err := filepath.EvalSymlinks(t.TempDir())
-	if err != nil {
-		t.Fatalf("EvalSymlinks(home) error = %v", err)
-	}
-	if err := state.Write(home, state.InstallState{
-		InstalledAgents:     []string{"claude-code", "codex"},
-		SelectionConfigured: true,
-		Components: []model.ComponentID{
-			model.ComponentClaudeTheme,
-		},
-	}); err != nil {
-		t.Fatalf("state.Write() error = %v", err)
-	}
-
-	restoreHome := osUserHomeDir
-	restoreBackupHome := backup.UserHomeDirFn
-	osUserHomeDir = func() (string, error) { return home, nil }
-	backup.UserHomeDirFn = func() (string, error) { return home, nil }
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		backup.UserHomeDirFn = restoreBackupHome
-	})
-
-	// Persisted visual components are refreshed first. Routing guidance
-	// targets follow: guidance is written for every configured agent
-	// regardless of which components are persisted, so a first sync of a
-	// purely visual selection still delivers it (issue #1794).
-	wantFiles := []string{
-		filepath.Join(home, ".claude", "themes", "brunnr.json"),
-		filepath.Join(home, ".claude", "themes", "brunnr-cute.json"),
-		filepath.Join(home, ".claude", "agents", "jd-fix-agent.md"),
-		filepath.Join(home, ".claude", "agents", "jd-judge-a.md"),
-		filepath.Join(home, ".claude", "agents", "jd-judge-b.md"),
-		filepath.Join(home, ".claude", "agents", "review-readability.md"),
-		filepath.Join(home, ".claude", "agents", "review-refuter.md"),
-		filepath.Join(home, ".claude", "agents", "review-reliability.md"),
-		filepath.Join(home, ".claude", "agents", "review-resilience.md"),
-		filepath.Join(home, ".claude", "agents", "review-risk.md"),
-		filepath.Join(home, ".claude", "agents", ".brunnr-code-native-agent-ownership.json"),
-		filepath.Join(home, ".claude", "settings.json"),
-		filepath.Join(home, ".claude", "CLAUDE.md"),
-		filepath.Join(home, ".codex", "hooks.json"),
-		filepath.Join(home, ".codex", "AGENTS.md"),
-	}
-
-	first, err := RunSync([]string{"--agents", "claude-code,codex"})
-	if err != nil {
-		t.Fatalf("RunSync() first error = %v", err)
-	}
-	if !reflect.DeepEqual(first.ChangedFiles, wantFiles) {
-		t.Fatalf("first ChangedFiles = %#v, want %#v", first.ChangedFiles, wantFiles)
-	}
-	for _, path := range wantFiles {
-		if _, err := os.Stat(path); err != nil {
-			t.Fatalf("managed visual component file %q was not refreshed: %v", path, err)
-		}
-	}
-
-	second, err := RunSync([]string{"--agents", "claude-code,codex"})
-	if err != nil {
-		t.Fatalf("RunSync() second error = %v", err)
-	}
-	if !second.NoOp || second.FilesChanged != 0 || len(second.ChangedFiles) != 0 {
-		t.Fatalf("second sync = NoOp %v, FilesChanged %d, ChangedFiles %#v; want idempotent no-op", second.NoOp, second.FilesChanged, second.ChangedFiles)
 	}
 }
 

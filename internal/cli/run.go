@@ -25,7 +25,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/persona"
 	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
 	"github.com/carsimax/brunnr-code/internal/components/skills"
-	"github.com/carsimax/brunnr-code/internal/components/theme"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/pipeline"
 	"github.com/carsimax/brunnr-code/internal/planner"
@@ -1349,20 +1348,6 @@ func (s componentApplyStep) Run() error {
 			}
 		}
 		return nil
-	case model.ComponentTheme:
-		for _, adapter := range adapters {
-			if _, err := theme.Inject(s.homeDir, adapter); err != nil {
-				return fmt.Errorf("inject theme for %q: %w", adapter.Agent(), err)
-			}
-		}
-		return nil
-	case model.ComponentClaudeTheme:
-		for _, adapter := range adapters {
-			if _, err := theme.InjectVisualThemes(s.homeDir, adapter); err != nil {
-				return fmt.Errorf("inject visual themes for %q: %w", adapter.Agent(), err)
-			}
-		}
-		return nil
 	default:
 		return fmt.Errorf("component %q is not supported in install runtime", s.component)
 	}
@@ -1764,12 +1749,6 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 			if p := permissions.TargetPath(homeDir, adapter); p != "" {
 				paths = append(paths, p)
 			}
-		case model.ComponentTheme:
-			if p := adapter.SettingsPath(homeDir); p != "" {
-				paths = append(paths, p)
-			}
-		case model.ComponentClaudeTheme:
-			paths = append(paths, theme.VisualThemePaths(homeDir, adapter)...)
 		}
 	}
 

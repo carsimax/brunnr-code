@@ -48,7 +48,6 @@ func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 			model.ComponentEngram,
 			model.ComponentSkills,
 			model.ComponentPermission,
-			model.ComponentClaudeTheme,
 			model.ComponentPersona,
 		},
 	}
@@ -76,13 +75,13 @@ func TestNormalizeInstallFlagsAcceptsBundledSkills(t *testing.T) {
 func TestNormalizeInstallFlagsCustomAcceptsOptionalInstallables(t *testing.T) {
 	input, err := NormalizeInstallFlags(InstallFlags{
 		Preset:     string(model.PresetCustom),
-		Components: []string{string(model.ComponentClaudeTheme)},
+		Components: []string{string(model.ComponentPermission)},
 	}, system.DetectionResult{})
 	if err != nil {
 		t.Fatalf("NormalizeInstallFlags() error = %v", err)
 	}
 
-	want := []model.ComponentID{model.ComponentClaudeTheme}
+	want := []model.ComponentID{model.ComponentPermission}
 	if !reflect.DeepEqual(input.Selection.Components, want) {
 		t.Fatalf("components = %#v, want %#v", input.Selection.Components, want)
 	}

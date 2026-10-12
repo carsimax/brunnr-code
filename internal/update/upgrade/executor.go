@@ -27,7 +27,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/agentguidance"
 	"github.com/carsimax/brunnr-code/internal/components/persona"
 	"github.com/carsimax/brunnr-code/internal/components/skills"
-	"github.com/carsimax/brunnr-code/internal/components/theme"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/state"
 	"github.com/carsimax/brunnr-code/internal/system"
@@ -225,7 +224,6 @@ func managedAgentBackupPaths(homeDir string, adapter agents.Adapter, diagnostics
 	switch adapter.Agent() {
 	case model.AgentClaudeCode:
 		add(claude.UserConfigPath(homeDir))
-		add(theme.VisualThemePaths(homeDir, adapter)...)
 		// The opt-in global module pilot rewrites the core and may write any
 		// known module name plus its ledger, which records only the modules it
 		// installed. Plan all of these paths, present or not, so a

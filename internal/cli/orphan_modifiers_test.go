@@ -28,7 +28,7 @@ func TestRunInstallRejectsOrphanModifiers(t *testing.T) {
 				previous := osUserHomeDir
 				osUserHomeDir = func() (string, error) { return home, nil }
 				t.Cleanup(func() { osUserHomeDir = previous })
-				args := append([]string{"--agent", "claude-code", "--component", "theme"}, tc.args...)
+				args := append([]string{"--agent", "claude-code", "--component", "permissions"}, tc.args...)
 				if dryRun {
 					args = append(args, "--dry-run")
 				}
@@ -54,7 +54,7 @@ func TestRunInstallModifierConsumersAndDefaults(t *testing.T) {
 		args []string
 		want []model.ComponentID
 	}{
-		{"implicit persona with theme", []string{"--component", "theme"}, []model.ComponentID{model.ComponentTheme}},
+		{"implicit persona with permissions", []string{"--component", "permissions"}, []model.ComponentID{model.ComponentPermission}},
 		{"explicit persona component", []string{"--component", "persona"}, []model.ComponentID{model.ComponentPersona}},
 		{"explicit skill consumer", []string{"--component", "skills", "--skill", "go-testing"}, []model.ComponentID{model.ComponentSkills}},
 		{"explicit skills alias consumer", []string{"--components", "skills", "--skills", "go-testing"}, []model.ComponentID{model.ComponentSkills}},

@@ -10,11 +10,10 @@ import (
 
 func TestTopologicalSortOrdersDependenciesFirst(t *testing.T) {
 	deps := map[model.ComponentID][]model.ComponentID{
-		model.ComponentSkills:      {model.ComponentPermission},
-		model.ComponentPermission:  {model.ComponentEngram},
-		model.ComponentEngram:      nil,
-		model.ComponentPersona:     nil,
-		model.ComponentClaudeTheme: nil,
+		model.ComponentSkills:     {model.ComponentPermission},
+		model.ComponentPermission: {model.ComponentEngram},
+		model.ComponentEngram:     nil,
+		model.ComponentPersona:    nil,
 	}
 
 	ordered, err := TopologicalSort(deps)
@@ -23,7 +22,6 @@ func TestTopologicalSortOrdersDependenciesFirst(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(ordered, []model.ComponentID{
-		model.ComponentClaudeTheme,
 		model.ComponentEngram,
 		model.ComponentPermission,
 		model.ComponentPersona,
@@ -35,7 +33,6 @@ func TestTopologicalSortOrdersDependenciesFirst(t *testing.T) {
 
 func TestApplySoftOrderingReordersWithoutAddingDependencies(t *testing.T) {
 	ordered := []model.ComponentID{
-		model.ComponentClaudeTheme,
 		model.ComponentEngram,
 		model.ComponentPersona,
 		model.ComponentSkills,
@@ -44,7 +41,6 @@ func TestApplySoftOrderingReordersWithoutAddingDependencies(t *testing.T) {
 	result := applySoftOrdering(ordered, [][2]model.ComponentID{{model.ComponentPersona, model.ComponentEngram}})
 
 	if !reflect.DeepEqual(result, []model.ComponentID{
-		model.ComponentClaudeTheme,
 		model.ComponentPersona,
 		model.ComponentEngram,
 		model.ComponentSkills,
@@ -90,10 +86,9 @@ func TestApplySoftOrderingEdgeCases(t *testing.T) {
 }
 
 func TestApplySoftOrderingMVPPairsWithFullSelection(t *testing.T) {
-	// Simulates the real scenario: topo gives [claude-theme, engram, persona, skills]
+	// Simulates the real scenario: topo gives [engram, persona, skills]
 	// and the MVPGraph soft pairs must put persona before engram.
 	ordered := []model.ComponentID{
-		model.ComponentClaudeTheme,
 		model.ComponentEngram,
 		model.ComponentPersona,
 		model.ComponentSkills,

@@ -571,26 +571,6 @@ func TestBackupTargetsEngramClaudeIncludeRegistryAndLegacyMigrationSource(t *tes
 	}
 }
 
-func TestComponentPathsVisualThemesMatchSelectedAdapter(t *testing.T) {
-	home := t.TempDir()
-	for _, tt := range []struct {
-		agent model.AgentID
-		want  []string
-	}{
-		{model.AgentClaudeCode, []string{filepath.Join(home, ".claude", "themes", "brunnr.json"), filepath.Join(home, ".claude", "themes", "brunnr-cute.json")}},
-	} {
-		paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, resolveAdapters([]model.AgentID{tt.agent}), model.ComponentClaudeTheme)
-		if len(paths) != len(tt.want) {
-			t.Fatalf("%q paths = %v, want %v", tt.agent, paths, tt.want)
-		}
-		for i := range tt.want {
-			if paths[i] != tt.want[i] {
-				t.Fatalf("%q paths = %v, want %v", tt.agent, paths, tt.want)
-			}
-		}
-	}
-}
-
 func TestBackupTargetsContainNoDuplicatePaths(t *testing.T) {
 	home := t.TempDir()
 	agentIDs := []model.AgentID{model.AgentClaudeCode}

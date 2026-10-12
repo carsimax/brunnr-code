@@ -21,7 +21,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/persona"
 	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
 	"github.com/carsimax/brunnr-code/internal/components/skills"
-	"github.com/carsimax/brunnr-code/internal/components/theme"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/state"
 	"github.com/carsimax/brunnr-code/internal/statecoord"
@@ -80,16 +79,12 @@ var (
 		model.ComponentEngram,
 		model.ComponentPermission,
 		model.ComponentSkills,
-		model.ComponentTheme,
-		model.ComponentClaudeTheme,
 	}
 	fullAgentRemovalComponents = []model.ComponentID{
 		model.ComponentPersona,
 		model.ComponentEngram,
 		model.ComponentPermission,
 		model.ComponentSkills,
-		model.ComponentTheme,
-		model.ComponentClaudeTheme,
 	}
 )
 
@@ -215,7 +210,6 @@ func (s *Service) partialUninstall(agentIDs []model.AgentID, componentIDs []mode
 	if len(components) == 0 {
 		components = slices.Clone(allManagedComponents)
 	}
-	components = expandVisualPolishUninstallComponents(components)
 
 	plan, err := s.buildPlan(agentIDs, components)
 	if err != nil {
@@ -225,27 +219,6 @@ func (s *Service) partialUninstall(agentIDs []model.AgentID, componentIDs []mode
 	stateRemovals := stateAgentsToRemove(agentIDs, components)
 	result, err := s.executePlan(plan, stateRemovals)
 	return result, err
-}
-
-func expandVisualPolishUninstallComponents(components []model.ComponentID) []model.ComponentID {
-	shouldExpand := false
-	visualPolish := model.VisualPolishComponents()
-	for _, component := range components {
-		if component != model.ComponentClaudeTheme && slices.Contains(visualPolish, component) {
-			shouldExpand = true
-		}
-	}
-	if !shouldExpand {
-		return components
-	}
-
-	expanded := slices.Clone(components)
-	for _, component := range model.VisualPolishComponents() {
-		if !slices.Contains(expanded, component) {
-			expanded = append(expanded, component)
-		}
-	}
-	return expanded
 }
 
 func (s *Service) SetEngramUninstallScope(scope model.EngramUninstallScope) {
@@ -670,19 +643,6 @@ func (s *Service) componentOperations(adapter agents.Adapter, componentID model.
 			case model.AgentClaudeCode:
 				ops = append(ops, rewriteJSONFile(path, jsonPath{"permissions"}))
 			}
-		}
-	case model.ComponentTheme:
-		for _, path := range settingsTargets(homeDir, adapter) {
-			targets = append(targets, path)
-			ops = append(ops, rewriteJSONFile(path, jsonPath{"theme"}))
-		}
-	case model.ComponentClaudeTheme:
-		for _, path := range theme.VisualThemePaths(homeDir, adapter) {
-			targets = append(targets, path)
-			ops = append(ops, removeFile(path))
-		}
-		if paths := theme.VisualThemePaths(homeDir, adapter); len(paths) > 0 {
-			ops = append(ops, removeDirIfEmpty(filepath.Dir(paths[0])))
 		}
 	case model.ComponentSkills:
 		if !adapter.SupportsSkills() {

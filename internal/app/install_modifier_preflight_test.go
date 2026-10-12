@@ -43,7 +43,7 @@ func TestRunArgsOrphanInstallModifiersRejectedWithoutEffects(t *testing.T) {
 				detectSystem = func(context.Context) (system.DetectionResult, error) {
 					return system.DetectionResult{System: system.SystemInfo{Supported: true, Profile: system.PlatformProfile{OS: "windows", Supported: true}}}, nil
 				}
-				args := append([]string{"install", "--agent", "claude-code", "--component", "theme"}, tc.args...)
+				args := append([]string{"install", "--agent", "claude-code", "--component", "permissions"}, tc.args...)
 				if dryRun {
 					args = append(args, "--dry-run")
 				}

@@ -26,7 +26,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/persona"
 	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
 	"github.com/carsimax/brunnr-code/internal/components/skills"
-	"github.com/carsimax/brunnr-code/internal/components/theme"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/pipeline"
 	"github.com/carsimax/brunnr-code/internal/planner"
@@ -41,14 +40,12 @@ type SyncFlags struct {
 	Skills             []string
 	StrictTDD          bool
 	IncludePermissions bool
-	IncludeTheme       bool
 	Scope              string
 	DryRun             bool
 
 	skillsSet      bool
 	strictTDDSet   bool
 	permissionsSet bool
-	themeSet       bool
 }
 
 // SyncResult holds the outcome of a sync execution.
@@ -142,7 +139,6 @@ func ParseSyncFlags(args []string) (SyncFlags, error) {
 	registerListFlag(fs, "skills", &opts.Skills)
 	fs.BoolVar(&opts.StrictTDD, "strict-tdd", false, "retired: ODD uses applicable test-first development by default")
 	fs.BoolVar(&opts.IncludePermissions, "include-permissions", false, "include permissions component in sync")
-	fs.BoolVar(&opts.IncludeTheme, "include-theme", false, "include theme component in sync")
 	fs.StringVar(&opts.Scope, "scope", "", "sync scope: global (default) or workspace — env: BRUNNR_CODE_INSTALL_SCOPE")
 	fs.BoolVar(&opts.DryRun, "dry-run", false, "preview plan without executing")
 
@@ -168,8 +164,6 @@ func ParseSyncFlags(args []string) (SyncFlags, error) {
 			opts.strictTDDSet = true
 		case "include-permissions":
 			opts.permissionsSet = true
-		case "include-theme":
-			opts.themeSet = true
 		}
 	})
 
@@ -193,7 +187,6 @@ FLAGS
   --skill, --skills <list>           Skills to sync
   --strict-tdd                       Retired (rejected); applicable test-first ODD is default
   --include-permissions              Include permissions component
-  --include-theme                    Include theme component
   --scope global|workspace           Sync scope (env: BRUNNR_CODE_INSTALL_SCOPE)
                                      workspace refreshes only workspace-scoped files and never mutates global state, backups, plugins, or routing guidance; components managed only globally are skipped
   --dry-run                          Preview plan without executing
@@ -204,9 +197,9 @@ FLAGS
 // BuildSyncSelection builds a model.Selection for the sync command.
 //
 // Default sync scope: Persona, Engram, Skills.
-// Excluded by default: Permissions, Theme (no markers; managed via JSON
-// overlays where user customization cannot be safely diff-merged).
-// Permissions and Theme can be opted-in via flags.
+// Excluded by default: Permissions (no markers; managed via a JSON overlay
+// where user customization cannot be safely diff-merged).
+// Permissions can be opted-in via a flag.
 //
 // Persona is included because its content lives between
 // <!-- brunnr-code:persona --> markers — that block is harness-managed and
@@ -226,9 +219,6 @@ func BuildSyncSelection(flags SyncFlags, agentIDs []model.AgentID) model.Selecti
 
 	if flags.IncludePermissions {
 		components = append(components, model.ComponentPermission)
-	}
-	if flags.IncludeTheme {
-		components = append(components, model.ComponentTheme)
 	}
 
 	var skillIDs []model.SkillID
@@ -293,7 +283,6 @@ func RestorePersistedSelection(selection *model.Selection, persisted state.Insta
 		setSelectionComponent(selection, model.ComponentSkills, true, true)
 	}
 	setSelectionComponent(selection, model.ComponentPermission, flags.permissionsSet, flags.IncludePermissions)
-	setSelectionComponent(selection, model.ComponentTheme, flags.themeSet, flags.IncludeTheme)
 }
 
 func setSelectionComponent(selection *model.Selection, component model.ComponentID, configured, included bool) {
@@ -518,9 +507,6 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 	workspace := scope == ScopeWorkspace
 	paths := map[string]struct{}{}
 	for _, component := range selection.Components {
-		if workspace && workspaceGlobalOnlyComponent(component) {
-			continue
-		}
 		componentAdapters := adapters
 		if workspace {
 			componentAdapters = workspaceScopedAdapters(component, adapters)
@@ -689,23 +675,12 @@ func pathUnder(path, dir string) bool {
 	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && rel != string(filepath.Separator)
 }
 
-// workspaceGlobalOnlyComponent reports whether a sync component is managed
-// only in the global scope, so a workspace sync must skip it instead of
-// leaking writes into the user's home (issue #1074).
-func workspaceGlobalOnlyComponent(component model.ComponentID) bool {
-	switch component {
-	case model.ComponentClaudeTheme:
-		return true
-	}
-	return false
-}
-
 // workspaceAdapterManagedGlobally reports whether the component's sync writes
 // for a specific agent land in the global config root regardless of scope, so
 // a workspace sync must skip that adapter instead of leaking (issue #1074).
 func workspaceAdapterManagedGlobally(component model.ComponentID, agent model.AgentID) bool {
 	switch component {
-	case model.ComponentPermission, model.ComponentTheme:
+	case model.ComponentPermission:
 		// Every agent writes its global settings file.
 		return true
 	}
@@ -916,10 +891,6 @@ func (s componentSyncStep) Run() error {
 	adapters := resolveAdapters(s.agents)
 
 	if s.scope == ScopeWorkspace {
-		if workspaceGlobalOnlyComponent(s.component) {
-			s.skipWorkspace(s.component, "")
-			return nil
-		}
 		for _, adapter := range adapters {
 			if workspaceAdapterManagedGlobally(s.component, adapter.Agent()) {
 				s.skipWorkspace(s.component, adapter.Agent())
@@ -1004,27 +975,6 @@ func (s componentSyncStep) Run() error {
 			res, err := injectSyncPersona(targetDir, adapter)
 			if err != nil {
 				return fmt.Errorf("sync persona for %q: %w", adapter.Agent(), err)
-			}
-			s.countChanged(boolToInt(res.Changed), res.Files...)
-		}
-		return nil
-
-	case model.ComponentTheme:
-		// Opt-in only — reached when --include-theme is set.
-		for _, adapter := range adapters {
-			res, err := theme.Inject(s.homeDir, adapter)
-			if err != nil {
-				return fmt.Errorf("sync theme for %q: %w", adapter.Agent(), err)
-			}
-			s.countChanged(boolToInt(res.Changed), res.Files...)
-		}
-		return nil
-
-	case model.ComponentClaudeTheme:
-		for _, adapter := range adapters {
-			res, err := theme.InjectVisualThemes(s.homeDir, adapter)
-			if err != nil {
-				return fmt.Errorf("sync visual themes for %q: %w", adapter.Agent(), err)
 			}
 			s.countChanged(boolToInt(res.Changed), res.Files...)
 		}
@@ -1743,9 +1693,6 @@ func runPostSyncVerificationScoped(homeDir, workspaceDir string, scope InstallSc
 	adapters := resolveAdapters(selection.Agents)
 
 	for _, component := range selection.Components {
-		if workspace && workspaceGlobalOnlyComponent(component) {
-			continue
-		}
 		componentAdapters := adapters
 		if workspace {
 			componentAdapters = workspaceScopedAdapters(component, adapters)
