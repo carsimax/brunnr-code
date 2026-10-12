@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// codexBlockUpserters covers every helper that replaces a whole
+// codexBlockUpserters covers every exported helper that replaces a whole
 // [mcp_servers.<id>] block. Each one must treat header-like lines inside a
 // multiline string as value text (issue #5026).
 var codexBlockUpserters = []struct {
@@ -20,22 +20,6 @@ var codexBlockUpserters = []struct {
 		block: "[mcp_servers.engram]\ncommand = \"engram\"\nargs = [\"mcp\", \"--tools=agent\"]",
 		fn: func(content string) string {
 			return UpsertCodexEngramBlock(content, "")
-		},
-	},
-	{
-		name:  "UpsertCodexMCPServerBlock",
-		id:    "context7",
-		block: "[mcp_servers.context7]\ncommand = \"npx\"\nargs = [\"-y\", \"context7-mcp\"]",
-		fn: func(content string) string {
-			return UpsertCodexMCPServerBlock(content, "context7", "npx", []string{"-y", "context7-mcp"})
-		},
-	},
-	{
-		name:  "UpsertCodexRemoteMCPServerBlock",
-		id:    "context7",
-		block: "[mcp_servers.context7]\nurl = \"https://mcp.context7.com/mcp\"",
-		fn: func(content string) string {
-			return UpsertCodexRemoteMCPServerBlock(content, "context7", "https://mcp.context7.com/mcp")
 		},
 	},
 }

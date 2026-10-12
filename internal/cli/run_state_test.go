@@ -149,12 +149,12 @@ func TestRunInstallExplicitSelectionThenSync(t *testing.T) {
 				}
 			}
 
-			flags := InstallFlags{Agents: []string{"claude-code"}, Components: []string{"persona", "skills", "context7"}, Preset: "minimal"}
+			flags := InstallFlags{Agents: []string{"claude-code"}, Components: []string{"persona", "skills"}, Preset: "minimal"}
 			input, err := NormalizeInstallFlags(flags, system.DetectionResult{})
 			if err != nil {
 				t.Fatal(err)
 			}
-			installed, err := RunInstall([]string{"--agent", "claude-code", "--component", "persona,skills,context7", "--preset", "minimal"}, system.DetectionResult{})
+			installed, err := RunInstall([]string{"--agent", "claude-code", "--component", "persona,skills", "--preset", "minimal"}, system.DetectionResult{})
 			if err != nil || !installed.Verify.Ready {
 				t.Fatalf("RunInstall() error = %v, ready = %v", err, installed.Verify.Ready)
 			}
@@ -162,7 +162,7 @@ func TestRunInstallExplicitSelectionThenSync(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			wantComponents := []model.ComponentID{model.ComponentPersona, model.ComponentSkills, model.ComponentContext7}
+			wantComponents := []model.ComponentID{model.ComponentPersona, model.ComponentSkills}
 			if !got.SelectionConfigured || !slices.Equal(got.Components, wantComponents) || !slices.Equal(got.Skills, input.Selection.Skills) || got.Preset != model.PresetMinimal || !slices.Equal(got.InstalledAgents, []string{"claude-code"}) {
 				t.Fatalf("persisted selection = %#v, want explicit components, skills and minimal preset", got)
 			}
@@ -190,7 +190,7 @@ func TestRunInstallIncrementalSelectionPreservesUnspecifiedFields(t *testing.T) 
 	home := convergenceTestHome(t)
 	if err := state.Write(home, state.InstallState{
 		InstalledAgents: []string{"codex"}, SelectionConfigured: true,
-		Components: []model.ComponentID{model.ComponentSkills, model.ComponentContext7},
+		Components: []model.ComponentID{model.ComponentSkills, model.ComponentEngram},
 		Skills:     []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom}); err != nil {
 		t.Fatal(err)
 	}

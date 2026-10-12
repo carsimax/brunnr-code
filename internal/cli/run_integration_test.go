@@ -1449,10 +1449,10 @@ func TestRunInstallCustomPresetExplicitComponentsResolveCorrectly(t *testing.T) 
 			len(result.Resolved.OrderedComponents), result.Resolved.OrderedComponents)
 	}
 
-	// Verify persona, skills, context7 are NOT in the plan.
+	// Verify persona is NOT in the plan.
 	for _, c := range result.Resolved.OrderedComponents {
 		switch c {
-		case model.ComponentPersona, model.ComponentContext7:
+		case model.ComponentPersona:
 			t.Fatalf("unexpected component %q in custom preset plan", c)
 		}
 	}
@@ -1521,136 +1521,5 @@ func TestRunInstallWorkspaceScopeVerification(t *testing.T) {
 	unexpectedHomeSkillFile := filepath.Join(home, ".claude", "skills", "go-testing", "SKILL.md")
 	if _, err := os.Stat(unexpectedHomeSkillFile); err == nil {
 		t.Errorf("unexpected skill file found in home directory: %q", unexpectedHomeSkillFile)
-	}
-}
-
-// TestRunInstall_Context7WorkspaceScope_PersistsToWorkspace verifies that executing
-// a real workspace operation with --scope workspace and Context7 component:
-//  1. Returns a successful result with verification ready.
-//  2. Persists Context7 MCP configuration into <project-root>/.mcp.json, the file
-//     Claude Code loads project-scoped MCP servers from (issue #2213).
-//  3. Leaves the user's home directory settings untouched.
-func TestRunInstall_Context7WorkspaceScope_PersistsToWorkspace(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-
-	restoreHome := osUserHomeDir
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	originalCwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("failed to get current working directory: %v", err)
-	}
-
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-		if err := os.Chdir(originalCwd); err != nil {
-			t.Errorf("failed to restore working directory: %v", err)
-		}
-	})
-
-	osUserHomeDir = func() (string, error) { return home, nil }
-	runCommand = func(string, ...string) error { return nil }
-	cmdLookPath = func(name string) (string, error) {
-		return "/usr/local/bin/" + name, nil
-	}
-
-	if err := os.Chdir(workspace); err != nil {
-		t.Fatalf("failed to change working directory to temp workspace: %v", err)
-	}
-
-	args := []string{
-		"--scope", "workspace",
-		"--agent", "claude-code",
-		"--component", "context7",
-		"--preset", "custom",
-	}
-
-	result, err := RunInstall(args, system.DetectionResult{})
-	if err != nil {
-		t.Fatalf("RunInstall() error = %v", err)
-	}
-
-	if !result.Verify.Ready {
-		t.Fatalf("post-apply verification failed for Context7 workspace scope: %#v", result.Verify)
-	}
-
-	// Context7 MCP configuration must persist to <project-root>/.mcp.json, the
-	// file Claude Code loads project-scoped MCP servers from (issue #2213).
-	workspaceMCPFile := filepath.Join(workspace, ".mcp.json")
-	assertFileContains(t, workspaceMCPFile, "context7")
-
-	// The legacy .claude/settings.json key is inert for MCP discovery and must
-	// not carry the managed context7 entry after install.
-	if settingsRaw, err := os.ReadFile(filepath.Join(workspace, ".claude", "settings.json")); err == nil {
-		if strings.Contains(string(settingsRaw), `"mcpServers"`) {
-			t.Errorf("workspace .claude/settings.json must not carry mcpServers; got %s", settingsRaw)
-		}
-	}
-
-	// Assert that no Context7 configuration was written to home directory settings.
-	homeSettingsFile := filepath.Join(home, ".claude", "settings.json")
-	if _, err := os.Stat(homeSettingsFile); err == nil {
-		content, _ := os.ReadFile(homeSettingsFile)
-		if strings.Contains(string(content), "context7") {
-			t.Errorf("unexpected Context7 MCP config found in home settings file: %q", homeSettingsFile)
-		}
-	}
-}
-
-// TestRunInstall_Context7WorkspaceScope_FailurePath verifies that executing
-// Context7 workspace installation when workspace target is unwriteable fails gracefully,
-// returning an error and reporting verification failure.
-func TestRunInstall_Context7WorkspaceScope_FailurePath(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-
-	restoreHome := osUserHomeDir
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	originalCwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("failed to get current working directory: %v", err)
-	}
-
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-		if err := os.Chdir(originalCwd); err != nil {
-			t.Errorf("failed to restore working directory: %v", err)
-		}
-	})
-
-	osUserHomeDir = func() (string, error) { return home, nil }
-	runCommand = func(string, ...string) error { return nil }
-	cmdLookPath = func(name string) (string, error) {
-		return "/usr/local/bin/" + name, nil
-	}
-
-	if err := os.Chdir(workspace); err != nil {
-		t.Fatalf("failed to change working directory to temp workspace: %v", err)
-	}
-
-	// Block the <project-root>/.mcp.json write by making it a directory, so the
-	// atomic file write fails. The primary workspace-scope target is .mcp.json
-	// (issue #2213), not .claude/settings.json.
-	blockingPath := filepath.Join(workspace, ".mcp.json")
-	if err := os.Mkdir(blockingPath, 0o755); err != nil {
-		t.Fatalf("failed to create blocking .mcp.json directory: %v", err)
-	}
-
-	args := []string{
-		"--scope", "workspace",
-		"--agent", "claude-code",
-		"--component", "context7",
-		"--preset", "custom",
-	}
-
-	_, err = RunInstall(args, system.DetectionResult{})
-	if err == nil {
-		t.Fatalf("RunInstall() with unwriteable workspace target expected error, got nil")
 	}
 }

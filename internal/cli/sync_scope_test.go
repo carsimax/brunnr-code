@@ -218,8 +218,7 @@ func TestSyncWorkspaceScopeDeclaresAndVerifiesPersonaWorkspaceTarget(t *testing.
 // engram.json — while the user-scope API would write <workspace>/.claude.json.
 // The workspace sync must dispatch to the scoped API, declare the workspace
 // file in the backup/rollback contract, verify it post-sync, and leave the
-// global tree byte-identical. Context7 is included to pin the already-correct
-// workspace .mcp.json target alongside it.
+// global tree byte-identical.
 func TestRunSyncWorkspaceScopeUpdatesClaudeEngramWithoutGlobalMutation(t *testing.T) {
 	// The global baseline must stay global even if the environment selects a
 	// different install scope.
@@ -251,10 +250,10 @@ func TestRunSyncWorkspaceScopeUpdatesClaudeEngramWithoutGlobalMutation(t *testin
 	}
 	before := snapshotTree(t, home)
 
-	// Phase 2: workspace sync of Engram + Context7 for Claude Code.
+	// Phase 2: workspace sync of Engram for Claude Code.
 	selection := model.Selection{
 		Agents:     []model.AgentID{model.AgentClaudeCode},
-		Components: []model.ComponentID{model.ComponentEngram, model.ComponentContext7},
+		Components: []model.ComponentID{model.ComponentEngram},
 	}
 	t.Chdir(workspace)
 	result, err := RunSyncWithSelectionScope(home, selection, ScopeWorkspace)
@@ -271,11 +270,8 @@ func TestRunSyncWorkspaceScopeUpdatesClaudeEngramWithoutGlobalMutation(t *testin
 	}
 
 	workspaceEngram := filepath.Join(workspace, ".claude", "mcp", "engram.json")
-	workspaceContext7 := filepath.Join(workspace, ".mcp.json")
-	for _, target := range []string{workspaceEngram, workspaceContext7} {
-		if _, err := os.Stat(target); err != nil {
-			t.Errorf("workspace Claude sync did not materialize %q: %v", target, err)
-		}
+	if _, err := os.Stat(workspaceEngram); err != nil {
+		t.Errorf("workspace Claude sync did not materialize %q: %v", workspaceEngram, err)
 	}
 
 	// Rollback contract: the workspace engram MCP file is snapshotted; the
@@ -341,7 +337,7 @@ func TestSyncWorkspaceBackupTargetsExcludeHomeOnlyPaths(t *testing.T) {
 	home, workspace := t.TempDir(), t.TempDir()
 	selection := model.Selection{
 		Agents:     []model.AgentID{model.AgentClaudeCode},
-		Components: []model.ComponentID{model.ComponentEngram, model.ComponentContext7, model.ComponentPermission, model.ComponentPersona},
+		Components: []model.ComponentID{model.ComponentEngram, model.ComponentPermission, model.ComponentPersona},
 	}
 	declared, err := syncBackupTargetsScoped(home, workspace, ScopeWorkspace, selection, resolveAdapters(selection.Agents))
 	if err != nil {

@@ -78,7 +78,6 @@ var (
 	allManagedComponents = []model.ComponentID{
 		model.ComponentPersona,
 		model.ComponentEngram,
-		model.ComponentContext7,
 		model.ComponentPermission,
 		model.ComponentSkills,
 		model.ComponentTheme,
@@ -87,7 +86,6 @@ var (
 	fullAgentRemovalComponents = []model.ComponentID{
 		model.ComponentPersona,
 		model.ComponentEngram,
-		model.ComponentContext7,
 		model.ComponentPermission,
 		model.ComponentSkills,
 		model.ComponentTheme,
@@ -646,9 +644,6 @@ func (s *Service) componentOperations(adapter agents.Adapter, componentID model.
 			jsonPaths := []jsonPath{{"outputStyle"}}
 			ops = append(ops, rewriteJSONFile(path, jsonPaths...))
 		}
-	case model.ComponentContext7:
-		targets = append(targets, context7Targets(adapter, homeDir)...)
-		ops = append(ops, context7Operations(adapter, homeDir)...)
 	case model.ComponentEngram:
 		if s.engramUninstallScope == model.EngramUninstallScopeProject {
 			projectDataPath := filepath.Join(s.workspaceDir, ".engram")
@@ -730,32 +725,6 @@ func (s *Service) componentOperations(adapter agents.Adapter, componentID model.
 	}
 
 	return ops, targets, nil
-}
-
-func context7Targets(adapter agents.Adapter, homeDir string) []string {
-	switch adapter.MCPStrategy() {
-	case model.StrategySeparateMCPFiles:
-		if adapter.Agent() == model.AgentClaudeCode {
-			return []string{claude.UserConfigPath(homeDir), adapter.SettingsPath(homeDir), adapter.MCPConfigPath(homeDir, "context7")}
-		}
-		return []string{adapter.MCPConfigPath(homeDir, "context7")}
-	default:
-		return nil
-	}
-}
-
-func context7Operations(adapter agents.Adapter, homeDir string) []operation {
-	switch adapter.MCPStrategy() {
-	case model.StrategySeparateMCPFiles:
-		if adapter.Agent() == model.AgentClaudeCode {
-			legacyPath := adapter.MCPConfigPath(homeDir, "context7")
-			return []operation{rewriteClaudeUserConfig(homeDir, jsonPath{"mcpServers", "context7"}), rewriteJSONFile(adapter.SettingsPath(homeDir), jsonPath{"mcpServers", "context7"}), removeManagedContext7File(legacyPath), removeDirIfEmpty(filepath.Dir(legacyPath))}
-		}
-		path := adapter.MCPConfigPath(homeDir, "context7")
-		return []operation{removeFile(path), removeDirIfEmpty(filepath.Dir(path))}
-	default:
-		return nil
-	}
 }
 
 func engramTargets(adapter agents.Adapter, homeDir string) []string {
@@ -1077,29 +1046,6 @@ func rewriteTOMLFile(path string, mutate func(content string) (string, bool)) op
 	}
 }
 
-func removeManagedContext7File(path string) operation {
-	return operation{
-		typeID: opRemoveFile,
-		path:   path,
-		apply: func(path string) (bool, bool, error) {
-			content, err := os.ReadFile(path)
-			if err != nil {
-				if os.IsNotExist(err) {
-					return false, false, nil
-				}
-				return false, false, err
-			}
-			if !isManagedContext7ServerJSON(content) {
-				return false, false, nil
-			}
-			if err := removeFileIfExists(path); err != nil {
-				return false, false, err
-			}
-			return true, true, nil
-		},
-	}
-}
-
 func removeManagedEngramFile(path string) operation {
 	return operation{
 		typeID: opRemoveFile,
@@ -1109,32 +1055,6 @@ func removeManagedEngramFile(path string) operation {
 			return removed, removed, err
 		},
 	}
-}
-
-func isManagedContext7ServerJSON(content []byte) bool {
-	var root map[string]any
-	if err := json.Unmarshal(content, &root); err != nil {
-		return false
-	}
-	if command, _ := root["command"].(string); command != "npx" {
-		return false
-	}
-	rawArgs, ok := root["args"].([]any)
-	if !ok || len(rawArgs) != 4 {
-		return false
-	}
-	args := make([]string, 0, len(rawArgs))
-	for _, raw := range rawArgs {
-		arg, ok := raw.(string)
-		if !ok {
-			return false
-		}
-		args = append(args, arg)
-	}
-	return args[0] == "-y" &&
-		strings.HasPrefix(args[1], "--package=@upstash/context7-mcp@") &&
-		args[2] == "--" &&
-		args[3] == "context7-mcp"
 }
 
 func removeFile(path string) operation {

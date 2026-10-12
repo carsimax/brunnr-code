@@ -96,7 +96,7 @@ func TestMergeJSONObjectsMalformedBaseReturnsOverlayOnly(t *testing.T) {
 		{
 			name:    "base starting with letter",
 			base:    []byte(`allow: all`),
-			overlay: []byte(`{"mcpServers": {"context7": {"type": "remote"}}}`),
+			overlay: []byte(`{"mcpServers": {"example": {"type": "remote"}}}`),
 			wantKey: "mcpServers",
 		},
 		{

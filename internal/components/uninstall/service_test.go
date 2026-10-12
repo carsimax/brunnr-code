@@ -224,70 +224,6 @@ func TestExecutePlanReportsManualCleanupForNonEmptyDirectory(t *testing.T) {
 	}
 }
 
-func TestComponentOperationsContext7ClaudeRemovesSettingsAndManagedLegacyFile(t *testing.T) {
-	homeDir := t.TempDir()
-	workspaceDir := t.TempDir()
-
-	svc, err := NewService(homeDir, workspaceDir, "dev")
-	if err != nil {
-		t.Fatalf("NewService() error = %v", err)
-	}
-	adapter, ok := svc.registry.Get(model.AgentClaudeCode)
-	if !ok {
-		t.Fatal("Claude adapter not found in registry")
-	}
-
-	settingsPath := adapter.SettingsPath(homeDir)
-	legacyPath := adapter.MCPConfigPath(homeDir, "context7")
-	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-		t.Fatalf("MkdirAll(settings dir) error = %v", err)
-	}
-	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
-		t.Fatalf("MkdirAll(legacy dir) error = %v", err)
-	}
-	if err := os.WriteFile(settingsPath, []byte(`{"mcpServers":{"context7":{"command":"npx"},"engram":{"command":"engram"}},"theme":"dark"}`), 0o644); err != nil {
-		t.Fatalf("WriteFile(settings) error = %v", err)
-	}
-	legacyManaged := []byte(`{
-  "command": "npx",
-  "args": [
-    "-y",
-    "--package=@upstash/context7-mcp@1.0.0",
-    "--",
-    "context7-mcp"
-  ]
-}
-`)
-	if err := os.WriteFile(legacyPath, legacyManaged, 0o644); err != nil {
-		t.Fatalf("WriteFile(legacy) error = %v", err)
-	}
-
-	ops, targets, err := svc.componentOperations(adapter, model.ComponentContext7)
-	if err != nil {
-		t.Fatalf("componentOperations() error = %v", err)
-	}
-	if !slices.Contains(targets, settingsPath) || !slices.Contains(targets, legacyPath) {
-		t.Fatalf("targets = %#v, want settings and legacy paths", targets)
-	}
-	for _, op := range ops {
-		if _, _, err := op.apply(op.path); err != nil {
-			t.Fatalf("operation %v on %q error = %v", op.typeID, op.path, err)
-		}
-	}
-
-	if _, err := os.Stat(legacyPath); !os.IsNotExist(err) {
-		t.Fatalf("legacy managed context7 file should be removed; stat err = %v", err)
-	}
-	settings := readJSONFileForTest(t, settingsPath)
-	mcpServers := settings["mcpServers"].(map[string]any)
-	if _, ok := mcpServers["context7"]; ok {
-		t.Fatalf("settings still contains mcpServers.context7: %#v", settings)
-	}
-	if _, ok := mcpServers["engram"]; !ok {
-		t.Fatalf("settings lost unrelated mcpServers.engram: %#v", settings)
-	}
-}
-
 func TestComponentOperationsClaudeNeverDeleteUserRegistry(t *testing.T) {
 	homeDir := t.TempDir()
 	workspaceDir := t.TempDir()
@@ -304,14 +240,14 @@ func TestComponentOperationsClaudeNeverDeleteUserRegistry(t *testing.T) {
 	// The registry holds ONLY the managed server, so removing it empties the
 	// file; ~/.claude.json must survive because Claude Code owns it.
 	registryPath := claude.UserConfigPath(homeDir)
-	seed := []byte(`{"mcpServers":{"context7":{"command":"npx"}}}`)
+	seed := []byte(`{"mcpServers":{"engram":{"command":"engram","args":["mcp","--tools=agent"]}}}`)
 	if err := os.WriteFile(registryPath, seed, 0o600); err != nil {
 		t.Fatalf("WriteFile(registry) error = %v", err)
 	}
 
-	ops, _, err := svc.componentOperations(adapter, model.ComponentContext7)
+	ops, _, err := svc.componentOperations(adapter, model.ComponentEngram)
 	if err != nil {
-		t.Fatalf("componentOperations(context7) error = %v", err)
+		t.Fatalf("componentOperations(engram) error = %v", err)
 	}
 	for _, op := range ops {
 		if _, _, err := op.apply(op.path); err != nil {
@@ -325,8 +261,8 @@ func TestComponentOperationsClaudeNeverDeleteUserRegistry(t *testing.T) {
 	}
 	registry := readJSONFileForTest(t, registryPath)
 	if servers, ok := registry["mcpServers"].(map[string]any); ok {
-		if _, still := servers["context7"]; still {
-			t.Fatalf("registry still contains mcpServers.context7: %#v", registry)
+		if _, still := servers["engram"]; still {
+			t.Fatalf("registry still contains mcpServers.engram: %#v", registry)
 		}
 	}
 	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
@@ -388,54 +324,6 @@ func TestComponentOperationsEngramClaudePreservesRegistryAndRemovesManagedLegacy
 		t.Fatalf("Stat(user registry) error = %v", statErr)
 	} else if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("user registry mode = %o; want 0600", info.Mode().Perm())
-	}
-}
-
-func TestComponentOperationsContext7ClaudePreservesCustomLegacyFile(t *testing.T) {
-	homeDir := t.TempDir()
-	workspaceDir := t.TempDir()
-
-	svc, err := NewService(homeDir, workspaceDir, "dev")
-	if err != nil {
-		t.Fatalf("NewService() error = %v", err)
-	}
-	adapter, ok := svc.registry.Get(model.AgentClaudeCode)
-	if !ok {
-		t.Fatal("Claude adapter not found in registry")
-	}
-
-	settingsPath := adapter.SettingsPath(homeDir)
-	legacyPath := adapter.MCPConfigPath(homeDir, "context7")
-	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-		t.Fatalf("MkdirAll(settings dir) error = %v", err)
-	}
-	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
-		t.Fatalf("MkdirAll(legacy dir) error = %v", err)
-	}
-	custom := []byte(`{"command":"custom-context7"}`)
-	if err := os.WriteFile(settingsPath, []byte(`{"mcpServers":{"context7":{"command":"npx"}}}`), 0o644); err != nil {
-		t.Fatalf("WriteFile(settings) error = %v", err)
-	}
-	if err := os.WriteFile(legacyPath, custom, 0o644); err != nil {
-		t.Fatalf("WriteFile(legacy) error = %v", err)
-	}
-
-	ops, _, err := svc.componentOperations(adapter, model.ComponentContext7)
-	if err != nil {
-		t.Fatalf("componentOperations() error = %v", err)
-	}
-	for _, op := range ops {
-		if _, _, err := op.apply(op.path); err != nil {
-			t.Fatalf("operation %v on %q error = %v", op.typeID, op.path, err)
-		}
-	}
-
-	got, err := os.ReadFile(legacyPath)
-	if err != nil {
-		t.Fatalf("ReadFile(legacy) error = %v", err)
-	}
-	if string(got) != string(custom) {
-		t.Fatalf("custom legacy file changed: %s", string(got))
 	}
 }
 

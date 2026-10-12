@@ -97,8 +97,8 @@ func TestRemoveJSONPaths_RemovesOnlyManagedKeys(t *testing.T) {
     }
   },
   "mcpServers": {
-    "context7": {
-      "command": "npx"
+    "engram": {
+      "command": "engram"
     },
     "custom": {
       "command": "python"
@@ -111,7 +111,7 @@ func TestRemoveJSONPaths_RemovesOnlyManagedKeys(t *testing.T) {
 	updated, changed, err := removeJSONPaths(input,
 		jsonPath{"theme"},
 		jsonPath{"permission"},
-		jsonPath{"mcpServers", "context7"},
+		jsonPath{"mcpServers", "engram"},
 	)
 	if err != nil {
 		t.Fatalf("removeJSONPaths() error = %v", err)
@@ -139,8 +139,8 @@ func TestRemoveJSONPaths_RemovesOnlyManagedKeys(t *testing.T) {
 	if !ok {
 		t.Fatalf("mcpServers missing or invalid: %#v", got["mcpServers"])
 	}
-	if _, exists := mcpServers["context7"]; exists {
-		t.Fatalf("context7 should be removed from mcpServers: %#v", mcpServers)
+	if _, exists := mcpServers["engram"]; exists {
+		t.Fatalf("engram should be removed from mcpServers: %#v", mcpServers)
 	}
 	if _, exists := mcpServers["custom"]; !exists {
 		t.Fatalf("custom server should be preserved: %#v", mcpServers)

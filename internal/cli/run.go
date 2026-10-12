@@ -22,7 +22,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/communitytool"
 	"github.com/carsimax/brunnr-code/internal/components/engram"
 	"github.com/carsimax/brunnr-code/internal/components/filemerge"
-	"github.com/carsimax/brunnr-code/internal/components/mcp"
 	"github.com/carsimax/brunnr-code/internal/components/permissions"
 	"github.com/carsimax/brunnr-code/internal/components/persona"
 	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
@@ -1352,14 +1351,6 @@ func (s componentApplyStep) Run() error {
 			}
 		}
 		return nil
-	case model.ComponentContext7:
-		for _, adapter := range adapters {
-			targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)
-			if _, err := mcp.Inject(s.homeDir, targetDir, adapter); err != nil {
-				return fmt.Errorf("inject context7 for %q: %w", adapter.Agent(), err)
-			}
-		}
-		return nil
 	case model.ComponentPersona:
 		for _, adapter := range adapters {
 			targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)
@@ -1692,11 +1683,6 @@ func installBackupTargets(homeDir, workspaceDir string, scope InstallScope, sele
 		for _, path := range componentPathsWithWorkspaceScoped(homeDir, workspaceDir, scope, selection, adapters, component) {
 			paths[path] = struct{}{}
 		}
-		if component == model.ComponentContext7 {
-			for _, path := range claudeMCPSettingsCleanupPaths(homeDir, workspaceDir, scope, adapters) {
-				paths[path] = struct{}{}
-			}
-		}
 		if component == model.ComponentEngram && scope == ScopeGlobal {
 			for _, adapter := range adapters {
 				if adapter.Agent() == model.AgentClaudeCode {
@@ -1822,24 +1808,6 @@ func skillSupportBackupTargets(targetDir string, adapter agents.Adapter, selecti
 	return support, nil
 }
 
-// claudeMCPSettingsCleanupPaths returns legacy Claude settings files that MCP
-// injection may rewrite while removing an inert mcpServers block. These paths
-// belong in the rollback snapshot, but not in post-apply verification because
-// cleanup is best-effort and the file may not exist.
-func claudeMCPSettingsCleanupPaths(homeDir, workspaceDir string, scope InstallScope, adapters []agents.Adapter) []string {
-	paths := []string{}
-	for _, adapter := range adapters {
-		if adapter.Agent() != model.AgentClaudeCode || adapter.MCPStrategy() != model.StrategySeparateMCPFiles {
-			continue
-		}
-		targetDir := componentPathDirScoped(homeDir, workspaceDir, scope, adapter, model.ComponentContext7)
-		if path := adapter.SettingsPath(targetDir); path != "" {
-			paths = append(paths, path)
-		}
-	}
-	return paths
-}
-
 // routingGuidancePaths declares the files agentRoutingGuidanceStep rewrites for
 // the given adapters.
 //
@@ -1922,30 +1890,6 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 				// fails loudly while writing, so no path is declared here.
 				if support, err := skills.SupportFilePaths(targetDir, adapter, selectedSkillIDs(selection)); err == nil {
 					paths = append(paths, support...)
-				}
-			}
-		case model.ComponentContext7:
-			switch adapter.MCPStrategy() {
-			case model.StrategySeparateMCPFiles:
-				if adapter.Agent() == model.AgentClaudeCode {
-					if targetDir == homeDir {
-						// Context7 injection writes ~/.claude.json (issue #1868).
-						paths = append(paths, claude.UserConfigPath(homeDir))
-					} else {
-						// Workspace scope writes <project-root>/.mcp.json, the file
-						// Claude Code loads project-scoped MCP servers from (issue #2213).
-						// The legacy .claude/settings.json block is a best-effort
-						// cleanup, not a guaranteed write, so it is not declared as a
-						// verification target (declaring it would force a false-negative
-						// when the file never existed).
-						paths = append(paths, filepath.Join(targetDir, ".mcp.json"))
-					}
-					break
-				}
-				paths = append(paths, adapter.MCPConfigPath(targetDir, "context7"))
-			case model.StrategyTOMLFile:
-				if p := adapter.MCPConfigPath(targetDir, "context7"); p != "" {
-					paths = append(paths, p)
 				}
 			}
 		case model.ComponentPersona:
@@ -2057,7 +2001,7 @@ func componentPathDir(homeDir, workspaceDir string, adapter agents.Adapter, comp
 
 func componentPathDirScoped(homeDir, workspaceDir string, scope InstallScope, adapter agents.Adapter, component model.ComponentID) string {
 	switch component {
-	case model.ComponentEngram, model.ComponentPersona, model.ComponentSkills, model.ComponentContext7:
+	case model.ComponentEngram, model.ComponentPersona, model.ComponentSkills:
 		return componentInjectionDirScoped(homeDir, workspaceDir, scope, adapter)
 	default:
 		return homeDir

@@ -26,45 +26,6 @@ func UpsertCodexEngramBlock(content, engramCmd string) string {
 	return replaceCodexMCPServerBlock(content, "[mcp_servers.engram]", codexEngramBlock)
 }
 
-// UpsertCodexMCPServerBlock removes any existing [mcp_servers.<serverID>] block
-// from the given TOML content and appends a fresh block with the provided
-// command and args. This is a generalized helper for any stdio MCP server that
-// Codex hosts via its config.toml. Backslashes in command and args are escaped
-// for TOML double-quoted strings (Windows paths).
-//
-// This is a string-based helper (no TOML parser dependency) following the same
-// pattern as UpsertCodexEngramBlock.
-func UpsertCodexMCPServerBlock(content, serverID, command string, args []string) string {
-	header := "[mcp_servers." + serverID + "]"
-
-	escapedCmd := strings.ReplaceAll(command, `\`, `\\`)
-
-	// Build TOML args array: args = ["-y", "--package=...", "--", "context7-mcp"]
-	var quotedArgs []string
-	for _, arg := range args {
-		escaped := strings.ReplaceAll(arg, `\`, `\\`)
-		quotedArgs = append(quotedArgs, `"`+escaped+`"`)
-	}
-	argsLine := "args = [" + strings.Join(quotedArgs, ", ") + "]"
-
-	block := header + "\ncommand = \"" + escapedCmd + "\"\n" + argsLine
-
-	return replaceCodexMCPServerBlock(content, header, block)
-}
-
-// UpsertCodexRemoteMCPServerBlock removes any existing [mcp_servers.<serverID>]
-// block from the given TOML content and appends a fresh remote MCP block using
-// Codex's `url = "..."`
-// shape. This migrates legacy local stdio blocks by dropping stale command/args
-// lines while preserving unrelated config.
-func UpsertCodexRemoteMCPServerBlock(content, serverID, url string) string {
-	header := "[mcp_servers." + serverID + "]"
-	escapedURL := strings.ReplaceAll(url, `\`, `\\`)
-	block := header + "\nurl = \"" + escapedURL + "\""
-
-	return replaceCodexMCPServerBlock(content, header, block)
-}
-
 // replaceCodexMCPServerBlock removes every existing table whose header is
 // exactly header, together with its key-value lines, and appends block at EOF.
 // Header-like lines inside a multiline string are value text: they neither

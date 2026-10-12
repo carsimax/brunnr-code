@@ -191,55 +191,6 @@ func TestInstallWorkspaceScopeVerificationWithNoGlobalSkills(t *testing.T) {
 	}
 }
 
-// TestComponentPathsContext7ClaudeUsesUserRegistry pins Claude Context7 to
-// the file injection actually writes: ~/.claude.json (issue #1868).
-// settings.json is only mutated best-effort and may not exist, and the legacy
-// managed ~/.claude/mcp/context7.json is removed by injection, so verifying
-// either would fail on a healthy install.
-func TestComponentPathsContext7ClaudeUsesUserRegistry(t *testing.T) {
-	home := t.TempDir()
-	adapters := resolveAdapters([]model.AgentID{model.AgentClaudeCode})
-
-	paths := componentPathsWithWorkspaceScoped(home, "", ScopeGlobal, model.Selection{}, adapters, model.ComponentContext7)
-
-	registry := filepath.Join(home, ".claude.json")
-	if !containsPath(paths, registry) {
-		t.Fatalf("componentPaths(context7,claude) missing %q\npaths=%v", registry, paths)
-	}
-	for _, absent := range []string{
-		filepath.Join(home, ".claude", "mcp", "context7.json"),
-		filepath.Join(home, ".claude", "settings.json"),
-	} {
-		if containsPath(paths, absent) {
-			t.Fatalf("componentPaths(context7,claude) must not require %q\npaths=%v", absent, paths)
-		}
-	}
-}
-
-func TestComponentPathsContext7ClaudeRespectsWorkspaceScope(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-	adapters := resolveAdapters([]model.AgentID{model.AgentClaudeCode})
-
-	paths := componentPathsWithWorkspaceScoped(home, workspace, ScopeWorkspace, model.Selection{}, adapters, model.ComponentContext7)
-
-	// Workspace scope writes <project-root>/.mcp.json, the file Claude Code
-	// loads project-scoped MCP servers from (issue #2213). The legacy
-	// .claude/settings.json key is inert for MCP discovery and is not declared.
-	want := filepath.Join(workspace, ".mcp.json")
-	if !containsPath(paths, want) {
-		t.Fatalf("componentPathsWithWorkspaceScoped(context7,claude) with ScopeWorkspace missing %q\npaths=%v", want, paths)
-	}
-	for _, absent := range []string{
-		filepath.Join(workspace, ".claude", "settings.json"),
-		filepath.Join(home, ".claude.json"),
-	} {
-		if containsPath(paths, absent) {
-			t.Fatalf("componentPathsWithWorkspaceScoped(context7,claude) with ScopeWorkspace must not require %q\npaths=%v", absent, paths)
-		}
-	}
-}
-
 func TestComponentPathsEngramClaudeUsesUserRegistryAndPreservesWorkspaceScope(t *testing.T) {
 	home := t.TempDir()
 	workspace := t.TempDir()
@@ -617,61 +568,6 @@ func TestBackupTargetsEngramClaudeIncludeRegistryAndLegacyMigrationSource(t *tes
 		if !containsPath(targets, want) {
 			t.Fatalf("backupTargets missing Claude Engram path %q; targets=%v", want, targets)
 		}
-	}
-}
-
-func TestBackupTargetsClaudeContext7IncludeCleanupWithoutVerificationRequirement(t *testing.T) {
-	for _, tc := range []struct {
-		name          string
-		scope         InstallScope
-		sameWorkspace bool
-		wantRoot      string
-	}{
-		{name: "user scope", scope: ScopeGlobal, wantRoot: "home"},
-		{name: "workspace scope", scope: ScopeWorkspace, wantRoot: "workspace"},
-		{name: "workspace is home", scope: ScopeWorkspace, sameWorkspace: true, wantRoot: "home"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			home := t.TempDir()
-			workspace := t.TempDir()
-			if tc.sameWorkspace {
-				workspace = home
-			}
-			selection := model.Selection{
-				Agents:     []model.AgentID{model.AgentClaudeCode},
-				Components: []model.ComponentID{model.ComponentContext7},
-			}
-			resolved := planner.ResolvedPlan{Agents: selection.Agents, OrderedComponents: selection.Components}
-			adapters := resolveAdapters(selection.Agents)
-
-			targets, err := backupTargets(home, workspace, tc.scope, selection, resolved)
-			if err != nil {
-				t.Fatalf("backupTargets() error = %v", err)
-			}
-			root := home
-			if tc.wantRoot == "workspace" {
-				root = workspace
-			}
-			// Retained routing hooks and Context7 cleanup share selected-scope settings.
-			wantSettings := adapters[0].SettingsPath(root)
-			if !containsPath(targets, wantSettings) {
-				t.Fatalf("backupTargets missing cleanup path %q; targets=%v", wantSettings, targets)
-			}
-
-			verificationPaths := componentPathsWithWorkspaceScoped(home, workspace, tc.scope, selection, adapters, model.ComponentContext7)
-			if containsPath(verificationPaths, wantSettings) {
-				t.Fatalf("component verification must not require best-effort cleanup path %q; paths=%v", wantSettings, verificationPaths)
-			}
-
-			otherRoot := workspace
-			if root == workspace {
-				otherRoot = home
-			}
-			otherSettings := adapters[0].SettingsPath(otherRoot)
-			if !tc.sameWorkspace && containsPath(targets, otherSettings) {
-				t.Fatalf("backupTargets selected settings outside install scope; targets=%v", targets)
-			}
-		})
 	}
 }
 

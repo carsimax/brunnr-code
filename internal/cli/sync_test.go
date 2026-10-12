@@ -250,7 +250,6 @@ func TestBuildSyncSelectionDefaultScopeIncludesManagedComponents(t *testing.T) {
 	// is preserved by InjectMarkdownSection.
 	mandatoryComponents := []model.ComponentID{
 		model.ComponentEngram,
-		model.ComponentContext7,
 		model.ComponentSkills,
 		model.ComponentPersona,
 	}
@@ -728,23 +727,6 @@ func TestSyncBackupTargetsIncludeCodexEngramInstructionFiles(t *testing.T) {
 		if !containsPath(targets, want) {
 			t.Fatalf("sync backup targets missing Codex Engram instruction %q: %v", want, targets)
 		}
-	}
-}
-
-func TestSyncBackupTargetsIncludeClaudeContext7CleanupPath(t *testing.T) {
-	home := t.TempDir()
-	selection := model.Selection{
-		Agents:     []model.AgentID{model.AgentClaudeCode},
-		Components: []model.ComponentID{model.ComponentContext7},
-	}
-
-	targets, err := syncBackupTargetsScoped(home, "", ScopeGlobal, selection, resolveAdapters(selection.Agents))
-	if err != nil {
-		t.Fatalf("syncBackupTargets() error = %v", err)
-	}
-	want := filepath.Join(home, ".claude", "settings.json")
-	if !containsPath(targets, want) {
-		t.Fatalf("sync backup targets missing Claude Context7 cleanup path %q: %v", want, targets)
 	}
 }
 
@@ -1492,7 +1474,7 @@ func TestRunSyncWithSelection_WritesExpectedFiles(t *testing.T) {
 
 	sel := model.Selection{
 		Agents:     []model.AgentID{model.AgentCodex},
-		Components: []model.ComponentID{model.ComponentEngram, model.ComponentContext7, model.ComponentSkills},
+		Components: []model.ComponentID{model.ComponentEngram, model.ComponentSkills},
 	}
 
 	result, err := RunSyncWithSelection(home, sel)
@@ -1538,7 +1520,7 @@ func TestRunSyncWithSelection_FilesChangedOnFreshHome(t *testing.T) {
 
 	sel := model.Selection{
 		Agents:     []model.AgentID{model.AgentCodex},
-		Components: []model.ComponentID{model.ComponentEngram, model.ComponentContext7, model.ComponentSkills},
+		Components: []model.ComponentID{model.ComponentEngram, model.ComponentSkills},
 	}
 
 	result, err := RunSyncWithSelection(home, sel)
@@ -1567,7 +1549,7 @@ func TestRunSyncWithSelection_SelectionAgentsForwarded(t *testing.T) {
 
 	sel := model.Selection{
 		Agents:     []model.AgentID{model.AgentCodex},
-		Components: []model.ComponentID{model.ComponentEngram, model.ComponentContext7, model.ComponentSkills},
+		Components: []model.ComponentID{model.ComponentEngram, model.ComponentSkills},
 	}
 
 	result, err := RunSyncWithSelection(home, sel)

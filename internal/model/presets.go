@@ -21,14 +21,13 @@ func ComponentsForPreset(preset PresetID) []ComponentID {
 	case PresetMinimal:
 		components = []ComponentID{ComponentEngram}
 	case PresetEcosystemOnly:
-		components = []ComponentID{ComponentEngram, ComponentSkills, ComponentContext7}
+		components = []ComponentID{ComponentEngram, ComponentSkills}
 	case PresetCustom:
 		return nil
 	default: // full
 		components = []ComponentID{
 			ComponentEngram,
 			ComponentSkills,
-			ComponentContext7,
 			ComponentPermission,
 		}
 		components = append(components, installSafePresetVisualComponents()...)

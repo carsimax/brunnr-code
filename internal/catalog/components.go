@@ -11,7 +11,6 @@ type Component struct {
 var mvpComponents = []Component{
 	{ID: model.ComponentEngram, Name: "Engram", Description: "Persistent cross-session memory"},
 	{ID: model.ComponentSkills, Name: "Skills", Description: "Curated coding skill library"},
-	{ID: model.ComponentContext7, Name: "Context7", Description: "Latest framework and library docs"},
 	{ID: model.ComponentPersona, Name: "Persona", Description: "Managed agent behavior and conversation tone"},
 	{ID: model.ComponentPermission, Name: "Permissions", Description: "Security-first defaults and guardrails"},
 	{ID: model.ComponentTheme, Name: "Brunnr Theme", Description: "Visual polish: Brunnr color theme"},

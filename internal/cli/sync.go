@@ -22,7 +22,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/communitytool"
 	"github.com/carsimax/brunnr-code/internal/components/engram"
 	"github.com/carsimax/brunnr-code/internal/components/filemerge"
-	"github.com/carsimax/brunnr-code/internal/components/mcp"
 	"github.com/carsimax/brunnr-code/internal/components/permissions"
 	"github.com/carsimax/brunnr-code/internal/components/persona"
 	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
@@ -204,7 +203,7 @@ FLAGS
 
 // BuildSyncSelection builds a model.Selection for the sync command.
 //
-// Default sync scope: Engram, Context7, Skills, Persona.
+// Default sync scope: Persona, Engram, Skills.
 // Excluded by default: Permissions, Theme (no markers; managed via JSON
 // overlays where user customization cannot be safely diff-merged).
 // Permissions and Theme can be opted-in via flags.
@@ -218,11 +217,10 @@ FLAGS
 // flow can call this function to get the same managed-only selection semantics.
 func BuildSyncSelection(flags SyncFlags, agentIDs []model.AgentID) model.Selection {
 	// Persona runs first so its marker section precedes the sections that
-	// Engram/MCP inject afterwards.
+	// Engram injects afterwards.
 	components := []model.ComponentID{
 		model.ComponentPersona,
 		model.ComponentEngram,
-		model.ComponentContext7,
 		model.ComponentSkills,
 	}
 
@@ -254,9 +252,9 @@ func BuildSyncSelection(flags SyncFlags, agentIDs []model.AgentID) model.Selecti
 // installOrderedComponents returns the selected components in the order the
 // install planner applies them. Persisted state records components in
 // selection order (persona last for full), and components write the
-// same files: persona replaces the whole prompt for FileReplace agents, and
-// Engram re-appends its MCP block after Context7. Applying them in a different
-// order than install makes the first sync rewrite what install just wrote.
+// same files: persona replaces the whole prompt for FileReplace agents.
+// Applying them in a different order than install makes the first sync
+// rewrite what install just wrote.
 // Components the planner does not know keep their relative order at the end.
 func installOrderedComponents(components []model.ComponentID) []model.ComponentID {
 	graph := planner.MVPGraph()
@@ -529,11 +527,6 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 		}
 		for _, path := range syncComponentPathsWithWorkspaceScoped(homeDir, workspaceDir, scope, selection, componentAdapters, component) {
 			paths[path] = struct{}{}
-		}
-		if component == model.ComponentContext7 {
-			for _, path := range claudeMCPSettingsCleanupPaths(homeDir, workspaceDir, scope, componentAdapters) {
-				paths[path] = struct{}{}
-			}
 		}
 		if component == model.ComponentEngram {
 			for _, adapter := range componentAdapters {
@@ -977,17 +970,6 @@ func (s componentSyncStep) Run() error {
 		}
 		return nil
 
-	case model.ComponentContext7:
-		for _, adapter := range adapters {
-			targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)
-			res, err := mcp.Inject(s.homeDir, targetDir, adapter)
-			if err != nil {
-				return fmt.Errorf("sync context7 for %q: %w", adapter.Agent(), err)
-			}
-			s.countChanged(boolToInt(res.Changed), res.Files...)
-		}
-		return nil
-
 	case model.ComponentSkills:
 		skillIDs := selectedSkillIDs(s.selection)
 		if len(skillIDs) == 0 {
@@ -1346,7 +1328,7 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 
 	// Capture how many managed assets were actually changed.
 	// Deduplicate paths — multiple components may touch the same file
-	// (e.g. Engram and Context7 both merge into settings.json).
+	// (e.g. several components merge into settings.json).
 	result.ChangedFiles, err = compareChangedSyncFiles(rt.changedFiles, before)
 	if err != nil {
 		return result, rollbackPostApplyError(orchestrator, result.Execution, err)

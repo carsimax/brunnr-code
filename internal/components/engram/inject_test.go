@@ -353,7 +353,7 @@ func TestInjectClaudeSkipsMCPServersEngramWhenPluginEnabled(t *testing.T) {
 	writeClaudeEngramPluginEnabled(t, home)
 
 	registryPath := claude.UserConfigPath(home)
-	registrySeed := []byte(`{"mcpServers":{"context7":{"command":"npx"}}}`)
+	registrySeed := []byte(`{"mcpServers":{"example":{"command":"npx"}}}`)
 	if err := os.WriteFile(registryPath, registrySeed, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -373,7 +373,7 @@ func TestInjectClaudeSkipsMCPServersEngramWhenPluginEnabled(t *testing.T) {
 	if _, exists := mcpServers["engram"]; exists {
 		t.Fatalf("mcpServers.engram must not be added when the Engram plugin is enabled; registry = %#v", registry)
 	}
-	assertNestedString(t, registry, "npx", "mcpServers", "context7", "command")
+	assertNestedString(t, registry, "npx", "mcpServers", "example", "command")
 }
 
 // TestInjectClaudePreservesIdenticalManualRegistrationsWhenPluginEnabled
@@ -386,7 +386,7 @@ func TestInjectClaudePreservesIdenticalManualRegistrationsWhenPluginEnabled(t *t
 	writeClaudeEngramPluginEnabled(t, home)
 
 	registryPath := claude.UserConfigPath(home)
-	registrySeed := []byte(`{"mcpServers":{"context7":{"command":"npx"},"engram":{"command":"/opt/homebrew/bin/engram","args":["mcp","--tools=agent"]}}}`)
+	registrySeed := []byte(`{"mcpServers":{"example":{"command":"npx"},"engram":{"command":"/opt/homebrew/bin/engram","args":["mcp","--tools=agent"]}}}`)
 	if err := os.WriteFile(registryPath, registrySeed, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -976,7 +976,7 @@ func TestInjectCodexMultiAgentDefaults(t *testing.T) {
 
 // TestInjectCodexMultiAgentIdempotent asserts that running Inject twice
 // produces exactly one [features] section and one [agents] section with no
-// duplicate keys, and that the engram and context7 blocks are not disturbed.
+// duplicate keys, and that the engram block is not disturbed.
 func TestInjectCodexMultiAgentIdempotent(t *testing.T) {
 	validCodexRuntime(t)
 	home := t.TempDir()
@@ -1403,8 +1403,8 @@ func TestUpsertCodexTableKeyBeforeMCPServersKeepsMCPBlocksAtEOF(t *testing.T) {
 	}{
 		{
 			name:    "missing table goes before existing MCP block",
-			content: "[mcp_servers.context7]\nurl = \"https://mcp.context7.com/mcp\"\n",
-			want:    "[features]\nmulti_agent = true\n\n[mcp_servers.context7]\nurl = \"https://mcp.context7.com/mcp\"\n",
+			content: "[mcp_servers.example]\nurl = \"https://mcp.example.com/mcp\"\n",
+			want:    "[features]\nmulti_agent = true\n\n[mcp_servers.example]\nurl = \"https://mcp.example.com/mcp\"\n",
 		},
 		{
 			name:    "missing table without MCP blocks is appended",
@@ -1413,8 +1413,8 @@ func TestUpsertCodexTableKeyBeforeMCPServersKeepsMCPBlocksAtEOF(t *testing.T) {
 		},
 		{
 			name:    "existing table is updated in place",
-			content: "[mcp_servers.context7]\nurl = \"u\"\n\n[features]\nmulti_agent = false\n",
-			want:    "[mcp_servers.context7]\nurl = \"u\"\n\n[features]\nmulti_agent = true\n",
+			content: "[mcp_servers.example]\nurl = \"u\"\n\n[features]\nmulti_agent = false\n",
+			want:    "[mcp_servers.example]\nurl = \"u\"\n\n[features]\nmulti_agent = true\n",
 		},
 	}
 	for _, tt := range tests {
@@ -1432,11 +1432,11 @@ func TestUpsertCodexTableKeyBeforeMCPServersKeepsMCPBlocksAtEOF(t *testing.T) {
 // real MCP block instead of splitting the string.
 func TestUpsertCodexTableKeyBeforeMCPServersIgnoresMultilineStrings(t *testing.T) {
 	for _, delimiter := range []string{`"""`, "'''"} {
-		content := "developer_instructions = " + delimiter + "\nExample:\n[mcp_servers.docs]\n" + delimiter + "\n\n[mcp_servers.context7]\ncommand = \"npx\"\n"
+		content := "developer_instructions = " + delimiter + "\nExample:\n[mcp_servers.docs]\n" + delimiter + "\n\n[mcp_servers.example]\ncommand = \"npx\"\n"
 		got := upsertCodexTableKeyBeforeMCPServers(content, "features", "multi_agent", "true")
 		stringEnd := strings.LastIndex(got, delimiter)
 		table := strings.Index(got, "[features]\n")
-		mcp := strings.Index(got, "[mcp_servers.context7]")
+		mcp := strings.Index(got, "[mcp_servers.example]")
 		if table < 0 || table < stringEnd || table > mcp {
 			t.Fatalf("delimiter %s: [features] must be inserted after the multiline string and before the real MCP block:\n%s", delimiter, got)
 		}
@@ -1453,7 +1453,7 @@ func TestUpsertCodexTableKeyBeforeMCPServersIgnoresMultilineStrings(t *testing.T
 func TestUpsertCodexTableKeyBeforeMCPServersIgnoresTargetHeaderInMultilineStrings(t *testing.T) {
 	for _, delimiter := range []string{`"""`, "'''"} {
 		instructions := "developer_instructions = " + delimiter + "\n[features]\nmulti_agent = false\n" + delimiter + "\n"
-		for _, tail := range []string{"", "\n[mcp_servers.context7]\ncommand = \"npx\"\n"} {
+		for _, tail := range []string{"", "\n[mcp_servers.example]\ncommand = \"npx\"\n"} {
 			got := upsertCodexTableKeyBeforeMCPServers(instructions+tail, "features", "multi_agent", "true")
 			if !strings.HasPrefix(got, instructions) {
 				t.Fatalf("delimiter %s tail %q: multiline string text was altered:\n%s", delimiter, tail, got)
@@ -1462,7 +1462,7 @@ func TestUpsertCodexTableKeyBeforeMCPServersIgnoresTargetHeaderInMultilineString
 			if table < 0 {
 				t.Fatalf("delimiter %s tail %q: [features] must be created after the multiline string:\n%s", delimiter, tail, got)
 			}
-			if mcp := strings.Index(got, "[mcp_servers.context7]"); tail != "" && (mcp < 0 || mcp < table) {
+			if mcp := strings.Index(got, "[mcp_servers.example]"); tail != "" && (mcp < 0 || mcp < table) {
 				t.Fatalf("delimiter %s: [features] must stay before the MCP block:\n%s", delimiter, got)
 			}
 		}
@@ -1477,10 +1477,10 @@ func TestUpsertCodexTableKeyBeforeMCPServersIgnoresDelimitersInStringsAndComment
 		"note = '\"\"\"'\n",
 		"# a comment with \"\"\" in it\n",
 	} {
-		content := prefix + "\n[mcp_servers.context7]\ncommand = \"npx\"\n"
+		content := prefix + "\n[mcp_servers.example]\ncommand = \"npx\"\n"
 		got := upsertCodexTableKeyBeforeMCPServers(content, "features", "multi_agent", "true")
 		table := strings.Index(got, "[features]\n")
-		mcp := strings.Index(got, "[mcp_servers.context7]")
+		mcp := strings.Index(got, "[mcp_servers.example]")
 		if table < 0 || table > mcp {
 			t.Fatalf("prefix %q: [features] must be inserted before the MCP block:\n%s", prefix, got)
 		}

@@ -205,7 +205,7 @@ func managedAgentBackupPaths(homeDir string, adapter agents.Adapter, diagnostics
 	add(adapter.SettingsPath(homeDir))
 
 	if adapter.SupportsMCP() {
-		add(adapter.MCPConfigPath(homeDir, "engram"), adapter.MCPConfigPath(homeDir, "context7"))
+		add(adapter.MCPConfigPath(homeDir, "engram"))
 	}
 
 	if adapter.SupportsOutputStyles() {

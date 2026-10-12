@@ -305,10 +305,10 @@ func injectWithOptions(configHomeDir, promptDir string, adapter agents.Adapter, 
 
 // upsertCodexTableKeyBeforeMCPServers behaves like filemerge.UpsertTOMLTableKey,
 // except that a missing table is created before the first [mcp_servers.*]
-// table instead of at EOF. Context7 and Engram both strip and re-append their
-// MCP block at EOF, so MCP servers must stay contiguous at the end of the file:
-// a table appended after an existing MCP block would be reordered by the next
-// Context7 upsert, and install and sync would never produce the same bytes.
+// table instead of at EOF. Engram strips and re-appends its MCP block at EOF,
+// so MCP servers must stay contiguous at the end of the file: a table appended
+// after an existing MCP block would be reordered by the next Engram upsert, and
+// install and sync would never produce the same bytes.
 func upsertCodexTableKeyBeforeMCPServers(content, section, key, rawValue string) string {
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 	lines := strings.Split(content, "\n")

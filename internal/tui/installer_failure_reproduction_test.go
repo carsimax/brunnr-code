@@ -42,7 +42,7 @@ func TestInstallerFailureRollbackReturnsControl(t *testing.T) {
 		"apply:rollback-restore",
 		"agent:claude-code", "agent:codex",
 		"community-tool:codegraph", "component:claude-theme",
-		"component:context7", "component:persona", "component:engram",
+		"component:persona", "component:engram",
 		"component:permissions",
 		"component:skills", "agent-guidance:claude-code",
 		"agent-guidance:codex",

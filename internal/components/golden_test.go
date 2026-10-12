@@ -11,7 +11,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/agents/claude"
 	codexagent "github.com/carsimax/brunnr-code/internal/agents/codex"
 	"github.com/carsimax/brunnr-code/internal/components/engram"
-	"github.com/carsimax/brunnr-code/internal/components/mcp"
 	"github.com/carsimax/brunnr-code/internal/components/persona"
 	"github.com/carsimax/brunnr-code/internal/components/skills"
 	"github.com/carsimax/brunnr-code/internal/model"
@@ -23,7 +22,7 @@ func claudeAdapter() agents.Adapter { return claude.NewAdapter() }
 func codexAdapter() agents.Adapter  { return codexagent.NewAdapter() }
 
 // ---------------------------------------------------------------------------
-// Existing golden tests (context7 and presets)
+// Existing golden tests (presets)
 // ---------------------------------------------------------------------------
 
 func TestGoldenConfigs(t *testing.T) {
@@ -48,8 +47,6 @@ func TestGoldenConfigs(t *testing.T) {
 		path    string
 		content []byte
 	}{
-		{name: "context7 server", path: "context7-server.json", content: mcp.DefaultContext7ServerJSON()},
-		{name: "context7 overlay", path: "context7-overlay.json", content: mcp.DefaultContext7OverlayJSON()},
 		{name: "skills presets", path: "skills-presets.json", content: presetsJSON},
 	}
 

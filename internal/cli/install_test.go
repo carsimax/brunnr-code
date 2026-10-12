@@ -47,7 +47,6 @@ func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 		Components: []model.ComponentID{
 			model.ComponentEngram,
 			model.ComponentSkills,
-			model.ComponentContext7,
 			model.ComponentPermission,
 			model.ComponentClaudeTheme,
 			model.ComponentPersona,

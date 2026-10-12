@@ -37,7 +37,6 @@ func MVPGraph() Graph {
 	return NewGraph(map[model.ComponentID][]model.ComponentID{
 		model.ComponentEngram:      nil,
 		model.ComponentSkills:      nil,
-		model.ComponentContext7:    nil,
 		model.ComponentPersona:     nil,
 		model.ComponentPermission:  nil,
 		model.ComponentTheme:       nil,

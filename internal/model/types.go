@@ -41,7 +41,6 @@ type ComponentID string
 const (
 	ComponentEngram      ComponentID = "engram"
 	ComponentSkills      ComponentID = "skills"
-	ComponentContext7    ComponentID = "context7"
 	ComponentPersona     ComponentID = "persona"
 	ComponentPermission  ComponentID = "permissions"
 	ComponentTheme       ComponentID = "theme"
@@ -53,7 +52,6 @@ const (
 var knownComponentIDs = []ComponentID{
 	ComponentEngram,
 	ComponentSkills,
-	ComponentContext7,
 	ComponentPersona,
 	ComponentPermission,
 	ComponentTheme,
@@ -138,7 +136,7 @@ type MCPStrategy int
 
 const (
 	// StrategySeparateMCPFiles writes one JSON file per server in a dedicated directory
-	// (e.g., ~/.claude/mcp/context7.json).
+	// (e.g., ~/.claude/mcp/engram.json).
 	StrategySeparateMCPFiles MCPStrategy = iota
 	// StrategyTOMLFile writes MCP config to a TOML file (e.g., Codex ~/.codex/config.toml).
 	StrategyTOMLFile

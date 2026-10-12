@@ -211,8 +211,6 @@ Toggle components with enter or space.
     Persistent cross-session memory
   [ ] skills
     Curated coding skill library
-  [ ] context7
-    Latest framework and library docs
   [ ] persona
     Managed agent behavior and conversation tone
   [ ] permissions

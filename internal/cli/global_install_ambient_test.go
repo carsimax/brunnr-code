@@ -27,7 +27,7 @@ func testGlobalArtifactRoots(t *testing.T, sync bool) {
 
 	selection := model.Selection{
 		Agents:     []model.AgentID{model.AgentClaudeCode, model.AgentCodex},
-		Components: []model.ComponentID{model.ComponentPersona, model.ComponentSkills, model.ComponentEngram, model.ComponentContext7},
+		Components: []model.ComponentID{model.ComponentPersona, model.ComponentSkills, model.ComponentEngram},
 		Skills:     []model.SkillID{model.SkillGoTesting},
 		StrictTDD:  true,
 	}
