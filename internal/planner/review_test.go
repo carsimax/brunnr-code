@@ -260,19 +260,3 @@ func TestResolverOutputIsPlatformAgnostic(t *testing.T) {
 		t.Fatalf("resolver should not set PlatformDecision, got %#v", plan.PlatformDecision)
 	}
 }
-
-// --- Conductor review note propagation (PR #5060 review) ---
-
-// TestBuildReviewPayloadOmitsNotesForWritableAgents keeps the review screen
-// quiet for every writable agent: notes exist only for catalog-only agents.
-func TestBuildReviewPayloadOmitsNotesForWritableAgents(t *testing.T) {
-	resolved := ResolvedPlan{
-		Agents: []model.AgentID{model.AgentClaudeCode, model.AgentTrae},
-	}
-
-	payload := BuildReviewPayload(model.Selection{}, resolved)
-
-	if len(payload.AgentNotes) != 0 {
-		t.Fatalf("writable selection produced review notes %#v, want none", payload.AgentNotes)
-	}
-}

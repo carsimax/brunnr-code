@@ -461,7 +461,6 @@ const (
 	ScreenPersona
 	ScreenPreset
 	ScreenClaudeModelPicker
-	ScreenKiroModelPicker
 	ScreenCodexModelPicker
 	ScreenCommunityTools
 	ScreenCommunityToolInstalling
@@ -526,7 +525,6 @@ type Model struct {
 	Execution         pipeline.ExecutionResult
 	Backups           []backup.Manifest
 	ClaudeModelPicker screens.ClaudeModelPickerState
-	KiroModelPicker   screens.KiroModelPickerState
 	CodexModelPicker  screens.CodexModelPickerState
 	SkillPicker       []model.SkillID
 	Err               error
@@ -743,7 +741,6 @@ func NewModel(detection system.DetectionResult, version string, installState ...
 		Components:             components,
 		ClaudeModelAssignments: installStateClaudeAssignments(s.ClaudeModelAssignments),
 		ClaudePhaseAssignments: installStateClaudePhaseAssignments(s.ClaudePhaseAssignments),
-		KiroModelAssignments:   installStateKiroAssignments(s.KiroModelAssignments),
 		// The persisted tier is both the pre-selection and what Gentle manages.
 		CodexServiceTier:        validCodexServiceTier(s.CodexServiceTier),
 		CodexManagedServiceTier: validCodexServiceTier(s.CodexServiceTier),
@@ -809,17 +806,6 @@ func claudePhaseAssignmentsToLegacy(assignments map[string]model.ClaudePhaseAssi
 		if assignment.Model.Valid() {
 			out[phase] = assignment.Model
 		}
-	}
-	return out
-}
-
-func installStateKiroAssignments(assignments map[string]string) map[string]model.KiroModelAlias {
-	if len(assignments) == 0 {
-		return nil
-	}
-	out := make(map[string]model.KiroModelAlias, len(assignments))
-	for phase, alias := range assignments {
-		out[phase] = model.KiroModelAlias(alias)
 	}
 	return out
 }
@@ -1325,8 +1311,6 @@ func (m Model) View() string {
 		return screens.RenderPreset(m.Selection.Preset, m.Cursor)
 	case ScreenClaudeModelPicker:
 		return screens.RenderClaudeModelPicker(m.ClaudeModelPicker, m.Cursor, m.Height)
-	case ScreenKiroModelPicker:
-		return screens.RenderKiroModelPicker(m.KiroModelPicker, m.Cursor)
 	case ScreenCodexModelPicker:
 		return screens.RenderCodexModelPicker(m.CodexModelPicker, m.Cursor, m.Height)
 	case ScreenCommunityTools:
@@ -1437,31 +1421,6 @@ func (m Model) handleKeyPress(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 						TargetAgents:           []model.AgentID{model.AgentClaudeCode},
 						ClaudeModelAssignments: claudePhaseAssignmentsToLegacy(updated),
 						ClaudePhaseAssignments: updated,
-					}
-					m = m.withResetSyncState()
-					m.setScreen(ScreenSync)
-				} else if next, ok := m.pickerNextScreen(); ok {
-					return m, m.advanceToNextPickerScreen(next)
-				}
-			}
-			return m, nil
-		}
-	}
-
-	if m.Screen == ScreenKiroModelPicker {
-		wasInCustomMode := m.KiroModelPicker.InCustomMode
-		handled, updated := screens.HandleKiroModelPickerNav(keyStr, &m.KiroModelPicker, m.Cursor)
-		if handled {
-			if wasInCustomMode != m.KiroModelPicker.InCustomMode {
-				m.Cursor = 0
-			}
-			if updated != nil {
-				m.Selection.KiroModelAssignments = updated
-				if m.ModelConfigMode {
-					m.ModelConfigMode = false
-					m.PendingSyncOverrides = &model.SyncOverrides{
-						TargetAgents:         []model.AgentID{model.AgentKiroIDE},
-						KiroModelAssignments: updated,
 					}
 					m = m.withResetSyncState()
 					m.setScreen(ScreenSync)
@@ -2014,16 +1973,12 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			m.ModelConfigMode = true
 			m.ClaudeModelPicker = screens.NewClaudeModelPickerStateFromPhaseAssignments(claudePickerAssignments(m.Selection.ClaudeModelAssignments, m.Selection.ClaudePhaseAssignments))
 			m.setScreen(ScreenClaudeModelPicker)
-		case 1: // Configure Kiro models
-			m.ModelConfigMode = true
-			m.KiroModelPicker = screens.NewKiroModelPickerStateFromAssignments(m.Selection.KiroModelAssignments)
-			m.setScreen(ScreenKiroModelPicker)
-		case 2: // Configure Codex models
+		case 1: // Configure Codex models
 			m.ModelConfigMode = true
 			discoveryCmd := m.enterCodexModelPicker()
 			m.setScreen(ScreenCodexModelPicker)
 			return m, discoveryCmd
-		case 3: // Back
+		case 2: // Back
 			m.setScreen(ScreenWelcome)
 		}
 		return m, nil
@@ -2062,7 +2017,7 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			m.Selection.Components = componentsForPreset(options[m.Cursor], m.Selection.Persona)
 			// Enter the conditional picker chain through the single source of
 			// truth. pickerNextScreen(ScreenPreset) returns the first chain member
-			// for the current selection (Claude → Kiro → Codex);
+			// for the current selection (Claude → Codex);
 			// applyPickerEntry initializes picker state.
 			// DependencyTree is the initial component picker for Custom and the
 			// terminal anchor for every other preset.
@@ -2083,18 +2038,6 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 		if !m.ClaudeModelPicker.InCustomMode && m.Cursor == screens.ClaudeModelPickerOptionCount(m.ClaudeModelPicker)-1 {
 			// "Back" option: in ModelConfigMode return to the config menu,
 			// otherwise use pickerPreviousScreen for unified reverse navigation.
-			if m.ModelConfigMode {
-				m.ModelConfigMode = false
-				m.setScreen(ScreenModelConfig)
-				return m, nil
-			}
-			if prev, ok := m.pickerPreviousScreen(); ok {
-				m.applyPickerEntry(prev)
-			}
-			return m, nil
-		}
-	case ScreenKiroModelPicker:
-		if !m.KiroModelPicker.InCustomMode && m.Cursor == screens.KiroModelPickerOptionCount(m.KiroModelPicker)-1 {
 			if m.ModelConfigMode {
 				m.ModelConfigMode = false
 				m.setScreen(ScreenModelConfig)
@@ -2138,7 +2081,7 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			case m.Cursor == len(allComps):
 				m.buildDependencyPlan()
 				// Advance to the next screen in the picker slice.
-				// applyPickerEntry handles Claude/Kiro/Codex-first paths correctly,
+				// applyPickerEntry handles Claude/Codex-first paths correctly,
 				// initializing each picker's state regardless of which agent is first.
 				if next, ok := m.pickerNextScreen(); ok {
 					m.applyPickerEntry(next)
@@ -3143,7 +3086,7 @@ func (m Model) goBack(cmd *tea.Cmd) Model {
 	}
 
 	// ModelConfigMode: pickers reached via Model Config shortcut return to ScreenModelConfig.
-	if m.ModelConfigMode && (m.Screen == ScreenClaudeModelPicker || m.Screen == ScreenKiroModelPicker || m.Screen == ScreenCodexModelPicker) {
+	if m.ModelConfigMode && (m.Screen == ScreenClaudeModelPicker || m.Screen == ScreenCodexModelPicker) {
 		m.ModelConfigMode = false
 		m.setScreen(ScreenModelConfig)
 		return m
@@ -3153,9 +3096,7 @@ func (m Model) goBack(cmd *tea.Cmd) Model {
 	// In custom preset, agent pickers precede SkillPicker.
 	if m.Screen == ScreenSkillPicker {
 		if m.Selection.Preset == model.PresetCustom {
-			if m.shouldShowKiroModelPickerScreen() {
-				m.setScreen(ScreenKiroModelPicker)
-			} else if m.shouldShowClaudeModelPickerScreen() {
+			if m.shouldShowClaudeModelPickerScreen() {
 				m.setScreen(ScreenClaudeModelPicker)
 			} else {
 				m.setScreen(ScreenDependencyTree)
@@ -3188,13 +3129,6 @@ func (m Model) goBack(cmd *tea.Cmd) Model {
 	}
 
 	if m.Screen == ScreenClaudeModelPicker {
-		if prev, ok := m.pickerPreviousScreen(); ok {
-			m.applyPickerEntry(prev)
-			return m
-		}
-	}
-
-	if m.Screen == ScreenKiroModelPicker {
 		if prev, ok := m.pickerPreviousScreen(); ok {
 			m.applyPickerEntry(prev)
 			return m
@@ -3369,8 +3303,6 @@ func (m Model) optionCount() int {
 		return len(screens.PresetOptions()) + 1
 	case ScreenClaudeModelPicker:
 		return screens.ClaudeModelPickerOptionCount(m.ClaudeModelPicker)
-	case ScreenKiroModelPicker:
-		return screens.KiroModelPickerOptionCount(m.KiroModelPicker)
 	case ScreenCodexModelPicker:
 		return screens.CodexModelPickerOptionCount(m.CodexModelPicker)
 	case ScreenCommunityTools:
@@ -3638,10 +3570,6 @@ func (m Model) goBackFromCommunityTools() Model {
 		m.setScreen(ScreenCodexModelPicker)
 		return m
 	}
-	if m.shouldShowKiroModelPickerScreen() {
-		m.setScreen(ScreenKiroModelPicker)
-		return m
-	}
 	if m.shouldShowClaudeModelPickerScreen() {
 		m.setScreen(ScreenClaudeModelPicker)
 		return m
@@ -3730,25 +3658,9 @@ func detectedAgentIDs(detection system.DetectionResult) []model.AgentID {
 		if !cfg.Exists {
 			continue
 		}
-		switch strings.TrimSpace(cfg.Agent) {
-		case string(model.AgentClaudeCode):
-			selected = append(selected, model.AgentClaudeCode)
-		case string(model.AgentGeminiCLI):
-			selected = append(selected, model.AgentGeminiCLI)
-		case string(model.AgentCursor):
-			selected = append(selected, model.AgentCursor)
-		case string(model.AgentVSCodeCopilot):
-			selected = append(selected, model.AgentVSCodeCopilot)
-		case string(model.AgentCodex):
-			selected = append(selected, model.AgentCodex)
-		case string(model.AgentAntigravity):
-			selected = append(selected, model.AgentAntigravity)
-		case string(model.AgentWindsurf):
-			selected = append(selected, model.AgentWindsurf)
-		case string(model.AgentQwenCode):
-			selected = append(selected, model.AgentQwenCode)
-		case string(model.AgentHermes):
-			selected = append(selected, model.AgentHermes)
+		switch id := model.AgentID(strings.TrimSpace(cfg.Agent)); id {
+		case model.AgentClaudeCode, model.AgentCodex:
+			selected = append(selected, id)
 		}
 	}
 	return selected
@@ -3823,10 +3735,6 @@ func (m Model) shouldShowClaudeModelPickerScreen() bool {
 	return m.ModelConfigMode // Never include phase pickers in the installer route.
 }
 
-func (m Model) shouldShowKiroModelPickerScreen() bool {
-	return m.ModelConfigMode
-}
-
 func (m Model) shouldShowCodexModelPickerScreen() bool {
 	return m.ModelConfigMode
 }
@@ -3848,9 +3756,6 @@ func (m Model) pickerFlowSlice() []Screen {
 	}
 	if m.shouldShowClaudeModelPickerScreen() {
 		s = append(s, ScreenClaudeModelPicker)
-	}
-	if m.shouldShowKiroModelPickerScreen() {
-		s = append(s, ScreenKiroModelPicker)
 	}
 	if m.shouldShowCodexModelPickerScreen() {
 		s = append(s, ScreenCodexModelPicker)
@@ -3902,7 +3807,7 @@ func (m *Model) advanceToNextPickerScreen(next Screen) tea.Cmd {
 // applyPickerEntry initializes the target picker's state and transitions to it.
 // This is the single place that sets up picker-specific state (model selections,
 // presets) before calling setScreen. It handles every target a caller may
-// navigate to, including Kiro-first and Codex-first custom paths where Claude is
+// navigate to, including Codex-first custom paths where Claude is
 // absent and navigation comes directly from ScreenDependencyTree.
 func (m *Model) applyPickerEntry(next Screen) tea.Cmd {
 	var discoveryCmd tea.Cmd
@@ -3911,8 +3816,6 @@ func (m *Model) applyPickerEntry(next Screen) tea.Cmd {
 		m.ClaudeModelPicker = screens.NewClaudeModelPickerStateFromPhaseAssignments(
 			claudePickerAssignments(m.Selection.ClaudeModelAssignments, m.Selection.ClaudePhaseAssignments),
 		)
-	case ScreenKiroModelPicker:
-		m.KiroModelPicker = screens.NewKiroModelPickerStateFromAssignments(m.Selection.KiroModelAssignments)
 	case ScreenCodexModelPicker:
 		discoveryCmd = m.enterCodexModelPicker()
 	}
@@ -3952,7 +3855,6 @@ func (m Model) isScrollableScreen() bool {
 func (m Model) detectAgentBuilderEngines() []model.AgentID {
 	candidateIDs := []model.AgentID{
 		model.AgentClaudeCode,
-		model.AgentGeminiCLI,
 		model.AgentCodex,
 	}
 	var available []model.AgentID
@@ -4045,29 +3947,13 @@ func agentBuilderSkillsDir(agentID model.AgentID) (string, bool) {
 }
 
 // agentBuilderSkillsDirIn resolves the skills directory for agentID under the
-// given home directory. Kimi prefers the current kimi-code v0.11+ native
-// skills root (~/.kimi-code/skills) when the ~/.kimi-code directory exists,
-// and falls back to the shared legacy skills path. Only ENOENT/ENOTDIR mean
-// the current root is absent; any other stat failure leaves the layout
-// undeterminable and Kimi is omitted (ok=false) instead of silently being
-// routed to the legacy path.
+// given home directory.
 func agentBuilderSkillsDirIn(home string, agentID model.AgentID) (string, bool) {
 	switch agentID {
 	case model.AgentClaudeCode:
 		return filepath.Join(home, ".claude", "skills"), true
-	case model.AgentGeminiCLI:
-		return filepath.Join(home, ".gemini", "skills"), true
 	case model.AgentCodex:
 		return filepath.Join(home, ".codex", "skills"), true
-	case model.AgentKimi:
-		if info, err := osStatPathFn(filepath.Join(home, ".kimi-code")); err != nil {
-			if !os.IsNotExist(err) {
-				return "", false
-			}
-		} else if info.IsDir() {
-			return filepath.Join(home, ".kimi-code", "skills"), true
-		}
-		return filepath.Join(home, ".config", "agents", "skills"), true
 	default:
 		return "", false
 	}

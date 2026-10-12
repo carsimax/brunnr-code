@@ -86,7 +86,7 @@ func (a noSkillsAdapter) SettingsPath(_ string) string     { return "" }
 func (a noSkillsAdapter) SystemPromptStrategy() model.SystemPromptStrategy {
 	return model.StrategyFileReplace
 }
-func (a noSkillsAdapter) MCPStrategy() model.MCPStrategy          { return model.StrategyMergeIntoSettings }
+func (a noSkillsAdapter) MCPStrategy() model.MCPStrategy          { return model.StrategySeparateMCPFiles }
 func (a noSkillsAdapter) MCPConfigPath(_ string, _ string) string { return "" }
 func (a noSkillsAdapter) SupportsOutputStyles() bool              { return false }
 func (a noSkillsAdapter) OutputStyleDir(_ string) string          { return "" }

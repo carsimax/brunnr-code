@@ -57,8 +57,9 @@ func TestRunDoctor_AgentConfigSpecialCases(t *testing.T) {
 		name, payload, want string
 		dirs                []string
 	}{
-		{"unknown", `{"installed_agents":["future-agent"]}`, "  [!!]  state:json                     state lists unrecognized agent IDs: future-agent; inspect or repair the state file, then re-run 'gentle-ai doctor'", nil},
-		{"unknown and missing", `{"installed_agents":["future-agent","codex"]}`, "  [!!]  state:json                     state lists unrecognized agent IDs: future-agent; inspect or repair the state file, then re-run 'gentle-ai doctor'; config dirs are missing: codex", nil},
+		{"unsupported only", `{"installed_agents":["opencode"]}`, "  [!!]  state:json                     state file found at {state} with no installed agents", nil},
+		{"unsupported and missing", `{"installed_agents":["opencode","codex"]}`, "  [!!]  state:json                     state lists 1 agent(s) whose config dirs are missing: codex", nil},
+		{"unsupported and present", `{"installed_agents":["opencode","codex"]}`, "  [ok]  state:json                     state file OK — 1 agent(s) installed: codex", []string{".codex"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -69,10 +70,14 @@ func TestRunDoctor_AgentConfigSpecialCases(t *testing.T) {
 				}
 			}
 			output := runDoctorAgentConfigFixture(t, home, tt.payload)
-			if !strings.Contains(output, tt.want+"\n") {
-				t.Fatalf("missing exact state result %q:\n%s", tt.want, output)
+			want := strings.ReplaceAll(tt.want, "{state}", filepath.Join(home, ".gentle-ai", "state.json"))
+			if !strings.Contains(output, want+"\n") {
+				t.Fatalf("missing exact state result %q:\n%s", want, output)
 			}
-			if tt.name == "unknown and missing" {
+			if strings.Contains(output, "opencode") {
+				t.Fatalf("doctor reported a removed agent:\n%s", output)
+			}
+			if tt.name == "unsupported and missing" {
 				if !strings.Contains(output, "       Remedy: Run 'gentle-ai sync' to restore missing config files\n") {
 					t.Fatalf("missing sync remedy for absent managed config:\n%s", output)
 				}

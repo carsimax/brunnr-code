@@ -66,7 +66,6 @@ func fullyPopulatedInstallState() InstallState {
 		ClaudePhaseAssignments: map[string]ClaudePhaseAssignmentState{
 			"sdd-apply": {Model: "opus", Effort: "max"},
 		},
-		KiroModelAssignments: map[string]string{"sdd-design": "opus"},
 		CodexModelAssignments: map[string]string{
 			"sdd-verify": "high",
 		},
@@ -133,7 +132,6 @@ func TestInstallStatePreservesEveryField(t *testing.T) {
 // installed_agents with deduplication and preserves all other fields.
 func TestMergeAgents(t *testing.T) {
 	existingClaude := map[string]string{"sdd-explore": "sonnet", "sdd-archive": "haiku"}
-	existingKiro := map[string]string{"sdd-design": "opus"}
 	existingCommunityTools := []string{"codegraph"}
 
 	tests := []struct {
@@ -173,7 +171,6 @@ func TestMergeAgents(t *testing.T) {
 				CommunityTools:           existingCommunityTools,
 				CommunityToolsConfigured: true,
 				ClaudeModelAssignments:   existingClaude,
-				KiroModelAssignments:     existingKiro,
 				Persona:                  "gentleman",
 			},
 			newAgents: []string{"pi"},
@@ -192,9 +189,6 @@ func TestMergeAgents(t *testing.T) {
 			// Verify all preserved fields are unchanged.
 			if !reflect.DeepEqual(got.ClaudeModelAssignments, tt.existing.ClaudeModelAssignments) {
 				t.Errorf("ClaudeModelAssignments not preserved: got %v, want %v", got.ClaudeModelAssignments, tt.existing.ClaudeModelAssignments)
-			}
-			if !reflect.DeepEqual(got.KiroModelAssignments, tt.existing.KiroModelAssignments) {
-				t.Errorf("KiroModelAssignments not preserved: got %v, want %v", got.KiroModelAssignments, tt.existing.KiroModelAssignments)
 			}
 			if got.Persona != tt.existing.Persona {
 				t.Errorf("Persona not preserved: got %q, want %q", got.Persona, tt.existing.Persona)

@@ -18,10 +18,8 @@ func TestStrictTDDLegacyCarrierRetiredByInstallAndSync(t *testing.T) {
 			if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 				t.Fatal(err)
 			}
-			if agent != model.AgentKimi {
-				if err := os.WriteFile(path, []byte("user content\n"), 0644); err != nil {
-					t.Fatal(err)
-				}
+			if err := os.WriteFile(path, []byte("user content\n"), 0644); err != nil {
+				t.Fatal(err)
 			}
 			if _, err := agentguidance.InjectStrictTDDWithOptions(home, agent, true, agentguidance.RoutingOptions{}); err != nil {
 				t.Fatal(err)
@@ -30,15 +28,9 @@ func TestStrictTDDLegacyCarrierRetiredByInstallAndSync(t *testing.T) {
 			if err := step.Run(); err != nil {
 				t.Fatal(err)
 			}
-			if agent == model.AgentKimi {
-				if _, err := os.Stat(path); !os.IsNotExist(err) {
-					t.Fatalf("legacy module remains: %v", err)
-				}
-			} else {
-				raw, err := os.ReadFile(path)
-				if err != nil || strings.Contains(string(raw), "gentle-ai:strict-tdd-mode") || !strings.Contains(string(raw), "user content") || !strings.Contains(string(raw), "relevant runnable deterministic test") {
-					t.Fatalf("legacy marker or missing routing/user content: %s %v", raw, err)
-				}
+			raw, err := os.ReadFile(path)
+			if err != nil || strings.Contains(string(raw), "gentle-ai:strict-tdd-mode") || !strings.Contains(string(raw), "user content") || !strings.Contains(string(raw), "relevant runnable deterministic test") {
+				t.Fatalf("legacy marker or missing routing/user content: %s %v", raw, err)
 			}
 			changed := []string{}
 			step.changedFiles = &changed

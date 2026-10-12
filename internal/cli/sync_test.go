@@ -2076,10 +2076,6 @@ func TestRunSyncLoadsPersistedModelAssignments(t *testing.T) {
 			"orchestrator": "opus",
 			"review-risk":  "sonnet",
 		},
-		KiroModelAssignments: map[string]string{
-			"review-risk": "glm",
-			"default":     "auto",
-		},
 	})
 	if err != nil {
 		t.Fatalf("state.Write: %v", err)
@@ -2099,12 +2095,6 @@ func TestRunSyncLoadsPersistedModelAssignments(t *testing.T) {
 	}
 	if got := result.Selection.ClaudeModelAssignments["review-risk"]; got != "sonnet" {
 		t.Errorf("ClaudeModelAssignments[review-risk] = %q, want %q", got, "sonnet")
-	}
-	if got := result.Selection.KiroModelAssignments["review-risk"]; got != model.KiroModelGLM {
-		t.Errorf("KiroModelAssignments[review-risk] = %q, want %q", got, model.KiroModelGLM)
-	}
-	if got := result.Selection.KiroModelAssignments["default"]; got != model.KiroModelAuto {
-		t.Errorf("KiroModelAssignments[default] = %q, want %q", got, model.KiroModelAuto)
 	}
 }
 
@@ -3014,9 +3004,6 @@ func TestRunSyncDryRunResolvesPersonaFromState(t *testing.T) {
 		ClaudeModelAssignments: map[string]string{
 			"sdd-apply": "sonnet",
 		},
-		KiroModelAssignments: map[string]string{
-			"default": "auto",
-		},
 	}); err != nil {
 		t.Fatalf("state.Write: %v", err)
 	}
@@ -3049,9 +3036,6 @@ func TestRunSyncDryRunFallsBackToNeutralWhenStateLacksPersona(t *testing.T) {
 		// No Persona field — pre-persona-persistence install.
 		ClaudeModelAssignments: map[string]string{
 			"sdd-apply": "sonnet",
-		},
-		KiroModelAssignments: map[string]string{
-			"default": "auto",
 		},
 	}); err != nil {
 		t.Fatalf("state.Write: %v", err)
@@ -3272,7 +3256,6 @@ func TestRunSyncPreservesCompletePersistedState(t *testing.T) {
 		ClaudePhaseAssignments: map[string]state.ClaudePhaseAssignmentState{
 			"sdd-verify": {Model: "opus", Effort: "high"},
 		},
-		KiroModelAssignments: map[string]string{"sdd-design": "sonnet"},
 		CodexModelAssignments: map[string]string{
 			"sdd-apply": "medium",
 		},
@@ -3769,5 +3752,55 @@ func TestNativeReviewSyncPreservesUnknownAndSnapshotsLedger(t *testing.T) {
 	}
 	if savedBytes, err := os.ReadFile(saved); err != nil || !bytes.Equal(savedBytes, data) {
 		t.Fatalf("recovery changed backup = %q, %v", savedBytes, err)
+	}
+}
+
+// TestRunSyncSilentlyIgnoresUnsupportedPersistedAgents verifies that a
+// state.json recording an agent this build no longer supports does not break
+// discovery or sync: the stale ID is dropped and the supported agents sync.
+func TestRunSyncSilentlyIgnoresUnsupportedPersistedAgents(t *testing.T) {
+	workspace, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatalf("EvalSymlinks(workspace) error = %v", err)
+	}
+	t.Chdir(workspace)
+	home, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatalf("EvalSymlinks(home) error = %v", err)
+	}
+	if err := state.Write(home, state.InstallState{
+		InstalledAgents:     []string{"opencode", "claude-code"},
+		SelectionConfigured: true,
+		Persona:             "neutral",
+	}); err != nil {
+		t.Fatalf("state.Write() error = %v", err)
+	}
+
+	restoreHome := osUserHomeDir
+	restoreBackupHome := backup.UserHomeDirFn
+	restoreCommand := runCommand
+	restoreLookPath := cmdLookPath
+	osUserHomeDir = func() (string, error) { return home, nil }
+	backup.UserHomeDirFn = func() (string, error) { return home, nil }
+	cmdLookPath = func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
+	runCommand = func(string, ...string) error { return nil }
+	t.Cleanup(func() {
+		osUserHomeDir = restoreHome
+		backup.UserHomeDirFn = restoreBackupHome
+		runCommand = restoreCommand
+		cmdLookPath = restoreLookPath
+	})
+
+	want := []model.AgentID{model.AgentClaudeCode}
+	if got := DiscoverAgents(home); !reflect.DeepEqual(got, want) {
+		t.Fatalf("DiscoverAgents() = %v, want %v", got, want)
+	}
+
+	result, err := RunSync(nil)
+	if err != nil {
+		t.Fatalf("RunSync() error = %v, want stale agent ignored", err)
+	}
+	if !reflect.DeepEqual(result.Agents, want) {
+		t.Fatalf("RunSync() agents = %v, want %v", result.Agents, want)
 	}
 }

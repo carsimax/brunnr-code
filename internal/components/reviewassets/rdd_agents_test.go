@@ -30,25 +30,12 @@ func TestNativeAgentManifestShipsReviewAgentsOnlyToRDDRuntimes(t *testing.T) {
 			}
 		}
 	}
-	for agent, names := range RetiredNativeAgentManifest {
-		if model.SupportsReceiptDrivenDevelopment(agent) {
-			t.Errorf("%s supports receipt-driven development but lists retired review agents", agent)
-		}
-		for _, name := range names {
-			if !isRDDAgentFile(name) {
-				t.Errorf("%s retires %s, which is not an RDD agent", agent, name)
-			}
-		}
-	}
 	for _, want := range []string{"jd-fix-agent.md", "jd-judge-a.md", "jd-judge-b.md"} {
 		for _, agent := range []model.AgentID{model.AgentClaudeCode} {
 			if !containsName(NativeAgentManifest[agent], want) {
 				t.Errorf("%s lost Judgment Day agent %s", agent, want)
 			}
 		}
-	}
-	if !containsName(NativeAgentManifest[model.AgentKimi], "gentleman.yaml") {
-		t.Error("Kimi lost its main agent")
 	}
 	for _, want := range []string{"review-risk.md", "review-refuter.md"} {
 		if !containsName(NativeAgentManifest[model.AgentClaudeCode], want) {
@@ -57,24 +44,17 @@ func TestNativeAgentManifestShipsReviewAgentsOnlyToRDDRuntimes(t *testing.T) {
 	}
 }
 
-func TestNativeAgentPathsCoverRetiredAgents(t *testing.T) {
+func TestNativeAgentPathsCoverInstalledAgents(t *testing.T) {
 	t.Parallel()
 
-	for _, agent := range []model.AgentID{model.AgentKimi} {
-		names := NativeAgentFileNames(agent)
-		for _, name := range RetiredNativeAgentManifest[agent] {
-			if !containsName(names, name) {
-				t.Errorf("%s backup names miss retired agent %s", agent, name)
-			}
-		}
-		for _, name := range NativeAgentManifest[agent] {
-			if !containsName(names, name) {
-				t.Errorf("%s backup names miss installed agent %s", agent, name)
-			}
+	names := NativeAgentFileNames(model.AgentClaudeCode)
+	for _, name := range NativeAgentManifest[model.AgentClaudeCode] {
+		if !containsName(names, name) {
+			t.Errorf("claude-code backup names miss installed agent %s", name)
 		}
 	}
-	if !NativeAgentsSupported(model.AgentCursor) || NativeAgentsSupported(model.AgentCodex) {
-		t.Fatal("native agent support must cover cleanup-only runtimes and nothing else")
+	if !NativeAgentsSupported(model.AgentClaudeCode) || NativeAgentsSupported(model.AgentCodex) {
+		t.Fatal("native agent support must cover Claude Code and nothing else")
 	}
 }
 

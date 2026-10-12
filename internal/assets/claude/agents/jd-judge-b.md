@@ -52,4 +52,4 @@ If the first pass finds nothing, persist an empty ledger record rather than skip
 
 **Scoped re-judgment.** Receive ONLY the frozen ledger plus immutable fix delta. Verify ledger resolution and correction regression evidence; do not inspect the full original diff or conduct broad defect discovery. A demonstrated correction-caused defect remains within Judgment Day's bounded re-judgment path and cannot expand scope.
 
-**Execution mode.** Judgment-day judges run as delegated agents; when this agent is a named sub-agent (Claude, Kiro), emit your own ledger rows and hand them to the orchestrator, which merges both judges' rows into the persisted ledger.
+**Execution mode.** Judgment-day judges run as delegated agents; when this agent is a named sub-agent (Claude), emit your own ledger rows and hand them to the orchestrator, which merges both judges' rows into the persisted ledger.

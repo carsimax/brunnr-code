@@ -51,18 +51,12 @@ func TestConditionalPickerNavigationResetsState(t *testing.T) {
 		name   string
 		screen Screen
 	}{
-		{"Kiro", ScreenKiroModelPicker},
 		{"Codex", ScreenCodexModelPicker},
 	} {
 		t.Run(tc.name+" custom starts at first phase", func(t *testing.T) {
 			m := NewModel(system.DetectionResult{}, "dev")
 			m.Screen, m.Cursor = tc.screen, 3
-			if tc.screen == ScreenKiroModelPicker {
-				m.Cursor = 4 // Kiro has an additional Open Weight preset before Custom.
-				m.KiroModelPicker = screens.NewKiroModelPickerState()
-			} else {
-				m.CodexModelPicker = screens.NewCodexModelPickerState()
-			}
+			m.CodexModelPicker = screens.NewCodexModelPickerState()
 			updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 			if got := updated.(Model).Cursor; got != 0 {
 				t.Fatalf("cursor = %d, want 0", got)

@@ -27,10 +27,10 @@ func TestPresetSelectionNextScreenFlowMatrix(t *testing.T) {
 		preset model.PresetID
 		want   Screen
 	}{
-		{"full Cursor", []model.AgentID{model.AgentCursor}, model.PresetFullGentleman, ScreenDependencyTree},
-		{"ecosystem Cursor", []model.AgentID{model.AgentCursor}, model.PresetEcosystemOnly, ScreenDependencyTree},
-		{"minimal Cursor", []model.AgentID{model.AgentCursor}, model.PresetMinimal, ScreenDependencyTree},
-		{"custom Cursor", []model.AgentID{model.AgentCursor}, model.PresetCustom, ScreenDependencyTree},
+		{"full Codex", []model.AgentID{model.AgentCodex}, model.PresetFullGentleman, ScreenDependencyTree},
+		{"ecosystem Codex", []model.AgentID{model.AgentCodex}, model.PresetEcosystemOnly, ScreenDependencyTree},
+		{"minimal Codex", []model.AgentID{model.AgentCodex}, model.PresetMinimal, ScreenDependencyTree},
+		{"custom Codex", []model.AgentID{model.AgentCodex}, model.PresetCustom, ScreenDependencyTree},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			m := NewModel(system.DetectionResult{}, "dev")
@@ -50,7 +50,7 @@ func TestPresetSelectionNextScreenFlowMatrix(t *testing.T) {
 			}
 			if tt.preset == model.PresetCustom {
 				assertInstallerSnapshot(t, state, customComponentsSnapshot)
-			} else if tt.preset == model.PresetMinimal && tt.agents[0] == model.AgentCursor {
+			} else if tt.preset == model.PresetMinimal && tt.agents[0] == model.AgentCodex {
 				assertInstallerSnapshot(t, state, minimalPlanSnapshot)
 			}
 			state = applyFlowAction(t, state, flowAction{key: tea.KeyMsg{Type: tea.KeyEsc}})
@@ -68,8 +68,8 @@ func TestCustomPresetPostComponentFlowMatrix(t *testing.T) {
 		components []model.ComponentID
 		want       Screen
 	}{
-		{"Cursor Skills", model.AgentCursor, []model.ComponentID{model.ComponentSkills}, ScreenSkillPicker},
-		{"Cursor Engram", model.AgentCursor, []model.ComponentID{model.ComponentEngram}, ScreenInstallReviewMode},
+		{"Codex Skills", model.AgentCodex, []model.ComponentID{model.ComponentSkills}, ScreenSkillPicker},
+		{"Codex Engram", model.AgentCodex, []model.ComponentID{model.ComponentEngram}, ScreenInstallReviewMode},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			m := NewModel(system.DetectionResult{}, "dev")
@@ -111,9 +111,9 @@ func TestInstallNavigationRoundTrips(t *testing.T) {
 		forward    []Screen
 		reverse    []Screen
 	}{
-		{"minimal Cursor", model.AgentCursor, model.PresetMinimal, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
-		{"full Cursor", model.AgentCursor, model.PresetFullGentleman, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
-		{"custom Cursor Skills", model.AgentCursor, model.PresetCustom, []model.ComponentID{model.ComponentSDD, model.ComponentSkills}, []Screen{ScreenSkillPicker}, []Screen{ScreenDependencyTree}},
+		{"minimal Codex", model.AgentCodex, model.PresetMinimal, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
+		{"full Codex", model.AgentCodex, model.PresetFullGentleman, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
+		{"custom Codex Skills", model.AgentCodex, model.PresetCustom, []model.ComponentID{model.ComponentSDD, model.ComponentSkills}, []Screen{ScreenSkillPicker}, []Screen{ScreenDependencyTree}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			m := NewModel(system.DetectionResult{}, "dev")
@@ -146,7 +146,7 @@ func TestInstallNavigationRoundTrips(t *testing.T) {
 func TestCustomEngramRDDChoiceReviewBack(t *testing.T) {
 	m := installReviewModeStatusFixture(NewModel(system.DetectionResult{}, "dev"))
 	m.Screen, m.Selection.Preset = ScreenDependencyTree, model.PresetCustom
-	m.Selection.Agents = []model.AgentID{model.AgentCursor}
+	m.Selection.Agents = []model.AgentID{model.AgentCodex}
 	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 	m.Cursor = len(screens.AllComponents())
 	state := applyFlowAction(t, m, flowAction{key: tea.KeyMsg{Type: tea.KeyEnter}, runCmd: true})

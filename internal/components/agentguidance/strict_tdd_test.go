@@ -19,19 +19,14 @@ func TestStrictTDDCarrierLifecycle(t *testing.T) {
 				t.Fatal(err)
 			}
 			path := adapter.SystemPromptFile(home)
-			if got := StrictTDDPath(home, agent); got != path && agent != model.AgentKimi {
+			if got := StrictTDDPath(home, agent); got != path {
 				t.Fatalf("carrier = %q, want %q", got, path)
-			}
-			if agent == model.AgentKimi {
-				path = filepath.Join(adapter.GlobalConfigDir(home), "strict-tdd-mode.md")
 			}
 			if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 				t.Fatal(err)
 			}
-			if agent != model.AgentKimi {
-				if err := os.WriteFile(path, []byte("user before\nuser after\n"), 0644); err != nil {
-					t.Fatal(err)
-				}
+			if err := os.WriteFile(path, []byte("user before\nuser after\n"), 0644); err != nil {
+				t.Fatal(err)
 			}
 			first, err := InjectStrictTDDWithOptions(home, agent, true, RoutingOptions{})
 			if err != nil || !first.Changed {
@@ -51,12 +46,6 @@ func TestStrictTDDCarrierLifecycle(t *testing.T) {
 			}
 			if againOff, err := InjectStrictTDDWithOptions(home, agent, false, RoutingOptions{}); err != nil || againOff.Changed {
 				t.Fatalf("repeat disable: %+v %v", againOff, err)
-			}
-			if agent == model.AgentKimi {
-				if _, err := os.Stat(path); !os.IsNotExist(err) {
-					t.Fatalf("module remains: %v", err)
-				}
-				return
 			}
 			raw, err = os.ReadFile(path)
 			if err != nil || string(raw) != "user before\nuser after\n" {

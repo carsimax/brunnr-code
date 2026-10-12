@@ -60,7 +60,7 @@ func TestRetireClaudeGlobalModulesRestoresMonolith(t *testing.T) {
 	if err != nil || !result.Changed || !reflect.DeepEqual(result.Files, want) {
 		t.Fatalf("retire = %+v, %v; want changed files %v", result, err, want)
 	}
-	monolith, err := RenderOrchestratorWithSource(model.AgentClaudeCode, fakeModuleContract, "")
+	monolith, err := RenderOrchestratorWithSource(model.AgentClaudeCode, fakeModuleContract)
 	if err != nil {
 		t.Fatal(err)
 	}

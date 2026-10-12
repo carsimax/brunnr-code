@@ -13,7 +13,7 @@ import (
 // TestRoutingPathsMatchesEveryPathInjectRoutingWrites is the anti-drift guard.
 //
 // RoutingPaths exists so callers such as the install/sync backup planner can
-// learn where guidance lands without re-implementing the three-strategy
+// learn where guidance lands without re-implementing the delivery
 // dispatch. The moment the two answers disagree, a file is written that was
 // never snapshotted and a rollback silently loses it. The expectation is
 // therefore never restated here: it is read back from what InjectRouting
@@ -22,9 +22,6 @@ func TestRoutingPathsMatchesEveryPathInjectRoutingWrites(t *testing.T) {
 	t.Parallel()
 
 	for _, agent := range catalog.AllAgents() {
-		if agent.ID == model.AgentConductor {
-			continue // Catalog-only: no guidance path to declare or write.
-		}
 		t.Run(string(agent.ID), func(t *testing.T) {
 			t.Parallel()
 
@@ -51,9 +48,6 @@ func TestRoutingPathsWritesNothingToDisk(t *testing.T) {
 	t.Parallel()
 
 	for _, agent := range catalog.AllAgents() {
-		if agent.ID == model.AgentConductor {
-			continue // Catalog-only: RoutingPaths must not touch disk for it.
-		}
 		t.Run(string(agent.ID), func(t *testing.T) {
 			t.Parallel()
 

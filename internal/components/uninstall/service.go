@@ -334,7 +334,7 @@ func otherInstalledAgents(homeDir string, agentIDs []model.AgentID) ([]string, e
 	}
 
 	remaining := make([]string, 0, len(current.InstalledAgents))
-	for _, installed := range current.InstalledAgents {
+	for _, installed := range model.SupportedAgentIDs(current.InstalledAgents) {
 		if _, ok := removing[installed]; ok {
 			continue
 		}
@@ -819,10 +819,6 @@ func (s *Service) componentOperations(adapter agents.Adapter, componentID model.
 			switch adapter.Agent() {
 			case model.AgentClaudeCode:
 				ops = append(ops, rewriteJSONFile(path, jsonPath{"permissions"}))
-			case model.AgentGeminiCLI:
-				ops = append(ops, rewriteJSONFile(path, jsonPath{"general", "defaultApprovalMode"}))
-			case model.AgentVSCodeCopilot:
-				ops = append(ops, rewriteJSONFile(path, jsonPath{"chat.tools.autoApprove"}))
 			}
 		}
 	case model.ComponentTheme:
@@ -894,8 +890,6 @@ func context7Targets(adapter agents.Adapter, homeDir string) []string {
 			return []string{claude.UserConfigPath(homeDir), adapter.SettingsPath(homeDir), adapter.MCPConfigPath(homeDir, "context7")}
 		}
 		return []string{adapter.MCPConfigPath(homeDir, "context7")}
-	case model.StrategyMergeIntoSettings, model.StrategyMCPConfigFile:
-		return []string{adapter.MCPConfigPath(homeDir, "context7")}
 	default:
 		return nil
 	}
@@ -910,19 +904,6 @@ func context7Operations(adapter agents.Adapter, homeDir string) []operation {
 		}
 		path := adapter.MCPConfigPath(homeDir, "context7")
 		return []operation{removeFile(path), removeDirIfEmpty(filepath.Dir(path))}
-	case model.StrategyMergeIntoSettings:
-		path := adapter.SettingsPath(homeDir)
-		return []operation{rewriteJSONFile(path, jsonPath{"mcpServers", "context7"})}
-	case model.StrategyMCPConfigFile:
-		path := adapter.MCPConfigPath(homeDir, "context7")
-		switch adapter.Agent() {
-		case model.AgentVSCodeCopilot:
-			return []operation{rewriteJSONFile(path, jsonPath{"servers", "context7"})}
-		case model.AgentAntigravity:
-			return []operation{rewriteJSONFile(path, jsonPath{"mcpServers", "context7"})}
-		default:
-			return []operation{rewriteJSONFile(path, jsonPath{"mcpServers", "context7"})}
-		}
 	default:
 		return nil
 	}
@@ -935,10 +916,6 @@ func engramTargets(adapter agents.Adapter, homeDir string) []string {
 		if adapter.Agent() == model.AgentClaudeCode {
 			return []string{claude.UserConfigPath(homeDir), adapter.MCPConfigPath(homeDir, "engram")}
 		}
-		targets = append(targets, adapter.MCPConfigPath(homeDir, "engram"))
-	case model.StrategyMergeIntoSettings:
-		targets = append(targets, settingsTargets(homeDir, adapter)...)
-	case model.StrategyMCPConfigFile:
 		targets = append(targets, adapter.MCPConfigPath(homeDir, "engram"))
 	case model.StrategyTOMLFile:
 		targets = append(targets,
@@ -958,15 +935,6 @@ func engramOperations(adapter agents.Adapter, homeDir string) []operation {
 			return []operation{rewriteClaudeUserConfig(homeDir, jsonPath{"mcpServers", "engram"}), removeManagedEngramFile(path)}
 		}
 		return []operation{removeFile(path), removeDirIfEmpty(filepath.Dir(path))}
-	case model.StrategyMergeIntoSettings:
-		path := adapter.SettingsPath(homeDir)
-		return []operation{rewriteJSONFile(path, jsonPath{"mcpServers", "engram"})}
-	case model.StrategyMCPConfigFile:
-		path := adapter.MCPConfigPath(homeDir, "engram")
-		if adapter.Agent() == model.AgentVSCodeCopilot {
-			return []operation{rewriteJSONFile(path, jsonPath{"servers", "engram"})}
-		}
-		return []operation{rewriteJSONFile(path, jsonPath{"mcpServers", "engram"})}
 	case model.StrategyTOMLFile:
 		configPath := adapter.MCPConfigPath(homeDir, "engram")
 		instructionsPath := filepath.Join(homeDir, ".codex", "engram-instructions.md")

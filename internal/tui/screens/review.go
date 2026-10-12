@@ -21,11 +21,6 @@ func RenderReview(payload planner.ReviewPayload, cursor int, reviewMode string) 
 	b.WriteString("\n\n")
 
 	b.WriteString("  " + styles.HeadingStyle.Render("Agents") + "  " + styles.UnselectedStyle.Render(joinIDs(payload.Agents)) + "\n")
-	// Catalog-owned notes (currently Conductor only) set expectations for
-	// detection/catalog-only agents before the user confirms the install.
-	for _, note := range payload.AgentNotes {
-		b.WriteString("      " + styles.SubtextStyle.Render(string(note.Agent)+": "+note.Note) + "\n")
-	}
 	b.WriteString("  " + styles.HeadingStyle.Render("Persona") + "  " + styles.UnselectedStyle.Render(reviewPersonaLabel(payload.Persona)) + "\n")
 	b.WriteString("  " + styles.HeadingStyle.Render("Preset") + "  " + styles.UnselectedStyle.Render(reviewPresetLabel(payload.Preset)) + "\n")
 	if reviewMode != "" {

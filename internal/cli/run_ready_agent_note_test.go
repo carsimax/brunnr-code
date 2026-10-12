@@ -46,7 +46,7 @@ func TestWithPostInstallNotesFallsBackWhenNoRunnableAgentSelected(t *testing.T) 
 	t.Parallel()
 
 	report := verify.Report{Ready: true, FinalNote: verify.ReadyMessage}
-	resolved := planner.ResolvedPlan{Agents: []model.AgentID{model.AgentAntigravity}}
+	resolved := planner.ResolvedPlan{Agents: []model.AgentID{model.AgentID("unknown-runtime")}}
 
 	updated := withPostInstallNotes(report, resolved)
 	if strings.Contains(updated.FinalNote, "claude") {

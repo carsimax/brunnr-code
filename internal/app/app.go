@@ -659,7 +659,6 @@ func tuiExecute(
 			installState.CommunityToolsConfigured = true
 			installState.ClaudeModelAssignments = claudeLegacyAssignmentsForState(selection.ClaudeModelAssignments, claudePhaseState)
 			installState.ClaudePhaseAssignments = claudePhaseState
-			installState.KiroModelAssignments = kiroAliasesToStrings(selection.KiroModelAssignments)
 			installState.CodexModelAssignments = codexEffortsToStrings(selection.CodexModelAssignments)
 			installState.CodexOrchestratorAssignment = codexOrchestratorToState(selection.CodexOrchestratorAssignment)
 			if codexServiceTier != nil { // only what engram actually left in config.toml
@@ -847,9 +846,6 @@ func applyOverrides(selection *model.Selection, overrides *model.SyncOverrides) 
 		selection.ClaudePhaseAssignments = overrides.ClaudePhaseAssignments
 		selection.ClaudeModelAssignments = nil
 	}
-	if overrides.KiroModelAssignments != nil {
-		selection.KiroModelAssignments = overrides.KiroModelAssignments
-	}
 	if overrides.ClearCodexOrchestratorAssignment {
 		selection.CodexOrchestratorAssignment = nil
 		selection.ClearCodexOrchestratorAssignment = true
@@ -904,13 +900,6 @@ func loadPersistedAssignments(homeDir string, selection *model.Selection) {
 		}
 		selection.ClaudeModelAssignments = m
 	}
-	if len(selection.KiroModelAssignments) == 0 && len(s.KiroModelAssignments) > 0 {
-		m := make(map[string]model.KiroModelAlias, len(s.KiroModelAssignments))
-		for k, v := range s.KiroModelAssignments {
-			m[k] = model.KiroModelAlias(v)
-		}
-		selection.KiroModelAssignments = m
-	}
 	if len(selection.CodexModelAssignments) == 0 && len(s.CodexModelAssignments) > 0 {
 		m := make(map[string]model.CodexEffort, len(s.CodexModelAssignments))
 		for k, v := range s.CodexModelAssignments {
@@ -947,13 +936,12 @@ func loadPersistedAssignments(homeDir string, selection *model.Selection) {
 func persistAssignments(homeDir string, selection model.Selection) error {
 	hasAssignmentSignal := selection.ClaudeModelAssignments != nil ||
 		selection.ClaudePhaseAssignments != nil ||
-		selection.KiroModelAssignments != nil ||
 		selection.CodexModelAssignments != nil ||
 		selection.CodexOrchestratorAssignment != nil ||
 		selection.ClearCodexOrchestratorAssignment ||
 		selection.CodexCarrilModelAssignments != nil ||
 		selection.CodexPhaseModelAssignments != nil
-	if len(selection.ClaudeModelAssignments) == 0 && len(selection.ClaudePhaseAssignments) == 0 && len(selection.KiroModelAssignments) == 0 && len(selection.CodexModelAssignments) == 0 && len(selection.CodexCarrilModelAssignments) == 0 && len(selection.CodexPhaseModelAssignments) == 0 && !hasAssignmentSignal {
+	if len(selection.ClaudeModelAssignments) == 0 && len(selection.ClaudePhaseAssignments) == 0 && len(selection.CodexModelAssignments) == 0 && len(selection.CodexCarrilModelAssignments) == 0 && len(selection.CodexPhaseModelAssignments) == 0 && !hasAssignmentSignal {
 		return nil
 	}
 	// The whole read-modify-write runs under the canonical install-state lock:
@@ -983,13 +971,6 @@ func persistAssignments(homeDir string, selection model.Selection) error {
 				current.ClaudePhaseAssignments = nil
 			}
 			current.ClaudeModelAssignments = nil
-		}
-		if selection.KiroModelAssignments != nil {
-			if len(selection.KiroModelAssignments) > 0 {
-				current.KiroModelAssignments = kiroAliasesToStrings(selection.KiroModelAssignments)
-			} else {
-				current.KiroModelAssignments = nil
-			}
 		}
 		if selection.ClearCodexOrchestratorAssignment {
 			current.CodexOrchestratorAssignment = nil
@@ -1057,17 +1038,6 @@ func claudePhaseAssignmentsToState(m map[string]model.ClaudePhaseAssignment) map
 			continue
 		}
 		out[k] = state.ClaudePhaseAssignmentState{Model: string(v.Model), Effort: string(v.Effort)}
-	}
-	return out
-}
-
-func kiroAliasesToStrings(m map[string]model.KiroModelAlias) map[string]string {
-	if len(m) == 0 {
-		return nil
-	}
-	out := make(map[string]string, len(m))
-	for k, v := range m {
-		out[k] = string(v)
 	}
 	return out
 }

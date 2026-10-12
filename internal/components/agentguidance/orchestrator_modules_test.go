@@ -34,7 +34,7 @@ func buildClaudeTestModules(t *testing.T) orchestratorModuleBundle {
 
 func TestBuildOrchestratorModulesReconstructsPublicRender(t *testing.T) {
 	bundle := buildClaudeTestModules(t)
-	public, err := RenderOrchestratorWithSource(model.AgentClaudeCode, fakeModuleContract, "")
+	public, err := RenderOrchestratorWithSource(model.AgentClaudeCode, fakeModuleContract)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func TestBuildOrchestratorModulesReconstructsPublicRender(t *testing.T) {
 	if got != public {
 		t.Fatalf("reconstructed core and modules differ from the public render (%d vs %d bytes)", len(got), len(public))
 	}
-	annotated, err := renderOrchestrator(model.AgentClaudeCode, fakeModuleContract, "", true)
+	annotated, err := renderOrchestrator(model.AgentClaudeCode, fakeModuleContract, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +259,7 @@ func TestBuildOrchestratorModulesRejectsUnsupportedBindings(t *testing.T) {
 	}
 
 	// The public renderer of an unsupported runtime is unchanged and unmarked.
-	codex, err := RenderOrchestratorWithSource(model.AgentCodex, fakeModuleContract, "")
+	codex, err := RenderOrchestratorWithSource(model.AgentCodex, fakeModuleContract)
 	if err != nil || strings.Contains(codex, orchestratorFragmentMarkerToken) || !strings.Contains(codex, testModuleContract) {
 		t.Fatalf("public Codex render changed: err=%v", err)
 	}

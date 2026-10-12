@@ -1417,18 +1417,3 @@ func TestInjectCodexNeutralFreshInstallWrapsPersonaInMarkers(t *testing.T) {
 		t.Fatal("neutral persona content missing from managed section")
 	}
 }
-
-func TestWrapSteeringFileAddsKiroFrontmatter(t *testing.T) {
-	got := wrapSteeringFile("## Persona\n\nBody")
-
-	for _, want := range []string{
-		"---\n",
-		"inclusion: always",
-		"---\n\n## Persona",
-		"Body",
-	} {
-		if !strings.Contains(got, want) {
-			t.Fatalf("wrapSteeringFile() missing %q; got:\n%s", want, got)
-		}
-	}
-}

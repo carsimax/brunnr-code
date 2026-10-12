@@ -60,47 +60,12 @@ var claudeCodeOverlayJSON = []byte(`{
 }
 `)
 
-// geminiCLIOverlayJSON sets Gemini CLI to "auto_edit" mode (auto-approve edit tools).
-var geminiCLIOverlayJSON = []byte(`{
-  "general": {
-    "defaultApprovalMode": "auto_edit"
-  }
-}
-`)
-
-// qwenCodeOverlayJSON sets Qwen Code to "auto_edit" mode (auto-approve edits, manual approval for shell commands).
-var qwenCodeOverlayJSON = []byte(`{
-  "permissions": {
-    "defaultMode": "auto_edit"
-  }
-}
-`)
-
-// vscodeCopilotOverlayJSON enables auto-approve for VS Code Copilot chat tools.
-var vscodeCopilotOverlayJSON = []byte(`{
-  "chat.tools.autoApprove": true
-}
-`)
-
 // agentOverlay returns the correct permission overlay for the given agent,
 // or nil if the agent does not support permission injection via settings.json.
 func agentOverlay(id model.AgentID) []byte {
 	switch id {
 	case model.AgentClaudeCode:
 		return claudeCodeOverlayJSON
-	case model.AgentGeminiCLI:
-		return geminiCLIOverlayJSON
-	case model.AgentQwenCode:
-		return qwenCodeOverlayJSON
-	case model.AgentAntigravity:
-		// Antigravity manages permissions via IDE UI (Artifact Review Policy /
-		// Terminal Command Auto Execution). No injectable settings.json schema.
-		return nil
-	case model.AgentVSCodeCopilot:
-		return vscodeCopilotOverlayJSON
-	case model.AgentCursor:
-		// Cursor manages permissions via cli-config.json, not settings.json.
-		return nil
 	case model.AgentCodex:
 		// Codex relies on its built-in default permissions. gentle-ai writes
 		// nothing to Codex's permissions config — not a profile, and not the
@@ -109,9 +74,6 @@ func agentOverlay(id model.AgentID) []byte {
 		// so a cleanup removing the pointer while a user profile survived left
 		// Codex unable to start (#1794). An old gentle-dev profile stays until
 		// its owner removes it.
-		return nil
-	case model.AgentHermes:
-		// Hermes permission format is undocumented — no overlay is injected (§14).
 		return nil
 	default:
 		return nil

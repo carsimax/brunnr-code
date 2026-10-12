@@ -72,7 +72,7 @@ func buildOrchestratorModules(agent model.AgentID, source ReviewContractSource, 
 	if agent != model.AgentClaudeCode {
 		return orchestratorModuleBundle{}, fmt.Errorf("build orchestrator modules for %q: %w", agent, errOrchestratorModulesUnsupported)
 	}
-	annotated, err := renderOrchestrator(agent, source, "", true)
+	annotated, err := renderOrchestrator(agent, source, true)
 	if err != nil {
 		return orchestratorModuleBundle{}, err
 	}

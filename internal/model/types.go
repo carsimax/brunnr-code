@@ -3,21 +3,27 @@ package model
 type AgentID string
 
 const (
-	AgentClaudeCode    AgentID = "claude-code"
-	AgentGeminiCLI     AgentID = "gemini-cli"
-	AgentCursor        AgentID = "cursor"
-	AgentVSCodeCopilot AgentID = "vscode-copilot"
-	AgentCodex         AgentID = "codex"
-	AgentAntigravity   AgentID = "antigravity"
-	AgentWindsurf      AgentID = "windsurf"
-	AgentKimi          AgentID = "kimi"
-	AgentQwenCode      AgentID = "qwen-code"
-	AgentKiroIDE       AgentID = "kiro-ide"
-	AgentOpenClaw      AgentID = "openclaw"
-	AgentTrae          AgentID = "trae-ide"
-	AgentHermes        AgentID = "hermes"
-	AgentConductor     AgentID = "conductor"
+	AgentClaudeCode AgentID = "claude-code"
+	AgentCodex      AgentID = "codex"
 )
+
+// IsSupportedAgentID reports whether id names an agent this build supports.
+func IsSupportedAgentID(id AgentID) bool {
+	return id == AgentClaudeCode || id == AgentCodex
+}
+
+// SupportedAgentIDs returns the persisted agent IDs this build still supports,
+// preserving order. IDs of agents that were removed are dropped silently so
+// stale persisted state never blocks discovery, sync, or install.
+func SupportedAgentIDs(ids []string) []string {
+	kept := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if IsSupportedAgentID(AgentID(id)) {
+			kept = append(kept, id)
+		}
+	}
+	return kept
+}
 
 // SupportTier indicates how fully an agent supports the Gentleman AI ecosystem.
 // All current agents receive the full SDD orchestrator, skill files, MCP config,
@@ -111,15 +117,6 @@ const (
 	StrategyMarkdownSections SystemPromptStrategy = iota
 	// StrategyFileReplace replaces the entire system prompt file (e.g. Codex AGENTS.md).
 	StrategyFileReplace
-	// StrategyAppendToFile appends content to an existing system prompt file.
-	StrategyAppendToFile
-	// StrategyInstructionsFile writes a dedicated instructions file (e.g. .instructions.md).
-	StrategyInstructionsFile
-	// StrategyJinjaModules writes separate module files that are included into a
-	// thin Jinja2 template (e.g. Kimi's KIMI.md).
-	StrategyJinjaModules
-	// StrategySteeringFile writes a Kiro steering file with inclusion: always frontmatter.
-	StrategySteeringFile
 )
 
 // MCPStrategy defines how MCP server configs are written for an agent.
@@ -129,16 +126,8 @@ const (
 	// StrategySeparateMCPFiles writes one JSON file per server in a dedicated directory
 	// (e.g., ~/.claude/mcp/context7.json).
 	StrategySeparateMCPFiles MCPStrategy = iota
-	// StrategyMergeIntoSettings merges mcpServers into a settings.json file
-	// (e.g., a JSON settings file).
-	StrategyMergeIntoSettings
-	// StrategyMCPConfigFile writes to a dedicated mcp.json config file (e.g., Cursor ~/.cursor/mcp.json).
-	StrategyMCPConfigFile
 	// StrategyTOMLFile writes MCP config to a TOML file (e.g., Codex ~/.codex/config.toml).
 	StrategyTOMLFile
-	// StrategyMergeIntoYAML merges MCP server blocks into a YAML config file using
-	// comment-preserving hand-rolled helpers (e.g., Hermes ~/.hermes/config.yaml).
-	StrategyMergeIntoYAML
 )
 
 type PresetID string

@@ -45,7 +45,7 @@ func RetireClaudeGlobalModules(homeDir string, contract ReviewContractSource) (R
 	if err != nil || !present {
 		return Result{}, err
 	}
-	monolith, err := RenderOrchestratorWithSource(model.AgentClaudeCode, contract, "")
+	monolith, err := RenderOrchestratorWithSource(model.AgentClaudeCode, contract)
 	if err != nil {
 		return Result{}, err
 	}

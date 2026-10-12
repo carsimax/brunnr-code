@@ -49,9 +49,6 @@ func renderCommunityToolResultDetails(b *strings.Builder, results []communitytoo
 		}
 		detected, configured, missing := status.DetectedConfiguredMissingCounts()
 		summary := fmt.Sprintf("%s: CLI %s • %d detected agents • %d configured • %d missing", toolName(result.Tool), status.CLI, detected, configured, missing)
-		if pending := detected - configured - missing; pending > 0 {
-			summary += fmt.Sprintf(" • %d pending", pending)
-		}
 		b.WriteString(styles.SubtextStyle.Render(summary))
 		b.WriteString("\n")
 		for _, agent := range status.Agents {
@@ -61,8 +58,6 @@ func renderCommunityToolResultDetails(b *strings.Builder, results []communitytoo
 			state := "missing"
 			if agent.Configured {
 				state = "configured"
-			} else if agent.Status == communitytool.AgentStatusPending {
-				state = "pending"
 			}
 			b.WriteString(styles.SubtextStyle.Render(fmt.Sprintf("  - %s: %s", agent.Name, state)))
 			b.WriteString("\n")

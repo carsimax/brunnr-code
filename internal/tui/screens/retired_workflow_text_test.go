@@ -15,7 +15,7 @@ func TestScreensShowNoRetiredWorkflowText(t *testing.T) {
 		"complete":               RenderComplete(CompletePayload{ConfiguredAgents: 1, InstalledComponents: 1}),
 		"preset":                 RenderPreset(model.PresetEcosystemOnly, 0),
 		"uninstall engram scope": RenderUninstallEngramScope(false, model.EngramUninstallScopeGlobal, 0),
-		"uninstall confirm":      RenderUninstallConfirm(model.UninstallModeFull, []model.AgentID{model.AgentWindsurf}, []model.ComponentID{model.ComponentSkills}, model.EngramUninstallScopeGlobal, false, 0, false, 0),
+		"uninstall confirm":      RenderUninstallConfirm(model.UninstallModeFull, []model.AgentID{model.AgentCodex}, []model.ComponentID{model.ComponentSkills}, model.EngramUninstallScopeGlobal, false, 0, false, 0),
 	} {
 		if match := retired.FindString(view); match != "" {
 			t.Errorf("%s screen shows retired workflow text %q:\n%s", name, match, view)

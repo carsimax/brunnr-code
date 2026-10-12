@@ -113,14 +113,14 @@ var backupExcludeSubdirs = map[string]bool{
 	"shell-snapshots": true, // shell state snapshots
 	"troubleshooting": true, // troubleshooting artifacts
 
-	// === Gemini CLI / Antigravity (~/.gemini/, ~/.gemini/antigravity/) ===
-	"browser_recordings":          true, // Antigravity browser recordings (can be 3+ GB)
+	// === Other large runtime state ===
+	"browser_recordings":          true, // browser recordings (can be 3+ GB)
 	"antigravity-browser-profile": true, // Chromium profile data (250+ MB)
-	"brain":                       true, // Antigravity memory/brain data (300+ MB)
-	"conversations":               true, // Gemini conversation history
-	"context_state":               true, // Gemini context state
+	"brain":                       true, // memory/brain data (300+ MB)
+	"conversations":               true, // conversation history
+	"context_state":               true, // context state
 	"html_artifacts":              true, // generated HTML artifacts
-	"tmp":                         true, // Antigravity temporary runtime artifacts
+	"tmp":                         true, // temporary runtime artifacts
 }
 
 // configPathsForBackup returns the explicit Gentle AI-managed file paths that
@@ -210,18 +210,6 @@ func managedAgentBackupPaths(homeDir string, adapter agents.Adapter, diagnostics
 	}
 	add(adapter.SettingsPath(homeDir))
 
-	if adapter.SystemPromptStrategy() == model.StrategyJinjaModules {
-		configDir := adapter.GlobalConfigDir(homeDir)
-		add(
-			filepath.Join(configDir, "persona.md"),
-			filepath.Join(configDir, "output-style.md"),
-			filepath.Join(configDir, "strict-tdd-mode.md"),
-			// The routing module carries both the orchestrator and routing
-			// guidance the Jinja router includes; upgrades rewrite it.
-			filepath.Join(configDir, "agent-routing.md"),
-		)
-	}
-
 	if adapter.SupportsMCP() {
 		add(adapter.MCPConfigPath(homeDir, "engram"), adapter.MCPConfigPath(homeDir, "context7"))
 	}
@@ -249,13 +237,11 @@ func managedAgentBackupPaths(homeDir string, adapter agents.Adapter, diagnostics
 	}
 
 	// It also retires Codex's SDD profiles and the SDD block of its lowercase
-	// agents.md, and Kimi's SDD module and its legacy include (#5157).
+	// agents.md (#5157).
 	runtimeFiles := legacyassets.RetiredSDDRuntimeFiles(adapter.Agent(), homeDir)
 	add(legacyassets.PresentRetiredSDDAssetPaths(adapter.Agent(), runtimeFiles.Dirs)...)
-	for _, prompt := range [][2]string{{runtimeFiles.Dirs.CodexHome, runtimeFiles.Prompt}, {runtimeFiles.Dirs.KimiHome, runtimeFiles.Hub}} {
-		if prompt[1] != "" && legacyassets.RetirablePromptFile(prompt[0], prompt[1]) {
-			add(prompt[1])
-		}
+	if runtimeFiles.Prompt != "" && legacyassets.RetirablePromptFile(runtimeFiles.Dirs.CodexHome, runtimeFiles.Prompt) {
+		add(runtimeFiles.Prompt)
 	}
 
 	switch adapter.Agent() {

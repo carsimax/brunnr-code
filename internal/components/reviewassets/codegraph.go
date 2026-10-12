@@ -10,15 +10,10 @@ func InjectCodeGraphToolGrant(prompt string, agentID model.AgentID, guidance str
 	if strings.TrimSpace(guidance) == "" {
 		return prompt
 	}
-	grant := ""
-	switch agentID {
-	case model.AgentClaudeCode:
-		grant = "mcp__codegraph__codegraph_explore"
-	case model.AgentKiroIDE:
-		grant = "@codegraph"
-	default:
+	if agentID != model.AgentClaudeCode {
 		return prompt
 	}
+	const grant = "mcp__codegraph__codegraph_explore"
 	end := strings.Index(prompt, "\n---\n")
 	if end < 0 {
 		return prompt
@@ -34,13 +29,7 @@ func InjectCodeGraphToolGrant(prompt string, agentID model.AgentID, guidance str
 		if value := strings.TrimSpace(strings.TrimPrefix(line, "tools:")); value == "" || value == "[]" {
 			return prompt
 		}
-		if agentID == model.AgentClaudeCode {
-			lines[i] = line + ", " + grant
-		} else if strings.HasSuffix(line, "]") {
-			lines[i] = strings.TrimSuffix(line, "]") + `, "` + grant + `"]`
-		} else {
-			return prompt
-		}
+		lines[i] = line + ", " + grant
 		return strings.Join(lines, "\n") + prompt[end:]
 	}
 	return prompt

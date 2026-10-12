@@ -13,10 +13,7 @@ import (
 )
 
 // uninstallSDDAgents are the runtimes the uninstall retirement tests remove.
-var uninstallSDDAgents = []model.AgentID{
-	model.AgentClaudeCode, model.AgentQwenCode, model.AgentCodex, model.AgentKimi,
-	model.AgentKiroIDE, model.AgentCursor,
-}
+var uninstallSDDAgents = []model.AgentID{model.AgentClaudeCode, model.AgentCodex}
 
 func uninstallSDDTestHome(t *testing.T) string {
 	t.Helper()
@@ -42,8 +39,6 @@ func TestUninstallRetiresOwnedSDDInventoryForEveryRuntime(t *testing.T) {
 	kept := map[string][]byte{
 		runtimeFiles.userProfile: runtimeFiles.kept[runtimeFiles.userProfile],
 		filepath.Join(home, ".claude", "commands", "gentle-sdd-verify.md"): edited[filepath.Join(home, ".claude", "commands", "gentle-sdd-verify.md")],
-		filepath.Join(home, ".qwen", "skills", "sdd-apply", "SKILL.md"):    edited[filepath.Join(home, ".qwen", "skills", "sdd-apply", "SKILL.md")],
-		filepath.Join(home, ".kiro", "agents", "sdd-verify.md"):            []byte("my own verifier\n"),
 	}
 	for _, group := range []map[string][]byte{owned, kept} {
 		for path, data := range group {
@@ -96,9 +91,6 @@ func TestUninstallRetiresOwnedSDDInventoryForEveryRuntime(t *testing.T) {
 	}
 	if got, _ := os.ReadFile(runtimeFiles.prompt); string(got) != legacyCodexPromptUser {
 		t.Errorf("agents.md = %q, want only the user's notes", got)
-	}
-	if got, _ := os.ReadFile(runtimeFiles.hub); strings.Contains(string(got), kimiSDDInclude) {
-		t.Errorf("legacy KIMI.md kept the SDD include: %q", got)
 	}
 	if got, _ := os.ReadFile(filepath.Join(home, ".claude", "settings.json")); strings.Contains(string(got), "sdd-preflight-hook") {
 		t.Errorf("Claude settings kept the SDD preflight hook: %s", got)

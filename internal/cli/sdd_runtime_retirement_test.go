@@ -16,43 +16,33 @@ import (
 const (
 	legacyCodexPromptUser  = "# My Codex notes\n\nKeep this.\n"
 	legacyCodexPromptBlock = "\n<!-- gentle-ai:sdd-orchestrator -->\n# Agent Teams Lite — Orchestrator Instructions\n<!-- /gentle-ai:sdd-orchestrator -->\n"
-	kimiSDDInclude         = "{% include \"sdd-orchestrator.md\" ignore missing %}\n"
 )
 
 type retiredRuntimeFiles struct {
 	owned, kept, rewritten map[string][]byte
 	userProfile, prompt    string
-	hub                    string
 }
 
-// seedRetiredRuntimeFiles lays out what v1.x to v3.7.0 left for Codex and
-// Kimi beside a current kimi-code layout, whose legacy KIMI.md no sync
-// rewrites any more.
+// seedRetiredRuntimeFiles lays out what v1.x to v3.7.0 left for Codex.
 func seedRetiredRuntimeFiles(t *testing.T, home string) retiredRuntimeFiles {
 	t.Helper()
 	codexHome := filepath.Join(home, ".codex")
 	files := retiredRuntimeFiles{
 		owned: map[string][]byte{
-			filepath.Join(codexHome, "sdd-strong.config.toml"):  releasedSDDAsset(t, "v3.7.0", "codex-sdd-strong.config.toml"),
-			filepath.Join(codexHome, "sdd-mid.config.toml"):     []byte("model = \"my-model\"\n\nmodel_reasoning_effort = \"high\"\n"),
-			filepath.Join(home, ".kimi", "sdd-orchestrator.md"): releasedSDDAsset(t, "v3.7.0", "kimi-sdd-orchestrator.md"),
+			filepath.Join(codexHome, "sdd-strong.config.toml"): releasedSDDAsset(t, "v3.7.0", "codex-sdd-strong.config.toml"),
+			filepath.Join(codexHome, "sdd-mid.config.toml"):    []byte("model = \"my-model\"\n\nmodel_reasoning_effort = \"high\"\n"),
 		},
 		userProfile: filepath.Join(codexHome, "sdd-cheap.config.toml"),
 		prompt:      filepath.Join(codexHome, "agents.md"),
-		hub:         filepath.Join(home, ".kimi", "KIMI.md"),
 	}
 	files.kept = map[string][]byte{files.userProfile: []byte("user-content\n")}
 	files.rewritten = map[string][]byte{
 		files.prompt: []byte(legacyCodexPromptUser + legacyCodexPromptBlock),
-		files.hub:    releasedSDDAsset(t, "v3.7.0", "kimi-KIMI.md"),
 	}
 	for _, group := range []map[string][]byte{files.owned, files.kept, files.rewritten} {
 		for path, data := range group {
 			mustWriteFile(t, path, data)
 		}
-	}
-	if err := os.MkdirAll(filepath.Join(home, ".kimi-code"), 0o755); err != nil {
-		t.Fatal(err)
 	}
 	// v1.7.10 to v1.31.0 wrote the lowercase agents.md; on a
 	// case-insensitive filesystem it is the active AGENTS.md.
@@ -65,17 +55,16 @@ func seedRetiredRuntimeFiles(t *testing.T, home string) retiredRuntimeFiles {
 	return files
 }
 
-// TestRunSyncRetiresCodexProfilesAndKimiModule covers #5157 for Codex and
-// Kimi: sync removes the SDD profiles and the SDD Jinja module a release
-// rendered, the released include of that module, and the SDD block of the
-// lowercase agents.md no routing guidance migrates. User bytes are kept and
+// TestRunSyncRetiresCodexProfiles covers #5157 for Codex: sync removes the
+// SDD profiles a release rendered and the SDD block of the lowercase
+// agents.md no routing guidance migrates. User bytes are kept and
 // reported, everything is snapshotted, and a second sync changes nothing.
-func TestRunSyncRetiresCodexProfilesAndKimiModule(t *testing.T) {
+func TestRunSyncRetiresCodexProfiles(t *testing.T) {
 	home := t.TempDir()
 	setSyncTestHome(t, home)
 	t.Cleanup(codex.SetRuntimeVersionCommandForTest("", exec.ErrNotFound))
 	files := seedRetiredRuntimeFiles(t, home)
-	agents := string(model.AgentCodex) + "," + string(model.AgentKimi)
+	agents := string(model.AgentCodex)
 
 	result, err := RunSync([]string{"--agents", agents})
 	if err != nil {
@@ -104,10 +93,6 @@ func TestRunSyncRetiresCodexProfilesAndKimiModule(t *testing.T) {
 	if got, _ := os.ReadFile(files.prompt); string(got) != legacyCodexPromptUser {
 		t.Errorf("agents.md = %q, want only the user's notes", got)
 	}
-	hub := string(releasedSDDAsset(t, "v3.7.0", "kimi-KIMI.md"))
-	if got, _ := os.ReadFile(files.hub); string(got) != strings.Replace(hub, kimiSDDInclude, "", 1) {
-		t.Errorf("legacy KIMI.md = %q, want only the SDD include removed", got)
-	}
 	for path := range files.rewritten {
 		if _, ok := snapshot[path]; !ok {
 			t.Errorf("rollback snapshot omitted rewritten file %s", path)
@@ -125,7 +110,7 @@ func TestRunSyncRetiresCodexProfilesAndKimiModule(t *testing.T) {
 		t.Fatalf("second RunSync() error = %v", err)
 	}
 	for _, path := range again.ChangedFiles {
-		if strings.Contains(path, "sdd-") || path == files.prompt || path == files.hub {
+		if strings.Contains(path, "sdd-") || path == files.prompt {
 			t.Errorf("second sync touched %s", path)
 		}
 	}
@@ -133,7 +118,7 @@ func TestRunSyncRetiresCodexProfilesAndKimiModule(t *testing.T) {
 
 // A sync that fails after retirement restores every removed and rewritten
 // file from the pipeline snapshot, byte for byte.
-func TestSyncRollbackRestoresRetiredCodexAndKimiFiles(t *testing.T) {
+func TestSyncRollbackRestoresRetiredCodexFiles(t *testing.T) {
 	home := t.TempDir()
 	setSyncTestHome(t, home)
 	t.Cleanup(codex.SetRuntimeVersionCommandForTest("", exec.ErrNotFound))
@@ -155,7 +140,7 @@ func TestSyncRollbackRestoresRetiredCodexAndKimiFiles(t *testing.T) {
 	}
 	retired := false
 	plan.Apply = append(plan.Apply[:last+1:last+1], sddRetirementFailingStep{observe: func() {
-		_, err := os.Lstat(filepath.Join(home, ".kimi", "sdd-orchestrator.md"))
+		_, err := os.Lstat(filepath.Join(home, ".codex", "sdd-strong.config.toml"))
 		prompt, _ := os.ReadFile(files.prompt)
 		retired = os.IsNotExist(err) && string(prompt) == legacyCodexPromptUser
 	}})
@@ -214,7 +199,7 @@ func TestRunSyncWorkspaceRetiresSDDBlockFromProjectPrompts(t *testing.T) {
 	}
 }
 
-// A dotfiles-symlinked ~/.codex or ~/.kimi is never entered: sync neither
+// A dotfiles-symlinked ~/.codex is never entered: sync neither
 // edits nor snapshots the prompts behind it, and reports them.
 func TestRunSyncDoesNotEditPromptsBehindSymlinkedRuntimeDirectories(t *testing.T) {
 	home := t.TempDir()
@@ -222,21 +207,14 @@ func TestRunSyncDoesNotEditPromptsBehindSymlinkedRuntimeDirectories(t *testing.T
 	t.Cleanup(codex.SetRuntimeVersionCommandForTest("", exec.ErrNotFound))
 	dotfiles := t.TempDir()
 	prompt := filepath.Join(dotfiles, "codex", "agents.md")
-	hub := filepath.Join(dotfiles, "kimi", "KIMI.md")
 	contents := map[string]string{
 		prompt: legacyCodexPromptUser + legacyCodexPromptBlock,
-		hub:    string(releasedSDDAsset(t, "v3.7.0", "kimi-KIMI.md")),
 	}
 	for path, data := range contents {
 		mustWriteFile(t, path, []byte(data))
 	}
-	for name, target := range map[string]string{".codex": filepath.Dir(prompt), ".kimi": filepath.Dir(hub)} {
-		if err := os.Symlink(target, filepath.Join(home, name)); err != nil {
-			t.Skipf("symlinks unavailable: %v", err)
-		}
-	}
-	if err := os.MkdirAll(filepath.Join(home, ".kimi-code"), 0o755); err != nil {
-		t.Fatal(err)
+	if err := os.Symlink(filepath.Dir(prompt), filepath.Join(home, ".codex")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
 	}
 	active := filepath.Join(dotfiles, "codex", "AGENTS.md")
 	if a, err := os.Stat(prompt); err == nil {
@@ -245,7 +223,7 @@ func TestRunSyncDoesNotEditPromptsBehindSymlinkedRuntimeDirectories(t *testing.T
 		}
 	}
 
-	result, err := RunSync([]string{"--agents", string(model.AgentCodex) + "," + string(model.AgentKimi)})
+	result, err := RunSync([]string{"--agents", string(model.AgentCodex)})
 	if err != nil {
 		t.Fatalf("RunSync() error = %v", err)
 	}
@@ -255,7 +233,7 @@ func TestRunSyncDoesNotEditPromptsBehindSymlinkedRuntimeDirectories(t *testing.T
 			t.Errorf("sync edited %s behind a symlinked directory: %q, %v", path, got, err)
 		}
 	}
-	for _, path := range []string{filepath.Join(home, ".codex", "agents.md"), filepath.Join(home, ".kimi", "KIMI.md")} {
+	for _, path := range []string{filepath.Join(home, ".codex", "agents.md")} {
 		if _, ok := snapshot[path]; ok {
 			t.Errorf("snapshot declares %s behind a symlinked directory", path)
 		}
@@ -268,9 +246,9 @@ func TestRunSyncDoesNotEditPromptsBehindSymlinkedRuntimeDirectories(t *testing.T
 }
 
 // A workspace-scoped install of v1.31.0 to v3.7.0 wrote the Codex profiles,
-// lowercase agents.md, Kimi module, and KIMI.md under the workspace, so a
+// and lowercase agents.md under the workspace, so a
 // workspace-scoped sync retires them there and leaves home alone.
-func TestRunSyncWorkspaceRetiresCodexAndKimiFilesInTheWorkspace(t *testing.T) {
+func TestRunSyncWorkspaceRetiresCodexFilesInTheWorkspace(t *testing.T) {
 	home := t.TempDir()
 	setSyncTestHome(t, home)
 	t.Cleanup(codex.SetRuntimeVersionCommandForTest("", exec.ErrNotFound))
@@ -280,7 +258,7 @@ func TestRunSyncWorkspaceRetiresCodexAndKimiFilesInTheWorkspace(t *testing.T) {
 	wsFiles := seedRetiredRuntimeFiles(t, workspace)
 	t.Chdir(workspace)
 
-	if _, err := RunSync([]string{"--agents", string(model.AgentCodex) + "," + string(model.AgentKimi), "--scope", "workspace"}); err != nil {
+	if _, err := RunSync([]string{"--agents", string(model.AgentCodex), "--scope", "workspace"}); err != nil {
 		t.Fatalf("workspace RunSync() error = %v", err)
 	}
 	for path := range wsFiles.owned {
@@ -290,9 +268,6 @@ func TestRunSyncWorkspaceRetiresCodexAndKimiFilesInTheWorkspace(t *testing.T) {
 	}
 	if got, _ := os.ReadFile(wsFiles.prompt); string(got) != legacyCodexPromptUser {
 		t.Errorf("workspace agents.md = %q", got)
-	}
-	if got, _ := os.ReadFile(wsFiles.hub); strings.Contains(string(got), kimiSDDInclude) {
-		t.Errorf("workspace KIMI.md kept the SDD include: %q", got)
 	}
 	for _, group := range []map[string][]byte{homeFiles.owned, homeFiles.kept, homeFiles.rewritten} {
 		for path, data := range group {

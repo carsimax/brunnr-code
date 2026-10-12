@@ -11,7 +11,6 @@ type Selection struct {
 	CodexMultiAgent                  bool                             // deprecated: Codex now always writes features.multi_agent = true; retained for state/back-compat
 	ClaudeModelAssignments           map[string]ClaudeModelAlias      // key = phase name; value = fable|opus|sonnet|haiku
 	ClaudePhaseAssignments           map[string]ClaudePhaseAssignment // key = phase name; value = Claude model+effort
-	KiroModelAssignments             map[string]KiroModelAlias        // key = phase name; value = Kiro-native model alias
 	CodexModelAssignments            map[string]CodexEffort           // key = phase name; value = low|medium|high|xhigh|max|ultra
 	CodexOrchestratorAssignment      *CodexOrchestratorAssignment     // non-nil = apply curated top-level Codex model/effort
 	ClearCodexOrchestratorAssignment bool                             // true = clear persisted curated assignment while preserving config.toml
@@ -75,7 +74,6 @@ type SyncOverrides struct {
 	TargetAgents                     []AgentID
 	ClaudeModelAssignments           map[string]ClaudeModelAlias      // nil = no override; empty map = reset to defaults
 	ClaudePhaseAssignments           map[string]ClaudePhaseAssignment // nil = no override; empty map = reset to defaults
-	KiroModelAssignments             map[string]KiroModelAlias        // nil = no override; empty map = reset to defaults
 	CodexModelAssignments            map[string]CodexEffort           // nil = no override; empty map = reset to defaults
 	CodexOrchestratorAssignment      *CodexOrchestratorAssignment     // non-nil = apply curated top-level Codex model/effort
 	ClearCodexOrchestratorAssignment bool                             // true = clear persisted curated assignment while preserving config.toml

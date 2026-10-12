@@ -45,11 +45,7 @@ import (
 //
 // A fourth rule follows from the third. The safety this command advertises --
 // the exclusive maintenance lease and the in-flight refusal -- only covers the
-// state gentle-ai itself writes. A category outside that coverage cannot be
-// removed by a default run no matter how dead it looks, because "we could not
-// find a live writer" is not the same claim as "there is no live writer". Such
-// a category is spared, reported under Preserved with the coverage it lacks,
-// and removed only when the caller names it (storeResetTarget.optIn).
+// state gentle-ai itself writes, so only categories it writes are removable.
 
 // StoreResetReportSchema identifies the clone-scoped review store reset
 // projection.
@@ -120,15 +116,6 @@ type storeResetTarget struct {
 	// administrative directories that register them go with the checkouts and
 	// the permissions have to be relaxed before anything can be unlinked.
 	candidateViews bool
-	// optIn marks a category no default run removes. Such a category is
-	// reported under Preserved carrying withheldReason until the caller names
-	// it explicitly, and only then does it appear under Removable.
-	optIn bool
-	// withheldReason explains, to the person reading the preview, why the
-	// default run spares an optIn category. It is a different sentence from
-	// reason: reason says what the category is, withheldReason says what this
-	// command cannot promise about removing it.
-	withheldReason string
 }
 
 // storeResetRemovableTargets is the complete inclusion list. Every entry is
@@ -354,40 +341,18 @@ func surveyReviewStore(ctx context.Context, repo string, request StoreResetReque
 		Unrecognized: []StoreResetEntry{}, InFlight: []StoreResetLineage{},
 		Complete: true,
 	}
-	withheld := []StoreResetEntry{}
 	for _, target := range storeResetRemovableTargets {
-		if target.optIn && !storeResetOptedIn(target, request) {
-			spared := target
-			spared.reason = target.withheldReason
-			withheld = append(withheld, storeResetMeasure(root, spared))
-			continue
-		}
 		report.Removable = append(report.Removable, storeResetMeasure(root, target))
 	}
 	for _, target := range storeResetPreservedTargets {
 		report.Preserved = append(report.Preserved, storeResetMeasure(root, target))
 	}
-	// Withheld categories go last so the standing exclusion list keeps its
-	// order and the conditional entries are visibly the conditional ones.
-	report.Preserved = append(report.Preserved, withheld...)
 	report.Unrecognized = storeResetUnrecognized(root)
 	report.InFlight, report.Settled, err = storeResetLineages(root)
 	if err != nil {
 		return report, root, err
 	}
 	return report, root, nil
-}
-
-// storeResetOptedIn reports whether the caller asked for one opt-in category by
-// name. It is a switch per category rather than a single "include everything"
-// flag on purpose: each opt-in category overrides a different guarantee, and a
-// blanket flag would let a caller who wanted one of them discard the others
-// without ever reading why they were withheld.
-func storeResetOptedIn(_ storeResetTarget, _ StoreResetRequest) bool {
-	// An opt-in category nobody wired a switch for stays withheld. Failing
-	// closed here means adding a category to the list can spare data by
-	// accident, never destroy it by accident.
-	return false
 }
 
 // storeResetMeasure sizes one target without following symlinks into it.
@@ -521,10 +486,9 @@ type storeResetStateRecord struct {
 // event chain no current build can advance, so there is no open v1 review to
 // protect; the directory is removed as settled residue.
 //
-// Nothing outside review-transactions/v2 is classified at all, and that is the
-// whole reason the adapter-written reviews/ graph store is opt-in: a review
-// living there is invisible here, so "no lineages in flight" is a statement
-// about compact-v2 and must never be read as a statement about the store.
+// Nothing outside review-transactions/v2 is classified at all, so "no lineages
+// in flight" is a statement about compact-v2 and must never be read as a
+// statement about the store.
 func storeResetLineages(root string) ([]StoreResetLineage, int, error) {
 	inFlight := []StoreResetLineage{}
 	settled := 0

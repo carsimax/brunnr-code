@@ -115,9 +115,8 @@ func reviewExecutionContract(agent model.AgentID, source ReviewContractSource) (
 // sharedOrchestratorSectionPlaceholder matches one {{GENTLE_AI_ODD_SECTION:<name>}}.
 var sharedOrchestratorSectionPlaceholder = regexp.MustCompile(`\{\{GENTLE_AI_ODD_SECTION:([^}]*)\}\}`)
 
-// orchestratorAsset selects the embedded orchestrator for one runtime. It
-// mirrors the v3.7.0 selection exactly: runtime-specific assets win and every
-// other runtime receives the generic asset.
+// orchestratorAsset selects the embedded orchestrator for one supported
+// runtime, or "" when the runtime has none.
 func orchestratorAsset(agent model.AgentID) string {
 	switch agent {
 	case model.AgentClaudeCode:
@@ -125,69 +124,27 @@ func orchestratorAsset(agent model.AgentID) string {
 	case model.AgentCodex:
 		return "codex/orchestrator.md"
 	default:
-		return "generic/orchestrator.md"
+		return ""
 	}
-}
-
-// selectGenericOrchestrator selects instruction text, never an execution model.
-// Validate both shipped sections before replacing either so malformed assets
-// fail closed rather than silently losing common surrounding content.
-func selectGenericOrchestrator(content, capability string) (string, error) {
-	selected := "capable"
-	if capability == "small" {
-		selected = "small"
-	}
-	type section struct {
-		start, end int
-		body, name string
-	}
-	var sections []section
-	for _, name := range []string{"capable", "small"} {
-		open := "<!-- section:model-" + name + " -->"
-		close := "<!-- /section:model-" + name + " -->"
-		start, end := strings.Index(content, open), strings.Index(content, close)
-		if strings.Count(content, open) != 1 || strings.Count(content, close) != 1 || end < start+len(open) {
-			return "", fmt.Errorf("invalid generic orchestrator model-%s section", name)
-		}
-		sections = append(sections, section{start, end + len(close), content[start+len(open) : end], name})
-	}
-	if sections[0].end > sections[1].start {
-		return "", fmt.Errorf("generic orchestrator model sections overlap or are out of order")
-	}
-	for i := len(sections) - 1; i >= 0; i-- {
-		s := sections[i]
-		body := ""
-		if s.name == selected {
-			body = s.body
-		}
-		content = content[:s.start] + body + content[s.end:]
-	}
-	return content, nil
 }
 
 // RenderOrchestratorWithSource is RenderOrchestrator with an explicit review
 // contract source, which takes precedence over the package-level fallback.
-// capability selects the generic instruction variant: "small" selects the
-// small-model text and any other value, including empty, selects capable.
-func RenderOrchestratorWithSource(agent model.AgentID, source ReviewContractSource, capability string) (string, error) {
-	return renderOrchestrator(agent, source, capability, false)
+func RenderOrchestratorWithSource(agent model.AgentID, source ReviewContractSource) (string, error) {
+	return renderOrchestrator(agent, source, false)
 }
 
 // renderOrchestrator is the single render path. annotate keeps the shared
 // module fragment markers for the internal core/module construction; the
 // public render always strips those exact marker lines.
-func renderOrchestrator(agent model.AgentID, source ReviewContractSource, capability string, annotate bool) (string, error) {
+func renderOrchestrator(agent model.AgentID, source ReviewContractSource, annotate bool) (string, error) {
 	path := orchestratorAsset(agent)
+	if path == "" {
+		return "", fmt.Errorf("render orchestrator for %q: unsupported agent", agent)
+	}
 	content, err := assets.Read(path)
 	if err != nil {
 		return "", fmt.Errorf("render orchestrator for %q: %w", agent, err)
-	}
-
-	if path == "generic/orchestrator.md" {
-		content, err = selectGenericOrchestrator(content, capability)
-		if err != nil {
-			return "", fmt.Errorf("render orchestrator for %q: %w", agent, err)
-		}
 	}
 
 	rdd := model.SupportsReceiptDrivenDevelopment(agent)

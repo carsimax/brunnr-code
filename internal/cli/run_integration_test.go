@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -139,57 +138,24 @@ func TestRunInstallCodexKeepsOldRuntimeFailure(t *testing.T) {
 	}
 }
 
-// TestExecuteCommandInheritsPiCodingAgentDirForChildProcesses proves that Pi
-// package-install child processes (spawned through executeCommand, the
-// runCommand default) still inherit PI_CODING_AGENT_DIR from the parent
-// process's environment for a non-brew command: commandEnv returns its base
-// (os.Environ()) unchanged whenever the command name is not "brew", so this
-// passthrough is unaffected by executeCommand explicitly building cmd.Env to
-// inject HOMEBREW_NO_AUTO_UPDATE/HOMEBREW_NO_INSTALL_CLEANUP for brew calls
-// (see TestExecuteCommandSetsHomebrewNoAutoUpdateEnvForBrewCommands).
-func TestExecuteCommandInheritsPiCodingAgentDirForChildProcesses(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("the child-process probe below runs a POSIX sh one-liner")
-	}
-	restoreStreaming := SetCommandOutputStreaming(false)
-	t.Cleanup(restoreStreaming)
-
-	configured := filepath.Join(t.TempDir(), "pi-home", "agent")
-	t.Setenv("PI_CODING_AGENT_DIR", configured)
-
-	outFile := filepath.Join(t.TempDir(), "observed-env")
-	if err := executeCommand("sh", "-c", `printf '%s' "$PI_CODING_AGENT_DIR" > "$1"`, "--", outFile); err != nil {
-		t.Fatalf("executeCommand() error = %v", err)
-	}
-
-	got, err := os.ReadFile(outFile)
-	if err != nil {
-		t.Fatalf("ReadFile(observed env) error = %v", err)
-	}
-	if string(got) != configured {
-		t.Fatalf("child process observed PI_CODING_AGENT_DIR = %q, want %q", got, configured)
-	}
-}
-
-// TestAgentInstallStepSkipsMissingNonPiRuntime proves an explicitly selected
-// desktop agent does not block installation or trigger agent acquisition when
-// its runtime is absent.
-func TestAgentInstallStepSkipsMissingNonPiRuntime(t *testing.T) {
+// TestAgentInstallStepRunsNoCommands proves a selected agent whose runtime is
+// absent does not block installation or trigger agent acquisition.
+func TestAgentInstallStepRunsNoCommands(t *testing.T) {
 	restoreCommand := runCommand
 	recorder := &commandRecorder{}
 	runCommand = recorder.record
 	t.Cleanup(func() { runCommand = restoreCommand })
 
 	step := agentInstallStep{
-		id:      "agent:vscode-copilot",
-		agent:   model.AgentVSCodeCopilot,
+		id:      "agent:codex",
+		agent:   model.AgentCodex,
 		homeDir: t.TempDir(),
 	}
 	if err := step.Run(); err != nil {
-		t.Fatalf("agentInstallStep.Run() error = %v, want absent non-Pi runtime to be skipped", err)
+		t.Fatalf("agentInstallStep.Run() error = %v, want absent runtime to be skipped", err)
 	}
 	if got := recorder.get(); len(got) != 0 {
-		t.Fatalf("commands executed = %v, want none for non-Pi agent", got)
+		t.Fatalf("commands executed = %v, want none for a selected agent", got)
 	}
 }
 

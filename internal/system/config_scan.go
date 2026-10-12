@@ -20,64 +20,14 @@ type ConfigState struct {
 // that mirrors the adapter registry's full set without importing the agents
 // package (which would create an import cycle: system ← agents ← system).
 //
-// Most entries mirror Adapter.GlobalConfigDir(). Kiro is an intentional
-// exception: we scan `~/.kiro` (managed artifacts root) instead of
-// `%APPDATA%/kiro/User` (settings root) due to Kiro's split-root layout.
-// Kimi is resolved through kimiConfigState: it prefers the current
-// kimi-code v0.11+ root `~/.kimi-code` when it exists as a directory and
-// falls back to the legacy `~/.kimi` root.
-//
-// When a new agent is added to the registry, its entry must also be added here
-// until the import cycle is resolved and ScanConfigs can delegate directly to
-// agents.DiscoverInstalled.
+// Each entry mirrors Adapter.GlobalConfigDir(). When a new agent is added to
+// the registry, its entry must also be added here until the import cycle is
+// resolved and ScanConfigs can delegate directly to agents.DiscoverInstalled.
 func knownAgentConfigDirs(homeDir string) []ConfigState {
 	return []ConfigState{
 		{Agent: "claude-code", Path: filepath.Join(homeDir, ".claude")},
-		{Agent: "gemini-cli", Path: filepath.Join(homeDir, ".gemini")},
-		{Agent: "cursor", Path: filepath.Join(homeDir, ".cursor")},
-		{Agent: "vscode-copilot", Path: vscodeCopilotGlobalConfigDir(homeDir)},
 		{Agent: "codex", Path: filepath.Join(homeDir, ".codex")},
-		{Agent: "antigravity", Path: filepath.Join(homeDir, ".gemini", "antigravity-cli")},
-		{Agent: "windsurf", Path: filepath.Join(homeDir, ".codeium", "windsurf")},
-		{Agent: "kimi", Path: kimiConfigDir(homeDir)},
-		{Agent: "qwen-code", Path: filepath.Join(homeDir, ".qwen")},
-		{Agent: "kiro-ide", Path: filepath.Join(homeDir, ".kiro")},
-		{Agent: "openclaw", Path: filepath.Join(homeDir, ".openclaw")},
-		{Agent: "trae-ide", Path: filepath.Join(homeDir, ".trae")},
-		{Agent: "hermes", Path: filepath.Join(homeDir, ".hermes")},
-		{Agent: "conductor", Path: filepath.Join(homeDir, ".conductor")},
 	}
-}
-
-// kimiConfigStat is the stat seam used to resolve the Kimi config layout.
-var kimiConfigStat = os.Stat
-
-// kimiConfigDir returns the Kimi config root for homeDir, preferring the
-// current kimi-code v0.11+ root `~/.kimi-code` when it exists as a directory
-// and falling back to the legacy `~/.kimi` root. A plain file named
-// `.kimi-code` is not a v0.11+ layout and is ignored, like absence.
-//
-// Only ENOENT/ENOTDIR (both reported by os.IsNotExist) mean the current root
-// is absent. Any other stat failure leaves the layout undeterminable: the
-// preferred current root is returned so ScanConfigs reports it as absent
-// (its stat fails too) instead of silently selecting the legacy layout.
-func kimiConfigDir(homeDir string) string {
-	current := filepath.Join(homeDir, ".kimi-code")
-	if info, err := kimiConfigStat(current); err != nil {
-		if !os.IsNotExist(err) {
-			return current
-		}
-	} else if info.IsDir() {
-		return current
-	}
-	return filepath.Join(homeDir, ".kimi")
-}
-
-// vscodeCopilotGlobalConfigDir returns ~/.copilot, the GlobalConfigDir used by
-// the vscode-copilot adapter across all platforms. The vscode adapter's
-// SystemPromptDir and SettingsPath are OS-dependent, but GlobalConfigDir is not.
-func vscodeCopilotGlobalConfigDir(homeDir string) string {
-	return filepath.Join(homeDir, ".copilot")
 }
 
 // ScanConfigs returns the presence state of every known managed agent's global

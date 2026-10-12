@@ -23,9 +23,6 @@ func TestMergeExplicitAgentInstallStatePreservesExistingAssignmentsWhenFreshStat
 		ClaudeModelAssignments: map[string]string{
 			"sdd-apply": "opus",
 		},
-		KiroModelAssignments: map[string]string{
-			"sdd-design": "auto",
-		},
 		CodexModelAssignments: map[string]string{
 			"sdd-apply": "low",
 		},
@@ -50,9 +47,6 @@ func TestMergeExplicitAgentInstallStatePreservesExistingAssignmentsWhenFreshStat
 	if merged.ClaudeModelAssignments["sdd-apply"] != "opus" {
 		t.Fatalf("ClaudeModelAssignments not preserved: %#v", merged.ClaudeModelAssignments)
 	}
-	if merged.KiroModelAssignments["sdd-design"] != "auto" {
-		t.Fatalf("KiroModelAssignments not preserved: %#v", merged.KiroModelAssignments)
-	}
 	if merged.CodexModelAssignments["sdd-apply"] != "low" {
 		t.Fatalf("CodexModelAssignments not preserved: %#v", merged.CodexModelAssignments)
 	}
@@ -64,6 +58,24 @@ func TestMergeExplicitAgentInstallStatePreservesExistingAssignmentsWhenFreshStat
 	}
 	if merged.Persona != "neutral" {
 		t.Fatalf("Persona = %q, want existing neutral", merged.Persona)
+	}
+}
+
+// TestMergeExplicitAgentInstallStateDropsUnsupportedAgents proves an
+// incremental install silently drops persisted agents this build no longer
+// supports instead of carrying them forward.
+func TestMergeExplicitAgentInstallStateDropsUnsupportedAgents(t *testing.T) {
+	home := t.TempDir()
+	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"opencode", "claude-code"}, SelectionConfigured: true}); err != nil {
+		t.Fatalf("state.Write: %v", err)
+	}
+
+	merged, err := mergeExplicitAgentInstallState(home, state.InstallState{InstalledAgents: []string{"codex"}}, []string{"codex"}, InstallFlags{})
+	if err != nil {
+		t.Fatalf("mergeExplicitAgentInstallState() error = %v, want nil", err)
+	}
+	if got := merged.InstalledAgents; len(got) != 2 || got[0] != "claude-code" || got[1] != "codex" {
+		t.Fatalf("InstalledAgents = %#v, want [claude-code codex]", got)
 	}
 }
 

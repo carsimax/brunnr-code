@@ -100,15 +100,17 @@ type SelectionScope struct {
 
 // SelectionScopeFromInstallState classifies a readable install state. A
 // non-empty installed_agents list is always authoritative for backward
-// compatibility. An empty list becomes authoritative only after installation
+// compatibility. IDs of agents this build no longer supports are dropped
+// silently; the list stays authoritative even when every entry was dropped. An empty list becomes authoritative only after installation
 // recorded SelectionConfigured; otherwise it may be incidental state created by
 // non-install flows such as the update cooldown.
 func SelectionScopeFromInstallState(s state.InstallState) SelectionScope {
-	ids := make([]model.AgentID, 0, len(s.InstalledAgents))
-	for _, id := range s.InstalledAgents {
+	supported := model.SupportedAgentIDs(s.InstalledAgents)
+	ids := make([]model.AgentID, 0, len(supported))
+	for _, id := range supported {
 		ids = append(ids, model.AgentID(id))
 	}
-	if len(ids) > 0 || s.SelectionConfigured {
+	if len(s.InstalledAgents) > 0 || s.SelectionConfigured {
 		return SelectionScope{Mode: SelectionScopeConfigured, AgentIDs: ids}
 	}
 	return SelectionScope{Mode: SelectionScopeFilesystemFallback}

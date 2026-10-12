@@ -65,7 +65,7 @@ func TestInstallAndSyncDeliverOrchestratorOnceForEveryRuntime(t *testing.T) {
 			path, prompt := installedGuidance(t, home, agent)
 			installed := readTextFile(t, path)
 
-			rendered, err := agentguidance.RenderOrchestratorWithSource(agent, reviewassets.ReviewExecutionContractFor, "")
+			rendered, err := agentguidance.RenderOrchestratorWithSource(agent, reviewassets.ReviewExecutionContractFor)
 			if err != nil {
 				t.Fatalf("RenderOrchestrator(%q) error = %v", agent, err)
 			}

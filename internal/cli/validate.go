@@ -240,33 +240,9 @@ func defaultAgentsFromDetection(detection system.DetectionResult) []model.AgentI
 			continue
 		}
 
-		switch strings.TrimSpace(state.Agent) {
-		case string(model.AgentClaudeCode):
-			agents = append(agents, model.AgentClaudeCode)
-		case string(model.AgentGeminiCLI):
-			agents = append(agents, model.AgentGeminiCLI)
-		case string(model.AgentCursor):
-			agents = append(agents, model.AgentCursor)
-		case string(model.AgentVSCodeCopilot):
-			agents = append(agents, model.AgentVSCodeCopilot)
-		case string(model.AgentCodex):
-			agents = append(agents, model.AgentCodex)
-		case string(model.AgentAntigravity):
-			agents = append(agents, model.AgentAntigravity)
-		case string(model.AgentWindsurf):
-			agents = append(agents, model.AgentWindsurf)
-		case string(model.AgentKimi):
-			agents = append(agents, model.AgentKimi)
-		case string(model.AgentQwenCode):
-			agents = append(agents, model.AgentQwenCode)
-		case string(model.AgentKiroIDE):
-			agents = append(agents, model.AgentKiroIDE)
-		case string(model.AgentOpenClaw):
-			agents = append(agents, model.AgentOpenClaw)
-		case string(model.AgentTrae):
-			agents = append(agents, model.AgentTrae)
-		case string(model.AgentHermes):
-			agents = append(agents, model.AgentHermes)
+		switch id := model.AgentID(strings.TrimSpace(state.Agent)); id {
+		case model.AgentClaudeCode, model.AgentCodex:
+			agents = append(agents, id)
 		}
 	}
 

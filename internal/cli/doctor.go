@@ -38,24 +38,15 @@ const (
 var coreTools = []string{"gentle-ai", "gga", "engram"}
 
 // agentToolBinaries maps an agent ID from state.json's InstalledAgents to the
-// CLI binary name exec.LookPath should resolve. An empty string means "no CLI
-// binary to check" — typically IDE-only agents like cursor, windsurf, or
-// antigravity that do not ship a standalone executable on PATH.
+// CLI binary name exec.LookPath should resolve.
 //
 // Keep this map in sync with the agentID → binary convention used by the
 // adapters under internal/agents/*/adapter.go. Unknown agent IDs are ignored
 // by the doctor so legacy or custom state files do not cause spurious
 // failures.
 var agentToolBinaries = map[string]string{
-	"claude-code":    "claude",
-	"codex":          "codex",
-	"gemini-cli":     "gemini",
-	"kiro-ide":       "kiro",
-	"kimi":           "kimi",
-	"qwen-code":      "qwen",
-	"vscode-copilot": "code",
-	"openclaw":       "openclaw",
-	"hermes":         "hermes",
+	"claude-code": "claude",
+	"codex":       "codex",
 }
 
 const (
@@ -398,7 +389,10 @@ func checkStateJSON(homeDir string) CheckResult {
 		}
 	}
 
-	if len(s.InstalledAgents) == 0 {
+	// Agents this build no longer supports are dropped silently, exactly as
+	// discovery, sync, and install drop them.
+	installed := model.SupportedAgentIDs(s.InstalledAgents)
+	if len(installed) == 0 {
 		return CheckResult{
 			Name:   id,
 			Status: CheckStatusWarn,
@@ -409,12 +403,10 @@ func checkStateJSON(homeDir string) CheckResult {
 
 	var missing []string
 	var dangling []string
-	var unknown []string
-	for _, agentID := range s.InstalledAgents {
+	for _, agentID := range installed {
 		dir, err := agentConfigDir(homeDir, agentID)
 		if err != nil {
-			unknown = append(unknown, agentID)
-			continue
+			return CheckResult{Name: id, Status: CheckStatusWarn, Detail: fmt.Sprintf("config path for %s could not be resolved: %v", agentID, err)}
 		}
 		if dir != "" {
 			info, lstatErr := os.Lstat(dir)
@@ -460,20 +452,7 @@ func checkStateJSON(homeDir string) CheckResult {
 		if len(missing) > 0 {
 			detail += "; genuinely absent config dirs: " + strings.Join(missing, ", ")
 		}
-		if len(unknown) > 0 {
-			detail += "; unrecognized agent IDs: " + strings.Join(unknown, ", ")
-		}
 		return CheckResult{Name: id, Status: CheckStatusWarn, Detail: detail}
-	}
-
-	if len(unknown) > 0 {
-		detail := fmt.Sprintf("state lists unrecognized agent IDs: %s; inspect or repair the state file, then re-run 'gentle-ai doctor'", strings.Join(unknown, ", "))
-		result := CheckResult{Name: id, Status: CheckStatusWarn, Detail: detail}
-		if len(missing) > 0 {
-			result.Detail += "; config dirs are missing: " + strings.Join(missing, ", ")
-			result.Remedy = doctor.NewRemedy(doctor.RemedySync, "Run 'gentle-ai sync' to restore missing config files")
-		}
-		return result
 	}
 
 	if len(missing) > 0 {
@@ -488,7 +467,7 @@ func checkStateJSON(homeDir string) CheckResult {
 	return CheckResult{
 		Name:   id,
 		Status: CheckStatusPass,
-		Detail: fmt.Sprintf("state file OK — %d agent(s) installed: %s", len(s.InstalledAgents), strings.Join(s.InstalledAgents, ", ")),
+		Detail: fmt.Sprintf("state file OK — %d agent(s) installed: %s", len(installed), strings.Join(installed, ", ")),
 	}
 }
 

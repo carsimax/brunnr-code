@@ -254,7 +254,6 @@ func RunPreparedInstall(prepared PreparedInstall, detection system.DetectionResu
 		CommunityToolsConfigured:    true,
 		ClaudeModelAssignments:      claudeLegacyAssignmentsForState(input.Selection.ClaudeModelAssignments, claudePhaseState),
 		ClaudePhaseAssignments:      claudePhaseState,
-		KiroModelAssignments:        kiroAliasesToStrings(input.Selection.KiroModelAssignments),
 		CodexModelAssignments:       codexEffortsToStrings(input.Selection.CodexModelAssignments),
 		CodexOrchestratorAssignment: codexOrchestratorToState(input.Selection.CodexOrchestratorAssignment),
 		CodexCarrilModelAssignments: input.Selection.CodexCarrilModelAssignments,
@@ -317,7 +316,7 @@ func mergeFullInstallState(existing, fresh state.InstallState) state.InstallStat
 	merged.Preset, merged.SDDMode, merged.StrictTDD = fresh.Preset, fresh.SDDMode, false
 	merged.CommunityTools, merged.CommunityToolsConfigured = fresh.CommunityTools, fresh.CommunityToolsConfigured
 	merged.ClaudeModelAssignments, merged.ClaudePhaseAssignments = fresh.ClaudeModelAssignments, fresh.ClaudePhaseAssignments
-	merged.KiroModelAssignments, merged.CodexModelAssignments = fresh.KiroModelAssignments, fresh.CodexModelAssignments
+	merged.CodexModelAssignments = fresh.CodexModelAssignments
 	merged.CodexOrchestratorAssignment = fresh.CodexOrchestratorAssignment
 	merged.CodexCarrilModelAssignments, merged.CodexPhaseModelAssignments = fresh.CodexCarrilModelAssignments, fresh.CodexPhaseModelAssignments
 	merged.Persona = fresh.Persona
@@ -346,6 +345,7 @@ func mergeExplicitAgentInstallState(homeDir string, newState state.InstallState,
 		return state.InstallState{}, fmt.Errorf("read existing install state to merge agents %v: %w", agentIDs, readErr)
 	}
 
+	existing.InstalledAgents = model.SupportedAgentIDs(existing.InstalledAgents)
 	merged := state.MergeAgents(existing, agentIDs)
 	if newState.ClaudeModelAssignments != nil {
 		merged.ClaudeModelAssignments = newState.ClaudeModelAssignments
@@ -353,9 +353,6 @@ func mergeExplicitAgentInstallState(homeDir string, newState state.InstallState,
 	if newState.ClaudePhaseAssignments != nil {
 		merged.ClaudePhaseAssignments = newState.ClaudePhaseAssignments
 		merged.ClaudeModelAssignments = nil
-	}
-	if newState.KiroModelAssignments != nil {
-		merged.KiroModelAssignments = newState.KiroModelAssignments
 	}
 	if newState.CodexOrchestratorAssignment != nil {
 		merged.CodexOrchestratorAssignment = newState.CodexOrchestratorAssignment
@@ -783,8 +780,7 @@ func (r *installRuntime) stagePlan() pipeline.StagePlan {
 		}
 	}
 	apply = append(apply, retiredSDDAssetStepList(retiredSDDAssetSteps("agent:retire-sdd-assets:", r.homeDir, r.workspaceDir, r.scope, r.resolved.Agents, nil, r.state))...)
-	// After the native installer: it rewrites a Gentle-owned v3 Kimi
-	// gentleman.yaml, so the SDD subagents it declared can be retired now.
+	// After the native installer, so retired SDD subagents go last.
 	apply = append(apply, retiredSDDAgentSteps("agent:retire-sdd:", r.homeDir, r.scope, r.resolved.Agents, nil, r.state)...)
 
 	// Routing guidance is scheduled per agent and outside the component loop:
@@ -848,7 +844,6 @@ func (s nativeReviewAgentStep) Run() error {
 	res, err := reviewassets.InstallNativeAgents(target, adapter, reviewassets.InstallOptions{
 		ClaudeModelAssignments:    s.selection.ClaudeModelAssignments,
 		ClaudePhaseAssignments:    s.selection.ClaudePhaseAssignments,
-		KiroModelAssignments:      s.selection.KiroModelAssignments,
 		CodeGraphGuidanceMarkdown: nativeReviewCodeGraphGuidanceMarkdown(s.homeDir, s.selection.CommunityTools),
 	})
 	if err != nil {
@@ -866,7 +861,7 @@ func (s nativeReviewAgentStep) Run() error {
 }
 
 // retiredSDDAssetsStep removes the SDD skills, slash commands, workflow,
-// Codex profiles, Kimi module, and Claude Code preflight hook earlier
+// Codex profiles, and Claude Code preflight hook earlier
 // releases installed for one runtime, and the SDD text they left in prompt
 // files routing guidance does not migrate. It reports what it cannot prove it
 // wrote (#5157). The pipeline snapshot captures the same inventory first
@@ -897,18 +892,14 @@ func (s retiredSDDAssetsStep) Run() error {
 
 // retiredSDDAssetSteps resolves where releases installed retired SDD files
 // for the selected runtimes in this scope: the legacyassets inventory under
-// the scoped config root, the Windsurf workflow only in a workspace-scoped
-// run (releases wrote it into the project), and the shared ~/.agents/skills
-// root only in a global run on platforms where the generic snapshot owns it.
+// the scoped config root, and the shared ~/.agents/skills root only in a
+// global run on platforms where the generic snapshot owns it.
 func retiredSDDAssetSteps(prefix, homeDir, workspaceDir string, scope InstallScope, agentIDs []model.AgentID, changedFiles *[]string, state *runtimeState) []retiredSDDAssetsStep {
 	var steps []retiredSDDAssetsStep
 	for _, adapter := range resolveAdapters(agentIDs) {
 		// A workspace-scoped install wrote these under the workspace too.
 		root := componentInjectionDirScoped(homeDir, workspaceDir, scope, adapter)
 		inventory := legacyassets.RetiredSDDInventory(adapter, root)
-		if flows, ok := adapter.(interface{ WorkflowsDir(string) string }); ok && scope == ScopeWorkspace {
-			inventory.Dirs.Workflows = flows.WorkflowsDir(workspaceDir)
-		}
 		// A workspace sync delivers no routing guidance to these runtimes, so
 		// nothing migrates the v3.7.0 SDD block of their project prompt.
 		if scope == ScopeWorkspace && workspaceRoutingGuidanceGlobalOnly(adapter.Agent()) && adapter.SupportsSystemPrompt() {
@@ -1132,12 +1123,7 @@ func (s agentRoutingGuidanceStep) recordChanged(result agentguidance.Result) {
 // already the defined "delete this section" operation, so no second merge
 // implementation exists that could drift from the injector.
 func stripLegacyTriggerRules(targetDir string, adapter agents.Adapter) (agentguidance.Result, error) {
-	switch {
-	case adapter.SystemPromptStrategy() == model.StrategyJinjaModules:
-		return removeLegacyTriggerRulesModule(filepath.Join(adapter.GlobalConfigDir(targetDir), legacyTriggerRulesSection+".md"))
-	default:
-		return stripLegacyTriggerRulesFromPrompt(adapter.SystemPromptFile(targetDir))
-	}
+	return stripLegacyTriggerRulesFromPrompt(adapter.SystemPromptFile(targetDir))
 }
 
 func stripLegacyTriggerRulesFromPrompt(promptPath string) (agentguidance.Result, error) {
@@ -1163,23 +1149,6 @@ func stripLegacyTriggerRulesFromPrompt(promptPath string) (agentguidance.Result,
 		return agentguidance.Result{}, err
 	}
 	return agentguidance.Result{Changed: writeResult.Changed, Files: []string{promptPath}}, nil
-}
-
-// removeLegacyTriggerRulesModule deletes the standalone include module used by
-// Jinja adapters. Their router template includes it with "ignore missing", so
-// deleting the file is exactly the section removal for that strategy.
-func removeLegacyTriggerRulesModule(modulePath string) (agentguidance.Result, error) {
-	if strings.TrimSpace(modulePath) == "" {
-		return agentguidance.Result{}, nil
-	}
-
-	if err := os.Remove(modulePath); err != nil {
-		if os.IsNotExist(err) {
-			return agentguidance.Result{}, nil
-		}
-		return agentguidance.Result{}, fmt.Errorf("remove legacy %q module %q: %w", legacyTriggerRulesSection, modulePath, err)
-	}
-	return agentguidance.Result{Changed: true, Files: []string{modulePath}}, nil
 }
 
 type prepareBackupStep struct {
@@ -1670,17 +1639,13 @@ func (s componentApplyStep) Run() error {
 				Version:                     engramVersion,
 			}
 			var err error
-			if adapter.Agent() == model.AgentOpenClaw {
-				_, err = engram.InjectWithPromptDir(s.homeDir, componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter), adapter)
+			targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)
+			if s.scope == ScopeWorkspace {
+				_, err = engram.InjectWorkspaceWithOptions(targetDir, adapter, engramOpts)
 			} else {
-				targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)
-				if s.scope == ScopeWorkspace {
-					_, err = engram.InjectWorkspaceWithOptions(targetDir, adapter, engramOpts)
-				} else {
-					var injected engram.InjectionResult
-					injected, err = engram.InjectWithOptions(targetDir, adapter, engramOpts)
-					s.state.noteCodexServiceTier(injected)
-				}
+				var injected engram.InjectionResult
+				injected, err = engram.InjectWithOptions(targetDir, adapter, engramOpts)
+				s.state.noteCodexServiceTier(injected)
 			}
 			if err != nil {
 				return fmt.Errorf("inject engram for %q: %w", adapter.Agent(), err)
@@ -2338,28 +2303,6 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 				} else {
 					paths = append(paths, adapter.MCPConfigPath(targetDir, "engram"))
 				}
-			case model.StrategyMergeIntoSettings:
-				// MCP settings are always merged into the global config file, not the
-				// workspace-scoped directory. For OpenClaw, SettingsPath(targetDir)
-				// would yield <workspace>/.openclaw/openclaw.json, but engram injection
-				// writes to the canonical ~/.openclaw/openclaw.json (homeDir). Use
-				// homeDir here so the verification path matches the actual write target.
-				if p := adapter.SettingsPath(homeDir); p != "" {
-					paths = append(paths, p)
-				}
-			case model.StrategyMCPConfigFile:
-				if p := adapter.MCPConfigPath(targetDir, "engram"); p != "" {
-					paths = append(paths, p)
-				}
-				if adapter.Agent() == model.AgentAntigravity {
-					if p := adapter.SettingsPath(homeDir); p != "" {
-						paths = append(paths, p)
-					}
-				}
-			case model.StrategyMergeIntoYAML:
-				if p := adapter.MCPConfigPath(targetDir, "engram"); p != "" {
-					paths = append(paths, p)
-				}
 			case model.StrategyTOMLFile:
 				if p := adapter.MCPConfigPath(targetDir, "engram"); p != "" {
 					paths = append(paths, p)
@@ -2377,10 +2320,7 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 				paths = append(paths, adapter.SystemPromptFile(targetDir))
 			}
 		case model.ComponentSDD:
-			// Jinja modular hubs (e.g. Kimi KIMI.md) are appended once below so SDD+Persona
-			// do not duplicate the same system prompt path.
-			if adapter.SupportsSystemPrompt() &&
-				adapter.SystemPromptStrategy() != model.StrategyJinjaModules {
+			if adapter.SupportsSystemPrompt() {
 				paths = append(paths, adapter.SystemPromptFile(targetDir))
 			}
 			if adapter.SupportsSlashCommands() {
@@ -2428,15 +2368,7 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 					break
 				}
 				paths = append(paths, adapter.MCPConfigPath(targetDir, "context7"))
-			case model.StrategyMergeIntoSettings:
-				if p := adapter.SettingsPath(targetDir); p != "" {
-					paths = append(paths, p)
-				}
-			case model.StrategyMCPConfigFile:
-				if p := adapter.MCPConfigPath(targetDir, "context7"); p != "" {
-					paths = append(paths, p)
-				}
-			case model.StrategyTOMLFile, model.StrategyMergeIntoYAML:
+			case model.StrategyTOMLFile:
 				if p := adapter.MCPConfigPath(targetDir, "context7"); p != "" {
 					paths = append(paths, p)
 				}
@@ -2445,11 +2377,7 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 			if selection.Persona == model.PersonaCustom {
 				break
 			}
-			if adapter.Agent() == model.AgentOpenClaw {
-				paths = append(paths, filepath.Join(targetDir, "SOUL.md"))
-				break
-			}
-			if adapter.SupportsSystemPrompt() && adapter.SystemPromptStrategy() != model.StrategyJinjaModules {
+			if adapter.SupportsSystemPrompt() {
 				paths = append(paths, adapter.SystemPromptFile(targetDir))
 			}
 			if adapter.SupportsOutputStyles() {
@@ -2473,16 +2401,6 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 			}
 		case model.ComponentClaudeTheme:
 			paths = append(paths, theme.VisualThemePaths(homeDir, adapter)...)
-		}
-	}
-
-	// Always ensure the main system prompt file is included for verification if the agent
-	// supports modular system prompts (like Kimi), even if no specific component
-	// (like Persona) was selected. This prevents false negatives when the skeleton
-	// is bootstrapped but not explicitly owned by any other component path list.
-	for _, adapter := range adapters {
-		if adapter.SystemPromptStrategy() == model.StrategyJinjaModules {
-			paths = append(paths, adapter.SystemPromptFile(homeDir))
 		}
 	}
 
@@ -2867,19 +2785,6 @@ func claudePhaseAssignmentsToState(m map[string]model.ClaudePhaseAssignment) map
 			continue
 		}
 		out[k] = state.ClaudePhaseAssignmentState{Model: string(v.Model), Effort: string(v.Effort)}
-	}
-	return out
-}
-
-// kiroAliasesToStrings converts a typed KiroModelAlias map to plain strings
-// for JSON serialisation in state.json.
-func kiroAliasesToStrings(m map[string]model.KiroModelAlias) map[string]string {
-	if len(m) == 0 {
-		return nil
-	}
-	out := make(map[string]string, len(m))
-	for k, v := range m {
-		out[k] = string(v)
 	}
 	return out
 }

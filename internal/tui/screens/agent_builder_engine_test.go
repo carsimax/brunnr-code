@@ -24,13 +24,13 @@ func TestRenderABEngine_HeadingPresent(t *testing.T) {
 }
 
 func TestRenderABEngine_EngineLabelsPresent(t *testing.T) {
-	engines := []model.AgentID{model.AgentClaudeCode, model.AgentGeminiCLI}
+	engines := []model.AgentID{model.AgentClaudeCode, model.AgentCodex}
 	out := RenderABEngine(engines, 0)
 	if !strings.Contains(out, string(model.AgentClaudeCode)) {
 		t.Errorf("claude-code label not found; output:\n%s", out)
 	}
-	if !strings.Contains(out, string(model.AgentGeminiCLI)) {
-		t.Errorf("gemini-cli label not found; output:\n%s", out)
+	if !strings.Contains(out, string(model.AgentCodex)) {
+		t.Errorf("codex label not found; output:\n%s", out)
 	}
 }
 

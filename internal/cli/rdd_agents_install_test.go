@@ -53,11 +53,6 @@ func TestFreshInstallShipsReviewAgentsOnlyToRDDRuntimes(t *testing.T) {
 			if got := err == nil; got != tc.jd {
 				t.Fatalf("%s jd-judge-a installed = %v, want %v", tc.agent, got, tc.jd)
 			}
-			if tc.agent == model.AgentKimi {
-				if _, err := os.Stat(filepath.Join(dir, "gentleman.yaml")); err != nil {
-					t.Fatalf("Kimi lost its main agent: %v", err)
-				}
-			}
 		})
 	}
 }

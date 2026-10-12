@@ -170,7 +170,7 @@ func TestResolverExcludesUnsupportedAgents(t *testing.T) {
 	resolver := NewResolver(MVPGraph())
 
 	selection := model.Selection{
-		Agents: []model.AgentID{model.AgentClaudeCode, model.AgentCodex, model.AgentCursor},
+		Agents: []model.AgentID{model.AgentClaudeCode, model.AgentCodex, model.AgentID("opencode")},
 	}
 
 	plan, err := resolver.Resolve(selection)
@@ -182,7 +182,7 @@ func TestResolverExcludesUnsupportedAgents(t *testing.T) {
 		t.Fatalf("Resolve() agents = %v", plan.Agents)
 	}
 
-	if !reflect.DeepEqual(plan.UnsupportedAgents, []model.AgentID{model.AgentCursor}) {
+	if !reflect.DeepEqual(plan.UnsupportedAgents, []model.AgentID{model.AgentID("opencode")}) {
 		t.Fatalf("Resolve() unsupported agents = %v", plan.UnsupportedAgents)
 	}
 }

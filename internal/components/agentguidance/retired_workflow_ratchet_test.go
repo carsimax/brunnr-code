@@ -32,40 +32,34 @@ func TestRenderedGuidanceHasNoRetiredWorkflowReferences(t *testing.T) {
 	assertNoRetiredWorkflowReference(t, "CodeGraphGuidanceMarkdown", codeGraph)
 
 	for _, agent := range catalog.AllAgents() {
-		if agent.ID == model.AgentConductor {
-			continue // Catalog-only: no standalone guidance target.
-		}
 		t.Run(string(agent.ID), func(t *testing.T) {
 			adapter, err := agents.NewAdapter(agent.ID)
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, capability := range []string{"", "small"} {
-				options := agentguidance.RoutingOptions{
-					OrchestratorCapability: capability,
-					// Upgraded Codex installs still carry legacy carril keys.
-					CodexCarrilModelAssignments: map[string]string{"sdd-cheap": "gpt-cheap", "sdd-mid": "gpt-mid", "sdd-strong": "gpt-strong"},
-				}
-				home := t.TempDir()
-				routing, err := agentguidance.InjectRoutingWithOptions(home, agent.ID, options)
-				if err != nil {
-					t.Fatalf("InjectRoutingWithOptions(capability=%q): %v", capability, err)
-				}
-				tdd, err := agentguidance.InjectStrictTDDWithOptions(home, agent.ID, true, options)
-				if err != nil {
-					t.Fatalf("InjectStrictTDDWithOptions(capability=%q): %v", capability, err)
-				}
-				files := append(routing.Files, tdd.Files...)
-				assertRenderedFilesClean(t, files)
-				rendered, err := agentguidance.RenderOrchestratorWithSource(agent.ID, reviewassets.ReviewExecutionContractFor, capability)
-				if err != nil {
-					t.Fatalf("RenderOrchestratorWithSource(capability=%q): %v", capability, err)
-				}
-				assertNoRetiredWorkflowReference(t, "orchestrator capability="+capability, rendered)
-				// Shared-section markers bind the composer only; they never ship.
-				if strings.Contains(rendered, "orchestrator-section:") {
-					t.Errorf("orchestrator capability=%q leaks a shared-section marker", capability)
-				}
+			options := agentguidance.RoutingOptions{
+				// Upgraded Codex installs still carry legacy carril keys.
+				CodexCarrilModelAssignments: map[string]string{"sdd-cheap": "gpt-cheap", "sdd-mid": "gpt-mid", "sdd-strong": "gpt-strong"},
+			}
+			home := t.TempDir()
+			routing, err := agentguidance.InjectRoutingWithOptions(home, agent.ID, options)
+			if err != nil {
+				t.Fatalf("InjectRoutingWithOptions: %v", err)
+			}
+			tdd, err := agentguidance.InjectStrictTDDWithOptions(home, agent.ID, true, options)
+			if err != nil {
+				t.Fatalf("InjectStrictTDDWithOptions: %v", err)
+			}
+			files := append(routing.Files, tdd.Files...)
+			assertRenderedFilesClean(t, files)
+			rendered, err := agentguidance.RenderOrchestratorWithSource(agent.ID, reviewassets.ReviewExecutionContractFor)
+			if err != nil {
+				t.Fatalf("RenderOrchestratorWithSource: %v", err)
+			}
+			assertNoRetiredWorkflowReference(t, "orchestrator", rendered)
+			// Shared-section markers bind the composer only; they never ship.
+			if strings.Contains(rendered, "orchestrator-section:") {
+				t.Errorf("orchestrator leaks a shared-section marker")
 			}
 
 			for _, selected := range []model.PersonaID{model.PersonaGentleman, model.PersonaNeutral} {

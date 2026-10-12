@@ -127,7 +127,7 @@ func TestClaudeUninstallRetiresModulePilotOnlyOnFullRemoval(t *testing.T) {
 	if !snapshots.existed[ledger] || !snapshots.existed[modified] {
 		t.Fatal("uninstall snapshot was taken after the pilot changed")
 	}
-	monolith, err := agentguidance.RenderOrchestratorWithSource(model.AgentClaudeCode, reviewassets.ReviewExecutionContractFor, "")
+	monolith, err := agentguidance.RenderOrchestratorWithSource(model.AgentClaudeCode, reviewassets.ReviewExecutionContractFor)
 	if err != nil {
 		t.Fatal(err)
 	}

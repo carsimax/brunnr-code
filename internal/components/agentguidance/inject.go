@@ -1,7 +1,6 @@
 package agentguidance
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -17,11 +16,6 @@ import (
 // It is deliberately independent of the SDD sections so that installing or
 // removing optional SDD assets can never add or drop routing guidance.
 const RoutingSectionID = "agent-routing"
-
-// routingModuleFile is the include module written for adapters whose system
-// prompt is a Jinja router. It is derived from the section ID so the template
-// include and the managed marker can never drift apart.
-const routingModuleFile = RoutingSectionID + ".md"
 
 // ErrInvalidTarget rejects an unusable installation root before any write, so
 // a caller that lost its resolved home directory fails loudly instead of
@@ -45,14 +39,6 @@ type Result struct {
 	Files   []string
 }
 
-// templateBootstrapper is the optional adapter capability that restores a Jinja
-// router template from its embedded asset. Adapters that rewrite their entry
-// template on every install must expose it, because guidance can only survive
-// outside that template.
-type templateBootstrapper interface {
-	BootstrapTemplate(homeDir string) error
-}
-
 // RoutingOptions supplies a caller-resolved settings path for adapters whose
 // guidance is delivered through a managed orchestrator definition. The adapter
 // retains its normal targetDir-derived path when SettingsPath is empty.
@@ -62,10 +48,6 @@ type templateBootstrapper interface {
 // over the package-level fallback (SetReviewContractSource); installers must
 // always set it.
 type RoutingOptions struct {
-	// OrchestratorCapability selects only generic instruction text. "small"
-	// explicitly opts into the small variant; empty or unknown uses capable.
-	// Runtime-specific assets ignore this hint. It does not configure models.
-	OrchestratorCapability      string
 	ReviewContract              ReviewContractSource
 	CodexPhaseModelAssignments  map[string]string
 	CodexModelAssignments       map[string]model.CodexEffort
@@ -92,14 +74,6 @@ type RoutingOptions struct {
 // Only the marked sections are owned by Gentle AI: everything a user wrote
 // around them is preserved verbatim, and a second identical injection is a no-op.
 func InjectRoutingWithOptions(targetDir string, agent model.AgentID, options RoutingOptions) (Result, error) {
-	// Conductor is detection/catalog-only: its workspaces inherit Claude Code
-	// configuration, so there is no standalone guidance target to write. Skip
-	// it cleanly instead of failing closed like an unknown delivery (see
-	// isCatalogOnlyGuidanceTarget).
-	if isCatalogOnlyGuidanceTarget(agent) {
-		return Result{}, nil
-	}
-
 	// Render before resolving the delivery so an unsupported agent is rejected
 	// without having touched the filesystem.
 	rendered, err := RenderRouting(agent)
@@ -137,7 +111,7 @@ func InjectRoutingWithOptions(targetDir string, agent model.AgentID, options Rou
 		}
 		orchestrator, modules = bundle.core, bundle.modules
 	default:
-		orchestrator, err = RenderOrchestratorWithSource(agent, options.ReviewContract, options.OrchestratorCapability)
+		orchestrator, err = RenderOrchestratorWithSource(agent, options.ReviewContract)
 		if err != nil {
 			return Result{}, err
 		}
@@ -150,8 +124,6 @@ func InjectRoutingWithOptions(targetDir string, agent model.AgentID, options Rou
 	}
 
 	switch delivery.kind {
-	case deliveryJinjaModule:
-		return injectJinjaModule(targetDir, delivery, agent, merge)
 	case deliveryClaudeModules:
 		return commitOrchestratorCore(filepath.Dir(delivery.paths[0]), merge, modules)
 	default:
@@ -171,12 +143,6 @@ func InjectRoutingWithOptions(targetDir string, agent model.AgentID, options Rou
 // same delivery resolution, so the backup contract cannot drift away from what
 // the injector actually writes.
 func RoutingPathsWithOptions(targetDir string, agent model.AgentID, options RoutingOptions) ([]string, error) {
-	if isCatalogOnlyGuidanceTarget(agent) {
-		// Same catalog-only skip as InjectRoutingWithOptions: no guidance
-		// target exists, so the backup snapshot must declare no path.
-		return nil, nil
-	}
-
 	delivery, err := resolveRoutingDelivery(targetDir, agent, options)
 	if err != nil {
 		return nil, err
@@ -184,17 +150,7 @@ func RoutingPathsWithOptions(targetDir string, agent model.AgentID, options Rout
 	return delivery.paths, nil
 }
 
-// isCatalogOnlyGuidanceTarget reports whether an agent is detection and
-// catalog only, with no standalone guidance target for install/sync to write.
-// Conductor inherits Claude Code configuration for the workspaces it manages,
-// and its capability manifest claims no managed system prompt; the skip must
-// track that canonical contract (guarded by
-// TestConductorIsTheOnlyCatalogOnlyGuidanceTarget).
-func isCatalogOnlyGuidanceTarget(agent model.AgentID) bool {
-	return agent == model.AgentConductor
-}
-
-// routingDeliveryKind names the three scopes an agent actually loads guidance
+// routingDeliveryKind names the scopes an agent actually loads guidance
 // from. Writing one markdown file for every adapter would land the guidance
 // where the agent never reads it, or inside a template its own installer
 // rewrites on the next sync.
@@ -202,7 +158,6 @@ type routingDeliveryKind int
 
 const (
 	deliveryPromptSection routingDeliveryKind = iota
-	deliveryJinjaModule
 	// deliveryClaudeModules is the opt-in Claude global core plus modules;
 	// its paths are the core, every known module name and the ledger.
 	deliveryClaudeModules
@@ -214,10 +169,7 @@ const (
 type routingDelivery struct {
 	kind    routingDeliveryKind
 	adapter agents.Adapter
-	// bootstrapper is set only for deliveryJinjaModule, where the router
-	// template must be restored before the module is worth writing.
-	bootstrapper templateBootstrapper
-	paths        []string
+	paths   []string
 }
 
 // resolveRoutingDelivery selects the delivery strategy and its target paths.
@@ -237,22 +189,6 @@ func resolveRoutingDelivery(targetDir string, agent model.AgentID, options Routi
 	}
 
 	switch {
-	case adapter.SystemPromptStrategy() == model.StrategyJinjaModules:
-		bootstrapper, ok := adapter.(templateBootstrapper)
-		if !ok {
-			return routingDelivery{}, fmt.Errorf("%w: adapter %q renders Jinja modules but cannot bootstrap its router template", ErrUnloadableGuidance, agent)
-		}
-		configDir := adapter.GlobalConfigDir(targetDir)
-		if strings.TrimSpace(configDir) == "" {
-			return routingDelivery{}, fmt.Errorf("%w: adapter %q exposes no global config dir", ErrInvalidTarget, agent)
-		}
-		return routingDelivery{
-			kind:         deliveryJinjaModule,
-			adapter:      adapter,
-			bootstrapper: bootstrapper,
-			paths:        []string{filepath.Join(configDir, routingModuleFile), adapter.SystemPromptFile(targetDir)},
-		}, nil
-
 	case agent == model.AgentClaudeCode && options.ClaudeGlobalModules:
 		configDir := adapter.GlobalConfigDir(targetDir)
 		if !filepath.IsAbs(configDir) {
@@ -290,77 +226,6 @@ func injectPromptSection(delivery routingDelivery, merge guidanceMerge) (Result,
 	}
 
 	return Result{Changed: writeResult.Changed, Files: []string{promptPath}}, nil
-}
-
-// injectJinjaModule delivers guidance as a standalone include module.
-//
-// A Jinja adapter's system prompt file is a router that its installer rewrites
-// verbatim from an embedded asset on every run, so anything injected into that
-// file is destroyed by the next sync. The module survives because the router
-// only references it.
-func injectJinjaModule(targetDir string, delivery routingDelivery, agent model.AgentID, merge guidanceMerge) (Result, error) {
-	hubPath := delivery.adapter.SystemPromptFile(targetDir)
-	hubBefore, err := readBytesOrEmpty(hubPath)
-	if err != nil {
-		return Result{}, err
-	}
-
-	// Bootstrap first: the module is only ever read through the router template,
-	// so the template must exist before the module is worth writing.
-	if err := delivery.bootstrapper.BootstrapTemplate(targetDir); err != nil {
-		return Result{}, fmt.Errorf("bootstrap routing guidance template for %q: %w", agent, err)
-	}
-
-	if err := requireModuleIsIncluded(delivery.adapter, agent, targetDir); err != nil {
-		return Result{}, err
-	}
-
-	modulePath := delivery.paths[0]
-	existing, err := readFileOrEmpty(modulePath)
-	if err != nil {
-		return Result{}, err
-	}
-
-	updated := merge(existing)
-
-	writeResult, err := filemerge.WriteFileAtomic(modulePath, []byte(updated), filemerge.ExistingFileMode(modulePath, 0o644))
-	if err != nil {
-		return Result{}, err
-	}
-
-	// Some Jinja-module adapters (current kimi-code) read a plain AGENTS.md hub
-	// rather than evaluating {% include %} at runtime. Refresh the hub after the
-	// module write so those adapters load the newly written module content while
-	// legacy Jinja runtimes retain their router template unchanged.
-	if err := delivery.bootstrapper.BootstrapTemplate(targetDir); err != nil {
-		return Result{}, fmt.Errorf("refresh routing guidance template for %q: %w", agent, err)
-	}
-	hubAfter, err := readBytesOrEmpty(hubPath)
-	if err != nil {
-		return Result{}, err
-	}
-
-	return Result{Changed: writeResult.Changed || !bytes.Equal(hubBefore, hubAfter), Files: delivery.paths}, nil
-}
-
-// requireModuleIsIncluded verifies the freshly bootstrapped router template
-// references the guidance module. Without the reference the module is inert, so
-// failing here is preferable to reporting a successful install of guidance no
-// agent will ever read.
-func requireModuleIsIncluded(adapter agents.Adapter, agent model.AgentID, targetDir string) error {
-	templatePath := adapter.SystemPromptFile(targetDir)
-	if strings.TrimSpace(templatePath) == "" {
-		return fmt.Errorf("%w: adapter %q exposes no router template", ErrUnloadableGuidance, agent)
-	}
-
-	template, err := readFileOrEmpty(templatePath)
-	if err != nil {
-		return err
-	}
-	if !strings.Contains(template, routingModuleFile) {
-		return fmt.Errorf("%w: router template %q does not include %q", ErrUnloadableGuidance, templatePath, routingModuleFile)
-	}
-	return nil
 }
 
 // readFileOrEmpty treats a missing prompt file as empty content: the first

@@ -18,27 +18,23 @@ func TestRetiredSDDPromptTextNeverReadsAFIFO(t *testing.T) {
 	if err := syscall.Mkfifo(fifo, 0o600); err != nil {
 		t.Skipf("FIFOs unavailable: %v", err)
 	}
-	link := filepath.Join(dir, "KIMI.md")
+	link := filepath.Join(dir, "agents.md")
 	if err := os.Symlink(fifo, link); err != nil {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
 	for _, path := range []string{fifo, link} {
-		done := make(chan TextRetireResult, 2)
+		done := make(chan TextRetireResult, 1)
 		go func() {
-			res, _ := RetireKimiSDDInclude(dir, path)
-			done <- res
 			block, _ := RetireSDDOrchestratorBlock(dir, path, "")
 			done <- block
 		}()
-		for range 2 {
-			select {
-			case res := <-done:
-				if res.Removed || len(res.ManualActions()) != 0 {
-					t.Errorf("%s: %+v", path, res)
-				}
-			case <-time.After(5 * time.Second):
-				t.Fatalf("retirement blocked reading %s", path)
+		select {
+		case res := <-done:
+			if res.Removed || len(res.ManualActions()) != 0 {
+				t.Errorf("%s: %+v", path, res)
 			}
+		case <-time.After(5 * time.Second):
+			t.Fatalf("retirement blocked reading %s", path)
 		}
 		if RetirablePromptFile(dir, path) {
 			t.Errorf("%s is retirable", path)

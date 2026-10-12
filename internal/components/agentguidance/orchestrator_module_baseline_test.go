@@ -37,13 +37,9 @@ var update = flag.Bool("update", false, "rewrite "+moduleBaselineFile)
 const moduleBaselineFile = "testdata/orchestrator-module-baseline.json"
 
 type moduleVariantInput struct {
-	id         string
-	agent      model.AgentID
-	capability string
-	// kimiCurrent pre-creates ~/.kimi-code so install selects the flattened
-	// AGENTS.md hub instead of the legacy Jinja router.
-	kimiCurrent bool
-	asset       string
+	id    string
+	agent model.AgentID
+	asset string
 }
 
 var moduleVariantInputs = []moduleVariantInput{
@@ -81,14 +77,8 @@ func sha256Hex(content string) string {
 func installedFiles(t *testing.T, input moduleVariantInput) []installedGuidance {
 	t.Helper()
 	root := t.TempDir()
-	if input.kimiCurrent {
-		if err := os.MkdirAll(filepath.Join(root, ".kimi-code"), 0o755); err != nil {
-			t.Fatal(err)
-		}
-	}
 	result, err := agentguidance.InjectRoutingWithOptions(root, input.agent, agentguidance.RoutingOptions{
-		OrchestratorCapability: input.capability,
-		ReviewContract:         reviewassets.ReviewExecutionContractFor,
+		ReviewContract: reviewassets.ReviewExecutionContractFor,
 	})
 	if err != nil {
 		t.Fatalf("InjectRoutingWithOptions(%s) error = %v", input.id, err)
@@ -120,7 +110,7 @@ func TestOrchestratorModuleBaseline(t *testing.T) {
 	var order []string
 	for _, input := range moduleVariantInputs {
 		t.Run(input.id, func(t *testing.T) {
-			rendered, err := agentguidance.RenderOrchestratorWithSource(input.agent, reviewassets.ReviewExecutionContractFor, input.capability)
+			rendered, err := agentguidance.RenderOrchestratorWithSource(input.agent, reviewassets.ReviewExecutionContractFor)
 			if err != nil {
 				t.Fatalf("RenderOrchestratorWithSource(%s) error = %v", input.id, err)
 			}

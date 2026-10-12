@@ -94,7 +94,7 @@ func TestOwnsRetiredSDDAgentRejectsUserAuthoredBytes(t *testing.T) {
 	if OwnsRetiredSDDAgent(model.AgentClaudeCode, "sdd-verify.md", []byte(render)) {
 		t.Error("ownership must be proven for the same file name")
 	}
-	if OwnsRetiredSDDAgent(model.AgentCursor, "sdd-apply.md", []byte(render)) {
+	if OwnsRetiredSDDAgent(model.AgentID("opencode"), "sdd-apply.md", []byte(render)) {
 		t.Error("ownership must be proven for the same agent family")
 	}
 }

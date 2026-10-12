@@ -67,16 +67,13 @@ func TestCallerBinaryReplacesPathLookups(t *testing.T) {
 	if err := VerifyInstalled(); err == nil {
 		t.Fatal("VerifyInstalled() without engram on PATH = nil, want the existing PATH error")
 	}
-	if cmd, found := resolveEngramCommand(); cmd != "engram" || found {
-		t.Fatalf("resolveEngramCommand() default = %q, %v", cmd, found)
+	if cmd := preferredStableEngramCommand(); cmd != "engram" {
+		t.Fatalf("preferredStableEngramCommand() default = %q, want engram", cmd)
 	}
 
 	t.Setenv(system.EngramBinEnv, bin)
 	if err := VerifyInstalled(); err != nil {
 		t.Fatalf("VerifyInstalled() with %s = %v", system.EngramBinEnv, err)
-	}
-	if cmd, found := resolveEngramCommand(); cmd != bin || !found {
-		t.Fatalf("resolveEngramCommand() = %q, %v; want %q", cmd, found, bin)
 	}
 	if cmd := preferredStableEngramCommand(); cmd != bin {
 		t.Fatalf("preferredStableEngramCommand() = %q, want %q", cmd, bin)

@@ -11,17 +11,7 @@ func TestSupportsReceiptDrivenDevelopmentIsTheClosedRDDRuntimeSet(t *testing.T) 
 	}{
 		{AgentClaudeCode, true},
 		{AgentCodex, true},
-		{AgentGeminiCLI, false},
-		{AgentCursor, false},
-		{AgentVSCodeCopilot, false},
-		{AgentAntigravity, false},
-		{AgentWindsurf, false},
-		{AgentKimi, false},
-		{AgentQwenCode, false},
-		{AgentKiroIDE, false},
-		{AgentOpenClaw, false},
-		{AgentTrae, false},
-		{AgentHermes, false},
+		{AgentID("opencode"), false},
 		{AgentID("unknown-runtime"), false},
 	}
 	for _, tt := range tests {

@@ -90,11 +90,8 @@ func RenderCommunityToolInstalling(selected []model.CommunityToolID, spinner str
 	}
 	if len(statuses) > 0 {
 		for _, status := range statuses {
-			detected, configured, missing := status.DetectedConfiguredMissingCounts()
+			_, configured, missing := status.DetectedConfiguredMissingCounts()
 			line := fmt.Sprintf("Current %s state: %d configured, %d missing detected agent wiring", statusName(status.Tool), configured, missing)
-			if pending := detected - configured - missing; pending > 0 {
-				line += fmt.Sprintf(", %d pending", pending)
-			}
 			b.WriteString(styles.SubtextStyle.Render(line))
 			b.WriteString("\n")
 		}
@@ -117,9 +114,6 @@ func renderCommunityToolStatus(b *strings.Builder, status communitytool.Status) 
 	b.WriteString("\n")
 	detected, configured, missing := status.DetectedConfiguredMissingCounts()
 	summary := fmt.Sprintf("Agent wiring: %d detected • %d configured • %d missing", detected, configured, missing)
-	if pending := detected - configured - missing; pending > 0 {
-		summary += fmt.Sprintf(" • %d pending", pending)
-	}
 	b.WriteString(styles.SubtextStyle.Render(summary))
 	b.WriteString("\n")
 	for _, agent := range status.Agents {
@@ -129,8 +123,6 @@ func renderCommunityToolStatus(b *strings.Builder, status communitytool.Status) 
 		marker := "missing"
 		if agent.Configured {
 			marker = "configured"
-		} else if agent.Status == communitytool.AgentStatusPending {
-			marker = "pending"
 		}
 		line := fmt.Sprintf("  - %s: %s", agent.Name, marker)
 		if agent.Path != "" {

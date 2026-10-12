@@ -4,26 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewerprovider"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
 )
-
-// writeReviewCLIRawInput writes raw provider role result bytes to a temp file
-// and returns its path, for tests driving the `--input=<path>` submission
-// form.
-func writeReviewCLIRawInput(t *testing.T, raw []byte) string {
-	t.Helper()
-	path := filepath.Join(t.TempDir(), "role-result.json")
-	if err := os.WriteFile(path, raw, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	return path
-}
 
 // corroborateRefuterClaimsForTest submits the one refuter batch a reviewing
 // lineage requires once every lens is captured with a severe candidate-caused

@@ -123,11 +123,3 @@ func TestAllSupportedEngines(t *testing.T) {
 		})
 	}
 }
-
-func TestNewEngine_Cursor_ReturnsNil(t *testing.T) {
-	// cursor, vscode-copilot, etc. are not supported generation engines.
-	engine := NewEngine(model.AgentCursor)
-	if engine != nil {
-		t.Errorf("expected nil engine for cursor (not a generation engine), got %v", engine)
-	}
-}

@@ -16,29 +16,24 @@ import (
 // SDDRuntimeFiles locates what releases wrote for one runtime outside its
 // skill, command, and workflow directories.
 type SDDRuntimeFiles struct {
-	// Dirs holds the Codex home (SDD profiles) or the legacy Kimi root (SDD
-	// module); install, sync, and snapshots list them with PresentRetiredSDDAssetPaths.
+	// Dirs holds the Codex home (SDD profiles); install, sync, and snapshots
+	// list them with PresentRetiredSDDAssetPaths.
 	Dirs SDDAssetDirs
 	// Prompt is the lowercase agents.md v1.7.10 to v1.31.0 wrote Codex's SDD
 	// block to; Active is the AGENTS.md routing guidance migrates.
 	Prompt, Active string
-	// Hub is the legacy Kimi router that included the SDD module.
-	Hub string
 }
 
 // RetiredSDDRuntimeFiles returns the SDDRuntimeFiles of agent under root, the
 // home or workspace directory releases resolved them from: a workspace-scoped
 // install of v1.31.0 to v3.7.0 wrote the same files under the workspace
-// (<ws>/.codex, <ws>/.kimi). The prompt edits are confined to the Codex home
-// and the Kimi root, like the profiles and the module.
+// (<ws>/.codex). The prompt edits are confined to the Codex home, like the
+// profiles.
 func RetiredSDDRuntimeFiles(agent model.AgentID, root string) SDDRuntimeFiles {
 	switch agent {
 	case model.AgentCodex:
 		home := filepath.Join(root, ".codex")
 		return SDDRuntimeFiles{Dirs: SDDAssetDirs{CodexHome: home}, Prompt: filepath.Join(home, "agents.md"), Active: filepath.Join(home, "AGENTS.md")}
-	case model.AgentKimi:
-		home := filepath.Join(root, ".kimi")
-		return SDDRuntimeFiles{Dirs: SDDAssetDirs{KimiHome: home}, Hub: filepath.Join(home, "KIMI.md")}
 	}
 	return SDDRuntimeFiles{}
 }
@@ -64,9 +59,6 @@ func NormalizeCodexProfile(content string) string {
 }
 
 const (
-	// kimiSDDIncludeLine is the line every release's KIMI.md router loaded
-	// the retired SDD orchestrator module with.
-	kimiSDDIncludeLine = `{% include "sdd-orchestrator.md" ignore missing %}`
 	// sddOrchestratorOpen and sddOrchestratorClose delimit the managed
 	// section the SDD component wrote into system prompt files.
 	sddOrchestratorOpen  = "<!-- gentle-ai:sdd-orchestrator -->"
@@ -87,23 +79,6 @@ type TextRetireResult struct {
 	Ambiguous string
 	// text names what was retired, for the manual action.
 	text string
-}
-
-// RetireKimiSDDInclude removes from a legacy Kimi KIMI.md router under root
-// every line that is exactly the include releases wrote for the retired SDD
-// module. Every other byte, including any other include of that module, is
-// kept.
-func RetireKimiSDDInclude(root, hub string) (TextRetireResult, error) {
-	return retirePromptText(root, hub, "the line `"+kimiSDDIncludeLine+"`", func(content string) (string, string) {
-		lines := strings.SplitAfter(content, "\n")
-		kept := lines[:0]
-		for _, line := range lines {
-			if strings.TrimSuffix(line, "\n") != kimiSDDIncludeLine {
-				kept = append(kept, line)
-			}
-		}
-		return strings.Join(kept, ""), ""
-	})
 }
 
 // RetireSDDOrchestratorBlock removes the `<!-- gentle-ai:sdd-orchestrator -->`

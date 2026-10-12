@@ -215,14 +215,7 @@ func TestProjectSkillDirsIncludesWorkspaceSkillLocations(t *testing.T) {
 	for _, want := range []string{
 		filepath.Join(cwd, "skills"),
 		filepath.Join(cwd, ".claude", "skills"),
-		filepath.Join(cwd, ".gemini", "skills"),
-		filepath.Join(cwd, ".cursor", "skills"),
-		filepath.Join(cwd, ".github", "skills"),
 		filepath.Join(cwd, ".codex", "skills"),
-		filepath.Join(cwd, ".qwen", "skills"),
-		filepath.Join(cwd, ".kiro", "skills"),
-		filepath.Join(cwd, ".openclaw", "skills"),
-		filepath.Join(cwd, ".pi", "skills"),
 		filepath.Join(cwd, ".agent", "skills"),
 		filepath.Join(cwd, ".agents", "skills"),
 		filepath.Join(cwd, ".atl", "skills"),
@@ -562,28 +555,18 @@ func assertRegistrySkills(
 	}
 }
 
-func TestProjectSkillDirsIncludesHermesSkillLocation(t *testing.T) {
-	cwd := t.TempDir()
-	dirs := ProjectSkillDirs(cwd)
-	want := filepath.Join(cwd, ".hermes", "skills")
-	if !containsPath(dirs, want) {
-		t.Fatalf("ProjectSkillDirs() missing Hermes skill location %q", want)
-	}
-}
-
-// TestListKeepsSharedUserSkillBeforeKimiCodeNativeSkills verifies that a
-// skill name present in both the shared user skills root and the current
-// kimi-code native skills root resolves to the shared user copy: the
-// .config/agents/skills source precedes .kimi-code/skills in UserSkillDirs,
-// so dedupeBySkillName keeps the earlier entry while project skills still
-// beat both (issue #782 review).
-func TestListKeepsSharedUserSkillBeforeKimiCodeNativeSkills(t *testing.T) {
+// TestListKeepsSharedUserSkillBeforeAgentNativeSkills verifies that a skill
+// name present in both the shared user skills root and an agent-native skills
+// root resolves to the shared user copy: the .config/agents/skills source
+// precedes .claude/skills in UserSkillDirs, so dedupeBySkillName keeps the
+// earlier entry while project skills still beat both (issue #782 review).
+func TestListKeepsSharedUserSkillBeforeAgentNativeSkills(t *testing.T) {
 	cwd := t.TempDir()
 	home := t.TempDir()
 	writeSkill(t, filepath.Join(home, ".config", "agents", "skills", "shared", "SKILL.md"),
 		"---\nname: shared\ndescription: shared user copy\n---\n")
-	writeSkill(t, filepath.Join(home, ".kimi-code", "skills", "shared", "SKILL.md"),
-		"---\nname: shared\ndescription: kimi-code native copy\n---\n")
+	writeSkill(t, filepath.Join(home, ".claude", "skills", "shared", "SKILL.md"),
+		"---\nname: shared\ndescription: claude native copy\n---\n")
 
 	entries := List(cwd, home)
 	if len(entries) != 1 {

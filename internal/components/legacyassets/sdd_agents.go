@@ -148,7 +148,7 @@ const (
 	// regular file, so it may hold the user's changes.
 	PreservedUnproven PreserveReason = iota + 1
 	// PreservedPairUnproven: the file is a release's bytes, but the other
-	// half of its Kimi pair is unproven, so removing it would break the pair.
+	// half of its pair is unproven, so removing it would break the pair.
 	PreservedPairUnproven
 )
 
@@ -175,13 +175,11 @@ type RetireResult struct {
 }
 
 // RetireSDDAgents removes the retired SDD sub-agents in dir that Gentle AI
-// rendered. Files sharing a stem (Kimi's YAML and its prompt) are one agent:
+// rendered. Files sharing a stem (a YAML agent and its prompt) are one agent:
 // it is removed only when every present file is owned. Symlinks, non-regular
 // files, and bytes no release rendered are preserved and reported. A file any
 // remaining YAML agent in dir still references is never removed, whoever owns
-// that agent, so retirement never leaves a dangling subagent path. Callers
-// rewrite Gentle-owned parents (Kimi's gentleman.yaml) first so the cleanup
-// completes in one run.
+// that agent, so retirement never leaves a dangling subagent path.
 func RetireSDDAgents(agent model.AgentID, dir string) (RetireResult, error) {
 	var result RetireResult
 	// A symlinked agents directory (dotfiles) is followed like every writer

@@ -43,7 +43,7 @@ func TestSetupAgentSlug(t *testing.T) {
 	}{
 		{model.AgentClaudeCode, "claude-code", true},
 		{model.AgentCodex, "codex", true},
-		// Hermes MCP is injected directly via YAML helpers — no engram setup slug.
+		{model.AgentID("opencode"), "", false},
 	}
 
 	for _, tt := range tests {
@@ -61,11 +61,8 @@ func TestShouldAttemptSetup(t *testing.T) {
 	if !ShouldAttemptSetup(SetupModeSupported, model.AgentClaudeCode) {
 		t.Fatal("ShouldAttemptSetup(supported, claude-code) = false, want true")
 	}
-	if ShouldAttemptSetup(SetupModeSupported, model.AgentQwenCode) {
-		t.Fatal("ShouldAttemptSetup(supported, qwen-code) = true, want false")
-	}
-	if ShouldAttemptSetup(SetupModeSupported, model.AgentCursor) {
-		t.Fatal("ShouldAttemptSetup(supported, cursor) = true, want false")
+	if ShouldAttemptSetup(SetupModeSupported, model.AgentID("opencode")) {
+		t.Fatal("ShouldAttemptSetup(supported, opencode) = true, want false")
 	}
 }
 

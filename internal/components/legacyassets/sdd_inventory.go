@@ -9,7 +9,7 @@ import (
 
 // SDDInventory is what releases installed for one runtime under one config
 // root besides native agents: SDD skills, slash
-// commands, workflows, Codex profiles, the Kimi module, the Claude Code
+// commands, workflows, Codex profiles, the Claude Code
 // preflight hook, and the SDD text left in prompt files. Install, sync, and
 // uninstall snapshot (BackupPaths) and retire (Retire) exactly this
 // inventory.
@@ -21,8 +21,6 @@ type SDDInventory struct {
 	Settings string
 	// Blocks are prompt files whose SDD orchestrator block is removed.
 	Blocks []SDDPromptFile
-	// KimiHub is the legacy Kimi router that included the SDD module.
-	KimiHub SDDPromptFile
 }
 
 // SDDPromptFile is a prompt file holding retired SDD text, edited only when
@@ -45,10 +43,7 @@ func RetiredSDDInventory(adapter agents.Adapter, root string) SDDInventory {
 		inv.Settings = adapter.SettingsPath(root)
 	}
 	files := RetiredSDDRuntimeFiles(adapter.Agent(), root)
-	inv.Dirs.CodexHome, inv.Dirs.KimiHome = files.Dirs.CodexHome, files.Dirs.KimiHome
-	if files.Hub != "" {
-		inv.KimiHub = SDDPromptFile{Root: files.Dirs.KimiHome, Path: files.Hub}
-	}
+	inv.Dirs.CodexHome = files.Dirs.CodexHome
 	if files.Prompt != "" {
 		inv.Blocks = append(inv.Blocks, SDDPromptFile{Root: files.Dirs.CodexHome, Path: files.Prompt, Active: files.Active})
 	}
@@ -63,7 +58,7 @@ func (inv SDDInventory) BackupPaths() []string {
 	if inv.Settings != "" {
 		paths = append(paths, inv.Settings)
 	}
-	for _, prompt := range append([]SDDPromptFile{inv.KimiHub}, inv.Blocks...) {
+	for _, prompt := range inv.Blocks {
 		if prompt.Path != "" && RetirablePromptFile(prompt.Root, prompt.Path) {
 			paths = append(paths, prompt.Path)
 		}
@@ -99,18 +94,11 @@ func (inv SDDInventory) Retire() (InventoryRetireResult, error) {
 		}
 		result.ManualActions = append(result.ManualActions, hook.ManualActions()...)
 	}
-	texts := make([]TextRetireResult, 0, len(inv.Blocks)+1)
+	texts := make([]TextRetireResult, 0, len(inv.Blocks))
 	for _, block := range inv.Blocks {
 		res, err := RetireSDDOrchestratorBlock(block.Root, block.Path, block.Active)
 		if err != nil {
 			return result, fmt.Errorf("retire SDD orchestrator block: %w", err)
-		}
-		texts = append(texts, res)
-	}
-	if inv.KimiHub.Path != "" {
-		res, err := RetireKimiSDDInclude(inv.KimiHub.Root, inv.KimiHub.Path)
-		if err != nil {
-			return result, fmt.Errorf("retire Kimi SDD include: %w", err)
 		}
 		texts = append(texts, res)
 	}

@@ -28,7 +28,6 @@ const (
 	AgentStatusUnavailable AgentStatusKind = "unavailable"
 	AgentStatusConfigured  AgentStatusKind = "configured"
 	AgentStatusMissing     AgentStatusKind = "missing"
-	AgentStatusPending     AgentStatusKind = "pending"
 )
 
 type Definition struct {
@@ -340,7 +339,7 @@ func (s Status) DetectedConfiguredMissingCounts() (detected, configured, missing
 		detected++
 		if agent.Configured {
 			configured++
-		} else if agent.Status != AgentStatusPending {
+		} else {
 			missing++
 		}
 	}

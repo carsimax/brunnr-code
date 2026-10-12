@@ -192,7 +192,7 @@ func TestClaudeModuleDeliveryWindowsHomeBinding(t *testing.T) {
 
 func TestClaudeModuleDeliveryLeavesDefaultAndOtherAgentsMonolithic(t *testing.T) {
 	for _, agent := range catalog.AllAgents() {
-		if agent.ID == model.AgentConductor || agent.ID == model.AgentClaudeCode {
+		if agent.ID == model.AgentClaudeCode {
 			continue
 		}
 		home := t.TempDir()
@@ -209,7 +209,7 @@ func TestClaudeModuleDeliveryLeavesDefaultAndOtherAgentsMonolithic(t *testing.T)
 	if err != nil || !reflect.DeepEqual(result.Files, []string{corePath}) {
 		t.Fatalf("default inject = %+v, %v; want only %s", result, err, corePath)
 	}
-	public, err := RenderOrchestratorWithSource(model.AgentClaudeCode, fakeModuleContract, "")
+	public, err := RenderOrchestratorWithSource(model.AgentClaudeCode, fakeModuleContract)
 	if err != nil {
 		t.Fatal(err)
 	}

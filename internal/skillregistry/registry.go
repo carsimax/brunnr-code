@@ -30,7 +30,7 @@ const (
 // global skill roots and, for a workspace-scoped run, in the workspace ones
 // (<workspace>/.claude/skills, for example). They keep edited copies, copies
 // behind symlinked directories, and everything in roots Gentle AI does not
-// manage (Pi, other project skill directories), so the exclusion keeps those
+// manage (other project skill directories), so the exclusion keeps those
 // leftovers, which call removed commands, out of delegation. NOTE: a user skill whose name collides with these
 // (e.g. any name starting with `sdd-`) is dropped without warning. Revisit as
 // configuration if that collision ever becomes a real constraint.
@@ -63,24 +63,10 @@ func UserSkillDirs(home string) []string {
 		// Generic Agent Skills locations.
 		filepath.Join(home, ".config", "agents", "skills"),
 		filepath.Join(home, ".agents", "skills"),
-		filepath.Join(home, ".kimi-code", "skills"),
-		filepath.Join(home, ".kimi", "skills"),
 
 		// Agent-specific global skill locations supported by Gentle AI adapters.
 		filepath.Join(home, ".claude", "skills"),
-		filepath.Join(home, ".gemini", "skills"),
-		filepath.Join(home, ".gemini", "antigravity", "skills"),
-		filepath.Join(home, ".gemini", "antigravity-desktop", "skills"),
-		filepath.Join(home, ".gemini", "antigravity-cli", "skills"),
-		filepath.Join(home, ".cursor", "skills"),
-		filepath.Join(home, ".copilot", "skills"),
 		filepath.Join(home, ".codex", "skills"),
-		filepath.Join(home, ".codeium", "windsurf", "skills"),
-		filepath.Join(home, ".qwen", "skills"),
-		filepath.Join(home, ".kiro", "skills"),
-		filepath.Join(home, ".openclaw", "skills"),
-		filepath.Join(home, ".hermes", "skills"),
-		filepath.Join(home, ".trae", "skills"),
 	}
 }
 
@@ -91,20 +77,12 @@ func ProjectSkillDirs(cwd string) []string {
 
 		// Agent-native workspace skill locations.
 		filepath.Join(cwd, ".claude", "skills"),
-		filepath.Join(cwd, ".gemini", "skills"),
-		filepath.Join(cwd, ".cursor", "skills"),
-		filepath.Join(cwd, ".github", "skills"),
 		filepath.Join(cwd, ".codex", "skills"),
-		filepath.Join(cwd, ".qwen", "skills"),
-		filepath.Join(cwd, ".kiro", "skills"),
-		filepath.Join(cwd, ".openclaw", "skills"),
 
-		// Gentle AI/Pi and generic Agent Skills workspace locations.
-		filepath.Join(cwd, ".pi", "skills"),
+		// Gentle AI and generic Agent Skills workspace locations.
 		filepath.Join(cwd, ".agent", "skills"),
 		filepath.Join(cwd, ".agents", "skills"),
 		filepath.Join(cwd, ".atl", "skills"),
-		filepath.Join(cwd, ".hermes", "skills"),
 	}
 }
 
@@ -208,7 +186,7 @@ func EnsureATLIgnored(cwd string) error {
 		prefix = "\n"
 	}
 	header := ""
-	if !strings.Contains(existing, "# Local AI runtime state") && !strings.Contains(existing, "# Local Pi runtime state") {
+	if !strings.Contains(existing, "# Local AI runtime state") {
 		header = "# Local AI runtime state\n"
 	}
 	// Atomic write guards against concurrent startup hooks (Codex +

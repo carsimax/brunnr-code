@@ -10,7 +10,6 @@ import (
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/capabilitymanifest"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/catalog"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
@@ -65,63 +64,6 @@ func advertisesReviewTransport(t *testing.T, agent model.AgentID) bool {
 		t.Fatalf("capabilitymanifest.ForAgent(%q) error = %v", agent, err)
 	}
 	return manifest.Advertises(capabilitymanifest.ContractReviewTransportV1)
-}
-
-func TestSelectGenericOrchestratorPreservesCommonSections(t *testing.T) {
-	asset, err := assets.Read("generic/orchestrator.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, hint := range []string{"", "unknown", "capable", "small"} {
-		t.Run(hint, func(t *testing.T) {
-			content := "common prefix\n" + asset + "\ncommon suffix"
-			got, err := selectGenericOrchestrator(content, hint)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !strings.HasPrefix(got, "common prefix\n") || !strings.HasSuffix(got, "\ncommon suffix") {
-				t.Fatal("selection lost synthetic common surroundings")
-			}
-			actualSuffix := asset[strings.Index(asset, "<!-- /section:model-small -->")+len("<!-- /section:model-small -->"):]
-			if !strings.Contains(got, actualSuffix) {
-				t.Fatal("selection changed actual common suffix")
-			}
-			if strings.Contains(got, "section:model-") || strings.Count(got, "# Agent Teams Lite — Orchestrator Instructions") != 1 {
-				t.Fatal("selection retained wrappers or duplicate variants")
-			}
-			if strings.Contains(got, "Orchestrator Instructions (Small Model)") != (hint == "small") {
-				t.Fatal("wrong model variant selected")
-			}
-		})
-	}
-	for _, malformed := range []string{
-		"common only",
-		strings.Replace(asset, "<!-- /section:model-small -->", "", 1),
-		strings.Replace(asset, "<!-- section:model-capable -->", "<!-- /section:model-capable -->", 1),
-		asset + "<!-- section:model-small -->",
-	} {
-		if _, err := selectGenericOrchestrator(malformed, "small"); err == nil {
-			t.Error("malformed sections must fail rather than deliver truncated content")
-		}
-	}
-}
-
-func TestRenderExplicitOrchestratorsIgnoreModelCapability(t *testing.T) {
-	for _, agent := range orchestratorRuntimes(t) {
-		if orchestratorAsset(agent) == "generic/orchestrator.md" {
-			continue
-		}
-		t.Run(string(agent), func(t *testing.T) {
-			want, err := RenderOrchestratorWithSource(agent, nil, "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			got, err := RenderOrchestratorWithSource(agent, nil, "small")
-			if err != nil || got != want {
-				t.Fatal("generic capability changed explicit runtime output", err)
-			}
-		})
-	}
 }
 
 func TestInjectRoutingInstallsOrchestratorForEveryRuntime(t *testing.T) {

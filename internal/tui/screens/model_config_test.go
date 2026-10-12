@@ -8,21 +8,21 @@ import (
 // ─── ModelConfigOptions ────────────────────────────────────────────────────
 
 // TestModelConfigOptions_Count verifies that ModelConfigOptions returns exactly
-// 4 items: Claude, Kiro, Codex, and Back.
+// 3 items: Claude, Codex, and Back.
 func TestModelConfigOptions_Count(t *testing.T) {
 	opts := ModelConfigOptions()
-	if len(opts) != 4 {
-		t.Fatalf("ModelConfigOptions() len = %d, want 4; got %v", len(opts), opts)
+	if len(opts) != 3 {
+		t.Fatalf("ModelConfigOptions() len = %d, want 3; got %v", len(opts), opts)
 	}
 }
 
 // TestModelConfigOptions_Order verifies the exact order of options:
-// Claude → Kiro → Codex → Back.
+// Claude → Codex → Back.
 func TestModelConfigOptions_Order(t *testing.T) {
 	opts := ModelConfigOptions()
 
 	// wantKeywords defines the expected order by a unique keyword per option.
-	wantKeywords := []string{"Claude", "Kiro", "Codex", "Back"}
+	wantKeywords := []string{"Claude", "Codex", "Back"}
 
 	if len(opts) != len(wantKeywords) {
 		t.Fatalf("ModelConfigOptions() len = %d, want %d; got %v", len(opts), len(wantKeywords), opts)
@@ -35,17 +35,17 @@ func TestModelConfigOptions_Order(t *testing.T) {
 	}
 }
 
-// TestModelConfigOptions_ContainsCodex verifies Codex is at index 2 and Back at index 3.
+// TestModelConfigOptions_ContainsCodex verifies Codex is at index 1 and Back at index 2.
 func TestModelConfigOptions_ContainsCodex(t *testing.T) {
 	opts := ModelConfigOptions()
-	if len(opts) < 4 {
-		t.Fatalf("ModelConfigOptions() len = %d, want at least 4", len(opts))
+	if len(opts) < 3 {
+		t.Fatalf("ModelConfigOptions() len = %d, want at least 3", len(opts))
 	}
-	if !strings.Contains(opts[2], "Codex") {
-		t.Errorf("ModelConfigOptions()[2] = %q, want option containing 'Codex'", opts[2])
+	if !strings.Contains(opts[1], "Codex") {
+		t.Errorf("ModelConfigOptions()[1] = %q, want option containing 'Codex'", opts[1])
 	}
-	if !strings.Contains(opts[3], "Back") {
-		t.Errorf("ModelConfigOptions()[3] = %q, want 'Back'", opts[3])
+	if !strings.Contains(opts[2], "Back") {
+		t.Errorf("ModelConfigOptions()[2] = %q, want 'Back'", opts[2])
 	}
 }
 

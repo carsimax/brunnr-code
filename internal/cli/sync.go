@@ -474,8 +474,7 @@ func (r *syncRuntime) stagePlan() pipeline.StagePlan {
 		}
 	}
 	apply = append(apply, retiredSDDAssetStepList(retiredSDDAssetSteps("sync:agent:retire-sdd-assets:", r.homeDir, r.workspaceDir, r.scope, r.agentIDs, &r.changedFiles, r.state))...)
-	// After the native installer: it rewrites a Gentle-owned v3 Kimi
-	// gentleman.yaml, so the SDD subagents it declared can be retired now.
+	// After the native installer, so retired SDD subagents go last.
 	apply = append(apply, retiredSDDAgentSteps("sync:agent:retire-sdd:", r.homeDir, r.scope, r.agentIDs, &r.changedFiles, r.state)...)
 
 	// Routing guidance is refreshed per agent and outside the component loop, for
@@ -738,10 +737,6 @@ func workspaceGlobalOnlyComponent(component model.ComponentID) bool {
 // a workspace sync must skip that adapter instead of leaking (issue #1074).
 func workspaceAdapterManagedGlobally(component model.ComponentID, agent model.AgentID) bool {
 	switch component {
-	case model.ComponentEngram, model.ComponentContext7:
-		// OpenClaw MCP settings are always merged into the canonical global
-		// ~/.openclaw/openclaw.json.
-		return agent == model.AgentOpenClaw
 	case model.ComponentPermission, model.ComponentTheme:
 		// Every agent writes its global settings file.
 		return true
@@ -798,16 +793,10 @@ func syncPersonaPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Ins
 	paths := []string{}
 	for _, adapter := range adapters {
 		targetDir := componentInjectionDirScoped(homeDir, workspaceDir, scope, adapter)
-		if adapter.Agent() == model.AgentOpenClaw {
-			paths = append(paths, filepath.Join(targetDir, "SOUL.md"))
-			continue
-		}
 		if !adapter.SupportsSystemPrompt() {
 			continue
 		}
-		if adapter.SystemPromptStrategy() != model.StrategyJinjaModules {
-			paths = append(paths, adapter.SystemPromptFile(targetDir))
-		}
+		paths = append(paths, adapter.SystemPromptFile(targetDir))
 		if adapter.SupportsOutputStyles() {
 			if stylePaths := persona.ResourcePlanFor(selection.Persona).OutputStylePaths(adapter.OutputStyleDir(targetDir)); stylePaths.Write != "" {
 				paths = append(paths, stylePaths.Write)
@@ -997,21 +986,17 @@ func (s componentSyncStep) Run() error {
 		for _, adapter := range adapters {
 			var res engram.InjectionResult
 			var err error
-			if adapter.Agent() == model.AgentOpenClaw {
-				res, err = engram.InjectWithPromptDir(s.homeDir, componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter), adapter)
+			targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)
+			if s.scope == ScopeWorkspace {
+				// The workspace delivery is the purpose-built scoped API
+				// (userScope=false): it writes the adapter's workspace MCP
+				// config — Claude Code: <workspace>/.claude/mcp/engram.json —
+				// while the user-scope API would write the user registry
+				// (<workspace>/.claude.json). Mirrors install (issue #1074).
+				res, err = engram.InjectWorkspaceWithOptions(targetDir, adapter, engramOpts)
 			} else {
-				targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)
-				if s.scope == ScopeWorkspace {
-					// The workspace delivery is the purpose-built scoped API
-					// (userScope=false): it writes the adapter's workspace MCP
-					// config — Claude Code: <workspace>/.claude/mcp/engram.json —
-					// while the user-scope API would write the user registry
-					// (<workspace>/.claude.json). Mirrors install (issue #1074).
-					res, err = engram.InjectWorkspaceWithOptions(targetDir, adapter, engramOpts)
-				} else {
-					res, err = engram.InjectWithOptions(targetDir, adapter, engramOpts)
-					s.state.noteCodexServiceTier(res)
-				}
+				res, err = engram.InjectWithOptions(targetDir, adapter, engramOpts)
+				s.state.noteCodexServiceTier(res)
 			}
 			if err != nil {
 				return fmt.Errorf("sync engram for %q: %w", adapter.Agent(), err)
@@ -1709,13 +1694,6 @@ func RunSync(args []string) (SyncResult, error) {
 			m[k] = model.ClaudeModelAlias(v)
 		}
 		selection.ClaudeModelAssignments = m
-	}
-	if len(selection.KiroModelAssignments) == 0 && len(persistedState.KiroModelAssignments) > 0 {
-		m := make(map[string]model.KiroModelAlias, len(persistedState.KiroModelAssignments))
-		for k, v := range persistedState.KiroModelAssignments {
-			m[k] = model.KiroModelAlias(v)
-		}
-		selection.KiroModelAssignments = m
 	}
 	if selection.CodexOrchestratorAssignment == nil && persistedState.CodexOrchestratorAssignment != nil {
 		selection.CodexOrchestratorAssignment = codexOrchestratorFromState(persistedState.CodexOrchestratorAssignment)

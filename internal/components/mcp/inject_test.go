@@ -69,37 +69,6 @@ func readMCPServersContext7Entry(t *testing.T, path string) map[string]any {
 	return context7
 }
 
-// assertAntigravityContext7Schema asserts the mcpServers.context7 entry in an
-// Antigravity mcp_config.json is a valid remote entry with no legacy local keys.
-func assertAntigravityContext7Schema(t *testing.T, path string) {
-	t.Helper()
-
-	context7 := readMCPServersContext7Entry(t, path)
-
-	if got := context7["serverUrl"]; got != "https://mcp.context7.com/mcp" {
-		t.Fatalf("%q mcpServers.context7.serverUrl = %#v; want context7 remote URL", path, got)
-	}
-
-	assertOnlyKeys(t, path, context7, "serverUrl")
-}
-
-// assertKimiContext7Schema asserts the mcpServers.context7 entry in a Kimi
-// mcp.json is the documented remote HTTP config with no legacy local keys.
-func assertKimiContext7Schema(t *testing.T, path string) {
-	t.Helper()
-
-	context7 := readMCPServersContext7Entry(t, path)
-
-	if got := context7["transport"]; got != "http" {
-		t.Fatalf("%q mcpServers.context7.transport = %#v; want %q", path, got, "http")
-	}
-	if got := context7["url"]; got != "https://mcp.context7.com/mcp" {
-		t.Fatalf("%q mcpServers.context7.url = %#v; want context7 remote URL", path, got)
-	}
-
-	assertOnlyKeys(t, path, context7, "transport", "url")
-}
-
 func TestInjectClaudeWritesUserConfigAndIsIdempotent(t *testing.T) {
 	home := t.TempDir()
 	userConfigPath := filepath.Join(home, ".claude.json")
@@ -815,7 +784,7 @@ args = ["-y", "context7-mcp"]
 
 // TestMergeJSONFilePreservesExistingModeOnRewrite is the representative
 // end-to-end regression test for gentle-ai#5006(F5): mergeJSONFile is the
-// settings-merge codepath shared by every non-OpenClaw MCP
+// settings-merge codepath shared by every JSON MCP
 // injection, and rewriting a pre-seeded private settings file must never
 // widen it.
 func TestMergeJSONFilePreservesExistingModeOnRewrite(t *testing.T) {

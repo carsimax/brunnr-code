@@ -214,7 +214,7 @@ var runtimeModelProviderRe = regexp.MustCompile(runtimeModelProviderPattern)
 // NormalizeRuntimeModel keeps model attribution inside the runtime telemetry
 // contract without exposing unregistered provider or model names. It replaces
 // the former closed exact-id registry with one generic family-pattern
-// normalizer shared by every host adapter (opencode, claude, codex) and the
+// normalizer shared by every host adapter (claude, codex) and the
 // collector: an id is public only when its family is recognized, never a
 // specific vendor catalog entry.
 func NormalizeRuntimeModel(provider, id string) RuntimeModel {

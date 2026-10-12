@@ -7,12 +7,6 @@ type Agent struct {
 	Name       string
 	Tier       model.SupportTier
 	ConfigPath string
-
-	// ReviewNote, when non-empty, is surfaced on the install review screen
-	// whenever this agent is selected. It exists for detection/catalog-only
-	// integrations whose selection deserves an explicit expectation setting;
-	// writable agents must leave it empty.
-	ReviewNote string
 }
 
 var allAgents = []Agent{

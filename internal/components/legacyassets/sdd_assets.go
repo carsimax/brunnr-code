@@ -20,7 +20,6 @@ const (
 	sddCommandKind  = "commands/"
 	sddWorkflowKind = "workflows/"
 	sddProfileKind  = "profiles/"
-	sddModuleKind   = "modules/"
 	sddSharedDir    = "_shared/"
 )
 
@@ -65,13 +64,10 @@ type SDDAssetDirs struct {
 	Skills, Commands, Workflows string
 	// CodexHome received the sdd-{strong,mid,cheap} Codex profiles.
 	CodexHome string
-	// KimiHome is the legacy Kimi root (~/.kimi) that received the SDD
-	// orchestrator Jinja module.
-	KimiHome string
 }
 
 // PresentRetiredSDDAssetPaths lists, sorted, the retired SDD skill, slash
-// command, workflow, Codex profile, and Kimi module paths under dirs that
+// command, workflow, and Codex profile paths under dirs that
 // exist and that retirement may touch: none behind a directory that is not a
 // real directory. Install, sync, and upgrade snapshot exactly these, and
 // retirement inspects only the same inventory.
@@ -121,8 +117,6 @@ func retiredSDDAssetItems(agent model.AgentID, dirs SDDAssetDirs) []sddAssetItem
 			add(dirs.Workflows, key, key)
 		case dirs.CodexHome != "" && strings.HasPrefix(key, sddProfileKind):
 			add(dirs.CodexHome, key, key)
-		case dirs.KimiHome != "" && strings.HasPrefix(key, sddModuleKind):
-			add(dirs.KimiHome, key, key)
 		}
 	}
 	if agent == model.AgentClaudeCode && dirs.Skills != "" {
@@ -152,7 +146,7 @@ type AssetRetireResult struct {
 }
 
 // RetireSDDAssets removes the retired SDD skills, slash commands, workflows,
-// Codex profiles, and Kimi module under dirs whose bytes a release installed.
+// and Codex profiles under dirs whose bytes a release installed.
 // A skill directory is one unit: it is removed only when every inventory file
 // present in it is owned, so an edited skill keeps the references it ships
 // with. Shared SDD references stay while any edited SDD skill remains, since

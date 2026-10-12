@@ -6,15 +6,11 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
 
-// TestComputeSlugSlimVerdictsSafestWinsAcrossDivergentPair pins JD-017: the
-// per-slug forwarding verdict uses AND (safest-wins) semantics across every
-// adapter sharing a slug. Gemini CLI and Antigravity share the real
-// "gemini-cli" slug (engram.SetupAgentSlug); isSlim is fabricated per case
-// so the divergent (one slim, one full) branch is reachable without
-// depending on IsVerifiedSlimAdapter, which today never verifies either of
-// these two agents as slim.
-func TestComputeSlugSlimVerdictsSafestWinsAcrossDivergentPair(t *testing.T) {
-	agentIDs := []model.AgentID{model.AgentAntigravity}
+// TestComputeSlugSlimVerdictsFollowsIsSlim pins JD-017: the per-slug
+// forwarding verdict uses AND (safest-wins) semantics across every adapter
+// sharing a slug; with one adapter per slug the verdict is that adapter's.
+func TestComputeSlugSlimVerdictsFollowsIsSlim(t *testing.T) {
+	agentIDs := []model.AgentID{model.AgentClaudeCode}
 
 	tests := []struct {
 		name        string
@@ -22,14 +18,14 @@ func TestComputeSlugSlimVerdictsSafestWinsAcrossDivergentPair(t *testing.T) {
 		wantVerdict bool
 	}{
 		{
-			name: "both slim -> slim",
+			name: "slim -> slim",
 			isSlim: func(model.AgentID) bool {
 				return true
 			},
 			wantVerdict: true,
 		},
 		{
-			name: "both full -> full",
+			name: "full -> full",
 			isSlim: func(model.AgentID) bool {
 				return false
 			},
@@ -40,9 +36,9 @@ func TestComputeSlugSlimVerdictsSafestWinsAcrossDivergentPair(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			verdicts := computeSlugSlimVerdicts(agentIDs, tt.isSlim)
-			got, ok := verdicts["gemini-cli"]
+			got, ok := verdicts["claude-code"]
 			if !ok {
-				t.Fatalf("computeSlugSlimVerdicts() missing verdict for shared slug %q", "gemini-cli")
+				t.Fatalf("computeSlugSlimVerdicts() missing verdict for slug %q", "claude-code")
 			}
 			if got != tt.wantVerdict {
 				t.Fatalf("computeSlugSlimVerdicts() verdict = %v, want %v", got, tt.wantVerdict)
@@ -52,10 +48,10 @@ func TestComputeSlugSlimVerdictsSafestWinsAcrossDivergentPair(t *testing.T) {
 }
 
 // TestComputeSlugSlimVerdictsSkipsAgentsWithoutSetupSlug ensures agents
-// without an engram setup slug (e.g. Cursor, VS Code Copilot) are excluded
-// from the verdict map entirely, matching the pre-extraction inline loop.
+// without an engram setup slug are excluded from the verdict map entirely,
+// matching the pre-extraction inline loop.
 func TestComputeSlugSlimVerdictsSkipsAgentsWithoutSetupSlug(t *testing.T) {
-	agentIDs := []model.AgentID{model.AgentCursor}
+	agentIDs := []model.AgentID{model.AgentID("unknown-runtime")}
 
 	verdicts := computeSlugSlimVerdicts(agentIDs, func(model.AgentID) bool {
 		return true
