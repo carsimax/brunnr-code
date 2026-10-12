@@ -24,11 +24,14 @@ Production: delete `internal/components/mcp/`, `internal/versions/`, and `testda
 
 Each task runs `go run ./internal/gofmtcheck`, `go build ./... && go vet ./...`, and the tests of touched packages. A full `go test ./...` runs at the end. Each task ends with a Conventional Commit. RED/GREEN applies only to T2. T1 and T3 are removals, so the build and updated tests are the proof. RDD is disabled in this clone.
 
-- [ ] **T1: GGA test fixtures.** Rename the fake `gga` tool in `internal/update`, `internal/app`, and `internal/cli` tests, and remove the orphan comment headers in `upgrade/strategy_test.go`.
-- [ ] **T2: Filter unknown persisted components.** `state.RestoreSelection` drops component IDs that are not in the catalog, so a stale `"context7"` in `state.json` does not break sync. Write the test first.
+- [x] **T1: GGA test fixtures.** Rename the fake `gga` tool in `internal/update`, `internal/app`, and `internal/cli` tests, and remove the orphan comment headers in `upgrade/strategy_test.go`.
+- [x] **T2: Filter unknown persisted components.** `state.RestoreSelection` drops component IDs that are not in the catalog, so a stale `"context7"` in `state.json` does not break sync. Write the test first.
 - [ ] **T3: Remove Context7.** Remove the wiring in model, presets, catalog, planner, cli run/sync, uninstall, and upgrade backup paths. Delete `components/mcp`, `versions`, and the goldens. Prune the dead filemerge and claude helpers. Rewrite the shared TOML tests around Engram or a generic server.
 - [ ] **T4: e2e and final sweep.** Update `e2e/e2e_test.sh` presets and the component cases, and decide whether to keep `renovate.json`. Run a full `go test ./...` and a final `git grep -i context7` sweep.
 
 ## Progress
 
 Branch created from `a1887265`.
+
+- **T1 (delegated, writer):** commit `ecd9eee6`. Renamed the fake `gga` tool to `faketool` in the `internal/update`, `internal/app`, and `internal/cli` tests and reworded three comments. Removed the orphan headers in `upgrade/strategy_test.go`: the GGA and script-upgrade headers, plus `GoInstallMissingImportPath` and `ScriptUpgradeExecFailure`, which had no test under them. `git grep -i -w gga` outside `odd/` is empty. Checks: gofmtcheck ok, build+vet ok, `go test ./internal/update/... ./internal/app ./internal/components/filemerge` ok, `go test ./internal/cli -run Doctor` ok.
+- **T2 (delegated, writer):** commit `40b7d4fd`. RED: `TestRestoreSelectionDropsUnknownComponents` failed with `[engram retired-component skills]`. GREEN: `model.KnownComponentIDs` mirrors `model.SupportedAgentIDs`, and `RestoreSelection` filters through it while keeping nil for empty input. `model.ShippedComponentIDs` plus a catalog parity test keep the model list equal to `catalog.MVPComponents`. T3 must remove `ComponentContext7` from both. Checks: gofmtcheck ok, build+vet ok, `go test ./internal/state ./internal/model ./internal/catalog` ok, `go test ./internal/cli -run 'Sync|State|Restore'` ok.
