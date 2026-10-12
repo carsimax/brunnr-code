@@ -23,7 +23,7 @@ const (
 
 // requirePrePRMultiSegmentDenialNamesRunnableNextStep proves the plain
 // (non-negotiated) gate-result JSON's own `reason` text names a runnable
-// next step -- `gentle-ai review start` -- even though the delivery used to
+// next step -- `brunnr-code review start` -- even though the delivery used to
 // compose to an allow before Wave 5 Slice 5 deleted
 // EvaluateCompactPrePRChain. Denial.Code must be receipt_ambiguous
 // (discovery itself found three terminal candidates, none spanning the
@@ -45,8 +45,8 @@ func requirePrePRMultiSegmentDenialNamesRunnableNextStep(_ *Sandbox, observation
 	if gate.Context.Denial == nil || gate.Context.Denial.Code != "receipt_ambiguous" {
 		return fmt.Errorf("multi-segment pre-PR denial code = %+v, want receipt_ambiguous", gate.Context.Denial)
 	}
-	if !strings.Contains(gate.Reason, "gentle-ai review start") {
-		return fmt.Errorf("multi-segment pre-PR denial reason = %q, want it to name the runnable next step (gentle-ai review start)", gate.Reason)
+	if !strings.Contains(gate.Reason, "brunnr-code review start") {
+		return fmt.Errorf("multi-segment pre-PR denial reason = %q, want it to name the runnable next step (brunnr-code review start)", gate.Reason)
 	}
 	return nil
 }

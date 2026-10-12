@@ -458,7 +458,7 @@ func privateRARSecurityDescriptorSafe(
 
 // privateRARSecurityDescriptorMismatch reduces a live descriptor to the facts
 // the owner-only rule decides from and returns what differs, or "" when it is
-// exactly the descriptor gentle-ai writes. The unsafe pointer arithmetic and
+// exactly the descriptor brunnr-code writes. The unsafe pointer arithmetic and
 // the bounds checks that make reading a raw ACE safe stay here; the rule
 // applied to what they find is rarWindowsOwnerOnlyMismatch, which is pure and
 // table-tested on every platform.
@@ -592,7 +592,7 @@ func rarSharedSecurityDescriptorOwnedByCurrentProcess(
 //
 // Only the shared repository-parent checks consult this set. Private RAR
 // authority state (privateRARSecurityDescriptorSafe) remains strictly
-// current-token-user-only because gentle-ai creates it itself with an
+// current-token-user-only because brunnr-code creates it itself with an
 // explicit owner-only descriptor.
 func rarTrustedWindowsAdministrativeOwner(owner *windows.SID) bool {
 	if owner == nil || !owner.IsValid() {

@@ -17,7 +17,7 @@ Return one JSON object and no prose. Use exactly this native result shape:
 
 %s
 
-This is a judgment-day judge result, not a `+"`gentle-ai review capture-result`"+` lens artifact. Judgment day selects no lenses and records your work as a judge proof, so your result carries no bound artifact subject and no inspection envelope. The only allowed top-level fields are findings and evidence, and the only allowed finding fields are location, severity, claim, evidence_class, causal_disposition, and proof_refs. Never emit summary, skill_resolution, or any other unknown field. Keep orchestration metadata outside the native result JSON; evidence contains only genuine inspection evidence.
+This is a judgment-day judge result, not a `+"`brunnr-code review capture-result`"+` lens artifact. Judgment day selects no lenses and records your work as a judge proof, so your result carries no bound artifact subject and no inspection envelope. The only allowed top-level fields are findings and evidence, and the only allowed finding fields are location, severity, claim, evidence_class, causal_disposition, and proof_refs. Never emit summary, skill_resolution, or any other unknown field. Keep orchestration metadata outside the native result JSON; evidence contains only genuine inspection evidence.
 
 Return {"findings":[],"evidence":["what was inspected"]} when clean.`, NativeReviewerResultSchema)
 }

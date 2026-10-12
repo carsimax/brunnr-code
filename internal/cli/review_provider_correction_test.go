@@ -205,7 +205,7 @@ func TestProviderCaptureRefusesAfterTwoRejectedResultsAndPreservesBoth(t *testin
 			t.Fatalf("unexpected preserved attempt %#v", envelope)
 		}
 	}
-	for _, want := range []string{`unknown field "lens"`, "no complete JSON object", "gentle-ai review status"} {
+	for _, want := range []string{`unknown field "lens"`, "no complete JSON object", "brunnr-code review status"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Fatalf("refusal lacks %q: %v", want, err)
 		}
@@ -251,7 +251,7 @@ func TestProviderCaptureSkipsCorrectionOverBudgetAndClassifiesAsRefused(t *testi
 		return "", errors.New(strings.Repeat("x", reviewLensContextByteBudget))
 	}
 	preserve := func(_ context.Context, _ int, _ error, _ []byte) string { return "preserved-clause" }
-	continuation := func() string { return "gentle-ai review status --next-transition" }
+	continuation := func() string { return "brunnr-code review status --next-transition" }
 	reviewCalls := 0
 	adapter := providerTestAdapterFunc(func(_ context.Context, _ reviewerprovider.Invocation) ([]byte, error) {
 		reviewCalls++
@@ -289,7 +289,7 @@ func TestProviderCaptureSkipsCorrectiveRetryAtTheRuntimeBudgetBoundary(t *testin
 	})
 	admit := func(_ context.Context, _ []byte) (string, error) { return "", admission }
 	preserve := func(_ context.Context, _ int, _ error, _ []byte) string { return "preserved-clause" }
-	continuation := func() string { return "gentle-ai review status --next-transition" }
+	continuation := func() string { return "brunnr-code review status --next-transition" }
 
 	_, raw, err := reviewProviderCaptureRetry(context.Background(), adapter, reviewerprovider.NewInvocation(original), string(model.AgentClaudeCode), admit, preserve, continuation, nil)
 	var refused *reviewProviderCaptureRefusedError
@@ -329,7 +329,7 @@ func TestProviderCaptureCorrectiveRetryRunsAtTheRuntimeBudgetCap(t *testing.T) {
 		return "admitted", nil
 	}
 	preserve := func(_ context.Context, _ int, _ error, _ []byte) string { return "preserved-clause" }
-	continuation := func() string { return "gentle-ai review status --next-transition" }
+	continuation := func() string { return "brunnr-code review status --next-transition" }
 
 	admitted, _, err := reviewProviderCaptureRetry(context.Background(), adapter, reviewerprovider.NewInvocation(original), string(model.AgentClaudeCode), admit, preserve, continuation, nil)
 	if err != nil || admitted != "admitted" {
@@ -361,7 +361,7 @@ func TestProviderCaptureNonRetryableErrorSkipsCorrectionBeforeTheBudgetCheck(t *
 		t.Fatal("a non-retryable admission error must not be preserved as a corrective attempt")
 		return ""
 	}
-	continuation := func() string { return "gentle-ai review status --next-transition" }
+	continuation := func() string { return "brunnr-code review status --next-transition" }
 	nonRetryable := reviewProviderCaptureRetryable(func(error) bool { return false })
 
 	_, raw, err := reviewProviderCaptureRetry(context.Background(), adapter, reviewerprovider.NewInvocation([]byte("original prompt")), string(model.AgentClaudeCode), admit, preserve, continuation, nonRetryable)
@@ -570,7 +570,7 @@ func TestProviderCaptureCorrectiveRetryKeepsTheProbeWorkspace(t *testing.T) {
 			return "admitted", nil
 		}
 		preserve := func(context.Context, int, error, []byte) string { return "" }
-		continuation := func() string { return "gentle-ai review status --next-transition" }
+		continuation := func() string { return "brunnr-code review status --next-transition" }
 		if _, _, err := reviewProviderCaptureRetry(context.Background(), adapter, invocation, string(model.AgentCodex), admit, preserve, continuation, nil); err != nil {
 			t.Fatal(err)
 		}

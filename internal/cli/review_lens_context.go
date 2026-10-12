@@ -238,7 +238,7 @@ func runReviewLensContext(args []string, help io.Writer, deps reviewLensContextD
 	}
 	if flags.NArg() != 0 || strings.TrimSpace(*repositoryContext) == "" || strings.TrimSpace(*lens) == "" ||
 		requested.LineageID == "" || requested.TargetIdentity == "" || requested.Revision == "" {
-		return nil, reviewPreflightError(errors.New("review lens-context requires the exact provider-issued repository context, lineage, target, expected revision, and lens carried by the collect transition; run `gentle-ai review lens-context --help` for the closed command form"))
+		return nil, reviewPreflightError(errors.New("review lens-context requires the exact provider-issued repository context, lineage, target, expected revision, and lens carried by the collect transition; run `brunnr-code review lens-context --help` for the closed command form"))
 	}
 
 	level := reviewtransaction.ReviewerContextLevel(strings.TrimSpace(*delivery))
@@ -246,7 +246,7 @@ func runReviewLensContext(args []string, help io.Writer, deps reviewLensContextD
 		return nil, reviewPreflightError(errors.New("review lens-context delivery provider_contract is reserved for Go-owned provider execution and cannot be declared by callers")) // refusal:by-design world-action: current context delivery has no durable provenance record
 	}
 	if !reviewtransaction.ReviewerContextLevelAccepted(level) {
-		return nil, reviewPreflightError(fmt.Errorf("unknown reviewer context delivery %q; run `gentle-ai review lens-context --help` for the closed command form", *delivery))
+		return nil, reviewPreflightError(fmt.Errorf("unknown reviewer context delivery %q; run `brunnr-code review lens-context --help` for the closed command form", *delivery))
 	}
 
 	authority, err := resolveReviewLensAuthority(ctx, deps, *cwd, strings.TrimSpace(*repositoryContext), strings.TrimSpace(*lens), requested)
@@ -804,7 +804,7 @@ func reviewLensContextInstructionText(binding reviewLensContextBinding, paths in
 	if !found {
 		return "", reviewLensContextRefusal("lens_context_lens_not_selected", reviewLensContextRefreshAction)
 	}
-	return fmt.Sprintf(`You are the %s lens of one bounded Gentle AI review. %s
+	return fmt.Sprintf(`You are the %s lens of one bounded Brunnr-Code review. %s
 
 Scope. The %s sections below are the complete and only view of this candidate: all %d changed paths are represented in the canonical manifest order carried by %s. Authored paths and dependency lockfiles carry full immutable patches; other generated paths carry immutable metadata summaries without content hunks. Do not read the working tree, the index, HEAD, or any other file, and do not run any command. Nothing outside these sections is part of this candidate, and anything you cannot see here is not evidence.
 

@@ -203,21 +203,21 @@ func compactReclaimAuthorityRefusal(ctx context.Context, repo, dir, lineageID, a
 	if loadErr != nil {
 		if os.IsNotExist(loadErr) {
 			return fmt.Errorf("%s The entry holds no readable review-state.json beside that artifact, so nothing can prove the artifact never carried authority, and no advertised operation admits this shape today."+
-				" Capture the complete machine-readable diagnosis with `gentle-ai review inspect-authority --cwd %s` and escalate that report", refused, pathquote.Quote(repo))
+				" Capture the complete machine-readable diagnosis with `brunnr-code review inspect-authority --cwd %s` and escalate that report", refused, pathquote.Quote(repo))
 		}
 		return fmt.Errorf("%s Its record cannot be loaded (%v) — inspection classifies it %s — and no advertised operation admits an unreadable record:"+
 			" reconciliation re-derives its proof from readable state, and admitting bytes that can prove nothing is a maintainer policy decision, not a repair."+
-			" Capture the complete machine-readable diagnosis with `gentle-ai review inspect-authority --cwd %s` and escalate that report",
+			" Capture the complete machine-readable diagnosis with `brunnr-code review inspect-authority --cwd %s` and escalate that report",
 			refused, loadErr, compactRecoveryEntryProblem(loadErr), pathquote.Quote(repo))
 	}
 	eligibility, eligibilityErr := InspectCompactPristineAbandonment(ctx, repo, lineageID)
 	if eligibilityErr == nil && eligibility.Eligible {
-		return fmt.Errorf("%s The entry is eligible for abandonment, so `gentle-ai review abandon` quarantines it whole: %s",
+		return fmt.Errorf("%s The entry is eligible for abandonment, so `brunnr-code review abandon` quarantines it whole: %s",
 			refused, compactAbandonCommandText(repo, lineageID, eligibility))
 	}
 	return fmt.Errorf("%s No advertised operation admits it: %s."+
 		" Nothing quarantines this shape today; the entry stays exactly as persisted."+
-		" Capture the complete machine-readable diagnosis with `gentle-ai review inspect-authority --cwd %s` and escalate that report",
+		" Capture the complete machine-readable diagnosis with `brunnr-code review inspect-authority --cwd %s` and escalate that report",
 		refused, compactAbandonBlockerText(record.State), pathquote.Quote(repo))
 }
 

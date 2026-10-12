@@ -17,7 +17,7 @@ import (
 // INTERIOR successor -- one that itself has a successor recovering from it,
 // so InspectCompactPristineAbandonment's own read-only prediction refuses it
 // -- had no exit left at all: SanctionedCompactRecoveryExits fell through to
-// prose naming no runnable `gentle-ai` invocation, so the block was terminal
+// prose naming no runnable `brunnr-code` invocation, so the block was terminal
 // for a consumer.
 func TestSanctionedRecoveryExitNamesMaintainerPathForInteriorReconciliationAnomaly(t *testing.T) {
 	ctx := context.Background()
@@ -110,8 +110,8 @@ func TestSanctionedRecoveryExitNamesMaintainerPathForInteriorReconciliationAnoma
 	if l2Exit.Operation != "" {
 		t.Fatalf("l2 exit = %#v, want no automatic operation for an interior reconciliation anomaly", *l2Exit)
 	}
-	if !strings.Contains(l2Exit.Blocked, "gentle-ai review mode disable") {
-		t.Fatalf("l2 exit Blocked = %q, want a literal runnable gentle-ai invocation naming the maintainer path", l2Exit.Blocked)
+	if !strings.Contains(l2Exit.Blocked, "brunnr-code review mode disable") {
+		t.Fatalf("l2 exit Blocked = %q, want a literal runnable brunnr-code invocation naming the maintainer path", l2Exit.Blocked)
 	}
 }
 

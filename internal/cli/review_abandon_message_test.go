@@ -69,14 +69,14 @@ func TestReviewAbandonRefusalTerminatesInASuccessfulAbandon(t *testing.T) {
 }
 
 // runReviewCommandNamedBy requires the message to name exactly one runnable
-// gentle-ai command, then runs that exact argv through the real router and
+// brunnr-code command, then runs that exact argv through the real router and
 // returns its decoded JSON object. A message that names no command, or names
 // more than one so the reader must guess, fails here.
 func runReviewCommandNamedBy(t *testing.T, message string) map[string]any {
 	t.Helper()
 	named := []string{}
 	for _, line := range strings.Split(message, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), "gentle-ai review ") {
+		if strings.HasPrefix(strings.TrimSpace(line), "brunnr-code review ") {
 			named = append(named, strings.TrimSpace(line))
 		}
 	}

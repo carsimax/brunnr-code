@@ -6,7 +6,7 @@ import (
 )
 
 // rarWindowsInheritDirectoryACEFlags is OBJECT_INHERIT_ACE|CONTAINER_INHERIT_ACE,
-// the exact ACE inheritance flags gentle-ai writes on an owner-only RAR
+// the exact ACE inheritance flags brunnr-code writes on an owner-only RAR
 // directory. A Windows-tagged test binds it to the real constants.
 const rarWindowsInheritDirectoryACEFlags uint8 = 0x03
 
@@ -42,7 +42,7 @@ type rarWindowsOwnerOnlyDescriptor struct {
 }
 
 // rarWindowsOwnerOnlyMismatch returns "" when observed is exactly the
-// owner-only descriptor gentle-ai writes for principal, and otherwise names
+// owner-only descriptor brunnr-code writes for principal, and otherwise names
 // the first fact that differs followed by everything it observed.
 //
 // This is the rule privateRARSecurityDescriptorSafe applies, moved out of the

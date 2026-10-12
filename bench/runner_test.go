@@ -18,7 +18,7 @@ import (
 )
 
 // fakeBinary writes an executable that answers a fixed argv with a fixed
-// message, so the capability probe can be tested without a real gentle-ai.
+// message, so the capability probe can be tested without a real brunnr-code.
 func fakeBinary(t *testing.T, script string) *Sandbox {
 	t.Helper()
 	root := t.TempDir()
@@ -502,7 +502,7 @@ func TestReadBackBlanksGitTrace(t *testing.T) {
 
 // reviewModeStubBinary writes an executable that logs every argv it is given
 // and answers `review mode enable` with the effective mode the test wants,
-// so the review precondition can be tested without a real gentle-ai.
+// so the review precondition can be tested without a real brunnr-code.
 func reviewModeStubBinary(t *testing.T, effective string) (string, string) {
 	t.Helper()
 	dir := t.TempDir()
@@ -591,7 +591,7 @@ func TestUntouchedJourneyNeverTouchesTheSwitch(t *testing.T) {
 }
 
 func TestSandboxEnvKeepsTempFilesInsideTheSandbox(t *testing.T) {
-	sandbox, err := newSandbox("gentle-ai", t.TempDir())
+	sandbox, err := newSandbox("brunnr-code", t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -623,7 +623,7 @@ func TestSandboxEnvKeepsTempFilesInsideTheSandbox(t *testing.T) {
 }
 
 func TestSandboxEnvKeepsWindowsHomeInsideTheSandbox(t *testing.T) {
-	sandbox, err := newSandbox("gentle-ai", t.TempDir())
+	sandbox, err := newSandbox("brunnr-code", t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -665,7 +665,7 @@ func TestSelectedAuthorityCaptureHelpersSelectTheSandboxLineage(t *testing.T) {
 }
 
 func TestSharedModeCapabilityDoesNotRequireScope(t *testing.T) {
-	sandbox := fakeBinary(t, `echo "Usage: gentle-ai review mode [--cwd <repo>] [--json]"`)
+	sandbox := fakeBinary(t, `echo "Usage: brunnr-code review mode [--cwd <repo>] [--json]"`)
 	supported, reason := newCapabilityProbe(sandbox).supported(modeCapability)
 	if !supported {
 		t.Fatalf("supported = false (%s), want true without --scope", reason)

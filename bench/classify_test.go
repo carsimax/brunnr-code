@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// fixture is one recorded gentle-ai invocation from testdata/observations.json.
-// The file was produced by driving a real gentle-ai binary; nothing in it is
+// fixture is one recorded brunnr-code invocation from testdata/observations.json.
+// The file was produced by driving a real brunnr-code binary; nothing in it is
 // hand-written prose, so the classifier is tested against bytes the product
 // actually emits rather than against what a test author imagines it emits.
 type fixture struct {
@@ -41,7 +41,7 @@ func loadFixtures(t *testing.T) map[string]Observation {
 // than by what a test author imagines a refusal looks like.
 //
 // It guards the classifier, NOT the product. The fixtures are frozen, so this
-// test cannot notice a gentle-ai that stops naming a runnable continuation; it
+// test cannot notice a brunnr-code that stops naming a runnable continuation; it
 // would keep passing against the recording. Several fixtures below already
 // describe blocks the product no longer has, and they are kept on purpose: the
 // classifier still has to recognise that shape if it ever returns. What guards
@@ -73,10 +73,10 @@ func TestClassifyRecordedObservations(t *testing.T) {
 		{"gate_disabled_unmanaged", NotABlock,
 			"delivery is disabled/unmanaged and action is repository-policy, so the commit proceeds"},
 		{"gate_unmanaged_switch_on", BlockInBand,
-			"exit 1 with no delivery disposition, and stderr names `gentle-ai review start`"},
+			"exit 1 with no delivery disposition, and stderr names `brunnr-code review start`"},
 
 		{"finalize_without_evidence", BlockInBand,
-			"stderr names `gentle-ai review capture-evidence` and the follow-up finalize"},
+			"stderr names `brunnr-code review capture-evidence` and the follow-up finalize"},
 		{"invalid_flag_combination", BlockInBand,
 			"stderr names both runnable escapes verbatim"},
 
@@ -91,7 +91,7 @@ func TestClassifyRecordedObservations(t *testing.T) {
 		{"rejected_capture", BlockOutOfBand,
 			"[fixed] binding_mismatch names no recapture command"},
 		{"start_while_disabled", BlockOutOfBand,
-			"[fixed] does not name `gentle-ai review mode enable`"},
+			"[fixed] does not name `brunnr-code review mode enable`"},
 		{"abandon_without_token", BlockOutOfBand,
 			"lists required flags but no runnable command that produces the token"},
 
@@ -143,14 +143,14 @@ func TestHasRunnableCommand(t *testing.T) {
 		text string
 		want bool
 	}{
-		{"backticked command", "capture it first with `gentle-ai review capture-evidence`, then", true},
-		{"double quoted command", `rerun with "gentle-ai review start --projection staged"`, true},
-		{"bare command", "run gentle-ai review mode disable to turn reviews off", true},
-		{"placeholder is not runnable", "validate delivery with gentle-ai review validate --gate <gate>", false},
-		{"bare product name", "gentle-ai could not read an answer", true},
-		{"product name with no argument", "reported by gentle-ai", false},
+		{"backticked command", "capture it first with `brunnr-code review capture-evidence`, then", true},
+		{"double quoted command", `rerun with "brunnr-code review start --projection staged"`, true},
+		{"bare command", "run brunnr-code review mode disable to turn reviews off", true},
+		{"placeholder is not runnable", "validate delivery with brunnr-code review validate --gate <gate>", false},
+		{"bare product name", "brunnr-code could not read an answer", true},
+		{"product name with no argument", "reported by brunnr-code", false},
 		{"no mention", "review finalize requires all 4 original reviewer result(s)", false},
-		{"placeholder plus a clean command", "run gentle-ai review status --json or gentle-ai review repair --lineage <id>", true},
+		{"placeholder plus a clean command", "run brunnr-code review status --json or brunnr-code review repair --lineage <id>", true},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -168,16 +168,16 @@ func TestHasEnvelopeContinuation(t *testing.T) {
 		want   bool
 	}{
 		{"collect capture operation", `{"next_transition":{"kind":"collect","collect":{"inputs":[{"capture_operation":"review.capture-result"}]}}}`, true},
-		{"execute operation with a runnable command", `{"next_transition":{"kind":"execute","execute":{"operation":"review.finalize","command":"gentle-ai review finalize --lineage=review-1"}}}`, true},
+		{"execute operation with a runnable command", `{"next_transition":{"kind":"execute","execute":{"operation":"review.finalize","command":"brunnr-code review finalize --lineage=review-1"}}}`, true},
 		// The defect this benchmark missed: an execute transition names an
 		// operation, carries an empty command, and the reader is told to run
 		// something with nothing to run. An operation alone is a label, not a
 		// continuation.
 		{"execute operation with no command at all", `{"next_transition":{"kind":"execute","execute":{"operation":"review.recover"}}}`, false},
 		{"execute operation with an empty command", `{"next_transition":{"kind":"execute","execute":{"operation":"review.recover","command":""}}}`, false},
-		{"execute command that is still a template", `{"next_transition":{"kind":"execute","execute":{"operation":"review.validate","command":"gentle-ai review validate --gate <gate>"}}}`, false},
-		{"execute command naming no arguments", `{"next_transition":{"kind":"execute","execute":{"operation":"review.status","command":"gentle-ai"}}}`, false},
-		{"execute with a command but no operation", `{"next_transition":{"kind":"execute","execute":{"operation":"","command":"gentle-ai review status --cwd=."}}}`, false},
+		{"execute command that is still a template", `{"next_transition":{"kind":"execute","execute":{"operation":"review.validate","command":"brunnr-code review validate --gate <gate>"}}}`, false},
+		{"execute command naming no arguments", `{"next_transition":{"kind":"execute","execute":{"operation":"review.status","command":"brunnr-code"}}}`, false},
+		{"execute with a command but no operation", `{"next_transition":{"kind":"execute","execute":{"operation":"","command":"brunnr-code review status --cwd=."}}}`, false},
 		// A dead execute transition must not be rescued by a continuation key
 		// nested inside it: the transition the reader was handed is the thing
 		// under test, not the vocabulary it happens to mention.
@@ -222,7 +222,7 @@ func TestDeclaredDeadEndOnlyAppliesWhenNothingIsNamed(t *testing.T) {
 
 	// A named continuation always wins over the author's declaration: the
 	// mechanical evidence outranks the corpus annotation.
-	base.Stderr = "Error: rerun gentle-ai review start --projection staged"
+	base.Stderr = "Error: rerun brunnr-code review start --projection staged"
 	if got := Classify(base); got != BlockInBand {
 		t.Fatalf("Classify = %q, want %q", got, BlockInBand)
 	}
@@ -278,7 +278,7 @@ func TestByDesignNeedsItsQuotedNextActionInTheEmittedBytes(t *testing.T) {
 func TestByDesignLosesToANamedRunnableCommand(t *testing.T) {
 	observation := Observation{
 		ExitCode:       1,
-		Stderr:         "Error: nothing to review; run the same command again from a checkout, or rerun gentle-ai review start --projection staged",
+		Stderr:         "Error: nothing to review; run the same command again from a checkout, or rerun brunnr-code review start --projection staged",
 		StdoutCaptured: true,
 		StderrCaptured: true,
 		DeclaredByDesign: &ByDesignDeclaration{
@@ -326,7 +326,7 @@ func TestByDesignShapeVocabularyIsClosed(t *testing.T) {
 func TestSelfRecoveredWinsOverEverything(t *testing.T) {
 	observation := Observation{
 		ExitCode:      1,
-		Stderr:        "Error: rerun gentle-ai review start",
+		Stderr:        "Error: rerun brunnr-code review start",
 		SelfRecovered: true,
 	}
 	if got := Classify(observation); got != BlockSelfRecovered {
@@ -473,7 +473,7 @@ func TestStaleDeadEndDeclarationIsReportedNotDropped(t *testing.T) {
 	observation := Observation{
 		DeclaredDeadEnd: true,
 		ExitCode:        1,
-		Stderr:          "review abandon refused: capture the diagnosis with `gentle-ai review inspect-authority --cwd \"/repo\"` and escalate that report",
+		Stderr:          "review abandon refused: capture the diagnosis with `brunnr-code review inspect-authority --cwd \"/repo\"` and escalate that report",
 	}
 	class := Classify(observation)
 	if class != BlockInBand {

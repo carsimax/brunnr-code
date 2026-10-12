@@ -154,7 +154,7 @@ func TestRARWindowsOwnerOnlyDescriptorRoundTrips(t *testing.T) {
 			t.Fatal(err)
 		}
 		if mismatch := privateRARSecurityDescriptorMismatch(descriptor, directory); mismatch != "" {
-			t.Fatalf("the descriptor gentle-ai writes (directory=%t) is refused by its own rule: %s",
+			t.Fatalf("the descriptor brunnr-code writes (directory=%t) is refused by its own rule: %s",
 				directory, mismatch)
 		}
 		if !privateRARSecurityDescriptorSafe(descriptor, directory) {

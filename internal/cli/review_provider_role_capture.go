@@ -82,7 +82,7 @@ func parseReviewProviderRoleCapture(command string, args []string, stdout io.Wri
 		binding.requestHash = strings.TrimSpace(*requestHash)
 	}
 	if flags.NArg() != 0 || binding.lineage == "" || binding.target == "" || binding.revision == "" || !binding.execute {
-		return nil, reviewPreflightError(fmt.Errorf("review %s requires --lineage, --target, --expected-revision, --agent, and --execute; `gentle-ai review status --contract %s --next-transition` prints the exact bindings", command, ReviewIntegrationContractV2))
+		return nil, reviewPreflightError(fmt.Errorf("review %s requires --lineage, --target, --expected-revision, --agent, and --execute; `brunnr-code review status --contract %s --next-transition` prints the exact bindings", command, ReviewIntegrationContractV2))
 	}
 	if binding.runtime == "" {
 		// A raw provider verdict is only admissible from the runtime the
@@ -129,7 +129,7 @@ func (binding *reviewProviderRoleCaptureBinding) discover(ctx context.Context) (
 		return store, record, reviewPreflightError(fmt.Errorf("resolve review authority for lineage %q under repository %q: %w", binding.lineage, binding.root, err))
 	}
 	if record.State.LineageID != binding.lineage || record.State.CapturePhaseRevision != binding.revision {
-		return store, record, reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, fmt.Errorf("review %s binding does not match the current compact authority; refresh the binding with gentle-ai review status --cwd <repo> --contract %s --next-transition", binding.command, ReviewIntegrationContractV2))
+		return store, record, reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, fmt.Errorf("review %s binding does not match the current compact authority; refresh the binding with brunnr-code review status --cwd <repo> --contract %s --next-transition", binding.command, ReviewIntegrationContractV2))
 	}
 	return store, record, nil
 }
@@ -151,7 +151,7 @@ func RunReviewCaptureRefuter(args []string, stdout io.Writer) error {
 	}
 	state := record.State
 	if state.State != reviewtransaction.StateReviewing || state.InitialSnapshot.Identity != binding.target {
-		return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture-refuter requires the exact reviewing authority target; refresh the binding with gentle-ai review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition"))
+		return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture-refuter requires the exact reviewing authority target; refresh the binding with brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition"))
 	}
 	request, err := reviewProviderNewRefuterRequest(ctx, binding.root, store.Dir, state, state.CapturePhaseRevision)
 	if err != nil {
@@ -206,10 +206,10 @@ func RunReviewCaptureValidation(args []string, stdout io.Writer) error {
 		return reviewCorrectionContextBudgetRefusal(ctx, binding.root, state.LineageID, err)
 	}
 	if request.ValidationRequest.CorrectionTargetIdentity != binding.target {
-		return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture-validation target does not match the frozen correction target identity; refresh the binding with gentle-ai review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition"))
+		return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture-validation target does not match the frozen correction target identity; refresh the binding with brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition"))
 	}
 	if request.ValidationRequest.RequestHash != binding.requestHash {
-		return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture-validation request hash does not match the frozen targeted validation request; refresh the binding with gentle-ai review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition"))
+		return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture-validation request hash does not match the frozen targeted validation request; refresh the binding with brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition"))
 	}
 	adapter, adapterErr := reviewProviderAdapter(reviewProviderRoleTargetedValidator, binding.runtime)
 	if adapterErr != nil {

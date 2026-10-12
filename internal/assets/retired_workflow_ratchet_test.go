@@ -15,7 +15,7 @@ import (
 var retiredWorkflowReferenceAllowlist = map[string]string{}
 
 // TestEmbeddedAssetsHaveNoRetiredWorkflowReferences is a ratchet over every
-// embedded asset Gentle AI can install or render into a runtime. SDD and
+// embedded asset Brunnr-Code can install or render into a runtime. SDD and
 // OpenSpec were retired in v4.0.0; their names must not reappear in shipped
 // paths or content.
 func TestEmbeddedAssetsHaveNoRetiredWorkflowReferences(t *testing.T) {

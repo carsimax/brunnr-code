@@ -8,7 +8,7 @@ import (
 // The automated defect handoff was filing other projects' failures.
 //
 // Its admissibility test read "when the consumer workflow appears blocked by a
-// Gentle AI provider or tool defect", and from the user's seat everything that
+// Brunnr-Code provider or tool defect", and from the user's seat everything that
 // blocks them appears to qualify: a model refusing an image for exceeding its
 // context window, a client runtime that needs its session restarted, a
 // sub-agent that returns nothing. None of those are ours, and a report system
@@ -18,7 +18,7 @@ import (
 // classify one, and a user whose work is blocked answers yes.
 //
 // The discriminator is what PRODUCED the failure, not what the user happened to
-// be doing when it happened. A Gentle AI workflow merely HOSTING a failure is
+// be doing when it happened. A Brunnr-Code workflow merely HOSTING a failure is
 // not enough: an SDD phase is carried out by the client runtime, so that
 // runtime failing mid-phase is that runtime's defect even though our contract
 // prescribed the phase.
@@ -35,7 +35,7 @@ func TestDefectHandoffAdmitsOnlyFailuresGentleAIProduced(t *testing.T) {
 			// The gate itself: production, not context.
 			for _, required := range []string{
 				"what produced the failure",
-				"a Gentle AI invocation produced it",
+				"a Brunnr-Code invocation produced it",
 				"hosting a failure is not enough",
 			} {
 				if !strings.Contains(content, required) {
@@ -67,7 +67,7 @@ func TestDefectHandoffAdmitsOnlyFailuresGentleAIProduced(t *testing.T) {
 
 			// The old subjective test must be gone, or both rules ship and the
 			// looser one wins whenever they disagree.
-			if strings.Contains(content, "appears blocked by a Gentle AI provider or tool defect") {
+			if strings.Contains(content, "appears blocked by a Brunnr-Code provider or tool defect") {
 				t.Error("the superseded subjective admissibility test is still present")
 			}
 		})

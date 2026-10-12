@@ -57,8 +57,8 @@ const (
 // repository-context capture-binding mismatch refusal in review_artifact.go
 // both name this same runnable command instead of only describing the
 // concept, so they cannot drift from each other.
-const reviewNextTransitionRefreshCommand = "gentle-ai review status --cwd <repo> --contract " + ReviewIntegrationContractV1 + " --next-transition"
-const reviewNextTransitionRefreshCommandV21 = "gentle-ai review status --cwd <repo> --contract " + ReviewIntegrationContractV2 + " --next-transition"
+const reviewNextTransitionRefreshCommand = "brunnr-code review status --cwd <repo> --contract " + ReviewIntegrationContractV1 + " --next-transition"
+const reviewNextTransitionRefreshCommandV21 = "brunnr-code review status --cwd <repo> --contract " + ReviewIntegrationContractV2 + " --next-transition"
 
 var reviewCapabilitiesBuildInfoReader = debug.ReadBuildInfo
 var reviewCapabilitiesExecutablePath = os.Executable
@@ -175,7 +175,7 @@ func RunReviewCapabilities(args []string, stdout io.Writer) error {
 
 func validateReviewIntegrationContract(contract string) error {
 	if contract != ReviewIntegrationContractV1 && contract != ReviewIntegrationContractV2 {
-		return fmt.Errorf("unsupported review integration contract %q; retry with gentle-ai review capabilities --contract %s or gentle-ai review capabilities --contract %s", contract, ReviewIntegrationContractV1, ReviewIntegrationContractV2)
+		return fmt.Errorf("unsupported review integration contract %q; retry with brunnr-code review capabilities --contract %s or brunnr-code review capabilities --contract %s", contract, ReviewIntegrationContractV1, ReviewIntegrationContractV2)
 	}
 	return nil
 }
@@ -187,7 +187,7 @@ func buildReviewCapabilities(contracts ...string) (ReviewCapabilitiesResult, err
 	}
 	version := strings.TrimSpace(AppVersion)
 	if version == "" {
-		return ReviewCapabilitiesResult{}, errors.New("gentle-ai package version is unavailable")
+		return ReviewCapabilitiesResult{}, errors.New("brunnr-code package version is unavailable")
 	}
 	build, err := reviewCapabilitiesBuildIdentity(version)
 	if err != nil {
@@ -398,16 +398,16 @@ func reviewCapabilitiesBuildDigest(packageVersion string, build ReviewCapabiliti
 func reviewCapabilitiesExecutableDigest() (string, error) {
 	path, err := reviewCapabilitiesExecutablePath()
 	if err != nil {
-		return "", fmt.Errorf("resolve gentle-ai executable: %w", err)
+		return "", fmt.Errorf("resolve brunnr-code executable: %w", err)
 	}
 	file, err := os.Open(path)
 	if err != nil {
-		return "", fmt.Errorf("open gentle-ai executable: %w", err)
+		return "", fmt.Errorf("open brunnr-code executable: %w", err)
 	}
 	defer file.Close()
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
-		return "", fmt.Errorf("hash gentle-ai executable: %w", err)
+		return "", fmt.Errorf("hash brunnr-code executable: %w", err)
 	}
 	return "sha256:" + hex.EncodeToString(hash.Sum(nil)), nil
 }

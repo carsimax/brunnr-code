@@ -634,7 +634,7 @@ func TestOverBudgetCorrectionNamesAbandonAndTheLineageIsActuallyAbandonable(t *t
 	lineage := record.State.LineageID
 
 	statement := reviewStopReasonNarration[reviewCorrectionContextBudgetCode]
-	for _, want := range []string{"gentle-ai review abandon", "cannot fit the runtime context budget"} {
+	for _, want := range []string{"brunnr-code review abandon", "cannot fit the runtime context budget"} {
 		if !strings.Contains(statement, want) {
 			t.Fatalf("correction budget narration does not name %q: %q", want, statement)
 		}

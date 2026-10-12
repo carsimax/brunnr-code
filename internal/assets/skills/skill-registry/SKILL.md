@@ -17,7 +17,7 @@ Use this skill after installing, removing, creating, moving, or renaming skills,
 - Do not generate or inject compact rules by default; preserve author intent by passing exact skill paths to subagents.
 - Always write `.atl/skill-registry.md`, whether or not Engram is available.
 - Save the registry to Engram as `topic_key: skill-registry` when available, with `capture_prompt: false`.
-- Generate the registry with `gentle-ai skill-registry refresh --cwd <project>`: it owns the scan order, deduplication, and the skills it never indexes. Scan by hand only when that command is unavailable.
+- Generate the registry with `brunnr-code skill-registry refresh --cwd <project>`: it owns the scan order, deduplication, and the skills it never indexes. Scan by hand only when that command is unavailable.
 - When scanning by hand, skip `_shared` and `skill-registry`; deduplicate by skill name, preferring project-level skills over user-level skills.
 - Add `.atl/` to `.gitignore` when possible unless explicitly disabled.
 
@@ -32,7 +32,7 @@ Use this skill after installing, removing, creating, moving, or renaming skills,
 
 ## Execution Steps
 
-1. Run `gentle-ai skill-registry refresh --cwd <project>` (add `--force` after skill changes); it writes `.atl/skill-registry.md`. If it reports the refresh was skipped (not a project), stop: there is no registry to persist. If it succeeds, go to step 4. If it fails, report the error instead of scanning by hand.
+1. Run `brunnr-code skill-registry refresh --cwd <project>` (add `--force` after skill changes); it writes `.atl/skill-registry.md`. If it reports the refresh was skipped (not a project), stop: there is no registry to persist. If it succeeds, go to step 4. If it fails, report the error instead of scanning by hand.
 2. Only if the command is unavailable: scan all known user and project skill directories for `*/SKILL.md`, reading frontmatter only as needed to extract `name` and `description` trigger text.
 3. Render `.atl/skill-registry.md` with scanned sources, registry contract, skill name, trigger/description, scope, and exact path.
 4. Persist to Engram when available using `title: skill-registry`, `topic_key: skill-registry`, `type: config`, and `capture_prompt: false`.

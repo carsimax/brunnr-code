@@ -42,7 +42,7 @@ func orchestratorSectionVariants(t *testing.T) map[string]map[string]struct{} {
 		}
 		seen[path.Dir(assetPath)] = true
 		content := MustRead(assetPath)
-		for _, anchor := range []string{"Lossless Blocking Prompts (MANDATORY)", "Gentle AI Provider Defect Handoff", "Never summarize, abbreviate, reorder, relabel, merge, or omit choices."} {
+		for _, anchor := range []string{"Lossless Blocking Prompts (MANDATORY)", "Brunnr-Code Provider Defect Handoff", "Never summarize, abbreviate, reorder, relabel, merge, or omit choices."} {
 			if !strings.Contains(content, anchor) {
 				t.Errorf("%s lost lossless prompt safety anchor %q", assetPath, anchor)
 			}

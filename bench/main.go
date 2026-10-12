@@ -1,7 +1,7 @@
-// Command gentle-ai-bench measures the FRICTION of driving gentle-ai's review
+// Command gentle-ai-bench measures the FRICTION of driving brunnr-code's review
 // lifecycle, so a "before" binary and an "after" binary can be compared.
 //
-// Its core corpus is a black box: it drives a gentle-ai binary as a subprocess
+// Its core corpus is a black box: it drives a brunnr-code binary as a subprocess
 // and never instruments the product, so it works against any build including
 // old releases. It is deterministic and offline: no real model call is ever
 // made.
@@ -54,7 +54,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `gentle-ai-bench — friction benchmark for the gentle-ai review lifecycle
+	fmt.Fprint(os.Stderr, `gentle-ai-bench — friction benchmark for the brunnr-code review lifecycle
 
   run      gentle-ai-bench run --binary <path> --out results.json
            Drive the built-in journey corpus against a binary (driven mode).
@@ -79,7 +79,7 @@ func commandRun(args []string) int {
 
 func commandRunWith(args []string, isExecutable func(string) bool, journeys func() []Journey) int {
 	flags := flag.NewFlagSet("run", flag.ExitOnError)
-	binary := flags.String("binary", "", "path to the gentle-ai binary to drive")
+	binary := flags.String("binary", "", "path to the brunnr-code binary to drive")
 	out := flags.String("out", "results.json", "where to write the machine-readable results")
 	only := flags.String("only", "", "comma-separated journey ids to run (default: all)")
 	axisFlag := flags.String("axis", "",
@@ -185,7 +185,7 @@ func commandRunWith(args []string, isExecutable func(string) bool, journeys func
 	results.Totals, results.JourneysCounted, results.JourneysUnsupported, results.JourneysFailed = aggregate(results.Journeys)
 	results.Notes = []string{
 		"Driven mode: every journey ran in a fresh temp dir with its own HOME, XDG_*, throwaway git repo and local bare remote.",
-		"That HOME is a fresh install, so receipt-driven development defaults to ON without persisting a preference. Every journey declares its own precondition: one that reviews explicitly enables it first through `gentle-ai review mode enable --scope global`, uncounted; one whose subject is the switch leaves the mode untouched.",
+		"That HOME is a fresh install, so receipt-driven development defaults to ON without persisting a preference. Every journey declares its own precondition: one that reviews explicitly enables it first through `brunnr-code review mode enable --scope global`, uncounted; one whose subject is the switch leaves the mode untouched.",
 		"Reviewer results were synthesized from the binary's own collect envelope. No model was called.",
 		"No wall-clock timing is measured or reported.",
 		"by_design is a carve-out from out_of_band, not a subtraction from it: those blocks are still blocks and still in the total. Every one is listed with its declared shape and the verified quote of the product's own next-action text.",
@@ -241,7 +241,7 @@ func runExitCode(results Results) int {
 
 func commandRecord(args []string) int {
 	flags := flag.NewFlagSet("record", flag.ExitOnError)
-	binary := flags.String("binary", "", "path to the real gentle-ai binary the shim delegates to")
+	binary := flags.String("binary", "", "path to the real brunnr-code binary the shim delegates to")
 	out := flags.String("out", "session.jsonl", "where the shim appends recorded invocations")
 	_ = flags.Parse(args)
 

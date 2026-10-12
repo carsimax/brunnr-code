@@ -76,14 +76,14 @@ func RunReviewCaptureUnachievable(args []string, stdout io.Writer) error {
 	}
 	if flags.NArg() != 0 || strings.TrimSpace(*lineage) == "" || strings.TrimSpace(*target) == "" ||
 		strings.TrimSpace(*revision) == "" || strings.TrimSpace(*requestHash) == "" {
-		return reviewPreflightError(fmt.Errorf("review capture-unachievable requires --lineage, --target, --expected-revision, and --request-hash; `gentle-ai review status --contract %s --next-transition` prints the exact bindings", ReviewIntegrationContractV2))
+		return reviewPreflightError(fmt.Errorf("review capture-unachievable requires --lineage, --target, --expected-revision, and --request-hash; `brunnr-code review status --contract %s --next-transition` prints the exact bindings", ReviewIntegrationContractV2))
 	}
 	if *withdraw {
 		if strings.TrimSpace(*reason) != "" || strings.TrimSpace(*detail) != "" {
 			return reviewPreflightError(errors.New("review capture-unachievable --withdraw=true cannot be combined with --reason or --detail: a withdrawal retracts the exact recorded declaration and carries no new evidence")) // refusal:by-design world-action: a withdrawal names no new fact about the candidate, only that the earlier one no longer applies
 		}
 	} else if strings.TrimSpace(*reason) == "" {
-		return reviewPreflightError(fmt.Errorf("review capture-unachievable requires --reason unless --withdraw=true is set; `gentle-ai review status --contract %s --next-transition` prints the exact bindings", ReviewIntegrationContractV2))
+		return reviewPreflightError(fmt.Errorf("review capture-unachievable requires --reason unless --withdraw=true is set; `brunnr-code review status --contract %s --next-transition` prints the exact bindings", ReviewIntegrationContractV2))
 	}
 	if len(strings.TrimSpace(*detail)) > reviewUnachievableLensDetailLimit {
 		return reviewPreflightError(fmt.Errorf("review capture-unachievable --detail exceeds %d bytes", reviewUnachievableLensDetailLimit)) // refusal:by-design operator-knowledge: only the caller knows what evidence it intended to attach; the product only enforces the bound
@@ -121,7 +121,7 @@ func RunReviewCaptureUnachievable(args []string, stdout io.Writer) error {
 		if contextHandle != "" {
 			return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, fmt.Errorf("capture-unachievable binding does not match the current reviewing authority under the provider-issued repository context; ask the parent orchestrator to refresh the exact native next transition by running %s", reviewNextTransitionRefreshCommandV21))
 		}
-		return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, fmt.Errorf("capture-unachievable binding does not match the current reviewing authority under repository %q; verify the frozen lineage, target, and revision by running gentle-ai review status --cwd %s --contract %s --next-transition, or re-run with --cwd set to the repository where the review was started", root, root, ReviewIntegrationContractV2))
+		return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, fmt.Errorf("capture-unachievable binding does not match the current reviewing authority under repository %q; verify the frozen lineage, target, and revision by running brunnr-code review status --cwd %s --contract %s --next-transition, or re-run with --cwd set to the repository where the review was started", root, root, ReviewIntegrationContractV2))
 	}
 	if *withdraw {
 		removed, err := store.WithdrawUnachievableLensAttempt(ctx, reviewtransaction.CompactUnachievableLensWithdrawalRequest{
@@ -162,7 +162,7 @@ func RunReviewCaptureUnachievable(args []string, stdout io.Writer) error {
 		}
 	}
 	if !found {
-		return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture-unachievable request hash does not match any outstanding selected lens slot; refresh the binding with gentle-ai review status --cwd <repo> --contract <same-contract> --next-transition"))
+		return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture-unachievable request hash does not match any outstanding selected lens slot; refresh the binding with brunnr-code review status --cwd <repo> --contract <same-contract> --next-transition"))
 	}
 	if _, err := store.RecordUnachievableLensAttempt(ctx, reviewtransaction.CompactUnachievableLensAttemptRequest{
 		ExpectedRevision: state.CapturePhaseRevision, TargetIdentity: state.InitialSnapshot.Identity,

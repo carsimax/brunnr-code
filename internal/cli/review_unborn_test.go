@@ -55,7 +55,7 @@ func closeUnbornReviewOnSelectedCaptures(t *testing.T, repo string, started Revi
 
 // TestReviewFacadeUnbornHeadDefaultProjectionStart proves 1771 on the direct
 // `review start` path (default workspace projection, no --projection flag),
-// which is the exact community repro (lu149e): plain `gentle-ai review start
+// which is the exact community repro (lu149e): plain `brunnr-code review start
 // --cwd $PWD` on an unborn-HEAD repository with staged candidate files used
 // to fail with "build facade review target: git rev-parse --verify
 // HEAD^{tree} failed with exit code 128: fatal: Needed a single revision"

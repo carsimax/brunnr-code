@@ -9,7 +9,7 @@
   "risk_level": "high",
   "changed_files": 1,
   "changed_lines": 1,
-  "headline": "Gentle AI can review this change before you call it done.",
+  "headline": "Brunnr-Code can review this change before you call it done.",
   "reason": "Review can help detect execution issues in these changes.",
   "value": "Reviewing takes a little longer and makes the result safer.",
   "risk_evidence": [
@@ -20,17 +20,17 @@
       "answer": "granted",
       "label": "Review this change",
       "effect": "Reviews only this change; later medium- or high-risk changes ask again, and delivery needs separate approval.",
-      "invocation": "gentle-ai review start --contract gentle-ai.review-integration/v1 --cwd /repo --target sha256:04c970c2b0f7c128751ed2b0f7e672a2fe26dc267f018bf10e612096d19cfa04 --target-evidence v1:current-changes:workspace:3e21a205dd9b55021aeae87965092623807e455f:556e838994d4e5669ffafda7b72226598bc38297:sha256:6948093c3d74e17ece6b63c4706f09a65e5e8251a4ec14b530430ac31f1aa98e --projection workspace --lineage review-consent-fixture --consent granted"
+      "invocation": "brunnr-code review start --contract gentle-ai.review-integration/v1 --cwd /repo --target sha256:04c970c2b0f7c128751ed2b0f7e672a2fe26dc267f018bf10e612096d19cfa04 --target-evidence v1:current-changes:workspace:3e21a205dd9b55021aeae87965092623807e455f:556e838994d4e5669ffafda7b72226598bc38297:sha256:6948093c3d74e17ece6b63c4706f09a65e5e8251a4ec14b530430ac31f1aa98e --projection workspace --lineage review-consent-fixture --consent granted"
     },
     {
       "answer": "declined",
       "label": "Skip this time",
       "effect": "Skips only this change; no review record is created, and future reviews stay enabled.",
-      "invocation": "gentle-ai review start --contract gentle-ai.review-integration/v1 --cwd /repo --target sha256:04c970c2b0f7c128751ed2b0f7e672a2fe26dc267f018bf10e612096d19cfa04 --target-evidence v1:current-changes:workspace:3e21a205dd9b55021aeae87965092623807e455f:556e838994d4e5669ffafda7b72226598bc38297:sha256:6948093c3d74e17ece6b63c4706f09a65e5e8251a4ec14b530430ac31f1aa98e --projection workspace --lineage review-consent-fixture --consent declined"
+      "invocation": "brunnr-code review start --contract gentle-ai.review-integration/v1 --cwd /repo --target sha256:04c970c2b0f7c128751ed2b0f7e672a2fe26dc267f018bf10e612096d19cfa04 --target-evidence v1:current-changes:workspace:3e21a205dd9b55021aeae87965092623807e455f:556e838994d4e5669ffafda7b72226598bc38297:sha256:6948093c3d74e17ece6b63c4706f09a65e5e8251a4ec14b530430ac31f1aa98e --projection workspace --lineage review-consent-fixture --consent declined"
     }
   ],
   "off_path": {
-    "note": "To turn reviews off for good, run 'gentle-ai review mode disable'.",
-    "command": "gentle-ai review mode disable"
+    "note": "To turn reviews off for good, run 'brunnr-code review mode disable'.",
+    "command": "brunnr-code review mode disable"
   }
 }

@@ -41,11 +41,11 @@ func TestReviewCapabilitiesV10ThroughV12ArtifactsRemainByteIdentical(t *testing.
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v1")
 	want := map[string]string{
 		"fixtures/capabilities.fixture.json":      "b3ca822189a236f2d891628c665ca23e308bf5185a1701e1f07231bd970461bb",
-		"fixtures/capabilities-v1.1.fixture.json": "1b3dc40dce7bfb5d3ecc7e92af68d66e71b733ba0b0f71ba94d3c633adc48bcf",
-		"fixtures/capabilities-v1.2.fixture.json": "2970d21cd95a7fcaea6547c47a591a5151046e7ede658b3e8c5b9a9c5d106b65",
+		"fixtures/capabilities-v1.1.fixture.json": "f81797013153089dda7c40fdfab359b6db6f62611ec0cfe9daee8804a76c6f6d",
+		"fixtures/capabilities-v1.2.fixture.json": "4d39e7bcc96cdf5aa7fb2202fc8fedcc5afde5d96e98cc10f6f8acaf13b77ab9",
 		"schemas/capabilities.schema.json":        "ad333177494a251beac153f74bd751fa77126a9968aad69e64fc2abf15cff0f7",
-		"schemas/capabilities-v1.1.schema.json":   "2b14162284f375f8563e49d3a28caaa0aabb572094d8d290eb61844b1353af78",
-		"schemas/capabilities-v1.2.schema.json":   "df1722adcd9c999edbef090bfd5d9a9713f6852a9bc9cb79684ef7c9c91c0d62",
+		"schemas/capabilities-v1.1.schema.json":   "7ddcace2a7b724c92a0ad07be44bbd22428a8d4c5272f23be643c9838ac418c7",
+		"schemas/capabilities-v1.2.schema.json":   "73ca4ef714e093644cc04a8229b6246775c881fd221a2121ea33f4691ba271a7",
 	}
 	for name, expected := range want {
 		payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))

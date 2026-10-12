@@ -111,7 +111,7 @@ func (b *battery) statusEnv(repo, agent string, env []string) (map[string]any, s
 // quoting-aware splitter. Structured closures use runTransitionExecution instead.
 func (b *battery) runCommandLineEnv(source, dir string, env []string, command string) (map[string]any, string, int) {
 	words, err := cli.SplitPrintedCommandWords(command)
-	if err != nil || len(words) < 2 || words[0] != "gentle-ai" {
+	if err != nil || len(words) < 2 || words[0] != "brunnr-code" {
 		return nil, fmt.Sprintf("unexpected provider command %q", command), 1
 	}
 	return b.runJSONEnv(source, dir, env, words[1:]...)

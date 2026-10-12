@@ -39,7 +39,7 @@ func TestSkillRegistryPreservesExistingClaudeHooks(t *testing.T) {
 			t.Fatalf("existing hook %q lost: %s", expected, before)
 		}
 	}
-	if strings.Count(string(before), "gentle-ai skill-registry refresh") != 1 {
+	if strings.Count(string(before), "brunnr-code skill-registry refresh") != 1 {
 		t.Fatalf("duplicate refresh: %s", before)
 	}
 	second, err := InstallSkillRegistry(home, adapter)
@@ -90,8 +90,8 @@ func TestSkillRegistryHooksWithoutSDD(t *testing.T) {
 		agent         model.AgentID
 		file, command string
 	}{
-		{model.AgentCodex, "hooks.json", `gentle-ai skill-registry refresh --quiet --no-gitignore --cwd "$PWD" || true`},
-		{model.AgentClaudeCode, "settings.json", `gentle-ai skill-registry refresh --quiet --no-gitignore --cwd "${CLAUDE_PROJECT_DIR:-$PWD}" || true`},
+		{model.AgentCodex, "hooks.json", `brunnr-code skill-registry refresh --quiet --no-gitignore --cwd "$PWD" || true`},
+		{model.AgentClaudeCode, "settings.json", `brunnr-code skill-registry refresh --quiet --no-gitignore --cwd "${CLAUDE_PROJECT_DIR:-$PWD}" || true`},
 	} {
 		t.Run(string(tc.agent), func(t *testing.T) {
 			home := t.TempDir()
@@ -116,7 +116,7 @@ func TestSkillRegistryHooksWithoutSDD(t *testing.T) {
 			}
 			command := tc.command
 			if tc.agent == model.AgentClaudeCode && runtime.GOOS == "windows" {
-				command = `powershell -NoProfile -Command 'if (Test-Path env:CLAUDE_PROJECT_DIR) { $dir = $env:CLAUDE_PROJECT_DIR } else { $dir = $PWD }; gentle-ai skill-registry refresh --quiet --no-gitignore --cwd "$dir"; exit 0'`
+				command = `powershell -NoProfile -Command 'if (Test-Path env:CLAUDE_PROJECT_DIR) { $dir = $env:CLAUDE_PROJECT_DIR } else { $dir = $PWD }; brunnr-code skill-registry refresh --quiet --no-gitignore --cwd "$dir"; exit 0'`
 			}
 			event := "SessionStart"
 			if tc.agent == model.AgentClaudeCode {

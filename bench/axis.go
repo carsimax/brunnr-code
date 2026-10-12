@@ -9,7 +9,7 @@ import (
 // An Axis is an OPT-IN extension to the corpus, and it exists for one reason:
 // the core corpus is black-box and must stay that way.
 //
-// The core drives a `gentle-ai` binary through the process boundary and touches
+// The core drives a `brunnr-code` binary through the process boundary and touches
 // nothing else, which is what lets it measure any build including old releases.
 // Some states a real repository reaches cannot be built that way — the product
 // refuses to construct them, which is exactly why they are worth measuring — and

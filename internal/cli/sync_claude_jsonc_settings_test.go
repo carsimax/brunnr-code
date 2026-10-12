@@ -37,7 +37,7 @@ func TestRunSyncAddsClaudeHooksToJSONCSettings(t *testing.T) {
 	if !strings.HasPrefix(string(data), userText) {
 		t.Fatalf("sync did not preserve the JSONC settings text:\n%s", data)
 	}
-	for _, command := range []string{"gentle-ai review stop-hook --agent claude-code", "gentle-ai skill-registry refresh"} {
+	for _, command := range []string{"brunnr-code review stop-hook --agent claude-code", "brunnr-code skill-registry refresh"} {
 		if !strings.Contains(string(data), command) {
 			t.Fatalf("sync did not install hook %q:\n%s", command, data)
 		}

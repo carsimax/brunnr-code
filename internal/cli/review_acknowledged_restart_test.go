@@ -10,9 +10,9 @@ import (
 	"github.com/carsimax/brunnr-code/internal/model"
 )
 
-// acknowledgedRestartCommand extracts the one `gentle-ai review start` command
+// acknowledgedRestartCommand extracts the one `brunnr-code review start` command
 // the shipped target_already_acknowledged row documents.
-var acknowledgedRestartCommand = regexp.MustCompile("`(gentle-ai review start [^`]*)`")
+var acknowledgedRestartCommand = regexp.MustCompile("`(brunnr-code review start [^`]*)`")
 
 // A consumed target is terminal for STATUS: re-querying it never offers a
 // START, so the documented deliberate restart has to be the START path itself,
@@ -51,13 +51,13 @@ func TestAcknowledgedTargetRestartIsTheDocumentedStartNotStatus(t *testing.T) {
 	row := reviewStopReasonDocsContinuations(t, reviewStopReasonDocsSection(t, assets.MustRead(reviewLedgerContractAsset)))["target_already_acknowledged"]
 	matches := acknowledgedRestartCommand.FindAllStringSubmatch(row, -1)
 	if len(matches) != 1 {
-		t.Fatalf("target_already_acknowledged row names %d `gentle-ai review start` commands, want exactly 1: %s", len(matches), row)
+		t.Fatalf("target_already_acknowledged row names %d `brunnr-code review start` commands, want exactly 1: %s", len(matches), row)
 	}
 	documented := matches[0][1]
 	if !strings.Contains(documented, "--agent {{GENTLE_AI_RUNTIME_AGENT_ID}} ") {
 		t.Fatalf("documented restart does not declare the runtime: %s", documented)
 	}
-	if strings.Contains(row, "gentle-ai review status") {
+	if strings.Contains(row, "brunnr-code review status") {
 		t.Fatalf("target_already_acknowledged row still routes the restart through STATUS, which keeps returning this stop: %s", row)
 	}
 	// Fill the documented slots from this STATUS, as an orchestrator would;

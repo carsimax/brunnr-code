@@ -16,7 +16,7 @@ const reviewInspectCandidateTimeout = 25 * time.Second
 type reviewInspectCandidateAuthorityError struct{ cause error }
 
 func (err *reviewInspectCandidateAuthorityError) Error() string {
-	return "repository_context_authority_unavailable: provider-issued review repository context operation failed; refresh the exact native next_transition before retrying `gentle-ai review inspect-candidate`"
+	return "repository_context_authority_unavailable: provider-issued review repository context operation failed; refresh the exact native next_transition before retrying `brunnr-code review inspect-candidate`"
 }
 func (err *reviewInspectCandidateAuthorityError) Unwrap() error { return err.cause }
 
@@ -80,7 +80,7 @@ func runReviewInspectCandidate(args []string, help io.Writer, deps reviewInspect
 		}
 		if flags.NArg() != 0 || strings.TrimSpace(*repositoryContext) == "" || strings.TrimSpace(*revision) == "" ||
 			strings.TrimSpace(*lineage) == "" || strings.TrimSpace(*target) == "" || strings.TrimSpace(*lens) == "" || *order < 0 {
-			return nil, reviewPreflightError(errors.New("review inspect-candidate requires the exact provider-issued repository context, revision, lineage, target, lens, and order; run `gentle-ai review inspect-candidate --help` for the closed command forms"))
+			return nil, reviewPreflightError(errors.New("review inspect-candidate requires the exact provider-issued repository context, revision, lineage, target, lens, and order; run `brunnr-code review inspect-candidate --help` for the closed command forms"))
 		}
 	}
 	pathProvided := reviewFlagWasProvided(flags, "path-index")
@@ -88,25 +88,25 @@ func runReviewInspectCandidate(args []string, help io.Writer, deps reviewInspect
 	switch *operation {
 	case "name-status", "numstat":
 		if pathProvided || sideProvided {
-			return nil, reviewPreflightError(errors.New("global candidate inspection does not accept a path index or side; run `gentle-ai review inspect-candidate --help` for the closed command forms"))
+			return nil, reviewPreflightError(errors.New("global candidate inspection does not accept a path index or side; run `brunnr-code review inspect-candidate --help` for the closed command forms"))
 		}
 	case "stat", "patch":
 		if !pathProvided || *pathIndex < 0 || sideProvided {
-			return nil, reviewPreflightError(errors.New("path candidate inspection requires only a non-negative --path-index; run `gentle-ai review inspect-candidate --help` for the closed command forms"))
+			return nil, reviewPreflightError(errors.New("path candidate inspection requires only a non-negative --path-index; run `brunnr-code review inspect-candidate --help` for the closed command forms"))
 		}
 	case "object":
 		if !pathProvided || *pathIndex < 0 || !sideProvided || (*side != "base" && *side != "candidate") {
-			return nil, reviewPreflightError(errors.New("object candidate inspection requires --path-index and --side base|candidate; run `gentle-ai review inspect-candidate --help` for the closed command forms"))
+			return nil, reviewPreflightError(errors.New("object candidate inspection requires --path-index and --side base|candidate; run `brunnr-code review inspect-candidate --help` for the closed command forms"))
 		}
 	default:
-		return nil, reviewPreflightError(fmt.Errorf("unknown candidate inspection operation %q; run `gentle-ai review inspect-candidate --help` for the closed command forms", *operation))
+		return nil, reviewPreflightError(fmt.Errorf("unknown candidate inspection operation %q; run `brunnr-code review inspect-candidate --help` for the closed command forms", *operation))
 	}
 	var builder reviewtransaction.SnapshotBuilder
 	var snapshot reviewtransaction.Snapshot
 	if *purpose == reviewTargetedValidationPurpose {
 		if flags.NArg() != 0 || strings.TrimSpace(*repositoryContext) == "" || strings.TrimSpace(*revision) == "" ||
 			strings.TrimSpace(*lineage) == "" || strings.TrimSpace(*target) == "" || strings.TrimSpace(*requestHash) == "" {
-			return nil, reviewPreflightError(errors.New("review inspect-candidate targeted validation requires the exact provider-issued repository context, revision, lineage, target, and request hash; run `gentle-ai review inspect-candidate --help` for the closed command forms"))
+			return nil, reviewPreflightError(errors.New("review inspect-candidate targeted validation requires the exact provider-issued repository context, revision, lineage, target, and request hash; run `brunnr-code review inspect-candidate --help` for the closed command forms"))
 		}
 		if reviewFlagWasProvided(flags, "lens") || reviewFlagWasProvided(flags, "order") {
 			return nil, reviewPreflightError(errors.New("review inspect-candidate targeted validation does not accept --lens or --order")) // refusal:by-design operator-knowledge: only a fresh targeted transition names the lens-free inspector binding
@@ -139,7 +139,7 @@ func runReviewInspectCandidate(args []string, help io.Writer, deps reviewInspect
 		state := record.State
 		if state.State != reviewtransaction.StateReviewing || state.InitialSnapshot.Identity != *target || state.CapturePhaseRevision != *revision ||
 			*order >= len(state.SelectedLenses) || state.SelectedLenses[*order] != *lens {
-			return nil, reviewPreflightError(errors.New("candidate inspection binding does not match the current reviewing authority; refresh the exact native next_transition before retrying `gentle-ai review inspect-candidate`"))
+			return nil, reviewPreflightError(errors.New("candidate inspection binding does not match the current reviewing authority; refresh the exact native next_transition before retrying `brunnr-code review inspect-candidate`"))
 		}
 		builder = reviewtransaction.SnapshotBuilder{Repo: root}
 		snapshot = state.InitialSnapshot

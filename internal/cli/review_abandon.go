@@ -38,7 +38,7 @@ type ReviewAbandonResult struct {
 func reviewAbandonInputsRefusal(cwd string) error {
 	return fmt.Errorf(`review abandon requires --lineage, --expected-revision, --reason, --actor, and --maintainer-authorization.
 Read every value you cannot invent from the persisted authority, in the entries[] row for the lineage you are abandoning, with:
-gentle-ai review status --cwd %s
+brunnr-code review status --cwd %s
 --lineage = entries[].lineage_id
 --expected-revision = entries[].revision
 snapshot_identity = entries[].snapshot_identity

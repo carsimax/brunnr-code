@@ -310,7 +310,7 @@ func TestCloneLocalRDDModeEnableRejectsGlobalOffWithoutChangingExplicitOff(t *te
 	if !errors.As(err, &rejected) || !errors.Is(err, ErrRDDDisabled) || rejected.Source != RDDModeSourceGlobal {
 		t.Fatalf("clear explicit-off override error = %v, want global typed disabled error", err)
 	}
-	if !strings.Contains(err.Error(), "gentle-ai review mode enable --scope=global") {
+	if !strings.Contains(err.Error(), "brunnr-code review mode enable --scope=global") {
 		t.Fatalf("clear explicit-off override error does not name the global continuation: %v", err)
 	}
 	if status.CloneLocal != RDDModeOff || status.Revision != disabled.Revision || status.Effective != RDDModeOff {

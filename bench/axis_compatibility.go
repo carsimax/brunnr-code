@@ -12,7 +12,7 @@ import (
 // collect). The direct, manual, non-negotiated surfaces the project
 // explicitly KEPT for "explicit/manual non-negotiated callers" --
 // internal/assets/skills/_shared/review-ledger-contract.md: "Direct
-// `gentle-ai review start` remains compatibility-supported for
+// `brunnr-code review start` remains compatibility-supported for
 // explicit/manual non-negotiated callers" -- were never in the corpus at
 // all. A direct `review start --base-ref ... --committed-only` could create a
 // lineage no reviewer lens could ever complete, and NOTHING in ~57 journeys
@@ -53,7 +53,7 @@ const compatibilityAxis = "compatibility"
 
 // compatBaseDiffCandidate reproduces the issue #2447 repro shape: a base
 // commit, a feature branch, and a committed candidate on top -- exactly the
-// sequence `gentle-ai review start --base-ref <base-sha> --committed-only`
+// sequence `brunnr-code review start --base-ref <base-sha> --committed-only`
 // was reported against.
 func compatBaseDiffCandidate(sandbox *Sandbox) error {
 	if err := baseRepo(sandbox); err != nil {
@@ -83,7 +83,7 @@ func compatDirectBaseDiffStartArgs(sandbox *Sandbox) []string {
 }
 
 // compatDirectBaseDiffRefusesTwice is the counted step: it drives the direct
-// route once, asserts the refusal names a runnable `gentle-ai` continuation,
+// route once, asserts the refusal names a runnable `brunnr-code` continuation,
 // then drives the IDENTICAL call again and asserts byte-identical output.
 // A trap that had created a lineage on the first call would behave
 // differently on the second (resume, collision, or a different error), so
@@ -108,7 +108,7 @@ func compatDirectBaseDiffRefusesTwice(r *journeyRun) error {
 
 // compatAssertNamedRefusal is the shared detector for cw01 and cw02: the
 // observation must be a genuine block (nonzero exit) whose emitted bytes
-// name a runnable `gentle-ai <verb> ...` continuation. It reuses the same
+// name a runnable `brunnr-code <verb> ...` continuation. It reuses the same
 // HasRunnableCommand detector the corpus's own Classify function uses, so a
 // journey's private assertion and the corpus's own in_band/out_of_band
 // bookkeeping can never silently disagree about the same bytes.
@@ -117,7 +117,7 @@ func compatAssertNamedRefusal(observation Observation, what string) error {
 		return fmt.Errorf("%s succeeded, want an up-front refusal: %s", what, observation.Stdout)
 	}
 	if !HasRunnableCommand(observation.Stdout + "\n" + observation.Stderr) {
-		return fmt.Errorf("%s refused but named no runnable `gentle-ai` continuation: stdout=%q stderr=%q",
+		return fmt.Errorf("%s refused but named no runnable `brunnr-code` continuation: stdout=%q stderr=%q",
 			what, observation.Stdout, observation.Stderr)
 	}
 	return nil
@@ -143,8 +143,8 @@ func compatAssertHyphenatedStartRefuses(_ *Sandbox, observation Observation) err
 		return err
 	}
 	combined := observation.Stdout + "\n" + observation.Stderr
-	if !strings.Contains(combined, "gentle-ai review start") {
-		return fmt.Errorf("review-start refusal did not name `gentle-ai review start` (with a space): %q", combined)
+	if !strings.Contains(combined, "brunnr-code review start") {
+		return fmt.Errorf("review-start refusal did not name `brunnr-code review start` (with a space): %q", combined)
 	}
 	return nil
 }
@@ -230,8 +230,8 @@ func compatibilityJourneys() []Journey {
 		{
 			ID:     "cw02-hyphenated-review-start-always-refuses",
 			Review: reviewOptedIn,
-			Title:  "The hyphenated `review-start` v1-compatibility verb refuses unconditionally and names `gentle-ai review start`",
-			Source: "internal/cli/review.go RunReviewStart: \"Read-only legacy v1 compatibility command. New authority is created with gentle-ai review start.\"",
+			Title:  "The hyphenated `review-start` v1-compatibility verb refuses unconditionally and names `brunnr-code review start`",
+			Source: "internal/cli/review.go RunReviewStart: \"Read-only legacy v1 compatibility command. New authority is created with brunnr-code review start.\"",
 			Steps: []Step{
 				{Name: "fixture: base repo", Fixture: baseRepo},
 				{Name: "hyphenated review-start always refuses", Requires: compatHyphenatedStartCapability,

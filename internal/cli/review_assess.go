@@ -11,7 +11,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
-// ReviewAssessmentSchema is the typed envelope gentle-ai review assess prints
+// ReviewAssessmentSchema is the typed envelope brunnr-code review assess prints
 // with --json. It is a read-only projection of the same candidate risk
 // assessment START uses to choose lenses (reviewtransaction.AssessSnapshotRisk),
 // so a host can gate delegated verification on it before deciding whether to
@@ -45,10 +45,10 @@ type ReviewAssessmentCandidate struct {
 }
 
 // ReviewAssessmentNextTransition is the exact, literally runnable
-// `gentle-ai review status ... --next-transition` preflight continuation for
+// `brunnr-code review status ... --next-transition` preflight continuation for
 // a review_due=true candidate, rendered with the same ReviewTransitionArgument
 // rows and builder conventions review_next_transition.go uses for every other
-// negotiated continuation this product emits. Command is "gentle-ai " plus
+// negotiated continuation this product emits. Command is "brunnr-code " plus
 // every argument's token joined by single spaces, so a caller never
 // hand-assembles the invocation from prose (issue: orchestrators skipped the
 // RDD preflight after a slice closed because the ODD rule was prose only).
@@ -110,7 +110,7 @@ func reviewAssessPublicRisk(level reviewtransaction.RiskLevel) (string, error) {
 	case reviewtransaction.RiskHigh:
 		return "high", nil
 	default:
-		return "", fmt.Errorf("review assess computed an unsupported risk level %q; this is a defect in gentle-ai itself, not a request error -- file it and retry with gentle-ai review assess --help", level)
+		return "", fmt.Errorf("review assess computed an unsupported risk level %q; this is a defect in brunnr-code itself, not a request error -- file it and retry with brunnr-code review assess --help", level)
 	}
 }
 
@@ -213,11 +213,11 @@ func parseReviewAssessEscalation(args []string, item, reason string) (*reviewtra
 	escalation, fault := reviewEscalationFromFlags(args, item, reason)
 	switch fault {
 	case reviewEscalationUnpaired:
-		return nil, errors.New("review assess --escalate-item and --escalate-reason must be passed together; rerun `gentle-ai review assess --escalate-item <1-6> --escalate-reason <text>`")
+		return nil, errors.New("review assess --escalate-item and --escalate-reason must be passed together; rerun `brunnr-code review assess --escalate-item <1-6> --escalate-reason <text>`")
 	case reviewEscalationBadItem:
-		return nil, fmt.Errorf("review assess --escalate-item %q must be an integer from 1 to 6 naming a high-risk item; rerun `gentle-ai review assess --escalate-item <1-6> --escalate-reason <text>`", item)
+		return nil, fmt.Errorf("review assess --escalate-item %q must be an integer from 1 to 6 naming a high-risk item; rerun `brunnr-code review assess --escalate-item <1-6> --escalate-reason <text>`", item)
 	case reviewEscalationBadReason:
-		return nil, fmt.Errorf("review assess --escalate-reason must be non-empty and at most %d characters; rerun `gentle-ai review assess --escalate-item <1-6> --escalate-reason <text>` with a one-line reason", reviewtransaction.AgentEscalationReasonMax)
+		return nil, fmt.Errorf("review assess --escalate-reason must be non-empty and at most %d characters; rerun `brunnr-code review assess --escalate-item <1-6> --escalate-reason <text>` with a one-line reason", reviewtransaction.AgentEscalationReasonMax)
 	}
 	return escalation, nil
 }
@@ -253,7 +253,7 @@ func reviewFlagProvided(args []string, flag string) bool {
 	return false
 }
 
-// RunReviewAssess is the read-only `gentle-ai review assess` command. It
+// RunReviewAssess is the read-only `brunnr-code review assess` command. It
 // builds the exact same candidate review start would (current changes, or a
 // named --base-ref comparison), runs the shared risk assessment, and prints
 // it: no authority, no lineage, no store mutation, and no lock beyond an
@@ -262,7 +262,7 @@ func reviewFlagProvided(args []string, flag string) bool {
 // result before ever calling review start (issue #4295).
 //
 // When the candidate cannot be built or assessed, this command fails closed:
-// every returned error names a runnable `gentle-ai review assess ...`
+// every returned error names a runnable `brunnr-code review assess ...`
 // continuation (or an unambiguous %w propagation of the underlying native
 // failure). Hosts that cannot resolve the named continuation should treat the
 // failure exactly as they would treat a "high" result.
@@ -312,7 +312,7 @@ func RunReviewAssess(args []string, stdout io.Writer) error {
 		return nil
 	}
 	if flags.NArg() != 0 {
-		return failClosed(reviewPreflightError(fmt.Errorf("unexpected review assess argument %q; run `gentle-ai review assess --help` for the closed command form", flags.Arg(0))), failClosedCandidate)
+		return failClosed(reviewPreflightError(fmt.Errorf("unexpected review assess argument %q; run `brunnr-code review assess --help` for the closed command form", flags.Arg(0))), failClosedCandidate)
 	}
 
 	escalation, err := parseReviewAssessEscalation(args, *escalateItem, *escalateReason)
@@ -359,33 +359,33 @@ func RunReviewAssess(args []string, stdout io.Writer) error {
 		}
 		if dirtyTracked && !*committedOnly {
 			return failClosed(reviewPreflightError(fmt.Errorf(
-				"review assess with --base-ref omits dirty tracked changes; rerun `gentle-ai review assess --base-ref %s --committed-only` to acknowledge committed-only scope",
+				"review assess with --base-ref omits dirty tracked changes; rerun `brunnr-code review assess --base-ref %s --committed-only` to acknowledge committed-only scope",
 				trimmedBaseRef)), failClosedCandidate)
 		}
 	}
 
 	intendedScope, err := intendedUntrackedScopeForTarget(ctx, builder, untrackedScope, intendedUntracked, expectedUntrackedInventory,
-		reviewIntendedUntrackedInventoryCommand, "gentle-ai review assess")
+		reviewIntendedUntrackedInventoryCommand, "brunnr-code review assess")
 	if err != nil {
 		return failClosed(reviewPreflightError(err), failClosedCandidate)
 	}
 	if intendedScope.NeedsSelection {
-		return failClosed(reviewPreflightError(intendedUntrackedSelectionRequired(intendedScope, reviewIntendedUntrackedInventoryCommand, "gentle-ai review assess")), failClosedCandidate)
+		return failClosed(reviewPreflightError(intendedUntrackedSelectionRequired(intendedScope, reviewIntendedUntrackedInventoryCommand, "brunnr-code review assess")), failClosedCandidate)
 	}
 	target.IntendedUntracked = intendedScope.Intended
 
 	snapshot, err := builder.Build(ctx, target)
 	if err != nil {
-		return failClosed(fmt.Errorf("review assess could not build the candidate; correct --cwd or --base-ref and retry with `gentle-ai review assess --help`: %w", err), failClosedCandidate)
+		return failClosed(fmt.Errorf("review assess could not build the candidate; correct --cwd or --base-ref and retry with `brunnr-code review assess --help`: %w", err), failClosedCandidate)
 	}
 	if reviewStartEmptyCandidateScope(snapshot) {
 		return failClosed(reviewPreflightError(errors.New(
-			"the review assess candidate has no pending changes; already-committed work can be assessed by rerunning `gentle-ai review assess --base-ref <commit>` naming the base to compare against")), failClosedCandidate)
+			"the review assess candidate has no pending changes; already-committed work can be assessed by rerunning `brunnr-code review assess --base-ref <commit>` naming the base to compare against")), failClosedCandidate)
 	}
 
 	assessment, err := builder.AssessSnapshotRisk(ctx, snapshot)
 	if err != nil {
-		return failClosed(fmt.Errorf("review assess could not classify the candidate; retry with `gentle-ai review assess --help` or a narrower --base-ref: %w", err), failClosedCandidate)
+		return failClosed(fmt.Errorf("review assess could not classify the candidate; retry with `brunnr-code review assess --help` or a narrower --base-ref: %w", err), failClosedCandidate)
 	}
 	publicRisk, err := reviewAssessPublicRisk(assessment.Level)
 	if err != nil {
@@ -399,7 +399,7 @@ func RunReviewAssess(args []string, stdout io.Writer) error {
 	// tombstone; it matches by identity re-derivation only).
 	consumed, err := reviewtransaction.CompactTargetConsumed(ctx, root, snapshot.Identity)
 	if err != nil {
-		return failClosed(fmt.Errorf("review assess could not read terminal consumption evidence; retry with `gentle-ai review assess --help`: %w", err), failClosedCandidate)
+		return failClosed(fmt.Errorf("review assess could not read terminal consumption evidence; retry with `brunnr-code review assess --help`: %w", err), failClosedCandidate)
 	}
 	// #4739: STATUS withholds START when the candidate only adds passive
 	// content to an acknowledged one, so assess must not call it due either.

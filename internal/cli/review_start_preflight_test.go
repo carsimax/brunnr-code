@@ -159,7 +159,7 @@ func TestReviewStatusPreflightsStartOptionsIntoTheFreshStart(t *testing.T) {
 					t.Fatalf("relayed START = %s", output.String())
 				}
 				words := reviewShellWords(t, question.Choices[0].Invocation)
-				if len(words) < 3 || words[0] != "gentle-ai" || words[1] != "review" {
+				if len(words) < 3 || words[0] != "brunnr-code" || words[1] != "review" {
 					t.Fatalf("granted follow-up = %q", question.Choices[0].Invocation)
 				}
 				output.Reset()

@@ -49,7 +49,7 @@ func TestCompatibilityAxisDeclaresItselfAndItsJourneys(t *testing.T) {
 		}
 		for _, journey := range journeys {
 			delete(want, journey.ID)
-			if journey.ID == "cw04-unbound-recovery-executes-without-agent-guess" && journey.Source != "https://github.com/Gentleman-Programming/gentle-ai/issues/2885" {
+			if journey.ID == "cw04-unbound-recovery-executes-without-agent-guess" && journey.Source != "https://github.com/carsimax/brunnr-code/issues/2885" {
 				t.Fatalf("cw04 source = %q", journey.Source)
 			}
 		}
@@ -68,7 +68,7 @@ func TestCompatibilityAxisDeclaresItselfAndItsJourneys(t *testing.T) {
 // exiting 0 (no refusal at all), and refusing with nothing runnable in the
 // message (a dead end).
 func TestCompatAssertNamedRefusalFiresOnSuccessAndOnDeadEnd(t *testing.T) {
-	if err := compatAssertNamedRefusal(Observation{ExitCode: 1, Stdout: "Error: cannot proceed; rerun with `gentle-ai review start --contract x`"}, "test"); err != nil {
+	if err := compatAssertNamedRefusal(Observation{ExitCode: 1, Stdout: "Error: cannot proceed; rerun with `brunnr-code review start --contract x`"}, "test"); err != nil {
 		t.Fatalf("the detector rejected a genuine named refusal: %v", err)
 	}
 	if err := compatAssertNamedRefusal(Observation{ExitCode: 0, Stdout: `{"action":"created"}`}, "test"); err == nil {
@@ -80,16 +80,16 @@ func TestCompatAssertNamedRefusalFiresOnSuccessAndOnDeadEnd(t *testing.T) {
 }
 
 // compatAssertHyphenatedStartRefuses adds one more requirement on top of
-// compatAssertNamedRefusal: the refusal must specifically name `gentle-ai
+// compatAssertNamedRefusal: the refusal must specifically name `brunnr-code
 // review start` (with a space), not just any command.
 func TestCompatAssertHyphenatedStartRefusesRequiresTheSpacedVerb(t *testing.T) {
-	ok := Observation{ExitCode: 1, Stderr: "legacy v1 review lineage is read-only: use gentle-ai review start"}
+	ok := Observation{ExitCode: 1, Stderr: "legacy v1 review lineage is read-only: use brunnr-code review start"}
 	if err := compatAssertHyphenatedStartRefuses(nil, ok); err != nil {
-		t.Fatalf("rejected a refusal that names gentle-ai review start: %v", err)
+		t.Fatalf("rejected a refusal that names brunnr-code review start: %v", err)
 	}
-	wrongVerb := Observation{ExitCode: 1, Stderr: "refused; rerun `gentle-ai review status --next-transition`"}
+	wrongVerb := Observation{ExitCode: 1, Stderr: "refused; rerun `brunnr-code review status --next-transition`"}
 	if err := compatAssertHyphenatedStartRefuses(nil, wrongVerb); err == nil {
-		t.Fatal("accepted a refusal that names a DIFFERENT gentle-ai command, not `review start`; cw02 would pass without proving the redirect it claims")
+		t.Fatal("accepted a refusal that names a DIFFERENT brunnr-code command, not `review start`; cw02 would pass without proving the redirect it claims")
 	}
 }
 

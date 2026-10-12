@@ -28,7 +28,7 @@
       "HEAD"
     ],
     "stdout": "",
-    "stderr": "Error: review start with --projection staged and --base-ref is refused because intent is ambiguous: for a staged-index review rerun with \"gentle-ai review start --projection staged\"; for a base-diff review rerun with \"gentle-ai review start --base-ref HEAD --committed-only\"",
+    "stderr": "Error: review start with --projection staged and --base-ref is refused because intent is ambiguous: for a staged-index review rerun with \"brunnr-code review start --projection staged\"; for a base-diff review rerun with \"brunnr-code review start --base-ref HEAD --committed-only\"",
     "exit_code": 1,
     "stdout_captured": true,
     "stderr_captured": true
@@ -55,7 +55,7 @@
       "--cwd",
       "/SANDBOX/demo"
     ],
-    "stdout": "{\n  \"operation\": \"review/finalize\",\n  \"lineage_id\": \"review-9dc2bb05f350e857\",\n  \"state\": \"approved\",\n  \"action\": \"validate delivery with gentle-ai review validate --gate \\u003cgate\\u003e\",\n  \"store_revision\": \"sha256:8b966441d332a265a1aaa1e813d723645cf16c83c54f8b2a8fabe752031032d6\",\n  \"receipt_path\": \"/SANDBOX/demo/.git/gentle-ai/review-transactions/v2/review-9dc2bb05f350e857/review-receipt.json\"\n}",
+    "stdout": "{\n  \"operation\": \"review/finalize\",\n  \"lineage_id\": \"review-9dc2bb05f350e857\",\n  \"state\": \"approved\",\n  \"action\": \"validate delivery with brunnr-code review validate --gate \\u003cgate\\u003e\",\n  \"store_revision\": \"sha256:8b966441d332a265a1aaa1e813d723645cf16c83c54f8b2a8fabe752031032d6\",\n  \"receipt_path\": \"/SANDBOX/demo/.git/gentle-ai/review-transactions/v2/review-9dc2bb05f350e857/review-receipt.json\"\n}",
     "stderr": "",
     "exit_code": 0,
     "stdout_captured": true,
@@ -86,7 +86,7 @@
       "/SANDBOX/demo"
     ],
     "stdout": "{\n  \"operation\": \"review/start\",\n  \"action\": \"created\",\n  \"lenses_required\": true,\n  \"lineage_id\": \"review-f5e9da0ba13d855e\",\n  \"state\": \"reviewing\",\n  \"risk_level\": \"high\",\n  \"selected_lenses\": [\n    \"review-risk\",\n    \"review-resilience\",\n    \"review-readability\",\n    \"review-reliability\"\n  ],\n  \"lens_bindings\": [\n    {\n      \"lens\": \"review-risk\",\n      \"order\": 0\n    },\n    {\n      \"lens\": \"review-resilience\",\n      \"order\": 1\n    },\n    {\n      \"lens\": \"review-readability\",\n      \"order\": 2\n    },\n    {\n      \"lens\": \"review-reliability\",\n      \"order\": 3\n    }\n  ],\n  \"projection\": \"workspace\",\n  \"target_identity\": \"sha256:f5e9da0ba13d855e33245b91b90eec7bec88a203478e00958a25c0dfe56e0cfb\",\n  \"changed_files\": 1,\n  \"changed_lines\": 2,\n  \"correction_budget\": 1,\n  \"risk_evidence\": [\n    \"authentication in internal/auth/s.go\"\n  ]\n}",
-    "stderr": "Gentle AI reviewed this change without asking, because this session has no terminal to answer on. Run 'gentle-ai review mode disable' to turn reviews off, or 'gentle-ai review mode status' to see the current setting.",
+    "stderr": "Brunnr-Code reviewed this change without asking, because this session has no terminal to answer on. Run 'brunnr-code review mode disable' to turn reviews off, or 'brunnr-code review mode status' to see the current setting.",
     "exit_code": 0,
     "stdout_captured": true,
     "stderr_captured": true
@@ -159,7 +159,7 @@
       "review-f5e9da0ba13d855e"
     ],
     "stdout": "",
-    "stderr": "Error: finalize for lineage \"review-f5e9da0ba13d855e\" had no verification evidence to consume and made no transition; capture it first with `gentle-ai review capture-evidence`, then run `gentle-ai review finalize --lineage review-f5e9da0ba13d855e --captured-evidence`",
+    "stderr": "Error: finalize for lineage \"review-f5e9da0ba13d855e\" had no verification evidence to consume and made no transition; capture it first with `brunnr-code review capture-evidence`, then run `brunnr-code review finalize --lineage review-f5e9da0ba13d855e --captured-evidence`",
     "exit_code": 1,
     "stdout_captured": true,
     "stderr_captured": true
@@ -204,7 +204,7 @@
       "--this-flag-does-not-exist",
       "x"
     ],
-    "stdout": "flag provided but not defined: -this-flag-does-not-exist\nUsage: gentle-ai review start [flags]\n\nFreeze live Git scope and derive the bounded review tier, lenses, and correction budget.\n\nFlags:\n  --base-ref <value>\n      optional base revision for immutable base-to-HEAD review\n  --committed-only <value>\n      acknowledge that --base-ref excludes dirty tracked changes (default \"false\")\n  --contract <value>\n      optional negotiated review integration contract\n  --cwd <value>\n      repository path (default \".\")\n  --focus <value>\n      dominant standard-risk focus: risk, resilience, readability, or reliability; large pure documentation always uses readability (default \"reliability\")\n  --lineage <value>\n      optional explicit review lineage identifier\n  --policy <value>\n      optional review policy file; the native bounded policy is used by default\n  --projection <value>\n      candidate projection: workspace or staged; staged base-diff records post-commit delivery provenance (default \"workspace\")\n  --target <value>\n      exact frozen target identity for negotiated START\n  --trace <value>\n      optional diagnostic operation metadata trace path\n  --workspace-overlay <value>\n      include branch commits and the live workspace over --base-ref (default \"false\")\n  -h, --help\n      show this help",
+    "stdout": "flag provided but not defined: -this-flag-does-not-exist\nUsage: brunnr-code review start [flags]\n\nFreeze live Git scope and derive the bounded review tier, lenses, and correction budget.\n\nFlags:\n  --base-ref <value>\n      optional base revision for immutable base-to-HEAD review\n  --committed-only <value>\n      acknowledge that --base-ref excludes dirty tracked changes (default \"false\")\n  --contract <value>\n      optional negotiated review integration contract\n  --cwd <value>\n      repository path (default \".\")\n  --focus <value>\n      dominant standard-risk focus: risk, resilience, readability, or reliability; large pure documentation always uses readability (default \"reliability\")\n  --lineage <value>\n      optional explicit review lineage identifier\n  --policy <value>\n      optional review policy file; the native bounded policy is used by default\n  --projection <value>\n      candidate projection: workspace or staged; staged base-diff records post-commit delivery provenance (default \"workspace\")\n  --target <value>\n      exact frozen target identity for negotiated START\n  --trace <value>\n      optional diagnostic operation metadata trace path\n  --workspace-overlay <value>\n      include branch commits and the live workspace over --base-ref (default \"false\")\n  -h, --help\n      show this help",
     "stderr": "Error: flag provided but not defined: -this-flag-does-not-exist",
     "exit_code": 1,
     "stdout_captured": true,
@@ -273,7 +273,7 @@
       "pre-commit"
     ],
     "stdout": "{\n  \"schema\": \"gentle-ai.review-gate-result/v1\",\n  \"result\": \"invalidated\",\n  \"allowed\": false,\n  \"action\": \"explicit-maintainer-action\",\n  \"reason\": \"no terminal review receipt exists for gate validation\",\n  \"context\": {\n    \"gate\": \"pre-commit\",\n    \"lineage_id\": \"\",\n    \"generation\": 0,\n    \"base_tree\": \"\",\n    \"candidate_tree\": \"\",\n    \"paths_digest\": \"\",\n    \"fix_delta_hash\": \"\",\n    \"policy_hash\": \"\",\n    \"ledger_hash\": \"\",\n    \"evidence_hash\": \"\",\n    \"base_relationship_valid\": false,\n    \"denial\": {\n      \"stage\": \"receipt-discovery\",\n      \"code\": \"receipt_missing\"\n    }\n  }\n}",
-    "stderr": "Error: review lifecycle gate denied: invalidated: no terminal review receipt governs this candidate; review it with gentle-ai review start",
+    "stderr": "Error: review lifecycle gate denied: invalidated: no terminal review receipt governs this candidate; review it with brunnr-code review start",
     "exit_code": 1,
     "stdout_captured": true,
     "stderr_captured": true

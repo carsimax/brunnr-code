@@ -378,7 +378,7 @@
       ],
       "properties": {
         "command": {
-          "const": "gentle-ai review status --cwd <repo> --contract gentle-ai.review-integration/v1 --next-transition"
+          "const": "brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v1 --next-transition"
         },
         "target_selector_variants": {
           "type": "array",

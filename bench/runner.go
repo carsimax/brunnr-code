@@ -671,7 +671,7 @@ type Step struct {
 	// README.
 	DeadEnd bool
 	// ByDesign declares the opposite: a block here is a CORRECT refusal that
-	// already told the operator what to do, in words no `gentle-ai` command
+	// already told the operator what to do, in words no `brunnr-code` command
 	// could express. It is the second author-declared input, and the more
 	// expensive one — a shape from a closed vocabulary plus a quote of the
 	// product's own next-action text, verified against the emitted bytes.
@@ -703,7 +703,7 @@ const (
 	// reviewPreconditionUndeclared is the zero value, and validateCorpus
 	// rejects it. A new journey has to say which world it runs in.
 	reviewPreconditionUndeclared ReviewPrecondition = ""
-	// reviewOptedIn runs `gentle-ai review mode enable --scope global` in the
+	// reviewOptedIn runs `brunnr-code review mode enable --scope global` in the
 	// sandbox HOME before the journey's first product command, exactly as a
 	// user opts in, and fails the journey if the product does not then report
 	// the switch on. Global is the only scope that can assert "on": a clone may

@@ -71,7 +71,7 @@ func intendedUntrackedSelectArgs(digest string, paths ...string) []string {
 func executePrintedReview(t *testing.T, repo, command string) []byte {
 	t.Helper()
 	words, err := SplitPrintedCommandWords(command)
-	if err != nil || len(words) < 3 || words[0] != "gentle-ai" || words[1] != "review" || words[2] != "start" {
+	if err != nil || len(words) < 3 || words[0] != "brunnr-code" || words[1] != "review" || words[2] != "start" {
 		t.Fatalf("printed START = %q: %v", command, err)
 	}
 	t.Chdir(repo)
@@ -342,7 +342,7 @@ func TestConsentFollowUpPrintedPathFlagsRoundTripWindowsNativePaths(t *testing.T
 				t.Fatalf("split printed consent follow-up: %v", err)
 			}
 			want := []string{
-				"gentle-ai", "review", "start",
+				"brunnr-code", "review", "start",
 				"--contract", ReviewIntegrationContractV2,
 				"--cwd", test.cwd,
 				"--target", "sha256:target",
@@ -362,7 +362,7 @@ func TestConsentFollowUpPrintedPathFlagsRoundTripWindowsNativePaths(t *testing.T
 	}
 }
 
-// Issue #2895: intended-untracked refusals named `gentle-ai review status
+// Issue #2895: intended-untracked refusals named `brunnr-code review status
 // --next-transition`, which the parser refuses without a negotiated contract
 // and runtime identity. The named continuation is extracted and executed.
 func TestIntendedUntrackedRefusalsNameARunnableStatusInvocation(t *testing.T) {
@@ -378,7 +378,7 @@ func TestIntendedUntrackedRefusalsNameARunnableStatusInvocation(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), "--contract "+ReviewIntegrationContractV2) {
 			t.Fatalf("%s START = %v, want a refusal naming the negotiated STATUS form", name, err)
 		}
-		start := strings.Index(err.Error(), "`gentle-ai review status")
+		start := strings.Index(err.Error(), "`brunnr-code review status")
 		rest := err.Error()[start+1:]
 		tokens := strings.Fields(rest[:strings.IndexByte(rest, '`')])[2:]
 		for index, token := range tokens {
@@ -386,7 +386,7 @@ func TestIntendedUntrackedRefusalsNameARunnableStatusInvocation(t *testing.T) {
 		}
 		var output bytes.Buffer
 		if runErr := RunReview(tokens, &output); runErr != nil {
-			t.Fatalf("%s refusal named `gentle-ai review %s`, which the parser refuses: %v\n%s", name, strings.Join(tokens, " "), runErr, output.String())
+			t.Fatalf("%s refusal named `brunnr-code review %s`, which the parser refuses: %v\n%s", name, strings.Join(tokens, " "), runErr, output.String())
 		}
 		// Issue #4040: naming a command that only PARSES is not enough — the
 		// recovery route must publish a digest the same refusal's required

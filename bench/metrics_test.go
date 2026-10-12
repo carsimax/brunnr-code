@@ -9,7 +9,7 @@ func TestAccumulatorCountsEveryDimension(t *testing.T) {
 	accumulator := newAccumulator()
 	gitCalls := 3
 
-	consentNotice := "Gentle AI reviewed this change without asking, because this session has no terminal to answer on.\n"
+	consentNotice := "Brunnr-Code reviewed this change without asking, because this session has no terminal to answer on.\n"
 	finalizeError := "Error: review finalize requires all 4 original reviewer result(s)\n"
 	stuckError := "Error: still stuck\n"
 	wantSurface := len(consentNotice) + len(finalizeError) + len(stuckError)
@@ -233,10 +233,10 @@ func TestCompareRendersUnsupportedDistinctlyFromZero(t *testing.T) {
 func TestAnalyzeSessionUsesTheSameClassifier(t *testing.T) {
 	session := []SessionRecord{
 		{Argv: []string{"review", "start"}, ExitCode: 0, Stdout: `{"state":"reviewing"}`,
-			Stderr:         "Gentle AI reviewed this change without asking, because this session has no terminal to answer on.\n",
+			Stderr:         "Brunnr-Code reviewed this change without asking, because this session has no terminal to answer on.\n",
 			StdoutCaptured: true, StderrCaptured: true},
 		{Argv: []string{"review", "finalize"}, ExitCode: 1,
-			Stderr:         "Error: capture it first with `gentle-ai review capture-evidence`\n",
+			Stderr:         "Error: capture it first with `brunnr-code review capture-evidence`\n",
 			StdoutCaptured: true, StderrCaptured: true},
 		{Argv: []string{"review", "capture-result", "--input", "r.json"}, ExitCode: 0,
 			Stdout: `{"admission_decision":"completed"}`, StdoutCaptured: true, StderrCaptured: true},

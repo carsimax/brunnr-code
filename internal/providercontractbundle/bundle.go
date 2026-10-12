@@ -146,7 +146,7 @@ type manifest struct {
 // orchestrationRuntimeIdentities is deliberately closed, the same discipline
 // reviewerprovider applies to registeredRuntimeIdentities: a runtime is added
 // here only once it has no other delivery channel for the review execution
-// contract inside Gentle AI's own installer (no system prompt, skill, or
+// contract inside Brunnr-Code's own installer (no system prompt, skill, or
 // file-subagent surface to splice generic SDD composition into), so this
 // bundle becomes that runtime's sole channel. Every supported runtime
 // currently receives the contract through its installed system prompt, so the
@@ -192,9 +192,9 @@ func canonicalOrchestrationEntries() ([]orchestrationEntry, error) {
 	return entries, nil
 }
 
-var bundleREADME = []byte(`# Gentle AI review provider contract
+var bundleREADME = []byte(`# Brunnr-Code review provider contract
 
-This data-only bundle describes the provider result contracts admitted by Gentle AI.
+This data-only bundle describes the provider result contracts admitted by Brunnr-Code.
 
 ## Activation
 
@@ -207,7 +207,7 @@ This data-only bundle describes the provider result contracts admitted by Gentle
 
 manifest.json's orchestration array lists, for closed runtimes only, one
 orchestration/<runtime>.md file: the exact review execution contract text
-Gentle AI's own installer would have spliced into that runtime's system
+Brunnr-Code's own installer would have spliced into that runtime's system
 prompt, for a runtime whose adapter has no system prompt to splice it into.
 It carries no executable content, same as every other file in this bundle: a
 runtime mirrors and delivers the text as-is and still relies on Go for every

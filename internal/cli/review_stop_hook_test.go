@@ -155,11 +155,11 @@ func TestReviewStopHookBlocksWithReasonAndBothCommands(t *testing.T) {
 	if result.Schema != reviewStopHookSchema || result.Decision != "block" {
 		t.Fatalf("result = %#v", result)
 	}
-	wantStatusCommand := fmt.Sprintf("gentle-ai review status --cwd %s --contract %s --agent claude-code --next-transition", repo, ReviewIntegrationContractV2)
+	wantStatusCommand := fmt.Sprintf("brunnr-code review status --cwd %s --contract %s --agent claude-code --next-transition", repo, ReviewIntegrationContractV2)
 	if !strings.Contains(result.Reason, wantStatusCommand) {
 		t.Fatalf("reason missing canonical STATUS command:\n%s", result.Reason)
 	}
-	if !strings.Contains(result.Reason, "gentle-ai review start") || !strings.Contains(result.Reason, "--consent=relay") {
+	if !strings.Contains(result.Reason, "brunnr-code review start") || !strings.Contains(result.Reason, "--consent=relay") {
 		t.Fatalf("reason missing the returned START command with --consent=relay:\n%s", result.Reason)
 	}
 	if !strings.Contains(result.Reason, "next_transition") {

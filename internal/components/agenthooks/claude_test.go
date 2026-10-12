@@ -19,7 +19,7 @@ import (
 )
 
 func TestClaudeSkillRegistryCommandForWindows(t *testing.T) {
-	const want = `powershell -NoProfile -Command 'if (Test-Path env:CLAUDE_PROJECT_DIR) { $dir = $env:CLAUDE_PROJECT_DIR } else { $dir = $PWD }; gentle-ai skill-registry refresh --quiet --no-gitignore --cwd "$dir"; exit 0'`
+	const want = `powershell -NoProfile -Command 'if (Test-Path env:CLAUDE_PROJECT_DIR) { $dir = $env:CLAUDE_PROJECT_DIR } else { $dir = $PWD }; brunnr-code skill-registry refresh --quiet --no-gitignore --cwd "$dir"; exit 0'`
 	if got := claudeSkillRegistryCommand("windows"); got != want {
 		t.Fatalf("Windows hook command = %q, want %q", got, want)
 	}
@@ -108,7 +108,7 @@ func TestClaudeUserPromptSubmitHookExecutesPowerShellCommandWithSpecialChars(t *
 	if err := os.MkdirAll(bin, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	fakeName := "gentle-ai"
+	fakeName := "brunnr-code"
 	if runtime.GOOS == "windows" {
 		fakeName = "gentle-ai.exe"
 	}
@@ -208,7 +208,7 @@ func TestClaudeUserPromptSubmitHookExecutesPowerShellCommandWithSpecialChars(t *
 	}
 	logBytes, err := os.ReadFile(fakeLogPath)
 	if err != nil {
-		t.Fatalf("fake gentle-ai log %q not written: %v\ncommand output:\n%s", fakeLogPath, err, output)
+		t.Fatalf("fake brunnr-code log %q not written: %v\ncommand output:\n%s", fakeLogPath, err, output)
 	}
 	logText := string(logBytes)
 	lines := strings.Split(logText, "\n")
@@ -225,13 +225,13 @@ func TestClaudeUserPromptSubmitHookExecutesPowerShellCommandWithSpecialChars(t *
 		gotArgv = append(gotArgv, line[eq+1:])
 	}
 	if !reflect.DeepEqual(gotArgv, wantArgv) {
-		t.Fatalf("fake gentle-ai argv mismatch (special-character CLAUDE_PROJECT_DIR did not survive argument reconstruction):\n got: %#v\nwant: %#v\nlog:\n%s\ncommand output:\n%s", gotArgv, wantArgv, logText, output)
+		t.Fatalf("fake brunnr-code argv mismatch (special-character CLAUDE_PROJECT_DIR did not survive argument reconstruction):\n got: %#v\nwant: %#v\nlog:\n%s\ncommand output:\n%s", gotArgv, wantArgv, logText, output)
 	}
 	if !strings.Contains(logText, fmt.Sprintf("stdin-bytes=%d", len(stdinPayload))) || !strings.Contains(logText, stdinPayload) {
-		t.Fatalf("fake gentle-ai did not record the stdin payload:\nlog:\n%s\ncommand output:\n%s", logText, output)
+		t.Fatalf("fake brunnr-code did not record the stdin payload:\nlog:\n%s\ncommand output:\n%s", logText, output)
 	}
 	if !strings.Contains(logText, "exit=7\n") {
-		t.Fatalf("fake gentle-ai did not record exit code 7:\nlog:\n%s\ncommand output:\n%s", logText, output)
+		t.Fatalf("fake brunnr-code did not record exit code 7:\nlog:\n%s\ncommand output:\n%s", logText, output)
 	}
 	if !strings.Contains(logText, "env-CLAUDE_PROJECT_DIR="+projectDir+"\n") {
 		t.Fatalf("CLAUDE_PROJECT_DIR not propagated into the fake:\nlog:\n%s\ncommand output:\n%s", logText, output)
@@ -279,7 +279,7 @@ func TestClaudeRetainedHooksPreserveExistingEvents(t *testing.T) {
 	for _, tc := range []struct {
 		command string
 		count   int
-	}{{"gentle-ai review stop-hook --agent claude-code", 2}, {`"matcher": "startup|resume|clear|compact"`, 1}} {
+	}{{"brunnr-code review stop-hook --agent claude-code", 2}, {`"matcher": "startup|resume|clear|compact"`, 1}} {
 		if strings.Count(string(before), tc.command) != tc.count {
 			t.Fatalf("%q count = %d, want %d", tc.command, strings.Count(string(before), tc.command), tc.count)
 		}
@@ -352,7 +352,7 @@ func TestClaudeRetainedHooksWithoutSDD(t *testing.T) {
 	if err != nil || !first.Changed {
 		t.Fatalf("first: %+v %v", first, err)
 	}
-	want := []byte("{\n  \"hooks\": {\n    \"SessionStart\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"gentle-ai review stop-hook --agent claude-code\",\n            \"timeout\": 30,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"startup|resume|clear|compact\"\n      }\n    ],\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"echo keep\",\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      },\n      {\n        \"hooks\": [\n          {\n            \"command\": \"gentle-ai review stop-hook --agent claude-code\",\n            \"timeout\": 60,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      }\n    ]\n  }\n}\n")
+	want := []byte("{\n  \"hooks\": {\n    \"SessionStart\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"brunnr-code review stop-hook --agent claude-code\",\n            \"timeout\": 30,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"startup|resume|clear|compact\"\n      }\n    ],\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"echo keep\",\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      },\n      {\n        \"hooks\": [\n          {\n            \"command\": \"brunnr-code review stop-hook --agent claude-code\",\n            \"timeout\": 60,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      }\n    ]\n  }\n}\n")
 	got, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -363,7 +363,7 @@ func TestClaudeRetainedHooksWithoutSDD(t *testing.T) {
 	for _, expected := range []struct {
 		command string
 		count   int
-	}{{"gentle-ai review stop-hook --agent claude-code", 2}, {`"matcher": "startup|resume|clear|compact"`, 1}} {
+	}{{"brunnr-code review stop-hook --agent claude-code", 2}, {`"matcher": "startup|resume|clear|compact"`, 1}} {
 		if strings.Count(string(got), expected.command) != expected.count {
 			t.Fatalf("%q count = %d, want %d", expected.command, strings.Count(string(got), expected.command), expected.count)
 		}

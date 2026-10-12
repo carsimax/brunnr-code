@@ -42,7 +42,7 @@ import (
 // prepareOrchestratorModuleRemoval reuses the same plan with nothing
 // referenced, to retire the pilot on uninstall (U2c).
 
-// orchestratorModuleLedgerName records the bytes Gentle AI installed for each
+// orchestratorModuleLedgerName records the bytes Brunnr-Code installed for each
 // module file, next to the modules.
 const orchestratorModuleLedgerName = ".gentle-ai-orchestrator-module-ownership.json"
 
@@ -178,7 +178,7 @@ func prepareDesiredOrchestratorModules(configDir string, desired map[string][]by
 		want, referenced := desired[file]
 		switch {
 		case referenced && present && !owned && !bytes.Equal(data, want):
-			return nil, fmt.Errorf("orchestrator module %s is modified or not owned by Gentle AI", path)
+			return nil, fmt.Errorf("orchestrator module %s is modified or not owned by Brunnr-Code", path)
 		case referenced:
 			p.ledger.Files[file] = managedownership.Hash(want)
 			if !present || !bytes.Equal(data, want) {

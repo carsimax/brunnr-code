@@ -80,7 +80,7 @@
                 "type": "object", "additionalProperties": false, "required": ["operation", "command", "arguments", "binding"],
                 "properties": {
                   "operation": {"const": "review.capture-unachievable"},
-                  "command": {"type": "string", "minLength": 1, "pattern": "^gentle-ai review capture-unachievable "},
+                  "command": {"type": "string", "minLength": 1, "pattern": "^brunnr-code review capture-unachievable "},
                   "arguments": {"type": "array", "items": {"$ref": "transition-execution.schema.json#/$defs/executable_transition_argument"}},
                   "binding": {"$ref": "transition-binding.schema.json"}
                 }

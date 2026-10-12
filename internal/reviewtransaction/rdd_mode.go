@@ -49,7 +49,7 @@ var (
 	// ErrRDDDisabled reports that the user kill switch keeps receipt-driven
 	// development off. It is a stop, never a fallback signal.
 	//
-	// refusal:by-design human-authority: a sentinel, not a user-facing message. Callers wrap it with the deciding scope and the exact `gentle-ai review mode enable` invocation; naming a command here would offer to undo a choice only the operator may reverse.
+	// refusal:by-design human-authority: a sentinel, not a user-facing message. Callers wrap it with the deciding scope and the exact `brunnr-code review mode enable` invocation; naming a command here would offer to undo a choice only the operator may reverse.
 	ErrRDDDisabled = errors.New("receipt-driven development is disabled")
 
 	// ErrRDDModeUnknown reports an unrecognised mode value. Callers that ignore
@@ -71,9 +71,9 @@ var (
 
 	// ErrRDDModePartiallyApplied reports a clone-scope decision this build
 	// recorded but could not publish at the readable location a coexisting
-	// gentle-ai reads. It is the opposite of a fallback: it exists so a
+	// brunnr-code reads. It is the opposite of a fallback: it exists so a
 	// half-applied kill switch can never be reported as a working one.
-	ErrRDDModePartiallyApplied = errors.New("clone-local review mode was not applied for every gentle-ai on this machine")
+	ErrRDDModePartiallyApplied = errors.New("clone-local review mode was not applied for every brunnr-code on this machine")
 
 	// rddConsentPayload is the exact latch content. It deliberately carries no
 	// timestamp: identical bytes keep the immutable no-replace publish idempotent,
@@ -158,7 +158,7 @@ type RDDGlobalMode struct {
 // The kill switch is a decision about this machine, not about one build, and
 // #3284 is what happens when a write reports plain success for less than that:
 // a modern binary published the decision only under the relocated switch root,
-// every gentle-ai installed before that relocation kept reading its own
+// every brunnr-code installed before that relocation kept reading its own
 // location, and those builds went on enforcing review while the operator had
 // been told the switch was off.
 type RDDModeReach string
@@ -168,12 +168,12 @@ const (
 	// mode never writes and never probes the other location, so it asserts
 	// nothing about reach instead of guessing.
 	RDDModeReachUnreported RDDModeReach = ""
-	// RDDModeReachMachine means every gentle-ai installed on this machine
+	// RDDModeReachMachine means every brunnr-code installed on this machine
 	// observes the decision.
 	RDDModeReachMachine RDDModeReach = "machine"
 	// RDDModeReachThisBuild means only builds that read the relocated switch
 	// root observe it, because the pre-relocation location could not be
-	// reached. A gentle-ai installed before the relocation keeps reading the
+	// reached. A brunnr-code installed before the relocation keeps reading the
 	// value it already has there -- which is also the value it fails closed to
 	// when that location is unreadable, so nothing is relaxed and nothing is
 	// silently claimed.
@@ -237,13 +237,13 @@ func rddOperationSubject(operation RDDOperation) string {
 	return string(operation)
 }
 
-// reviewModeEnableForSource names the exact `gentle-ai review mode enable`
+// reviewModeEnableForSource names the exact `brunnr-code review mode enable`
 // commands that turn reviews on. Global enable changes an explicit global OFF;
 // clone enable only clears that clone's OFF override. A clone-local refusal
 // names both because a global OFF may also exist. These are user actions, not
 // automatic mode changes. The default source now permits review.
 func reviewModeEnableForSource(source RDDModeSource) string {
-	const enable = "gentle-ai review mode enable --scope="
+	const enable = "brunnr-code review mode enable --scope="
 	if source == RDDModeSourceCloneLocal {
 		return enable + "global then " + enable + "clone"
 	}
@@ -254,7 +254,7 @@ func (err *RDDDisabledError) Unwrap() error { return ErrRDDDisabled }
 
 // RDDModePartialApplyError reports a clone-scope write that applied for this
 // build and did not apply at the readable pre-relocation location, so two
-// gentle-ai installations on this machine now disagree about whether reviews
+// brunnr-code installations on this machine now disagree about whether reviews
 // run. It is raised only when that location was reachable and its publish
 // failed: an unreachable one is reported as reach instead, because refusing
 // there would re-close the exit #2882 opened.
@@ -273,7 +273,7 @@ func (err *RDDModePartialApplyError) Error() string {
 		decision, verb = "disables", "disable"
 	}
 	return fmt.Sprintf(
-		"%v: this clone %s receipt-driven development for this gentle-ai, but publishing the same decision under gentle-ai/%s/%s/%s/%s failed, so a gentle-ai installed before the switch moved still reads the value it already has there and keeps enforcing it: %v; rerun `gentle-ai review mode %s --scope clone` to publish it in both places",
+		"%v: this clone %s receipt-driven development for this brunnr-code, but publishing the same decision under gentle-ai/%s/%s/%s/%s failed, so a brunnr-code installed before the switch moved still reads the value it already has there and keeps enforcing it: %v; rerun `brunnr-code review mode %s --scope clone` to publish it in both places",
 		ErrRDDModePartiallyApplied,
 		decision,
 		rddModeLegacySwitchDirectory,
@@ -338,7 +338,7 @@ func SetCloneLocalRDDMode(
 		return currentStatus, &RDDDisabledError{Operation: RDDOperationStart, Source: RDDModeSourceGlobal}
 	}
 	// A request that matches the mode this clone already carries publishes no
-	// new generation of its own -- but it is not finished until every gentle-ai
+	// new generation of its own -- but it is not finished until every brunnr-code
 	// on this machine carries it too, so it goes on to the mirror below rather
 	// than returning here.
 	alreadyDecided := currentErr == nil && ((mode == RDDModeOff && currentStatus.CloneLocal == RDDModeOff) ||
@@ -363,10 +363,10 @@ func SetCloneLocalRDDMode(
 	defer func() { _ = lock.release() }()
 
 	// Every clone-scope write also publishes into the pre-relocation location,
-	// because that is where the other gentle-ai installations on this machine
+	// because that is where the other brunnr-code installations on this machine
 	// read the switch. Writers from before the relocation lock that path;
 	// taking this build's root first and that one second serialises either
-	// version of gentle-ai without a lock-order cycle.
+	// version of brunnr-code without a lock-order cycle.
 	mirror := openCloneLocalRDDModeMirror(ctx, repo)
 	defer mirror.release()
 
@@ -420,7 +420,7 @@ func SetCloneLocalRDDMode(
 		return rddModeWriteStatus(globalMode, head, present, mirror.reach()), nil
 	}
 	// The generation is a slot number in both locations, so it clears whichever
-	// of them has published further. A pre-relocation gentle-ai that wrote its
+	// of them has published further. A pre-relocation brunnr-code that wrote its
 	// own generations must not have one of them overwritten, and this build's
 	// own head must still advance.
 	generation := head.Generation + 1
@@ -459,7 +459,7 @@ func SetCloneLocalRDDMode(
 	if !mirror.available {
 		return rddModeWriteStatus(globalMode, record, true, RDDModeReachThisBuild), nil
 	}
-	// The same exact bytes at the same slot: a pre-relocation gentle-ai parses,
+	// The same exact bytes at the same slot: a pre-relocation brunnr-code parses,
 	// digests, and canonicalises this record identically, so the two locations
 	// hold one decision rather than two that have to be reconciled.
 	if err := publishPrivateRARImmutable(filepath.Join(mirror.dir, rddModeGenerationName(record.Generation)), payload); err != nil {
@@ -474,7 +474,7 @@ func SetCloneLocalRDDMode(
 //
 // It is deliberately best-effort about reachability and strict about writing.
 // A location this build cannot open is also a location a pre-relocation
-// gentle-ai fails closed on, so refusing there would only re-close the exit
+// brunnr-code fails closed on, so refusing there would only re-close the exit
 // #2882 opened; a location that opens and then refuses the publish is a real
 // half-applied switch and is reported as one.
 type cloneLocalRDDModeMirror struct {
@@ -512,7 +512,7 @@ func openCloneLocalRDDModeMirror(ctx context.Context, repo string) *cloneLocalRD
 	mirror := &cloneLocalRDDModeMirror{}
 	// An unreachable location is not an error here. It is reported as reach,
 	// because a location this build cannot open is one a pre-relocation
-	// gentle-ai cannot read either, and refusing over it would re-close the
+	// brunnr-code cannot read either, and refusing over it would re-close the
 	// clone-scoped exit #2882 opened.
 	dir, err := cloneLocalRDDModeLegacyRoot(ctx, repo, true)
 	if err != nil {
@@ -531,7 +531,7 @@ func openCloneLocalRDDModeMirror(ctx context.Context, repo string) *cloneLocalRD
 		// A location whose slots cannot be enumerated has an UNKNOWN head, not
 		// an empty one, and the difference is the whole switch. Leaving it
 		// available with head zero published this build's next slot number
-		// into it: below the record a pre-relocation gentle-ai actually reads,
+		// into it: below the record a pre-relocation brunnr-code actually reads,
 		// invisible to the only reader it was written for, and reported as
 		// machine-wide reach -- #3284 with a success message on it.
 		//
@@ -553,7 +553,7 @@ func openCloneLocalRDDModeMirror(ctx context.Context, repo string) *cloneLocalRD
 	return mirror
 }
 
-// decides reports whether a pre-relocation gentle-ai reading this location
+// decides reports whether a pre-relocation brunnr-code reading this location
 // already reaches the same conclusion as the requested mode. An absent record
 // is that conclusion for inherit: those builds spell "this clone holds no
 // override" by finding nothing here.
@@ -789,7 +789,7 @@ func cloneLocalRDDOverrideValue(mode RDDMode) (string, error) {
 const rddModeSwitchDirectory = "review-mode"
 
 // rddModeLegacySwitchDirectory is where the switch lived before #2882 moved it,
-// and therefore where every gentle-ai released before that move still reads it.
+// and therefore where every brunnr-code released before that move still reads it.
 // It is not history: those builds coexist with this one on the same machine and
 // share the same Git common directory, so a decision absent from this location
 // is a decision they never see (#3284).
@@ -819,7 +819,7 @@ func cloneLocalRDDModeRoot(ctx context.Context, repo string, create bool) (strin
 // disabled has nothing here.
 //
 // Writes pass create=true. The location is not merely history: it is where
-// every gentle-ai installed before the relocation still looks, so a clone-scope
+// every brunnr-code installed before the relocation still looks, so a clone-scope
 // decision that is never published here is invisible to those builds (#3284).
 func cloneLocalRDDModeLegacyRoot(ctx context.Context, repo string, create bool) (string, error) {
 	identity, err := cloneLocalRDDModeIdentity(ctx, repo)

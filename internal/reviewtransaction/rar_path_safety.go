@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	// refusal:by-design world-action: the exit is a filesystem repair (chown, takeown, icacls /setowner, or deleting the offending link) that only the operator can perform; no gentle-ai command may rewrite ownership of paths it refuses to trust
+	// refusal:by-design world-action: the exit is a filesystem repair (chown, takeown, icacls /setowner, or deleting the offending link) that only the operator can perform; no brunnr-code command may rewrite ownership of paths it refuses to trust
 	errUnsafeRARAuthorityPath = errors.New(
 		"unsafe RAR authority path; restore trusted ownership of the reported " +
 			"path (chown on POSIX; takeown or icacls /setowner on Windows) or " +
@@ -82,13 +82,13 @@ func ensureRARRepositoryRoot(commonDir, root string, create bool) error {
 		rarAuthorityDirectory,
 		rarAuthorityVersion,
 	)
-	// rar-authority and every descendant are owner-only; gentle-ai and
+	// rar-authority and every descendant are owner-only; brunnr-code and
 	// review-transactions are the shared ancestors above it.
 	return ensureRARDirectoryChain(commonDir, root, want, 2, create)
 }
 
 // ensureRARSwitchRoot validates the kill switch's own root, a sibling of
-// review-transactions under gentle-ai. It reuses this file's walk, permission
+// review-transactions under brunnr-code. It reuses this file's walk, permission
 // rules, and private-directory helpers unchanged; the only thing it does not
 // reuse is the authority tree itself, because #2882 showed the switch must not
 // be unreachable whenever that tree is damaged.

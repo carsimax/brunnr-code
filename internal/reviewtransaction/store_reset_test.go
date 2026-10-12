@@ -149,7 +149,7 @@ func TestSurveyReviewStoreReportsEveryCategoryWithoutMutating(t *testing.T) {
 
 // TestSurveyReviewStoreCreatesNoStateOnACleanClone proves the preview is safe
 // to run anywhere: a repository that never reviewed anything must not gain a
-// gentle-ai directory just because someone asked what a reset would do.
+// brunnr-code directory just because someone asked what a reset would do.
 func TestSurveyReviewStoreCreatesNoStateOnACleanClone(t *testing.T) {
 	repo := initSnapshotRepo(t)
 

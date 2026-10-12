@@ -42,7 +42,7 @@
       "required": ["note", "command"],
       "properties": {
         "note": {"type": "string", "minLength": 1},
-        "command": {"const": "gentle-ai review mode disable"}
+        "command": {"const": "brunnr-code review mode disable"}
       }
     }
   },
@@ -56,7 +56,7 @@
         "answer": {"enum": ["granted", "declined"]},
         "label": {"type": "string", "minLength": 1},
         "effect": {"type": "string", "minLength": 1},
-        "invocation": {"type": "string", "pattern": "^gentle-ai review start --contract gentle-ai\\.review-integration/v2 .+ --consent (granted|declined)$"}
+        "invocation": {"type": "string", "pattern": "^brunnr-code review start --contract gentle-ai\\.review-integration/v2 .+ --consent (granted|declined)$"}
       }
     },
     "choice_granted": {

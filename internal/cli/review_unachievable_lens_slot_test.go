@@ -112,7 +112,7 @@ func TestReviewCaptureUnachievableLensSlotStopsStatusFromReofferingIt(t *testing
 	declaredSlot := (*after.NextTransition.UnachievableLensSlots)[0]
 	if declaredSlot.Lens != started.SelectedLenses[0] || declaredSlot.SelectedOrder != 0 || declaredSlot.SubjectHash != subjectHash ||
 		declaredSlot.Reason != "relay_transport_bound_exceeded" || declaredSlot.Withdraw.Operation != reviewCaptureUnachievableCaptureOperation ||
-		!strings.HasPrefix(declaredSlot.Withdraw.Command, "gentle-ai review capture-unachievable ") {
+		!strings.HasPrefix(declaredSlot.Withdraw.Command, "brunnr-code review capture-unachievable ") {
 		t.Fatalf("declared slot on the stop = %#v", declaredSlot)
 	}
 

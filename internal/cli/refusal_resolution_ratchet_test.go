@@ -41,7 +41,7 @@ package cli
 // WHAT THIS RATCHET PROVES: every refusal-origin site in the production
 // sources of internal/cli and internal/reviewtransaction either
 //
-//  (a) names a runnable continuation (a `gentle-ai ...` invocation) in the
+//  (a) names a runnable continuation (a `brunnr-code ...` invocation) in the
 //      message the operator actually reads -- which includes text composed in
 //      from a package-local string-returning helper, so moving guidance behind
 //      a helper neither loses coverage nor loses credit for it,
@@ -148,9 +148,9 @@ const refusalRatchetMarkerHint = "refusal:by-design"
 var refusalRatchetMarkerRegexp = regexp.MustCompile(`^refusal:by-design\s+([a-z-]+):\s*(\S.*)$`)
 
 // refusalRatchetNamedContinuationRegexp matches an explicit runnable
-// continuation. Requiring a lowercase letter directly after "gentle-ai "
+// continuation. Requiring a lowercase letter directly after "brunnr-code "
 // excludes prose that mentions the product name without naming a command.
-var refusalRatchetNamedContinuationRegexp = regexp.MustCompile(`(?:gentle-ai|brunnr-code) [a-z][a-z-]*`)
+var refusalRatchetNamedContinuationRegexp = regexp.MustCompile(`brunnr-code [a-z][a-z-]*`)
 
 // refusalRatchetErrorMethodOrigin labels a refusal returned from an
 // `Error() string` method. It sits in the same slot as the constructor name so
@@ -337,9 +337,9 @@ func TestRefusalRatchetClassifiesSyntheticSites(t *testing.T) {
 		}
 	})
 
-	t.Run("naming a gentle-ai continuation satisfies", func(t *testing.T) {
+	t.Run("naming a brunnr-code continuation satisfies", func(t *testing.T) {
 		analysis := refusalRatchetMustAnalyze(t, header+
-			"func f(l string) error {\n\treturn fmt.Errorf(\"blocked: run `gentle-ai review reopen-results --lineage %s`\", l)\n}\n")
+			"func f(l string) error {\n\treturn fmt.Errorf(\"blocked: run `brunnr-code review reopen-results --lineage %s`\", l)\n}\n")
 		if len(analysis.violations) != 0 || analysis.satisfiedNamed != 1 {
 			t.Fatalf("want 1 named satisfaction and no violations, got %+v", analysis)
 		}
@@ -380,7 +380,7 @@ func TestRefusalRatchetClassifiesSyntheticSites(t *testing.T) {
 		analysis := refusalRatchetMustAnalyze(t, header+
 			"func f() error {\n"+
 			"\t// refusal:by-design human-authority: a maintainer must decide\n"+
-			"\treturn errors.New(\"blocked: run gentle-ai review status --next-transition\")\n"+
+			"\treturn errors.New(\"blocked: run brunnr-code review status --next-transition\")\n"+
 			"}\n")
 		if len(analysis.problems) != 1 || !strings.Contains(analysis.problems[0], "contradictory") {
 			t.Fatalf("want one contradictory-claims error, got %+v", analysis.problems)
@@ -436,7 +436,7 @@ func TestRefusalRatchetClassifiesSyntheticSites(t *testing.T) {
 
 	t.Run("concatenated literals are analyzed as one message", func(t *testing.T) {
 		analysis := refusalRatchetMustAnalyze(t, header+
-			"func f() error {\n\treturn errors.New(\"blocked: run \" + \"gentle-ai review status\")\n}\n")
+			"func f() error {\n\treturn errors.New(\"blocked: run \" + \"brunnr-code review status\")\n}\n")
 		if analysis.satisfiedNamed != 1 || len(analysis.violations) != 0 {
 			t.Fatalf("want the concatenated name to satisfy, got %+v", analysis)
 		}
@@ -481,7 +481,7 @@ func TestRefusalRatchetAnalyzesRefusalsReturnedAsStrings(t *testing.T) {
 	t.Run("a returned refusal that names its continuation satisfies", func(t *testing.T) {
 		analysis := refusalRatchetMustAnalyze(t, header+
 			"func (err *fetchRequired) Error() string {\n"+
-			"\treturn \"blocked: run `gentle-ai review status` first\"\n"+
+			"\treturn \"blocked: run `brunnr-code review status` first\"\n"+
 			"}\n")
 		if len(analysis.violations) != 0 || analysis.satisfiedNamed != 1 {
 			t.Fatalf("want 1 named satisfaction and no violations, got %+v", analysis)
@@ -531,7 +531,7 @@ func TestRefusalRatchetAnalyzesRefusalsReturnedAsStrings(t *testing.T) {
 // either alone would leave the trap open.
 func TestRefusalRatchetAnalyzesGuidanceComposedFromHelpers(t *testing.T) {
 	const header = "package synthetic\n\nimport (\n\t\"errors\"\n\t\"fmt\"\n)\n\nvar _ = errors.New\n\n" +
-		"func exitGuidance() string {\n\treturn \"; exit receipt-driven review with `gentle-ai review mode disable --scope clone`\"\n}\n\n"
+		"func exitGuidance() string {\n\treturn \"; exit receipt-driven review with `brunnr-code review mode disable --scope clone`\"\n}\n\n"
 
 	t.Run("guidance behind a helper still names the continuation", func(t *testing.T) {
 		analysis := refusalRatchetMustAnalyze(t, header+
@@ -548,7 +548,7 @@ func TestRefusalRatchetAnalyzesGuidanceComposedFromHelpers(t *testing.T) {
 
 	t.Run("a named string constant is composed in too", func(t *testing.T) {
 		analysis := refusalRatchetMustAnalyze(t, header+
-			"const freshReview = \"start a new one with `gentle-ai review start`\"\n\n"+
+			"const freshReview = \"start a new one with `brunnr-code review start`\"\n\n"+
 			"func f() error {\n\treturn fmt.Errorf(\"review scope changed: %s\", freshReview)\n}\n")
 		if len(analysis.violations) != 0 || analysis.satisfiedNamed != 1 {
 			t.Fatalf("want the constant-supplied command to satisfy, got %+v", analysis)
@@ -574,7 +574,7 @@ func TestRefusalRatchetAnalyzesGuidanceComposedFromHelpers(t *testing.T) {
 		analysis := refusalRatchetMustAnalyze(t, header+
 			"func f() error {\n"+
 			"\t// refusal:by-design human-authority: a maintainer must decide\n"+
-			"\treturn errors.New(\"blocked: run gentle-ai review status --next-transition\")\n"+
+			"\treturn errors.New(\"blocked: run brunnr-code review status --next-transition\")\n"+
 			"}\n")
 		if len(analysis.problems) != 1 || !strings.Contains(analysis.problems[0], "contradictory") {
 			t.Fatalf("want one contradictory-claims error, got %+v", analysis.problems)
@@ -601,7 +601,7 @@ func TestRefusalRatchetReportsFieldCarriedRefusals(t *testing.T) {
 
 	t.Run("a reason field that names its exit is satisfied, constant included", func(t *testing.T) {
 		analysis := refusalRatchetMustAnalyze(t, header+
-			"const freshReview = \"run `gentle-ai review start`\"\n\n"+
+			"const freshReview = \"run `brunnr-code review start`\"\n\n"+
 			"func f() bridge {\n\treturn bridge{Reason: \"scope changed; \" + freshReview}\n}\n")
 		if len(analysis.fieldViolations) != 0 || analysis.fieldSatisfied != 1 {
 			t.Fatalf("want 1 satisfied field and no violations, got %+v", analysis)
@@ -726,7 +726,7 @@ func TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign(t *testing.T) {
 	for _, key := range newKeys {
 		site := current[key]
 		t.Errorf("NEW refusal with no named resolution: %s:%d %s(%q)\n"+
-			"  Either name the runnable continuation in the message (`gentle-ai ...`),\n"+
+			"  Either name the runnable continuation in the message (`brunnr-code ...`),\n"+
 			"  or, if no command can honestly exist here, annotate the site:\n"+
 			"    // refusal:by-design <operator-knowledge|world-action|human-authority>: <why>",
 			site.file, site.line, site.constructor, site.message)
@@ -770,7 +770,7 @@ func TestEveryProductionRefusalNamesResolutionOrDeclaresByDesign(t *testing.T) {
 //     review_gate.go's "approved receipt exactly matches authoritative native
 //     state and the current repository" and status.go's "explicit bound
 //     compact authority exactly matches the current repository". Demanding
-//     that those name a `gentle-ai` command would be the checker inventing a
+//     that those name a `brunnr-code` command would be the checker inventing a
 //     refusal. Field name alone is not the criterion, and nothing static can
 //     separate the two here: both sit next to a `Result:` whose value is a
 //     variable. Per-site freezing would carve that error into the baseline.
@@ -798,7 +798,7 @@ func refusalRatchetReportFieldCarriedRefusals(t *testing.T, analysis refusalRatc
 	if len(analysis.fieldViolations) > refusalRatchetFieldCarriedCeiling {
 		t.Errorf("field-carried refusals with no named exit grew from %d to %d.\n"+
 			"  Every offender is listed above. Name the runnable continuation in the new one\n"+
-			"  (`gentle-ai ...`), or annotate it:\n"+
+			"  (`brunnr-code ...`), or annotate it:\n"+
 			"    // refusal:by-design <operator-knowledge|world-action|human-authority>: <why>\n"+
 			"  Raising refusalRatchetFieldCarriedCeiling is not one of the exits.",
 			refusalRatchetFieldCarriedCeiling, len(analysis.fieldViolations))
@@ -1010,7 +1010,7 @@ func (a *refusalRatchetAnalysis) classify(site *refusalRatchetSite, marker *refu
 		// claim, and making that combination illegal is what pushed guidance
 		// into shapes nothing could analyze.
 		a.problems = append(a.problems, fmt.Sprintf(
-			"%s:%d is contradictory: the message names a `gentle-ai` continuation AND the site declares by-design %q; a refusal either has a runnable exit or it does not -- the two claims are mutually exclusive",
+			"%s:%d is contradictory: the message names a `brunnr-code` continuation AND the site declares by-design %q; a refusal either has a runnable exit or it does not -- the two claims are mutually exclusive",
 			site.file, site.line, marker.shape))
 	case marker != nil:
 		a.satisfiedAnnotated++
@@ -1269,7 +1269,7 @@ func (r *refusalRatchetTextResolver) callText(call *ast.CallExpr, depth int, vis
 	return ""
 }
 
-// joinArguments separates arguments with a newline so no `gentle-ai <verb>`
+// joinArguments separates arguments with a newline so no `brunnr-code <verb>`
 // can be spelled by accident across two unrelated values.
 func (r *refusalRatchetTextResolver) joinArguments(args []ast.Expr, depth int, visiting map[string]bool) string {
 	parts := make([]string, 0, len(args))

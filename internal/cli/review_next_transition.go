@@ -75,9 +75,9 @@ type ReviewUnachievableLensWithdraw struct {
 type ReviewTransitionExecution struct {
 	Operation string `json:"operation"`
 	// Command is the complete, literally runnable command line for this
-	// transition, e.g. "gentle-ai review start --contract=... --target=...".
+	// transition, e.g. "brunnr-code review start --contract=... --target=...".
 	// Operation alone is a dotted logical name, so a caller had to already know
-	// that "review.start" means "gentle-ai review start" before it could run
+	// that "review.start" means "brunnr-code review start" before it could run
 	// anything. Operation, Arguments and their Tokens stay byte-identical, so
 	// existing consumers never move.
 	Command           string                      `json:"command,omitempty"`
@@ -577,7 +577,7 @@ func reviewMissingCaptureTransition(binding ReviewTransitionBinding, selectedLen
 const reviewCaptureResultCaptureOperation = "review.capture-result"
 
 // reviewNativeCaptureOperationPrefix marks a capture_operation this product
-// performs itself. Everything after it is the runnable `gentle-ai review`
+// performs itself. Everything after it is the runnable `brunnr-code review`
 // verb, which is exactly why such an input's arguments are argv.
 const reviewNativeCaptureOperationPrefix = "review."
 
@@ -600,7 +600,7 @@ func reviewNativeCaptureVerb(captureOperation string) (string, bool) {
 }
 
 // reviewCaptureResultCommandName renders the exact runnable command name for
-// reviewCaptureResultCaptureOperation, e.g. "gentle-ai review capture-result".
+// reviewCaptureResultCaptureOperation, e.g. "brunnr-code review capture-result".
 func reviewCaptureResultCommandName() string {
 	verb, _ := reviewNativeCaptureVerb(reviewCaptureResultCaptureOperation)
 	return reviewTransitionCommandTool + " review " + verb
@@ -1160,7 +1160,7 @@ func reviewExecuteTransition(reason, operation string, arguments, preconditions 
 // (benchmarking runs do exactly that), and echoing that path back would emit a
 // command that only runs on the machine that generated the payload. The
 // canonical name is the one every caller already has on PATH.
-const reviewTransitionCommandTool = "gentle-ai"
+const reviewTransitionCommandTool = "brunnr-code"
 
 // reviewTransitionCommandVerb resolves the runnable CLI verb for one
 // transition operation. reviewIntegrationOperationRegistry -- the single
@@ -1218,7 +1218,7 @@ func reviewTransitionArgumentToken(argument ReviewTransitionArgument) string {
 // The arguments of an input whose capture_operation names an operation this
 // product performs are tokenized through the same single tokenizer the execute
 // form uses, because they are the same thing: the flags of a real
-// `gentle-ai review <verb>` command. A caller no longer re-derives
+// `brunnr-code review <verb>` command. A caller no longer re-derives
 // "--lineage=" + value by hand, which is where a hand-assembled invocation
 // twice dropped or mispaired --repository-context. An "external.*" input is
 // left untokenized on purpose; see reviewNativeCaptureVerb.
@@ -1259,7 +1259,7 @@ func reviewManagedAssetsStopTransition(agent model.AgentID, staleAssets []string
 // precedent above for the one other stop that has a runnable follow-up: the
 // release this refusal requires travels with the stop, because the shipped Pi
 // ledger row points at the stop's continuation and the Pi facade contract may
-// not name the raw `gentle-ai review ` route itself.
+// not name the raw `brunnr-code review ` route itself.
 func reviewCorrectionContextBudgetStopTransition(repo string, agent model.AgentID, eligibility *reviewtransaction.CompactAbandonEligibility) ReviewNextTransition {
 	// The literal mirrors reviewManagedAssetsStopTransition: the shipped
 	// stop-reason registries are proven against the codes this file emits

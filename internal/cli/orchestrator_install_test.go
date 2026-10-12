@@ -90,9 +90,9 @@ func TestInstallAndSyncDeliverOrchestratorOnceForEveryRuntime(t *testing.T) {
 			rdd := model.SupportsReceiptDrivenDevelopment(agent)
 			for _, marker := range []string{
 				"Native Compact Review Orchestration",
-				"Gentle AI Provider Defect Handoff",
+				"Brunnr-Code Provider Defect Handoff",
 				"Receipt-driven development is user-owned",
-				"gentle-ai review mode enable|disable|status",
+				"brunnr-code review mode enable|disable|status",
 				"The native RDD refuter owns native review claims",
 			} {
 				if got := strings.Contains(prompt, marker); got != rdd {
@@ -100,7 +100,7 @@ func TestInstallAndSyncDeliverOrchestratorOnceForEveryRuntime(t *testing.T) {
 				}
 			}
 			if !rdd {
-				for _, forbidden := range []string{"gentle-ai review", "RDD", "receipt", "refuter", "native review"} {
+				for _, forbidden := range []string{"brunnr-code review", "RDD", "receipt", "refuter", "native review"} {
 					if strings.Contains(prompt, forbidden) {
 						t.Errorf("non-RDD runtime prompt carries %q", forbidden)
 					}

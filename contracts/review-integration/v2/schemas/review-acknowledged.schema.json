@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://gentle-ai.dev/contracts/review-integration/v2/schemas/review-acknowledged.schema.json",
   "title": "Gentle AI review acknowledge-approved burn response v1",
-  "description": "The terminal answer `gentle-ai review acknowledge-approved` prints after it burns one approved review authority (#3947). Consumers use this envelope directly; no post-burn STATUS is required.",
+  "description": "The terminal answer `brunnr-code review acknowledge-approved` prints after it burns one approved review authority (#3947). Consumers use this envelope directly; no post-burn STATUS is required.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "operation", "action", "lineage_id", "target_identity", "consumed_revision", "authority"],

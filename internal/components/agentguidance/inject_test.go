@@ -536,7 +536,7 @@ func deliveredGuidance(t *testing.T, path string) string {
 	return readFile(t, path)
 }
 
-// managedRoutingBlock returns only the content Gentle AI owns, so assertions
+// managedRoutingBlock returns only the content Brunnr-Code owns, so assertions
 // about the block never accidentally inspect surrounding user content.
 func managedRoutingBlock(content string) string {
 	open := "<!-- gentle-ai:" + RoutingSectionID + " -->"

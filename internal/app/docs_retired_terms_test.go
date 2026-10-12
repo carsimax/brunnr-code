@@ -17,7 +17,7 @@ var retiredDocTerms = []struct {
 }{
 	{"/sdd-", regexp.MustCompile(regexp.QuoteMeta("/sdd-"))},
 	{"/gentle-sdd-", regexp.MustCompile(regexp.QuoteMeta("/gentle-sdd-"))},
-	{"gentle-ai sdd-", regexp.MustCompile(regexp.QuoteMeta("gentle-ai sdd-"))},
+	{"brunnr-code sdd-", regexp.MustCompile(regexp.QuoteMeta("brunnr-code sdd-"))},
 	{"SDD phases", regexp.MustCompile(regexp.QuoteMeta("SDD phases"))},
 	{"SDD agents", regexp.MustCompile(regexp.QuoteMeta("SDD agents"))},
 	{"OpenSpec", regexp.MustCompile(regexp.QuoteMeta("OpenSpec"))},

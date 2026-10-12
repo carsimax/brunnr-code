@@ -124,7 +124,7 @@ func TestOrchestratorModulesCarryCanonicalBodies(t *testing.T) {
 	}
 
 	delegation := modules["delegation"].content
-	if !strings.HasPrefix(delegation, "# Gentle AI Orchestrator — Delegation Module\n") {
+	if !strings.HasPrefix(delegation, "# Brunnr-Code Orchestrator — Delegation Module\n") {
 		t.Errorf("delegation module heading = %q", strings.SplitN(delegation, "\n", 2)[0])
 	}
 	for _, module := range bundle.modules {
@@ -138,7 +138,7 @@ func TestOrchestratorModuleCoreKeepsAuthorityAndSafety(t *testing.T) {
 	core := buildClaudeTestModules(t).core
 	for _, required := range []string{
 		"### Identity Contract", "### Lossless Blocking Prompts (MANDATORY)",
-		"#### Gentle AI Provider Defect Handoff (MANDATORY)", "When delegating, forward this contract",
+		"#### Brunnr-Code Provider Defect Handoff (MANDATORY)", "When delegating, forward this contract",
 		"#### Mandatory Delegation Triggers", "#### Delegated Verification Gate (MANDATORY)",
 		"#### Native Checking Contract", "#### Review Execution Contract\n\n" + testModuleContract,
 		"#### 1. Inline Direct", "Inline evidence uses one parallel batch", "#### 2. Simple Delegation",
@@ -289,9 +289,9 @@ func TestSplitOrchestratorModulesFailsClosed(t *testing.T) {
 			t.Fatalf("core = %q, want %q", bundle.core, wantCore)
 		}
 		wantModules := []orchestratorModule{
-			{name: "delegation", file: "orchestrator-delegation.md", content: "# Gentle AI Orchestrator — Delegation Module\n\n" +
+			{name: "delegation", file: "orchestrator-delegation.md", content: "# Brunnr-Code Orchestrator — Delegation Module\n\n" +
 				orchestratorModuleIntro + "\n## A\n\nA body\n\n## B\n\nB body\n\n```text\ncode\n```\n"},
-			{name: "skills", file: "orchestrator-skills.md", content: "# Gentle AI Orchestrator — Skills Module\n\n" +
+			{name: "skills", file: "orchestrator-skills.md", content: "# Brunnr-Code Orchestrator — Skills Module\n\n" +
 				orchestratorModuleIntro + "\n## C\n\nC body\n"},
 		}
 		if !reflect.DeepEqual(bundle.modules, wantModules) {

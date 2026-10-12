@@ -7,12 +7,12 @@ import (
 
 // Three independent testers could not reach the validating state because
 // capture-result asks for a reviewer-result JSON payload and nothing in the
-// product says how to produce a valid one. `gentle-ai review schema reviewer`
+// product says how to produce a valid one. `brunnr-code review schema reviewer`
 // emits the schema together with a working example, so the payload never has
 // to be invented -- but a command nobody can find is a command that does not
 // exist for the person who needs it.
 func TestReviewCaptureResultPointsAtTheSchemaThatProducesItsInput(t *testing.T) {
-	const pointer = "gentle-ai review schema reviewer"
+	const pointer = "brunnr-code review schema reviewer"
 
 	t.Run("the refusal names it", func(t *testing.T) {
 		err := RunReviewCaptureResult([]string{"--lineage", "x"}, nil)
@@ -34,7 +34,7 @@ func TestReviewCaptureResultPointsAtTheSchemaThatProducesItsInput(t *testing.T) 
 }
 
 // The named-continuation guard caught this while verifying a refusal that now
-// points at `gentle-ai review schema reviewer`: the verb rejects --help, and
+// points at `brunnr-code review schema reviewer`: the verb rejects --help, and
 // its unknown-value refusal names no accepted value either, so a reader sent
 // here has nowhere to go.
 func TestReviewSchemaNamesItsAcceptedValues(t *testing.T) {

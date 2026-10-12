@@ -16,8 +16,8 @@ import (
 func TestReviewProviderArtifactV1ContractsArePinned(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v1")
 	want := map[string]string{
-		"fixtures/capabilities-v1.4.fixture.json": "84e0db457b76b97b35c2be772dfc647f9eab66810ea98f64fed85645c3c266ba",
-		"fixtures/consent.fixture.json":           "b95d02fb3468cc7c017380f7193aff86691a47cbe3879eddb0092893d7b8bb5b",
+		"fixtures/capabilities-v1.4.fixture.json": "30c6fe57534a03e5915eb438f65c9347a4e0311a3a9bd516c8c265fd607f870a",
+		"fixtures/consent.fixture.json":           "f3d61cafa5bf3d67f5126bd81590b16a4b81554fc6e8a09618508dc91108a3af",
 		"fixtures/start.fixture.json":             "3b963b221cd1560eb8872cbabbb5407096f593ced2f13eb9cb06eb61e4cca4d1",
 		// issue #2659: start-v2/status-v2 embed a freshly minted target_identity,
 		// and the purified identity domain legitimately changed that hash for
@@ -31,7 +31,7 @@ func TestReviewProviderArtifactV1ContractsArePinned(t *testing.T) {
 		"fixtures/status-unrelated.fixture.json": "deab36c877ced3c9b480ca33724c10d88f75c761d6426fa14be850345122891d",
 		"schemas/admitted-result.schema.json":    "7796e8dbba331434594108c902dfab7ec46f691fa447a9259a78f2448111b0de",
 		"schemas/artifact-subject.schema.json":   "f7dcd934e27e8f3735a37f3d0ec8048dd8ccc1811b9df61124a1dcbf8a03f40e",
-		"schemas/capabilities-v1.4.schema.json":  "926b61c8ac0f870f09214f6bd8af1b035c5b72f14f0b83c0d4a7bdbb277f5447",
+		"schemas/capabilities-v1.4.schema.json":  "dc60681567665b0b83a1abb7d1a85fafa21d8bba40cdf9e18126705385278543",
 		"schemas/result-artifact.schema.json":    "91296bd2c261fd2fe03bffd63efe58badd4927e0d0d8480cd4213f651ecacdf6",
 		"schemas/start.schema.json":              "4296aebbd4128ce51945a2f6d3228aa77ac7215c802978d559bff5279ec56229",
 		// Frozen v1 START artifacts do not project the v3 replay or retired
@@ -43,9 +43,9 @@ func TestReviewProviderArtifactV1ContractsArePinned(t *testing.T) {
 		// rdd-risk-gated S14: the risk reason enums admit the agent_escalation
 		// code and signal START publishes for --escalate-item. Deliberate, not drift.
 		"schemas/start-v2.schema.json":             "efde388bc82be38c947bfab8de5c94b27f0a1cbb9983a16239abef9ac3342a36",
-		"schemas/status.schema.json":               "86d0a5ff09a833ff723804c3e31185a80826cbd81a73cf61026feea8c5df2314",
+		"schemas/status.schema.json":               "a7bacd364d47f0a3b0754be604901994c2ff7a1c2defe86d9a5eef1d11dca158",
 		"schemas/status-v2.schema.json":            "7c51627d133592839ba4afa860b358b68109afd5f70ee998cd421f563201b23e",
-		"schemas/transition-execution.schema.json": "ddee03bd0c1b6e70f21c399bae7fe528aa4ad46cebb5a48ec72b6e6b3694aa2d",
+		"schemas/transition-execution.schema.json": "f2647f29ebb442793a5f5e926765865f017ded84653b7172831b67f1dd2a3d3b",
 	}
 	for name, expected := range want {
 		payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
@@ -62,16 +62,16 @@ func TestReviewProviderArtifactV1ContractsArePinned(t *testing.T) {
 func TestReviewProviderArtifactV20ContractsArePinned(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v2")
 	want := map[string]string{
-		"fixtures/capabilities.fixture.json": "8d5e1a8491db1a5a2f6329e8c1d5cd210dd175e0525ff4d51fa914351d2fcf08",
-		"fixtures/consent.fixture.json":      "66a3a9d7d3fe1b8956739616f333f8e38c2515bf8e0030e65f5213b415d48ad2",
+		"fixtures/capabilities.fixture.json": "be67999bd36c860745b4890f351e4a04d8f5947e52a96de3cc46c53be566c289",
+		"fixtures/consent.fixture.json":      "5a92c47d0c7a95e8b07be7bf796f21bd7fac22db36fd9a9e45000eeee836e84b",
 		// issue #3922 / #4199: the native-git reviewer_result
 		// collect input no longer inlines changed_path_manifest -- it is
 		// already committed to by artifact_subject.changed_path_manifest_sha256
 		// -- so this fixture legitimately dropped that array. Deliberate, not
 		// drift.
 		"fixtures/status.fixture.json":     "3fc2539d5bcaa8dc3ed650ba7f5e8915856a3d9f8caf1cfcb1b0354ecacbe0f8",
-		"schemas/capabilities.schema.json": "df1d1d36bfb8b7816d3eb1c44c1350b4a36e27ac321922963add9dd25ed5a1a2",
-		"schemas/consent.schema.json":      "b2b4465338497f11927de91cb2e5da12b6cb4a1039afe05aebe1abbf53b21858",
+		"schemas/capabilities.schema.json": "a9021ffb1a638f5bca3b66be1f63bb4fa74d2f0e58ef20b70043874ed09add02",
+		"schemas/consent.schema.json":      "ac4ca43cb12fff6c62b6b69397042335bddfddbc8390adfc2c2688b124a89ccb",
 		"schemas/status.schema.json":       "3b257b417270744061dc943a97537e253e36e34de4591b0400e3c38ea3efde80",
 	}
 	for name, expected := range want {
@@ -89,12 +89,12 @@ func TestReviewProviderArtifactV20ContractsArePinned(t *testing.T) {
 func TestReviewProviderArtifactV21ContractsArePinned(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v2")
 	want := map[string]string{
-		"fixtures/capabilities-v2.1.fixture.json": "96d157898c2bed6d028203999c081fcbb7992fb91a61f27b7eaab80c95245bd6",
+		"fixtures/capabilities-v2.1.fixture.json": "95a0cbc120475608d7c2af002dddfd231d4f29b1675d9d3e8abe9251ff9cca95",
 		// issue #2659: consent-v3 embeds a freshly minted target_identity;
 		// the purified identity domain legitimately changed that hash.
 		// Deliberate, not drift.
-		"fixtures/consent-v3.fixture.json":      "9b2f173bc35ac985ab07e3d97cba1d5a9f2cb6e25162addc03a78858b7deb081",
-		"schemas/capabilities-v2.1.schema.json": "95d2b8b46e9be6e6fbc874fc763029cb7994951336c8974dc1694834d64bf06e",
+		"fixtures/consent-v3.fixture.json":      "204968ad6a0e1b7cd1dc13afa1039d776ca226c4826011a520bf85a312eeda85",
+		"schemas/capabilities-v2.1.schema.json": "0bee8048ba8c31511925ea8d00cd46f61b710b2c3c4ffacf6aba41b798f807fa",
 		// Cross-lane battery conformance fix: the schema pinned the choice
 		// invocations to `--agent claude-code`, but the live emitter omits the
 		// agent token when the caller declared no runtime (the pinned fixture
@@ -104,7 +104,7 @@ func TestReviewProviderArtifactV21ContractsArePinned(t *testing.T) {
 		// relay drives consent with its own declared runtime identity, which
 		// the emitter legitimately publishes once the relay handshake is
 		// declared. Deliberate, not drift.
-		"schemas/consent-v3.schema.json": "f56b1809c1bff21713795ef37a095c6ecfdbbb3cf928bcf604b8d5f33be3dea5",
+		"schemas/consent-v3.schema.json": "38290368683bc0203030c1f3c832cf332808ce468e0e7f2bd5a1705129b354a1",
 		"schemas/status.schema.json":     "3b257b417270744061dc943a97537e253e36e34de4591b0400e3c38ea3efde80",
 	}
 	for name, expected := range want {
@@ -198,7 +198,7 @@ func TestReviewProviderArtifactStatusV7ContractsArePinned(t *testing.T) {
 		// issues #3299, #4170: a stale managed-asset digest now fails STATUS's
 		// own preflight, before a START is ever offered, as a typed
 		// managed_assets_outdated "stop" that carries the exact
-		// candidate-preserving `gentle-ai sync` continuation (see
+		// candidate-preserving `brunnr-code sync` continuation (see
 		// failure.schema.json#/$defs/managed_assets_continuation). Deliberate,
 		// not drift.
 		// issue #3442: next_transition gained a third oneOf branch for the
@@ -210,7 +210,7 @@ func TestReviewProviderArtifactStatusV7ContractsArePinned(t *testing.T) {
 		//
 		// issue #4226: status/v7 documents the CompactEscalationEvidence contract
 		// on terminal escalation. Deliberate, not drift.
-		"schemas/status-v7.schema.json":         "277abd6aed05ff7358fc32374bf524c9c3d10d3760d42c68c4e8a235e2f86968",
+		"schemas/status-v7.schema.json":         "5d33920a198a5aacd6ffccbd235589bc379bf96c1618677b77e5fdd914876097",
 		"schemas/capabilities-v2.5.schema.json": "9fcdb1717a54bcd4f73d4dee1283d9ec2f27cccbb5d54804ee8b40a6ed2db553",
 	}
 	for name, expected := range want {

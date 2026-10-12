@@ -60,7 +60,7 @@ func issue3557VerifyDoctor(sandbox *Sandbox, observation Observation) error {
 	if observation.ExitCode != 0 {
 		return fmt.Errorf("brunnr-code doctor exited %d: %s", observation.ExitCode, firstLine(observation.Stderr))
 	}
-	if strings.Contains(observation.Stdout, "gentle-ai sync") {
+	if strings.Contains(observation.Stdout, "brunnr-code sync") {
 		return fmt.Errorf("doctor recommended the unrunnable sync recovery: %s", observation.Stdout)
 	}
 	for _, want := range []string{sandbox.Scratch["issue-3557-config"], "inspect", "brunnr-code doctor"} {
@@ -111,7 +111,7 @@ func issue3557Journeys() []Journey {
 		ID:     "j117-doctor-dangling-managed-config",
 		Review: reviewUntouched,
 		Title:  "Doctor identifies a dangling managed config symlink without recommending sync",
-		Source: "https://github.com/Gentleman-Programming/gentle-ai/issues/3557",
+		Source: "https://github.com/carsimax/brunnr-code/issues/3557",
 		Steps: []Step{
 			{Name: "fixture: dangling Codex managed config symlink", Fixture: issue3557DanglingSymlinkFixture},
 			{Name: "doctor reports manual repair and preserves the filesystem", Skip: issue3557SymlinkSkip, Args: issue3557DoctorArgs, After: issue3557VerifyDoctor},

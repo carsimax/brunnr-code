@@ -54,7 +54,7 @@ func TestExcludedUntrackedDeclarationSurvivesReviewingReentry(t *testing.T) {
 			t.Fatalf("START published no status continuation: %#v", result.NextTransition)
 		}
 		fields := strings.Fields(result.NextTransition.Execute.Command)
-		if len(fields) < 3 || fields[0] != "gentle-ai" || fields[1] != "review" {
+		if len(fields) < 3 || fields[0] != "brunnr-code" || fields[1] != "review" {
 			t.Fatalf("continuation command = %q", result.NextTransition.Execute.Command)
 		}
 		return fields[2:]

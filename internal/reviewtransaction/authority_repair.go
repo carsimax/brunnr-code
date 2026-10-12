@@ -1082,12 +1082,12 @@ func repairAuthorityDispositionAtRepo(ctx context.Context, repo, planDigest, inv
 		//
 		// Fix cycle 2 (WARNING-4, sdd-verify cycle-2): base bb3c22a9's own
 		// version of this exact refusal ended with a runnable continuation
-		// ("run `gentle-ai review repair --preflight` again for the current
+		// ("run `brunnr-code review repair --preflight` again for the current
 		// values"); Wave 6 Slice S3 replaced the CLI-level pre-check this
 		// refusal now lives in without carrying that continuation text
 		// forward, so cycle-1's CRITICAL-2 fix (which restored the CAUSE
 		// reaching the operator) still left it silent about what to do next.
-		return CompactReclaimRecord{}, fmt.Errorf("%w: submitted plan_digest/inventory_revision does not match the current provider-derived plan; run `gentle-ai review repair --preflight` again for the current values", ErrConcurrentUpdate)
+		return CompactReclaimRecord{}, fmt.Errorf("%w: submitted plan_digest/inventory_revision does not match the current provider-derived plan; run `brunnr-code review repair --preflight` again for the current values", ErrConcurrentUpdate)
 	}
 	plan.Authorization = authorization
 	return executeAuthorityDisposition(ctx, repo, plan)

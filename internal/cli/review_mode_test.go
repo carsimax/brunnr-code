@@ -27,7 +27,7 @@ func TestReviewModeCloneEnableExplainsExplicitGlobalOff(t *testing.T) {
 	if err := RunReviewMode([]string{"enable", "--scope", "clone", "--cwd", repo}, &output); !errors.Is(err, reviewtransaction.ErrRDDDisabled) {
 		t.Fatalf("clone enable must preserve explicit global OFF, got %v", err)
 	}
-	for _, want := range []string{"receipt-driven development: off (decided by global)", "gentle-ai review mode enable --scope global"} {
+	for _, want := range []string{"receipt-driven development: off (decided by global)", "brunnr-code review mode enable --scope global"} {
 		if !strings.Contains(output.String(), want) {
 			t.Errorf("clone enable missing %q: %s", want, output.String())
 		}
@@ -39,7 +39,7 @@ func TestReviewModeHelpDescribesDefaultOnAndOptOut(t *testing.T) {
 	if err := RunReviewMode([]string{"help"}, &output); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"on by default", "opt out", "gentle-ai review mode disable", "Any off wins", "status is read-only"} {
+	for _, want := range []string{"on by default", "opt out", "brunnr-code review mode disable", "Any off wins", "status is read-only"} {
 		if !strings.Contains(output.String(), want) {
 			t.Errorf("help missing %q: %s", want, output.String())
 		}
@@ -408,7 +408,7 @@ func TestReviewModeCloneScopeEnableRejectsGlobalOffWithoutLocalOverride(t *testi
 		disabled.Source != reviewtransaction.RDDModeSourceGlobal {
 		t.Fatalf("clone enable error = %v, want global typed disabled error", err)
 	}
-	if !strings.Contains(err.Error(), "gentle-ai review mode enable --scope=global") {
+	if !strings.Contains(err.Error(), "brunnr-code review mode enable --scope=global") {
 		t.Fatalf("clone enable error does not name the global continuation: %v", err)
 	}
 	if result := decodeReviewModeResult(t, output.Bytes()); result.Status.Effective != reviewtransaction.RDDModeOff ||
@@ -494,7 +494,7 @@ func TestReviewModeCloneScopeEnableRejectsExplicitOffWhileGlobalOff(t *testing.T
 		blocked.Source != reviewtransaction.RDDModeSourceGlobal {
 		t.Fatalf("explicit-off clone enable error = %v, want global typed disabled error", err)
 	}
-	if !strings.Contains(err.Error(), "gentle-ai review mode enable --scope=global") {
+	if !strings.Contains(err.Error(), "brunnr-code review mode enable --scope=global") {
 		t.Fatalf("explicit-off clone enable error does not name the global continuation: %v", err)
 	}
 	result := decodeReviewModeResult(t, output.Bytes())
@@ -911,7 +911,7 @@ func assertReviewConsentPrompt(t *testing.T, prompt, reason string) string {
 		"result safer",
 		"1) Review this change",
 		"2) Skip this time",
-		"gentle-ai review mode disable",
+		"brunnr-code review mode disable",
 	} {
 		if !strings.Contains(prompt, want) {
 			t.Fatalf("consent prompt missing %q:\n%s", want, prompt)
@@ -925,7 +925,7 @@ func assertReviewConsentPrompt(t *testing.T, prompt, reason string) string {
 			t.Fatalf("consent prompt still offers a permanent disable %q:\n%s", forbidden, prompt)
 		}
 	}
-	for _, forbidden := range []string{"gentle-ai.", "sha256:", "lineage", "schema", "contract", "lens"} {
+	for _, forbidden := range []string{"brunnr-code.", "sha256:", "lineage", "schema", "contract", "lens"} {
 		if strings.Contains(prompt, forbidden) {
 			t.Fatalf("consent prompt leaked internal vocabulary %q:\n%s", forbidden, prompt)
 		}
@@ -956,7 +956,7 @@ func reviewModeHome(t *testing.T) string {
 
 // reviewEnabledHome supplies an explicit global ON for lifecycle tests so
 // their preconditions remain independent of the ON default. It writes the same
-// global opinion that `gentle-ai review mode enable` persists.
+// global opinion that `brunnr-code review mode enable` persists.
 //
 // The opinion lives in the user's home directory, which is process-wide state
 // reached through t.Setenv. Go forbids t.Setenv in a test that also calls

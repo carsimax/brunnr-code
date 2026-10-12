@@ -238,7 +238,7 @@ func breakForeignCompactSnapshotIdentity(t *testing.T, repo, lineage string) {
 }
 
 // TestReviewAbandonOfAPristineLineageIgnoresAnUnrelatedUnloadableLineage is
-// issue #3124 driven through the live `gentle-ai review abandon` command. An
+// issue #3124 driven through the live `brunnr-code review abandon` command. An
 // unreadable foreign compact entry must not refuse the sanctioned exit for a
 // pristine reviewing lineage.
 func TestReviewAbandonOfAPristineLineageIgnoresAnUnrelatedUnloadableLineage(t *testing.T) {

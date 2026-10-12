@@ -274,7 +274,7 @@ func requireNativeRecoveryRefusal(r *journeyRun, extra ...string) error {
 		return fmt.Errorf("recovery refusal = exit %d %+v", observation.ExitCode, failure)
 	}
 	_, command, named := strings.Cut(failure.Cause, "re-run: ")
-	if !named || command != "gentle-ai review inspect-authority" {
+	if !named || command != "brunnr-code review inspect-authority" {
 		return fmt.Errorf("refusal has no read-only diagnostic: %+v", failure)
 	}
 	printed, err := printedCommandArguments(command)

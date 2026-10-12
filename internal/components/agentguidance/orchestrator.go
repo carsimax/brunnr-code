@@ -32,7 +32,7 @@ const (
 	runtimeAgentIDPlaceholder       = "{{GENTLE_AI_RUNTIME_AGENT_ID}}"
 	reviewExecutionHeading          = "#### Review Execution Contract"
 	reviewExecutionNextHeading      = "Cost and Context Balance"
-	providerDefectHandoffHeading    = "#### Gentle AI Provider Defect Handoff (MANDATORY)"
+	providerDefectHandoffHeading    = "#### Brunnr-Code Provider Defect Handoff (MANDATORY)"
 	nativeCheckingHeading           = "#### Native Checking Contract"
 	nativeCheckingSection           = "Native Checking Contract"
 	// oddOnlySectionSuffix names the shared-section variant a runtime without
@@ -61,7 +61,7 @@ var nonRDDLeakMarkers = []string{
 	"refuter",
 	"native review",
 	"Native review",
-	"gentle-ai review",
+	"brunnr-code review",
 	"review-integration",
 	"Native Compact Review Orchestration",
 	"Provider Defect Handoff",

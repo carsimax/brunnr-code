@@ -19,7 +19,7 @@ const reviewIntendedUntrackedSelectionSchema = "gentle-ai.review-intended-untrac
 // refused without a negotiated contract and runtime identity, so a refusal
 // that names the bare form sends the operator to a command that fails
 // (issue #2895).
-const reviewIntendedUntrackedInventoryCommand = "gentle-ai review status --cwd <repo> --contract " + ReviewIntegrationContractV2 + " --agent <runtime> --next-transition"
+const reviewIntendedUntrackedInventoryCommand = "brunnr-code review status --cwd <repo> --contract " + ReviewIntegrationContractV2 + " --agent <runtime> --next-transition"
 
 type reviewRepeatedPathFlag []string
 
@@ -37,7 +37,7 @@ type reviewSingleValueFlag struct {
 func (flag *reviewSingleValueFlag) String() string { return flag.value }
 func (flag *reviewSingleValueFlag) Set(value string) error {
 	if flag.set {
-		return errors.New("untracked scope flags may only be specified once; rerun gentle-ai review start with one declaration")
+		return errors.New("untracked scope flags may only be specified once; rerun brunnr-code review start with one declaration")
 	}
 	flag.value, flag.set = value, true
 	return nil
@@ -72,7 +72,7 @@ func decodeReviewIntendedUntrackedSelection(raw string) (reviewSingleValueFlag, 
 }
 
 func reviewIntendedUntrackedScopeForTarget(ctx context.Context, builder reviewtransaction.SnapshotBuilder, mode reviewSingleValueFlag, selected reviewRepeatedPathFlag, expectedDigest reviewSingleValueFlag) (reviewIntendedUntrackedScope, error) {
-	return intendedUntrackedScopeForTarget(ctx, builder, mode, selected, expectedDigest, reviewIntendedUntrackedInventoryCommand, "gentle-ai review start")
+	return intendedUntrackedScopeForTarget(ctx, builder, mode, selected, expectedDigest, reviewIntendedUntrackedInventoryCommand, "brunnr-code review start")
 }
 
 // intendedUntrackedDeclarationShape validates the flag-shape of an untracked
@@ -131,7 +131,7 @@ func intendedUntrackedScopeForTarget(ctx context.Context, builder reviewtransact
 }
 
 func reviewIntendedUntrackedSelectionRequired(scope reviewIntendedUntrackedScope) error {
-	return intendedUntrackedSelectionRequired(scope, reviewIntendedUntrackedInventoryCommand, "gentle-ai review start")
+	return intendedUntrackedSelectionRequired(scope, reviewIntendedUntrackedInventoryCommand, "brunnr-code review start")
 }
 
 func intendedUntrackedSelectionRequired(scope reviewIntendedUntrackedScope, inventoryCommand, selectionCommand string) error {

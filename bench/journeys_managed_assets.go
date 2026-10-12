@@ -10,7 +10,7 @@ import (
 )
 
 // historicalManagedAssetStateSHA256 pins the exact agent-agnostic state bytes
-// a `gentle-ai sync` from predecessor 8c2cbd80 emitted.
+// a `brunnr-code sync` from predecessor 8c2cbd80 emitted.
 const historicalManagedAssetStateSHA256 = "6c337347a4c94055f321b6e4aef7fa6ee96f4ca0159e2e8d99e385557120a329"
 
 //go:embed testdata/managed-assets/state-8c2cbd80.json
@@ -51,7 +51,7 @@ func staleManagedAssetState(sandbox *Sandbox) error {
 // staleManagedAssetsStatusIsNotUnknown is the RED-first proof for #3299/#4170's
 // STATUS-time reclassification: a stale product-created managed-asset digest
 // must fail selectorless STATUS's own preflight, as a typed `stop` carrying
-// the exact candidate-preserving `gentle-ai sync` continuation, BEFORE STATUS
+// the exact candidate-preserving `brunnr-code sync` continuation, BEFORE STATUS
 // ever offers a START that preflight would refuse anyway. Executing a printed
 // START used to be the only way to discover the skew; now the skew is visible
 // -- and its one runnable remedy is named -- without ever attempting one.
@@ -70,7 +70,7 @@ func staleManagedAssetsStatusIsNotUnknown(r *journeyRun) error {
 	}
 	// #4434: the printed continuation is anchored to the executable that
 	// diagnosed the skew, so it must name THIS driven binary and run its sync
-	// through it -- never an unqualified `gentle-ai` PATH could swap.
+	// through it -- never an unqualified `brunnr-code` PATH could swap.
 	anchoredArgs, err := anchoredContinuationArguments(continuation.Command, r.sandbox.Binary)
 	if err != nil {
 		return fmt.Errorf("stale managed assets continuation %w", err)
@@ -110,7 +110,7 @@ func managedAssetJourneys() []Journey {
 			ID:     "j93-stale-managed-assets-start-is-not-unknown",
 			Review: reviewOptedIn,
 			Title:  "Stale managed assets: v2 Claude Code STATUS stops before authority with a runnable sync continuation, and stays usable",
-			Source: "issue #2822, #3299, #4170: a stale product-created managed-asset digest refuses at STATUS's own preflight, before any START is offered, carrying the exact `gentle-ai sync` continuation that reconciles it",
+			Source: "issue #2822, #3299, #4170: a stale product-created managed-asset digest refuses at STATUS's own preflight, before any START is offered, carrying the exact `brunnr-code sync` continuation that reconciles it",
 			Steps: []Step{
 				{Name: "fixture: repository", Fixture: baseRepo},
 				{Name: "fixture: staged prose candidate", Fixture: stageDocs("stale-managed-assets")},

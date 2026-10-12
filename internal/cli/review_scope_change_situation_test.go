@@ -31,7 +31,7 @@ func TestScopeChangedDenialNamesTheUncoveredScopeBeforeTheMechanism(t *testing.T
 	if !strings.Contains(message, "no terminal receipt covers") {
 		t.Errorf("denial names the mechanism but not the situation.\n got: %s", message)
 	}
-	if !strings.Contains(message, "gentle-ai review recover") {
+	if !strings.Contains(message, "brunnr-code review recover") {
 		t.Errorf("denial lost its recovery.\n got: %s", message)
 	}
 	assertNamesNoDottedOperation(t, message)

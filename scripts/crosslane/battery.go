@@ -267,7 +267,7 @@ func (b *battery) admitStatusScope(repo string, doc map[string]any) error {
 // because their operation and ordered argument tokens are already structured.
 func (b *battery) runCommandLine(source, dir, command string) (map[string]any, string, int) {
 	words, err := cli.SplitPrintedCommandWords(command)
-	if err != nil || len(words) < 2 || words[0] != "gentle-ai" {
+	if err != nil || len(words) < 2 || words[0] != "brunnr-code" {
 		return nil, fmt.Sprintf("unexpected provider command %q", command), 1
 	}
 	return b.runJSON(source, dir, words[1:]...)

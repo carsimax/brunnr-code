@@ -36,7 +36,7 @@ func TestNewerAuthorityIsNotReportedAsARefreshableContextFailure(t *testing.T) {
 	}
 	// The action has to name what actually resolves it, and the PATH shape
 	// because that is how the stale binary got invoked in the first place.
-	for _, want := range []string{"upgrade", "which -a gentle-ai"} {
+	for _, want := range []string{"upgrade", "which -a brunnr-code"} {
 		if !strings.Contains(message, want) {
 			t.Fatalf("refusal does not name %q: %q", want, message)
 		}

@@ -549,7 +549,7 @@ func stopEngramProcessesWith(runner system.PowerShellRunner) error {
 	msg := strings.TrimSpace(string(out))
 	if strings.HasPrefix(msg, "WARNING:") {
 		// Non-fatal: log to stderr so operators can diagnose, but return nil.
-		fmt.Fprintf(os.Stderr, "gentle-ai: engram stop: %s\n", msg)
+		fmt.Fprintf(os.Stderr, "brunnr-code: engram stop: %s\n", msg)
 	}
 	return nil
 }

@@ -1,6 +1,6 @@
 package agenthooks
 
-// Re-execute a copy of the test binary as gentle-ai to capture argv without
+// Re-execute a copy of the test binary as brunnr-code to capture argv without
 // introducing a shell that would re-tokenize arguments on Windows.
 import (
 	"bytes"
@@ -16,7 +16,7 @@ import (
 
 func TestMain(m *testing.M) {
 	name := strings.ToLower(filepath.Base(os.Args[0]))
-	if logPath := os.Getenv("GENTLE_AI_FAKE_LOG"); logPath != "" && (name == "gentle-ai" || name == "gentle-ai.exe") {
+	if logPath := os.Getenv("GENTLE_AI_FAKE_LOG"); logPath != "" && (name == "brunnr-code" || name == "brunnr-code.exe") {
 		os.Exit(runGentleAIFake(logPath))
 	}
 	os.Exit(m.Run())
@@ -45,7 +45,7 @@ func runGentleAIFake(logPath string) int {
 	}
 	fmt.Fprintf(&log, "exit=%d\n", exitCode)
 	if err := os.WriteFile(logPath, log.Bytes(), 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "gentle-ai fake: write log %q: %v\n", logPath, err)
+		fmt.Fprintf(os.Stderr, "brunnr-code fake: write log %q: %v\n", logPath, err)
 		return 70
 	}
 	return exitCode

@@ -294,7 +294,7 @@ func SanctionedCompactRecoveryExits(ctx context.Context, repo string, report Com
 			// consumer today, so the stop is honest instead of terminal.
 			exit.Blocked = fmt.Sprintf(
 				"no repair or abandon operation admits this edge (anomaly classes: %s): its recovery metadata is malformed, but it has a successor of its own, so `review abandon` refuses it, and `review repair` covers only the disjoint content_mismatched_recovery_authorization class. "+
-					"This does not repair the edge, but a maintainer can stop it from blocking further review activity in this exact repository with `gentle-ai review mode disable --scope clone --cwd %s`. "+
+					"This does not repair the edge, but a maintainer can stop it from blocking further review activity in this exact repository with `brunnr-code review mode disable --scope clone --cwd %s`. "+
 					"This report, with anomaly_classes and non_reconcilable_reason, is the artifact to escalate for an actual repair.",
 				strings.Join(edge.AnomalyClasses, ","), root)
 		default:

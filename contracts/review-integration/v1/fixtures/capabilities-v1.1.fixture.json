@@ -180,7 +180,7 @@
     ]
   },
   "bootstrap": {
-    "command": "gentle-ai review status --cwd \u003crepo\u003e --contract gentle-ai.review-integration/v1 --next-transition",
+    "command": "brunnr-code review status --cwd \u003crepo\u003e --contract gentle-ai.review-integration/v1 --next-transition",
     "target_selector_variants": [
       {
         "target_type": "staged",

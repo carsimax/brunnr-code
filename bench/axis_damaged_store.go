@@ -1474,14 +1474,14 @@ func dispositionRepairWithSelectorArgs(reason string, replacementRevision ...str
 
 func requireWrongDispositionSelectorRefusal(sandbox *Sandbox, observation Observation) error {
 	if observation.ExitCode == 0 || !strings.Contains(observation.Stderr, "review transaction changed concurrently: exact content-mismatch selector no longer matches the inspected graph") {
-		return fmt.Errorf("altered emitted selector did not produce the typed preflight refusal; rerun `gentle-ai review repair --preflight`")
+		return fmt.Errorf("altered emitted selector did not produce the typed preflight refusal; rerun `brunnr-code review repair --preflight`")
 	}
 	base, err := reviewTransactionsBase(sandbox)
 	if err != nil {
 		return err
 	}
 	if _, err := os.Stat(filepath.Join(base, "quarantine")); !os.IsNotExist(err) {
-		return fmt.Errorf("altered emitted selector changed quarantine state; rerun `gentle-ai review repair --preflight`")
+		return fmt.Errorf("altered emitted selector changed quarantine state; rerun `brunnr-code review repair --preflight`")
 	}
 	return requireInvalidEdges(sandbox, 2, theExactBindingProblem)
 }

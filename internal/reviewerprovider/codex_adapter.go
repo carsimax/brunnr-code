@@ -133,7 +133,7 @@ func codexReviewerArguments(workdir, outputPath string, probe bool) ([]string, e
 
 	return append(arguments,
 		"--config", `model_provider="`+codexReviewerLoopbackProviderID+`"`,
-		"--config", fmt.Sprintf(`model_providers.%s={name="Gentle AI reviewer loopback",base_url=%q,wire_api="responses"}`, codexReviewerLoopbackProviderID, baseURL),
+		"--config", fmt.Sprintf(`model_providers.%s={name="Brunnr-Code reviewer loopback",base_url=%q,wire_api="responses"}`, codexReviewerLoopbackProviderID, baseURL),
 	), nil
 }
 

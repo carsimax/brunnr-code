@@ -238,7 +238,7 @@ func nativeNotExistCause(t *testing.T) string {
 
 // opaqueNativeCause still serves one call site, and its two arms are safe for
 // different reasons. The Windows arm expects "unsafe RAR authority path",
-// which gentle-ai produces itself. The Unix arm does pin an errno text, "not
+// which brunnr-code produces itself. The Unix arm does pin an errno text, "not
 // a directory", and is safe because Go renders errno 20 from its own
 // compile-time table rather than from the installation. Neither arm reaches
 // FormatMessage, which is what the replaced assertions depended on.

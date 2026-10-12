@@ -292,7 +292,7 @@ func inventoryUnexpected(result authorityVersionInventory, path, problem string)
 // the surface that already knows.
 func compactUnreadableEntryProblem(lineage string, cause error) string {
 	return fmt.Sprintf(
-		"%v. Lineage %q alone cannot be read and every other lineage is unaffected; see this entry's own diagnosis and sanctioned exits with `gentle-ai review inspect-authority`",
+		"%v. Lineage %q alone cannot be read and every other lineage is unaffected; see this entry's own diagnosis and sanctioned exits with `brunnr-code review inspect-authority`",
 		cause, lineage)
 }
 
@@ -321,7 +321,7 @@ func inventoryLineage(ctx context.Context, repo string, version AuthorityVersion
 	if version == AuthorityVersionCompact {
 		if _, statErr := os.Stat(filepath.Join(path, compactStateFileName)); os.IsNotExist(statErr) && !compactStoreHoldsAuthority(items) {
 			entry.Status = AuthorityStatusIncomplete
-			entry.Problems = []string{"compact store entry has no review-state.json and no authoritative artifacts; quarantine it with gentle-ai review reclaim"}
+			entry.Problems = []string{"compact store entry has no review-state.json and no authoritative artifacts; quarantine it with brunnr-code review reclaim"}
 			return entry, locks, nil
 		}
 		store := CompactStore{Dir: path, lineageID: lineage, repo: repo}

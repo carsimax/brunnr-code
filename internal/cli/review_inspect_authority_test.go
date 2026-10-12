@@ -39,7 +39,7 @@ func TestReviewInspectAuthorityHelpAndArguments(t *testing.T) {
 		if err := RunReview([]string{"inspect-authority", "--help"}, &output); err != nil {
 			t.Fatalf("review inspect-authority --help: %v", err)
 		}
-		if !strings.Contains(output.String(), "Usage: gentle-ai review inspect-authority [flags]") ||
+		if !strings.Contains(output.String(), "Usage: brunnr-code review inspect-authority [flags]") ||
 			!strings.Contains(output.String(), "--cwd <value>") {
 			t.Fatalf("inspect-authority help:\n%s", output.String())
 		}

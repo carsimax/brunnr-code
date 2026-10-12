@@ -161,7 +161,7 @@ func splitOrchestratorModules(annotated string, specs []orchestratorFragmentSpec
 				continue
 			}
 			if content.Len() == 0 {
-				content.WriteString("# Gentle AI Orchestrator — " + strings.ToUpper(name[:1]) + name[1:] + " Module\n\n" + orchestratorModuleIntro)
+				content.WriteString("# Brunnr-Code Orchestrator — " + strings.ToUpper(name[:1]) + name[1:] + " Module\n\n" + orchestratorModuleIntro)
 			}
 			content.WriteString("\n## " + fragment.title + "\n\n" + fragment.body)
 		}

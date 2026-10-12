@@ -233,7 +233,7 @@ func TestNegotiatedStartRefusesOverBudgetCandidateWithoutPersistingAuthority(t *
 		t.Fatalf("over-budget START envelope does not report a refusal that wrote nothing: %#v", failure.Failure)
 	}
 	if !strings.Contains(failure.Failure.Cause, "chained sequence of smaller reviewable commits") ||
-		!strings.Contains(failure.Failure.Cause, "gentle-ai review status") {
+		!strings.Contains(failure.Failure.Cause, "brunnr-code review status") {
 		t.Fatalf("over-budget START cause does not name the runnable continuation: %q", failure.Failure.Cause)
 	}
 	if strings.Contains(output.String(), "GENTLE_AI_REVIEW_") {

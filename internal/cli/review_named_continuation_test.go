@@ -17,14 +17,14 @@ import (
 // This file is the cheap tier of the "a refusal must name something that
 // works" contract.
 //
-// WHAT IT PROVES: every `gentle-ai review <verb>` continuation the product
+// WHAT IT PROVES: every `brunnr-code review <verb>` continuation the product
 // names in its own source -- refusals, hints, usage text -- resolves to a verb
 // the CLI really dispatches, and every `--flag` that continuation names is
 // really defined on that verb's flag.FlagSet. In other words: the named
 // command PARSES.
 //
 // WHAT IT DOES NOT PROVE: that running the named command RESOLVES the block it
-// was named for. A structurally perfect `gentle-ai review recover
+// was named for. A structurally perfect `brunnr-code review recover
 // --predecessor-lineage ... --successor-lineage ...` can still dead-end,
 // freezing a successor that re-trips the very rule that denied delivery. That
 // stronger, expensive property is proven by execution in
@@ -41,9 +41,9 @@ import (
 // reviewNamedContinuationInvocationRegexp matches the explicit invocation form
 // -- the only form that unambiguously names a command rather than merely
 // mentioning the word "review". Requiring a lowercase letter directly after
-// "review " excludes the usage banner's `gentle-ai review <capabilities|...>`
+// "review " excludes the usage banner's `brunnr-code review <capabilities|...>`
 // placeholder, which names no single verb.
-var reviewNamedContinuationInvocationRegexp = regexp.MustCompile(`gentle-ai review ([a-z][a-z-]*)`)
+var reviewNamedContinuationInvocationRegexp = regexp.MustCompile(`brunnr-code review ([a-z][a-z-]*)`)
 
 // reviewNamedContinuationSelfReferenceRegexp matches the self-referential
 // refusal form: a message that opens by naming the verb it is refusing ("review
@@ -71,7 +71,7 @@ type reviewNamedContinuationSite struct {
 
 // TestEveryNamedReviewContinuationIsStructurallyReal is the guard. It walks the
 // package's own source (plus internal/reviewtransaction, which raises review
-// refusals of its own), enumerates every named `gentle-ai review <verb>`
+// refusals of its own), enumerates every named `brunnr-code review <verb>`
 // continuation, and requires the verb to dispatch and every flag it names to be
 // defined on that verb's real FlagSet.
 func TestEveryNamedReviewContinuationIsStructurallyReal(t *testing.T) {
@@ -90,7 +90,7 @@ func TestEveryNamedReviewContinuationIsStructurallyReal(t *testing.T) {
 	namedFlags := 0
 	for _, site := range sites {
 		if !verbs[site.verb] {
-			t.Errorf("%s:%d names the continuation `gentle-ai review %s`, but no such verb is dispatched (%q)",
+			t.Errorf("%s:%d names the continuation `brunnr-code review %s`, but no such verb is dispatched (%q)",
 				site.file, site.line, site.verb, site.literal)
 			continue
 		}
@@ -111,7 +111,7 @@ func TestEveryNamedReviewContinuationIsStructurallyReal(t *testing.T) {
 		for _, name := range site.flags {
 			namedFlags++
 			if !flags[name] {
-				t.Errorf("%s:%d names `gentle-ai review %s --%s`, but that verb's FlagSet defines no --%s (%q)",
+				t.Errorf("%s:%d names `brunnr-code review %s --%s`, but that verb's FlagSet defines no --%s (%q)",
 					site.file, site.line, site.verb, name, name, site.literal)
 			}
 		}
@@ -132,7 +132,7 @@ func reviewNamedContinuationFileCount(sites []reviewNamedContinuationSite) int {
 
 // collectReviewNamedContinuationSites walks every production source file of
 // this package and of internal/reviewtransaction, and returns one site per
-// named `gentle-ai review <verb>` continuation found in a string literal,
+// named `brunnr-code review <verb>` continuation found in a string literal,
 // carrying the flags that continuation names.
 //
 // Attribution is positional and line-scoped: a literal is split at each
@@ -278,7 +278,7 @@ func reviewNamedContinuationFlags(segment string) []string {
 // disabled, so it never appears in review_facade.go's own switch.
 var reviewAppReviewPreDispatchRegexp = regexp.MustCompile(`args\[1\] == "([a-z][a-z-]*)"`)
 
-// reviewDispatchableReviewVerbs returns every verb `gentle-ai review <verb>`
+// reviewDispatchableReviewVerbs returns every verb `brunnr-code review <verb>`
 // really reaches, from the two mechanical extractions that own the answer:
 // review_facade.go's own dispatch switches, and internal/app's review
 // pre-dispatch. Both fail closed when their extraction stops finding anything.
@@ -345,14 +345,14 @@ func reviewNamedContinuationVerbFlags(t *testing.T, verb string) map[string]bool
 		err = RunReview([]string{verb, "--help"}, &usage)
 	}
 	if err != nil {
-		t.Fatalf("`gentle-ai review %s --help` failed: %v\n%s", verb, err, usage.String())
+		t.Fatalf("`brunnr-code review %s --help` failed: %v\n%s", verb, err, usage.String())
 	}
 	flags := map[string]bool{"help": true, "h": true}
 	for _, match := range reviewNamedContinuationVerbFlagRegexp.FindAllStringSubmatch(usage.String(), -1) {
 		flags[match[1]] = true
 	}
 	if len(flags) <= 2 {
-		t.Fatalf("`gentle-ai review %s --help` listed no flags; the usage parsing is stale:\n%s", verb, usage.String())
+		t.Fatalf("`brunnr-code review %s --help` listed no flags; the usage parsing is stale:\n%s", verb, usage.String())
 	}
 	return flags
 }

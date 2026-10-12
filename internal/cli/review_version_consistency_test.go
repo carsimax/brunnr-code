@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// A tester reported `gentle-ai --version` saying 2.2.0-rc.1 while `doctor` on
+// A tester reported `brunnr-code --version` saying 2.2.0-rc.1 while `doctor` on
 // the same binary reported 1.49.1-0.2026...+dirty. Two version strings for one
 // build is not a cosmetic inconsistency: doctor's whole purpose here is to say
 // WHICH build is running, and the defect report carries the same value to

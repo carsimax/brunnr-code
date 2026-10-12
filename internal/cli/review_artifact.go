@@ -151,7 +151,7 @@ func RunReviewCaptureResult(args []string, stdout io.Writer) error {
 	revision := flags.String("expected-revision", "", "exact reviewing authority revision")
 	subjectHash := flags.String("subject-hash", "", "provider-issued artifact subject hash for native-Git context")
 	runtimeAgent := flags.String("agent", "", "compiled reviewer runtime that invokes the provider-owned request; mutually exclusive with --input and --preflight")
-	input := flags.String("input", "", "raw reviewer result JSON file or - for stdin; `gentle-ai review schema reviewer` emits the schema and a working example")
+	input := flags.String("input", "", "raw reviewer result JSON file or - for stdin; `brunnr-code review schema reviewer` emits the schema and a working example")
 	preflight := flags.Bool("preflight", false, "validate the capture binding and, when --input is supplied, the result admission without persisting anything")
 	if err := parseReviewFlags(flags, args); err != nil {
 		return err
@@ -165,7 +165,7 @@ func RunReviewCaptureResult(args []string, stdout io.Writer) error {
 	providerExecution := providerRuntimeSupplied && !rawInputSupplied
 	if flags.NArg() != 0 || strings.TrimSpace(*lineage) == "" || strings.TrimSpace(*target) == "" ||
 		strings.TrimSpace(*lens) == "" || *order < 0 || (!*preflight && !rawInputSupplied && !providerExecution) {
-		return reviewPreflightError(errors.New("review capture-result requires an exact repository context, --lineage, --target, --lens, --order, and either --input or --agent (or --preflight); `gentle-ai review status --contract gentle-ai.review-integration/v1 --next-transition` prints the exact bindings and `gentle-ai review schema reviewer` emits the result schema with a working example"))
+		return reviewPreflightError(errors.New("review capture-result requires an exact repository context, --lineage, --target, --lens, --order, and either --input or --agent (or --preflight); `brunnr-code review status --contract gentle-ai.review-integration/v1 --next-transition` prints the exact bindings and `brunnr-code review schema reviewer` emits the result schema with a working example"))
 	}
 	if providerRuntimeSupplied && *preflight {
 		return reviewPreflightError(errors.New("review capture-result --agent cannot be combined with --preflight")) // refusal:by-design world-action: a provider runtime identity belongs only to a real in-process capture
@@ -244,11 +244,11 @@ func RunReviewCaptureResult(args []string, stdout io.Writer) error {
 		if *subjectHash != "" && *subjectHash != subject.SubjectHash {
 			legacyFrozen, legacyErr := (reviewtransaction.SnapshotBuilder{Repo: root}).WithLegacyCandidateDiff(ctx, state.InitialSnapshot, frozen)
 			if legacyErr != nil {
-				return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture preflight subject hash does not match the provider-owned authority; refresh the binding with gentle-ai review status --cwd <repo> --contract <same-contract> --next-transition"))
+				return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture preflight subject hash does not match the provider-owned authority; refresh the binding with brunnr-code review status --cwd <repo> --contract <same-contract> --next-transition"))
 			}
 			legacySubject, legacyErr := reviewtransaction.NewLegacyArtifactSubject(state, state.CapturePhaseRevision, legacyFrozen, *lens, *order, "")
 			if legacyErr != nil || *subjectHash != legacySubject.SubjectHash {
-				return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture preflight subject hash does not match the provider-owned authority; refresh the binding with gentle-ai review status --cwd <repo> --contract <same-contract> --next-transition"))
+				return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture preflight subject hash does not match the provider-owned authority; refresh the binding with brunnr-code review status --cwd <repo> --contract <same-contract> --next-transition"))
 			}
 			frozen, subject = legacyFrozen, legacySubject
 		}

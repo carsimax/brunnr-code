@@ -1046,7 +1046,7 @@ func TestWindowsRuntimeIncludesRepairAndMaintenanceLockRegressions(t *testing.T)
 }
 
 // TestReviewRepairPreflightNamesAWayForwardWhenTheStoreExceedsTheBound is
-// issue #3409. `gentle-ai review repair --preflight` exists so a maintainer
+// issue #3409. `brunnr-code review repair --preflight` exists so a maintainer
 // can classify a damaged authority store and act on it. Its assessment is
 // bounded, and the bound is honest: exceeding it yields a typed `truncated`
 // status rather than a partial classification presented as complete, which is
@@ -1106,7 +1106,7 @@ func TestReviewRepairPreflightNamesAWayForwardWhenTheStoreExceedsTheBound(t *tes
 	if !preflight.Assessment.Truncated || preflight.Assessment.TruncationCap != 256 || preflight.Assessment.TruncationScanned != 257 {
 		t.Fatalf("oversized-store preflight truncation bound = %#v", preflight.Assessment)
 	}
-	if !strings.Contains(output.String(), "gentle-ai review inspect-authority") {
+	if !strings.Contains(output.String(), "brunnr-code review inspect-authority") {
 		t.Fatalf("truncated preflight named no runnable continuation:\n%s", output.String())
 	}
 

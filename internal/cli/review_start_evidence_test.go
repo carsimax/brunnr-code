@@ -372,7 +372,7 @@ func TestReviewFacadeStartLensesRequiredHintsNegotiatedContract(t *testing.T) {
 	// runtime and the hint must omit the complete agent segment (issue #2885).
 	// The self-describing evidence token rides beside --target (#4494), so the
 	// canonical hint carries it between --target and --projection.
-	wantCommand := fmt.Sprintf("gentle-ai review start --contract %s --target %s --target-evidence ", ReviewIntegrationContractV2, started.TargetIdentity)
+	wantCommand := fmt.Sprintf("brunnr-code review start --contract %s --target %s --target-evidence ", ReviewIntegrationContractV2, started.TargetIdentity)
 	if !strings.Contains(started.Hint, wantCommand) {
 		t.Fatalf("lenses-required start hint = %q, want it to contain %q", started.Hint, wantCommand)
 	}
@@ -422,7 +422,7 @@ func TestReviewFacadeStartBaseDiffRefusalReplaysFrozenSelector(t *testing.T) {
 		t.Fatalf("refusal has no executable command: %v", err)
 	}
 	command := strings.Fields(err.Error()[opening+1 : opening+1+closing])
-	if len(command) < 3 || !reflect.DeepEqual(command[:3], []string{"gentle-ai", "review", "start"}) {
+	if len(command) < 3 || !reflect.DeepEqual(command[:3], []string{"brunnr-code", "review", "start"}) {
 		t.Fatalf("refusal command = %v", command)
 	}
 	args := append([]string{"start", "--cwd", repo}, withoutReplayRuntimeIdentity(t, command[3:])...)

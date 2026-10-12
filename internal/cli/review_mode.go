@@ -45,8 +45,8 @@ type ReviewModeResult struct {
 // never mutates, and enabling applies to future candidates only.
 func RunReviewMode(args []string, stdout io.Writer) error {
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
-		_, _ = fmt.Fprintln(stdout, "Usage: gentle-ai review mode <enable|disable|status> [--cwd <repo>] [--scope <global|clone>] [--expected-revision <revision>] [--json]")
-		_, _ = fmt.Fprintln(stdout, "User-owned switch. Receipt-driven development is on by default: run 'gentle-ai review mode disable' to opt out. Any off wins: a repository may disable it for this clone but can never require it, and no other clone inherits the override. status is read-only and reports both sources plus the effective mode. Enabling applies to future candidates only.")
+		_, _ = fmt.Fprintln(stdout, "Usage: brunnr-code review mode <enable|disable|status> [--cwd <repo>] [--scope <global|clone>] [--expected-revision <revision>] [--json]")
+		_, _ = fmt.Fprintln(stdout, "User-owned switch. Receipt-driven development is on by default: run 'brunnr-code review mode disable' to opt out. Any off wins: a repository may disable it for this clone but can never require it, and no other clone inherits the override. status is read-only and reports both sources plus the effective mode. Enabling applies to future candidates only.")
 		return nil
 	}
 	operation := args[0]
@@ -177,8 +177,8 @@ func (scope ReviewModeUnreadableScope) commands() []string {
 		suffix += " --cwd " + scope.Repo
 	}
 	return []string{
-		"`gentle-ai review mode enable" + suffix + "`",
-		"`gentle-ai review mode disable" + suffix + "`",
+		"`brunnr-code review mode enable" + suffix + "`",
+		"`brunnr-code review mode disable" + suffix + "`",
 	}
 }
 
@@ -314,7 +314,7 @@ type reviewModeRepositoryRequiredError struct{ Cause error }
 func (err *reviewModeRepositoryRequiredError) Unwrap() error { return err.Cause }
 
 func (err *reviewModeRepositoryRequiredError) Error() string {
-	return "clone-local review mode requires a Git repository; rerun the original command with --cwd pointing at the intended repository, or use `gentle-ai review mode enable --scope global` or `gentle-ai review mode disable --scope global` for machine-wide state"
+	return "clone-local review mode requires a Git repository; rerun the original command with --cwd pointing at the intended repository, or use `brunnr-code review mode enable --scope global` or `brunnr-code review mode disable --scope global` for machine-wide state"
 }
 
 func reviewModeRepositoryRequiredRefusal(err error) error {
@@ -327,7 +327,7 @@ func reviewModeRepositoryRequiredRefusal(err error) error {
 func reviewModeCommandsByVerb(commands []string, verb string) []string {
 	selected := make([]string, 0, len(commands))
 	for _, command := range commands {
-		if strings.HasPrefix(command, "`gentle-ai review mode "+verb+" ") {
+		if strings.HasPrefix(command, "`brunnr-code review mode "+verb+" ") {
 			selected = append(selected, command)
 		}
 	}
@@ -506,7 +506,7 @@ func emitReviewMode(stdout io.Writer, result ReviewModeResult, emitJSON bool) er
 		// Keep the next action on the human surface without extending the schema.
 		if _, err = fmt.Fprint(
 			stdout,
-			"  note:        a clone-local override can only disable, so this cleared the clone's off opinion and the global switch still decides; run `gentle-ai review mode enable --scope global` to turn receipt-driven development on\n",
+			"  note:        a clone-local override can only disable, so this cleared the clone's off opinion and the global switch still decides; run `brunnr-code review mode enable --scope global` to turn receipt-driven development on\n",
 		); err != nil {
 			return err
 		}
@@ -516,11 +516,11 @@ func emitReviewMode(stdout io.Writer, result ReviewModeResult, emitJSON bool) er
 	}
 	// The switch is machine state. A write that reached only this build has to
 	// say so on the surface the operator actually reads, or it reports a
-	// working kill switch to someone half of whose gentle-ai installations are
+	// working kill switch to someone half of whose brunnr-code installations are
 	// still enforcing review.
 	_, err = fmt.Fprint(
 		stdout,
-		"  note:        applied for this gentle-ai only; a gentle-ai installed before the switch moved reads a location this command could not open, and keeps enforcing the value it holds there\n",
+		"  note:        applied for this brunnr-code only; a brunnr-code installed before the switch moved reads a location this command could not open, and keeps enforcing the value it holds there\n",
 	)
 	return err
 }
@@ -561,12 +561,12 @@ const (
 // errReviewConsentQuestionRequired signals internally that a relay-declared
 // START stopped at the consent moment: the typed question is the response, and
 // nothing has been persisted.
-var errReviewConsentQuestionRequired = errors.New("the review consent question awaits a relayed answer; rerun gentle-ai review start with --consent granted or --consent declined for the exact frozen candidate")
+var errReviewConsentQuestionRequired = errors.New("the review consent question awaits a relayed answer; rerun brunnr-code review start with --consent granted or --consent declined for the exact frozen candidate")
 
 // errReviewConsentDeclineWithoutQuestion refuses a decline for a candidate
 // that asks no question: tier 0 is silent structural readback, so there is no
 // consent moment to answer.
-var errReviewConsentDeclineWithoutQuestion = errors.New("this low-risk candidate asks no consent question, so there is nothing to decline; rerun gentle-ai review start without --consent")
+var errReviewConsentDeclineWithoutQuestion = errors.New("this low-risk candidate asks no consent question, so there is nothing to decline; rerun brunnr-code review start without --consent")
 
 const (
 	reviewConsentAnswerRun    = "1"
@@ -595,7 +595,7 @@ func normalizeReviewConsentLocale(value string) (reviewConsentLocale, error) {
 }
 
 const (
-	reviewConsentHeadline = "Gentle AI can review this change before you call it done."
+	reviewConsentHeadline = "Brunnr-Code can review this change before you call it done."
 	reviewConsentValue    = "Reviewing takes a little longer and makes the result safer."
 
 	// reviewConsentAnswerRunLabel and reviewConsentAnswerNotNowLabel are the
@@ -611,7 +611,7 @@ const (
 	// safety net off for good must cost more than pressing a number in a hurry.
 	// The relayed consent envelope carries the same note as a documented off
 	// path outside the choice set, for exactly the same reason.
-	reviewConsentOffPathCommand = "gentle-ai review mode disable"
+	reviewConsentOffPathCommand = "brunnr-code review mode disable"
 	reviewConsentOffPathNote    = "To turn reviews off for good, run '" + reviewConsentOffPathCommand + "'."
 	reviewConsentOffPath        = reviewConsentOffPathNote + "\n"
 	reviewConsentQuestion       = "Choose 1 or 2 [1]: "
@@ -621,11 +621,11 @@ const (
 	// provenance sentence about how reviews got switched on: either the unset
 	// default or an explicit enable may permit review. Explicit OFF is refused
 	// before this point.
-	reviewConsentSkippedNotice = "Gentle AI reviewed this change without asking, because this session has no terminal to answer on. " +
-		"Run 'gentle-ai review mode disable' to turn reviews off, or 'gentle-ai review mode status' to see the current setting."
+	reviewConsentSkippedNotice = "Brunnr-Code reviewed this change without asking, because this session has no terminal to answer on. " +
+		"Run 'brunnr-code review mode disable' to turn reviews off, or 'brunnr-code review mode status' to see the current setting."
 
-	reviewConsentUnreadableNotice = "Gentle AI could not read an answer, so it reviewed this change and will ask again next time."
-	reviewConsentUnknownNotice    = "Gentle AI did not recognize that answer, so it reviewed this change and will ask again next time."
+	reviewConsentUnreadableNotice = "Brunnr-Code could not read an answer, so it reviewed this change and will ask again next time."
+	reviewConsentUnknownNotice    = "Brunnr-Code did not recognize that answer, so it reviewed this change and will ask again next time."
 
 	// reviewConsentDeclinedNotice confirms a decline in the user's own terms.
 	// It goes to the console stream, never stdout: stdout stays pure JSON.
@@ -782,7 +782,7 @@ func authorizeReviewStart(ctx context.Context, repo string, assessment reviewtra
 	if err != nil {
 		// A damaged latch must neither block the review nor silently disable it:
 		// review the candidate, and say why the question was skipped.
-		_, _ = fmt.Fprintf(console.Output, "Gentle AI reviewed this change without asking: %v.\n", err)
+		_, _ = fmt.Fprintf(console.Output, "Brunnr-Code reviewed this change without asking: %v.\n", err)
 		return nil
 	}
 	if asked {

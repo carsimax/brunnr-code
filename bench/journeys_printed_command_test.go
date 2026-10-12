@@ -21,37 +21,37 @@ func TestPrintedCommandArguments(t *testing.T) {
 	}{
 		{
 			name:    "plain flags",
-			command: "gentle-ai review finalize --lineage=review-1 --captured-results=true",
+			command: "brunnr-code review finalize --lineage=review-1 --captured-results=true",
 			want:    []string{"review", "finalize", "--lineage=review-1", "--captured-results=true"},
 		},
 		{
 			name:    "single quoted value keeps its spaces",
-			command: "gentle-ai review repair --reason='the store lost a leaf'",
+			command: "brunnr-code review repair --reason='the store lost a leaf'",
 			want:    []string{"review", "repair", "--reason=the store lost a leaf"},
 		},
 		{
 			name:    "single quoted value keeps its newlines",
-			command: "gentle-ai review recover '--maintainer-authorization=schema/v1\nactor=maintainer'",
+			command: "brunnr-code review recover '--maintainer-authorization=schema/v1\nactor=maintainer'",
 			want:    []string{"review", "recover", "--maintainer-authorization=schema/v1\nactor=maintainer"},
 		},
 		{
 			name:    "escaped quote survives",
-			command: `gentle-ai review repair --reason='it'\''s broken'`,
+			command: `brunnr-code review repair --reason='it'\''s broken'`,
 			want:    []string{"review", "repair", "--reason=it's broken"},
 		},
 		{
 			name:    "double quoted escapes follow POSIX rules",
-			command: `gentle-ai review repair "--reason=literal\q \$HOME \"quoted\" \\slash"`,
+			command: `brunnr-code review repair "--reason=literal\q \$HOME \"quoted\" \\slash"`,
 			want:    []string{"review", "repair", `--reason=literal\q $HOME "quoted" \slash`},
 		},
 		{
 			name:    "double quoted escaped newline is a line continuation",
-			command: "gentle-ai review repair \"--reason=first\\\nsecond\"",
+			command: "brunnr-code review repair \"--reason=first\\\nsecond\"",
 			want:    []string{"review", "repair", "--reason=firstsecond"},
 		},
 		{
 			name:    "surrounding whitespace is not an argument",
-			command: "  gentle-ai   review status  ",
+			command: "  brunnr-code   review status  ",
 			want:    []string{"review", "status"},
 		},
 		{
@@ -66,7 +66,7 @@ func TestPrintedCommandArguments(t *testing.T) {
 		},
 		{
 			name:    "the product name alone is not runnable",
-			command: "gentle-ai",
+			command: "brunnr-code",
 			wantErr: "names no arguments",
 		},
 		{
@@ -76,12 +76,12 @@ func TestPrintedCommandArguments(t *testing.T) {
 		},
 		{
 			name:    "an unterminated quote is not runnable as printed",
-			command: "gentle-ai review repair --reason='never closed",
+			command: "brunnr-code review repair --reason='never closed",
 			wantErr: "unterminated quote",
 		},
 		{
 			name:    "a trailing escape is not runnable as printed",
-			command: `gentle-ai review repair --reason=x\`,
+			command: `brunnr-code review repair --reason=x\`,
 			wantErr: "trailing escape",
 		},
 	}
@@ -105,7 +105,7 @@ func TestPrintedCommandArguments(t *testing.T) {
 }
 
 func TestAnchoredContinuationArgumentsRejectsLineBreaks(t *testing.T) {
-	const binary = "/tmp/gentle-ai"
+	const binary = "/tmp/brunnr-code"
 	for _, testCase := range []struct {
 		name    string
 		command string
@@ -151,7 +151,7 @@ func TestRunPrintedTransitionRefusesATransitionWithNothingToRun(t *testing.T) {
 		},
 		{
 			name: "execute with a templated command", kind: "execute", operation: "review.validate",
-			command: "gentle-ai review validate --gate <gate>",
+			command: "brunnr-code review validate --gate <gate>",
 			wantErr: "is not runnable as printed",
 		},
 	}
@@ -209,7 +209,7 @@ func TestDeadExecuteTransitionsSeesWhatTheClassifierCannot(t *testing.T) {
 // deliberately carries no command and must never be reported.
 func TestDeadExecuteTransitionsAcceptsWhatIsGenuinelyRunnable(t *testing.T) {
 	for _, stdout := range []string{
-		`{"next_transition":{"kind":"execute","execute":{"operation":"review.finalize","command":"gentle-ai review finalize --lineage=review-1"}}}`,
+		`{"next_transition":{"kind":"execute","execute":{"operation":"review.finalize","command":"brunnr-code review finalize --lineage=review-1"}}}`,
 		`{"next_transition":{"kind":"collect","collect":{"inputs":[{"capture_operation":"review.capture-result"}]}}}`,
 		`{"result":"allow","allowed":true}`,
 		"Error: not JSON at all",

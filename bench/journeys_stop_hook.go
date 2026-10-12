@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// stopHookJourneys drives #4064's `gentle-ai review stop-hook --agent
+// stopHookJourneys drives #4064's `brunnr-code review stop-hook --agent
 // claude-code`: the Claude Code hook that, on SessionStart, baselines the
 // repository's current unreviewed-candidate identity for the session, and on
 // Stop reminds the agent -- once per session and candidate, and only for a
@@ -53,8 +53,8 @@ func stopHookJourneys() []Journey {
 					if !strings.Contains(observation.Stdout, `"decision":"block"`) {
 						return fmt.Errorf("stdout missing %q: %s", `"decision":"block"`, observation.Stdout)
 					}
-					if !strings.Contains(observation.Stdout, "gentle-ai review start") {
-						return fmt.Errorf("stdout missing %q: %s", "gentle-ai review start", observation.Stdout)
+					if !strings.Contains(observation.Stdout, "brunnr-code review start") {
+						return fmt.Errorf("stdout missing %q: %s", "brunnr-code review start", observation.Stdout)
 					}
 					return nil
 				},

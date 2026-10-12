@@ -100,7 +100,7 @@ func parseReviewStatusStartOptions(args []string, nextTransition bool, contract,
 		return reviewStartPreflightOptions{}, nil
 	}
 	if !nextTransition {
-		return reviewStartPreflightOptions{}, fmt.Errorf("review status --request-context, --escalate-item, --escalate-reason, --lenses, and --lenses-reason preflight the fresh START a next transition renders, so they require --next-transition; rerun `gentle-ai review status --contract %s --next-transition` with them", contract)
+		return reviewStartPreflightOptions{}, fmt.Errorf("review status --request-context, --escalate-item, --escalate-reason, --lenses, and --lenses-reason preflight the fresh START a next transition renders, so they require --next-transition; rerun `brunnr-code review status --contract %s --next-transition` with them", contract)
 	}
 	for _, name := range reviewStartPreflightOptionNames {
 		if counts[name] > 1 {
@@ -125,18 +125,18 @@ func parseReviewStatusStartOptions(args []string, nextTransition bool, contract,
 	escalation, fault := reviewEscalationFromFlags(args, item, reason)
 	switch fault {
 	case reviewEscalationUnpaired:
-		return reviewStartPreflightOptions{}, fmt.Errorf("review status --escalate-item and --escalate-reason must be passed together; rerun `gentle-ai review status --contract %s --next-transition --escalate-item <1-6> --escalate-reason <text>`", contract)
+		return reviewStartPreflightOptions{}, fmt.Errorf("review status --escalate-item and --escalate-reason must be passed together; rerun `brunnr-code review status --contract %s --next-transition --escalate-item <1-6> --escalate-reason <text>`", contract)
 	case reviewEscalationBadItem:
-		return reviewStartPreflightOptions{}, fmt.Errorf("review status --escalate-item %q must be an integer from 1 to 6 naming a high-risk item; rerun `gentle-ai review status --contract %s --next-transition --escalate-item <1-6> --escalate-reason <text>`", item, contract)
+		return reviewStartPreflightOptions{}, fmt.Errorf("review status --escalate-item %q must be an integer from 1 to 6 naming a high-risk item; rerun `brunnr-code review status --contract %s --next-transition --escalate-item <1-6> --escalate-reason <text>`", item, contract)
 	case reviewEscalationBadReason:
-		return reviewStartPreflightOptions{}, fmt.Errorf("review status --escalate-reason must be non-empty and at most %d characters; rerun `gentle-ai review status --contract %s --next-transition --escalate-item <1-6> --escalate-reason <text>` with a one-line reason", reviewtransaction.AgentEscalationReasonMax, contract)
+		return reviewStartPreflightOptions{}, fmt.Errorf("review status --escalate-reason must be non-empty and at most %d characters; rerun `brunnr-code review status --contract %s --next-transition --escalate-item <1-6> --escalate-reason <text>` with a one-line reason", reviewtransaction.AgentEscalationReasonMax, contract)
 	}
 	options.Escalation = escalation
 	selection, err := parseReviewStartLensSelection(args, lenses, lensesReason)
 	if err != nil {
 		// Same validation as START, worded for the STATUS that preflights it.
 		message := strings.Replace(err.Error(), "review start", "review status", 1)
-		message = strings.Replace(message, "`gentle-ai review start --lenses", "`gentle-ai review status --contract "+contract+" --next-transition --lenses", 1)
+		message = strings.Replace(message, "`brunnr-code review start --lenses", "`brunnr-code review status --contract "+contract+" --next-transition --lenses", 1)
 		return reviewStartPreflightOptions{}, errors.New(message)
 	}
 	options.LensSelection = selection
@@ -159,5 +159,5 @@ func reviewStatusStartOptionsUnapplied(options reviewStartPreflightOptions, tran
 	if transition != nil {
 		kind, reason = transition.Kind, transition.ReasonCode
 	}
-	return fmt.Errorf("review status --request-context, --escalate-item, and --escalate-reason only preflight a fresh START, but the next transition is %s %q; rerun `gentle-ai review status --contract %s --next-transition` without them and follow its transition, then pass them again to the STATUS that offers review.start", kind, reason, contract)
+	return fmt.Errorf("review status --request-context, --escalate-item, and --escalate-reason only preflight a fresh START, but the next transition is %s %q; rerun `brunnr-code review status --contract %s --next-transition` without them and follow its transition, then pass them again to the STATUS that offers review.start", kind, reason, contract)
 }

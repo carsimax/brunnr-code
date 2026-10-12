@@ -426,7 +426,7 @@ func testAccountingOnlyRecoveryShape(t *testing.T, tc accountingRecoveryScenario
 			t.Fatalf("conflict refusal names no continuation: %v", err)
 		}
 		words := reviewShellWords(t, command)
-		if len(words) < 3 || words[0] != "gentle-ai" || words[1] != "review" {
+		if len(words) < 3 || words[0] != "brunnr-code" || words[1] != "review" {
 			t.Fatalf("conflict continuation is not a review command: %q", command)
 		}
 		recoverArgs = words[2:]
@@ -1094,7 +1094,7 @@ func TestNativeRecoveryStatusRefusalsAreReadOnlyAndDiagnosticRuns(t *testing.T) 
 			t.Fatalf("invalid refusal envelope: %#v, %v", failure, err)
 		}
 		_, command, named := strings.Cut(failure.Cause, "re-run: ")
-		if !named || command != "gentle-ai review inspect-authority" {
+		if !named || command != "brunnr-code review inspect-authority" {
 			t.Fatalf("refusal lacks read-only diagnostic: %v", err)
 		}
 		if err := RunReview(reviewShellWords(t, command)[2:], io.Discard); err != nil {

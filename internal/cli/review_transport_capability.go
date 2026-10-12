@@ -79,7 +79,7 @@ func reviewTransportSupportedRuntimeIDs() []string {
 }
 
 func reviewTransportRefusalExitGuidance() string {
-	return "; exit receipt-driven review with `gentle-ai review mode disable --scope clone --cwd <repo>`; supported immutable review runtimes: " +
+	return "; exit receipt-driven review with `brunnr-code review mode disable --scope clone --cwd <repo>`; supported immutable review runtimes: " +
 		strings.Join(reviewTransportSupportedRuntimeIDs(), ", ")
 }
 

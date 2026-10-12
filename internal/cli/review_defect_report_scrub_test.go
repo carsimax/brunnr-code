@@ -8,7 +8,7 @@ import "testing"
 // file URLs, emails, and every other environment assignment (#3443).
 func TestReviewScrubDefectReportFieldKeepsPublicIdentifiersAndRedactsTheRest(t *testing.T) {
 	cases := []struct{ name, in, want string }{
-		{"contract id survives", "run gentle-ai review status --contract gentle-ai.review-integration/v2 --agent codex", "run gentle-ai review status --contract gentle-ai.review-integration/v2 --agent codex"},
+		{"contract id survives", "run brunnr-code review status --contract gentle-ai.review-integration/v2 --agent codex", "run brunnr-code review status --contract gentle-ai.review-integration/v2 --agent codex"},
 		{"schema id survives", "schema gentle-ai.review-integration.status/v7 required", "schema gentle-ai.review-integration.status/v7 required"},
 		{"other assignments still redact", "export SOME_RELAY_CONTRACT=gentle-ai.review-relay/v9 and GITHUB_TOKEN=abc", "export <redacted> and <redacted>"},
 		{"absolute path still redacts", "repo at /Users/alan/work/gentle-ai failed", "repo at <redacted> failed"},

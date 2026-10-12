@@ -76,7 +76,7 @@ func TestNegotiatedReviewStartClassifiesStaleManagedAssetsBeforeAuthority(t *tes
 	// #3299, #4170: the failure names the exact candidate-preserving sync
 	// continuation instead of leaving the caller to guess "run sync" from the
 	// cause prose. #4434: the command is anchored to the invoking executable,
-	// so it cannot resolve to a different `gentle-ai` through PATH.
+	// so it cannot resolve to a different `brunnr-code` through PATH.
 	if failure.Continuation == nil || failure.Continuation.Operation != "sync" ||
 		failure.Continuation.Command != managedAssetsTestContinuationCommand(t, "claude-code") || failure.Continuation.Agent != "claude-code" ||
 		len(failure.Continuation.StaleAssets) != 1 || failure.Continuation.StaleAssets[0] != "sha256:stale" {
@@ -238,7 +238,7 @@ func TestManagedAssetsStopTransitionCarriesExactlyOneSignal(t *testing.T) {
 	// caller reading both would not know which one to trust.
 	executeWithContinuation := converged
 	bogusTransition := *converged.NextTransition
-	bogusTransition.Continuation = &ReviewStopContinuation{Operation: "sync", Command: "gentle-ai sync --agent claude-code", Agent: "claude-code"}
+	bogusTransition.Continuation = &ReviewStopContinuation{Operation: "sync", Command: "brunnr-code sync --agent claude-code", Agent: "claude-code"}
 	executeWithContinuation.NextTransition = &bogusTransition
 	if err := executeWithContinuation.Validate(); err == nil {
 		t.Fatal("STATUS accepted a sync continuation attached to an executable START transition")
@@ -246,8 +246,8 @@ func TestManagedAssetsStopTransitionCarriesExactlyOneSignal(t *testing.T) {
 }
 
 // TestManagedAssetsContinuationUsesInvokingExecutable is the RED-first proof
-// for #4434: a STATUS or START refusal produced by one Gentle AI binary must
-// offer a continuation that runs THAT binary, not whatever `gentle-ai` happens
+// for #4434: a STATUS or START refusal produced by one Brunnr-Code binary must
+// offer a continuation that runs THAT binary, not whatever `brunnr-code` happens
 // to resolve to on PATH. The continuation used to hard-code the unqualified
 // executable name while describing itself as the exact runnable recovery, so
 // with a different global binary first on PATH the offered sync wrote that
@@ -289,7 +289,7 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 	// with single quotes (no POSIX shell expands anything inside them, so $ and
 	// backticks survive literally), Windows paths quote with double quotes
 	// (cmd.exe command syntax), a path over the safe bare class stays bare, and
-	// an unresolvable executable keeps the historical bare `gentle-ai` form
+	// an unresolvable executable keeps the historical bare `brunnr-code` form
 	// instead of guessing a path it cannot prove.
 	for name, tc := range map[string]struct {
 		executable func() (string, error)
@@ -297,9 +297,9 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 		want       string
 	}{
 		"windows path with spaces uses double quotes": {
-			executable: func() (string, error) { return `C:\Program Files\gentle-ai\gentle-ai.exe`, nil },
+			executable: func() (string, error) { return `C:\Program Files\gentle-ai\brunnr-code.exe`, nil },
 			goos:       "windows",
-			want:       `"C:\Program Files\gentle-ai\gentle-ai.exe" sync --agent claude-code`,
+			want:       `"C:\Program Files\gentle-ai\brunnr-code.exe" sync --agent claude-code`,
 		},
 		"posix path with shell expansion uses single quotes": {
 			executable: func() (string, error) { return `/opt/$HOME/gentle-ai`, nil },
@@ -319,7 +319,7 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 		"unresolvable executable keeps the bare fallback": {
 			executable: func() (string, error) { return "", errors.New("unresolvable") },
 			goos:       "linux",
-			want:       `gentle-ai sync --agent claude-code`,
+			want:       `brunnr-code sync --agent claude-code`,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -335,7 +335,7 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 			})
 			// Keep these renderer cases focused on os.Executable. A relative
 			// argv[0] remains only the final compatibility fallback.
-			os.Args = append([]string{"gentle-ai"}, os.Args[1:]...)
+			os.Args = append([]string{"brunnr-code"}, os.Args[1:]...)
 			continuation := managedAssetsContinuation("claude-code", []string{"sha256:stale"})
 			if continuation.Command != tc.want {
 				t.Fatalf("continuation command = %q, want %q", continuation.Command, tc.want)
@@ -365,10 +365,10 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 		"posix safe path":                {`/opt/gentle-ai/bin/gentle-ai`, "linux"},
 		"posix path with expansion":      {`/opt/$HOME/gentle-ai`, "linux"},
 		"posix path with apostrophe":     {`/opt/o'brien/gentle-ai`, "linux"},
-		"posix path with backslashes":    {`/opt/we ird\x\gentle-ai`, "linux"},
-		"windows path with spaces":       {`C:\Program Files\gentle-ai\gentle-ai.exe`, "windows"},
-		"quoted UNC path with spaces":    {`\\server\gentle tools\gentle-ai.exe`, "windows"},
-		"quoted UNC path without spaces": {`\\server\share\gentle-ai.exe`, "windows"},
+		"posix path with backslashes":    {`/opt/we ird\x\brunnr-code`, "linux"},
+		"windows path with spaces":       {`C:\Program Files\gentle-ai\brunnr-code.exe`, "windows"},
+		"quoted UNC path with spaces":    {`\\server\gentle tools\brunnr-code.exe`, "windows"},
+		"quoted UNC path without spaces": {`\\server\share\brunnr-code.exe`, "windows"},
 	} {
 		t.Run("round-trip "+name, func(t *testing.T) {
 			previousGOOS := reviewManagedAssetsGOOS
@@ -384,7 +384,7 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 
 	// End to end: a stale-assets STATUS stop produced by THIS (test) binary
 	// names THIS binary's own path in its continuation, so running the exact
-	// advertised command cannot reach a different `gentle-ai` through PATH.
+	// advertised command cannot reach a different `brunnr-code` through PATH.
 	home, repo := reviewEnabledHome(t), initReviewCLIRepo(t)
 	writeReviewStartCandidate(t, repo, "docs/invoking-executable.md", "# Candidate\n", 0o644)
 	staleManagedReviewerAssets(t, home)
@@ -451,7 +451,7 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 }
 
 func TestManagedAssetsContinuationRejectsUnsafeExecutableIdentities(t *testing.T) {
-	absoluteArgvZero := filepath.Join(t.TempDir(), "gentle-ai")
+	absoluteArgvZero := filepath.Join(t.TempDir(), "brunnr-code")
 	for _, test := range []struct {
 		name       string
 		executable string
@@ -475,13 +475,13 @@ func TestManagedAssetsContinuationRejectsUnsafeExecutableIdentities(t *testing.T
 			name:       "multiline argv zero falls through to canonical fallback",
 			resolveErr: errors.New("executable unavailable"),
 			argvZero:   filepath.Join(t.TempDir(), "gentle\rai"),
-			want:       "gentle-ai sync --agent claude-code",
+			want:       "brunnr-code sync --agent claude-code",
 		},
 		{
 			name:       "relative argv zero falls through to canonical fallback",
 			resolveErr: errors.New("executable unavailable"),
-			argvZero:   "gentle-ai",
-			want:       "gentle-ai sync --agent claude-code",
+			argvZero:   "brunnr-code",
+			want:       "brunnr-code sync --agent claude-code",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {

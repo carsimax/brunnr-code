@@ -1,10 +1,10 @@
 # gentle-ai-bench
 
-Measures the **friction** of driving `gentle-ai`'s review lifecycle, so a
+Measures the **friction** of driving `brunnr-code`'s review lifecycle, so a
 "before" binary and an "after" binary can be compared and the change can be
 shown rather than asserted.
 
-Its core corpus is a **black box**. It drives a `gentle-ai` binary given by
+Its core corpus is a **black box**. It drives a `brunnr-code` binary given by
 `--binary` as a subprocess and never instruments the product, so it works
 against any build including old releases. It is **deterministic and offline**:
 no model is ever called. Every journey runs in a fresh temp directory with its
@@ -54,7 +54,7 @@ different populations and the table would be meaningless.
 ### Driven
 
 ```
-gentle-ai-bench run --binary /path/to/gentle-ai --out results-after.json
+gentle-ai-bench run --binary /path/to/brunnr-code --out results-after.json
 gentle-ai-bench run --binary /path/to/old-gentle-ai --out results-before.json
 gentle-ai-bench compare --before results-before.json --after results-after.json
 ```
@@ -78,19 +78,19 @@ a pass or a failure. Both rules are pinned in `main_test.go`.
 ### Observed
 
 ```
-gentle-ai-bench record --binary $(which gentle-ai) --out session.jsonl
+gentle-ai-bench record --binary $(which brunnr-code) --out session.jsonl
 # follow the printed PATH line, then run your agent through the testing guide
 gentle-ai-bench analyze --session session.jsonl --out results-observed.json
 ```
 
 A ready-to-paste prompt for the agent — which starts and closes the recording
 itself — lives in [`AGENT-PROMPT.md`](AGENT-PROMPT.md). It carries one rule
-worth repeating here: **the agent must not read gentle-ai's source.** An agent
+worth repeating here: **the agent must not read brunnr-code's source.** An agent
 that has read the implementation recovers using knowledge a real user does not
 have, so the run comes out clean for the wrong reason. The whole point is
 measuring whether the tool explains itself.
 
-`record` writes a directory containing an executable named `gentle-ai` and
+`record` writes a directory containing an executable named `brunnr-code` and
 prints the one line that puts it first on `PATH`. The shim logs every
 invocation and delegates to the real binary, preserving argv, stdin, stdout,
 stderr and the exit code. Because it intercepts at the process boundary, it
@@ -98,7 +98,7 @@ works with any agent or harness.
 
 **Shim fidelity rule.** A stream that is a character device (a terminal, and
 also `/dev/null`) is passed through untouched instead of being teed. Replacing
-it with a pipe would flip `gentle-ai`'s own interactivity check — it decides
+it with a pipe would flip `brunnr-code`'s own interactivity check — it decides
 whether to ask the consent question by testing whether stdin *and* stderr are
 character devices — and a benchmark that changes the thing it measures is
 worthless. The cost is that such invocations are recorded with
@@ -109,7 +109,7 @@ depend on them become `null` rather than a guess.
 
 | # | Dimension | What it counts | How |
 |---|---|---|---|
-| 1 | `human_prompts` | Times the flow would stop to ask a human | Runs non-TTY. `gentle-ai` prints a consent-skipped notice on **stderr** when it would have asked; the benchmark counts occurrences of that exact string. |
+| 1 | `human_prompts` | Times the flow would stop to ask a human | Runs non-TTY. `brunnr-code` prints a consent-skipped notice on **stderr** when it would have asked; the benchmark counts occurrences of that exact string. |
 | 2 | `manual_tokens` | Steps needing a hand-assembled authorization | Invocations whose argv carries a non-empty `--maintainer-authorization`. Both `--flag value` and `--flag=value`. |
 | 3 | `commands_to_completion` | Binary invocations from start to terminal state | Every product invocation the journey issues. Benchmark instrumentation (capability probes) is **not** counted. |
 | 4 | `blocks` | Every non-zero exit or denial, in five buckets | See the classifier below. |
@@ -142,7 +142,7 @@ counts: the flow cannot proceed.
 **Which class?** In this order:
 
 1. The flow continued with no extra command → `self_recovered`.
-2. The emitted text (stdout or stderr) contains a runnable `gentle-ai <verb> …`
+2. The emitted text (stdout or stderr) contains a runnable `brunnr-code <verb> …`
    command → `in_band`.
 3. The stdout JSON envelope carries a `next_action`, `recovery_operation`, or
    `collect.capture_operation` (and its execute-shaped sibling
@@ -156,7 +156,7 @@ counts: the flow cannot proceed.
 
 Two precise sub-rules:
 
-- **"Runnable" excludes templates.** `gentle-ai review validate --gate <gate>`
+- **"Runnable" excludes templates.** `brunnr-code review validate --gate <gate>`
   is not runnable — the user still has to fill it in — so it does not make a
   block in-band on its own. A line offering both a templated command and a
   clean one counts as in-band on the strength of the clean one.
@@ -173,7 +173,7 @@ a mechanically detected continuation always overrides either one.
   over. The current corpus declares none, so `dead_end` is 0 everywhere — an
   honest 0, not a measured absence of dead ends in the product as a whole.
 - `by_design` (`Step.ByDesign`) says there **is** a next action, the product
-  already stated it, and it is not expressible as a `gentle-ai` command.
+  already stated it, and it is not expressible as a `brunnr-code` command.
 
 They are opposite answers to "is there anything to do next?", so a step
 declaring both is contradicting itself and the run refuses to start.
@@ -406,7 +406,7 @@ invents a metric is worse than one that admits a gap.
 ## Measured: the current build
 
 `results-after.json` in this directory is a real run of the whole corpus
-against `gentle-ai 1.49.1-0.20260726001603-c2b91ac966ca+dirty`, built from
+against `brunnr-code 1.49.1-0.20260726001603-c2b91ac966ca+dirty`, built from
 this repository at commit `c2b91ac9`. All 14 journeys
 completed; nothing was unsupported. Re-running produces byte-identical numbers,
 `git_subprocesses` included.
@@ -454,7 +454,7 @@ Lifecycle journeys still explicitly enable it rather than depending on that defa
 `validateCorpus` fails the whole run on a journey that does not declare one.
 
 - `reviewOptedIn` — before the journey's first step, the runner enables review as
-  a user does: `gentle-ai review mode enable --scope global`, run from a
+  a user does: `brunnr-code review mode enable --scope global`, run from a
   throwaway checkout of its own, then read back. The journey fails if the
   product does not report the switch on. It is sandbox setup, not operator work,
   so it is never counted in `commands_to_completion`. Global is the only scope
@@ -802,5 +802,5 @@ axis_real_world.go  ONE axis, deletable: cluttered repositories and
 record.go      the recording shim and session log
 analyze.go     observed-mode metrics, same classifier
 report.go      plain-text tables and the comparison JSON
-testdata/      recorded real gentle-ai output, used by the classifier tests
+testdata/      recorded real brunnr-code output, used by the classifier tests
 ```

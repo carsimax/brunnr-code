@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// Observation is everything the benchmark can see about ONE gentle-ai
+// Observation is everything the benchmark can see about ONE brunnr-code
 // invocation, from either the driven runner or a recorded agent session.
 // It is deliberately the process boundary and nothing more: the classifier
 // must work against any build of the product, including old releases.
@@ -201,12 +201,12 @@ func byDesignOutcome(o Observation, class string) *ByDesignOutcome {
 }
 
 // productName is the literal a suggested command must begin with.
-const productName = "gentle-ai"
+const productName = "brunnr-code"
 
 // commandStart matches the product name where a command could begin: at the
 // start of a line, or after whitespace or an opening quote/bracket, and
 // followed by a delimiter rather than more word characters.
-var commandStart = regexp.MustCompile("(?:^|[\\s'\"`(\\[])gentle-ai(?:[\\s'\"`)\\]]|$)")
+var commandStart = regexp.MustCompile("(?:^|[\\s'\"`(\\[])brunnr-code(?:[\\s'\"`)\\]]|$)")
 
 // placeholderRun matches an unfilled template argument such as <gate>.
 // A command the user still has to fill in is not runnable, so it does not
@@ -232,7 +232,7 @@ var nonContinuationValues = map[string]bool{
 }
 
 // HasRunnableCommand reports whether the emitted text names a literal,
-// immediately runnable gentle-ai command: the product name, at least one
+// immediately runnable brunnr-code command: the product name, at least one
 // argument after it, and no unfilled <placeholder>.
 //
 // Each occurrence of the product name opens a candidate command that ends at
@@ -388,7 +388,7 @@ func collectDeadExecuteTransitions(node any, dead *[]string) {
 // continuation: it names an operation AND carries a command the reader can run
 // as printed. The command is held to the same standard as prose that suggests
 // one, through the same HasRunnableCommand, so an envelope cannot be in-band on
-// a template like `gentle-ai review validate --gate <gate>` that the identical
+// a template like `brunnr-code review validate --gate <gate>` that the identical
 // text in a message would be refused for.
 func executeIsRunnable(execute map[string]any) bool {
 	operation, named := execute["operation"].(string)
@@ -458,7 +458,7 @@ func IsBlock(o Observation) bool {
 	return false
 }
 
-// unsupportedPatterns are the shapes a gentle-ai build emits when the CLI
+// unsupportedPatterns are the shapes a brunnr-code build emits when the CLI
 // surface a step needs does not exist in that build. Matching on output rather
 // than on the exit code alone is deliberate: exit codes for "I do not have
 // that flag" are not guaranteed to differ from ordinary state failures, and
@@ -495,7 +495,7 @@ func IsUnsupported(o Observation) bool {
 // Order:
 //  1. not a block            -> NotABlock
 //  2. flow continued anyway  -> self_recovered
-//  3. text names a runnable `gentle-ai <verb> ...`  -> in_band
+//  3. text names a runnable `brunnr-code <verb> ...`  -> in_band
 //  4. envelope names an operation                   -> in_band
 //  5. corpus declares by-design AND the quoted next
 //     action is verified in the emitted bytes       -> by_design
@@ -514,7 +514,7 @@ func IsUnsupported(o Observation) bool {
 //     the reader nothing further because there is nothing further. It is the
 //     worst outcome in this benchmark and it is still counted as one.
 //   - by_design says there IS a next action, the product already stated it, and
-//     it simply is not expressible as a `gentle-ai` command — because it needs
+//     it simply is not expressible as a `brunnr-code` command — because it needs
 //     a value only the operator has, because it is an act in the world, or
 //     because it is a human decision the whole gate exists to require.
 //
@@ -564,7 +564,7 @@ func hasManualAuthorization(args []string) bool {
 	return false
 }
 
-// consentNotices are the exact stderr strings gentle-ai emits when it would
+// consentNotices are the exact stderr strings brunnr-code emits when it would
 // have asked the human but had no terminal to ask on. Counting them is how a
 // non-TTY run measures "times the flow would stop to ask a human".
 var consentNotices = []string{

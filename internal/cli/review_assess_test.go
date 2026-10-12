@@ -153,7 +153,7 @@ func assertReviewAssessNextTransition(t *testing.T, transition *ReviewAssessment
 		}
 		tokens = append(tokens, reviewTransitionShellWord(argument.Token))
 	}
-	if want := "gentle-ai " + strings.Join(tokens, " "); transition.Command != want {
+	if want := "brunnr-code " + strings.Join(tokens, " "); transition.Command != want {
 		t.Fatalf("next_transition command = %q, want %q", transition.Command, want)
 	}
 	byName := map[string]string{}
@@ -219,7 +219,7 @@ func TestReviewAssessCommittedOnlyBaseDiffMatchesStart(t *testing.T) {
 
 // TestReviewAssessUnbuildableCandidateNamesResolution proves an unbuildable
 // candidate (an unresolvable --base-ref) fails closed with a message naming a
-// literal `gentle-ai review assess ...` resolution, per the refusal ratchet
+// literal `brunnr-code review assess ...` resolution, per the refusal ratchet
 // and issue #4295's fail-closed requirement. Hosts that cannot resolve the
 // named continuation are documented to treat this exactly like a "high"
 // result.
@@ -231,8 +231,8 @@ func TestReviewAssessUnbuildableCandidateNamesResolution(t *testing.T) {
 	if err == nil {
 		t.Fatalf("review assess with an unresolvable --base-ref unexpectedly succeeded: %s", output.String())
 	}
-	if !strings.Contains(err.Error(), "gentle-ai review assess") {
-		t.Fatalf("unbuildable review assess error does not name a gentle-ai review assess resolution: %v", err)
+	if !strings.Contains(err.Error(), "brunnr-code review assess") {
+		t.Fatalf("unbuildable review assess error does not name a brunnr-code review assess resolution: %v", err)
 	}
 }
 
@@ -287,7 +287,7 @@ func TestReviewAssessHumanReadableOutputOmitsJSON(t *testing.T) {
 
 // TestReviewAssessHumanReadableOutputNamesDueTransition proves the
 // human-readable line for a review_due=true candidate also prints the exact
-// runnable `gentle-ai review status ...` continuation, so an orchestrator
+// runnable `brunnr-code review status ...` continuation, so an orchestrator
 // reading plain text (not --json) still gets the literal command rather than
 // having to re-derive it from the ODD prose rule.
 func TestReviewAssessHumanReadableOutputNamesDueTransition(t *testing.T) {
@@ -299,7 +299,7 @@ func TestReviewAssessHumanReadableOutputNamesDueTransition(t *testing.T) {
 		t.Fatalf("review assess: %v\n%s", err, output.String())
 	}
 	rendered := output.String()
-	wantLine := fmt.Sprintf("review due: yes (high_risk) -> gentle-ai review status %s --contract=%s --next-transition=true", reviewTransitionShellWord("--cwd="+repo), ReviewIntegrationContractV2)
+	wantLine := fmt.Sprintf("review due: yes (high_risk) -> brunnr-code review status %s --contract=%s --next-transition=true", reviewTransitionShellWord("--cwd="+repo), ReviewIntegrationContractV2)
 	if !strings.Contains(rendered, wantLine) {
 		t.Fatalf("human-readable review assess output = %q, want it to contain %q", rendered, wantLine)
 	}

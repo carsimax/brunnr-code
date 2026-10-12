@@ -1,8 +1,8 @@
 // Package organicruntime_test proves the journeys a configured agent actually
-// performs once Gentle AI stopped owning implementation: the agent implements
-// organically, and Gentle AI's authority begins only after a candidate exists.
+// performs once Brunnr-Code stopped owning implementation: the agent implements
+// organically, and Brunnr-Code's authority begins only after a candidate exists.
 //
-// Every assertion here is driven through the real gentle-ai binary and the real
+// Every assertion here is driven through the real brunnr-code binary and the real
 // `review` command surface against real Git repositories and a real bare remote.
 // There is no runtime fixture, no TLS control plane, and no bearer session: the
 // retired control plane cannot be proven, only the shipped product can.
@@ -182,7 +182,7 @@ func runOrganicActor(role string) int {
 func assertOrganicDelegatedWorkerStaysInRoute(repo string) error {
 	binary := os.Getenv(organicActorBinaryEnvironment)
 	if binary == "" {
-		return errors.New("delegated actor has no gentle-ai binary to observe authority with")
+		return errors.New("delegated actor has no brunnr-code binary to observe authority with")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), organicLocalTimeout)
 	defer cancel()
@@ -1162,7 +1162,7 @@ var organicRoutingGuidanceRequiredFragments = []string{
 // switch. Only RDD-capable runtimes (Claude Code, Codex) receive
 // it; every other runtime is ODD-only and must not.
 var organicRoutingGuidanceRDDFragments = []string{
-	"gentle-ai review mode enable|disable|status",
+	"brunnr-code review mode enable|disable|status",
 	"disabled/unmanaged",
 }
 
@@ -1835,7 +1835,7 @@ func (harness *organicHarness) gentle(arguments ...string) []byte {
 	harness.t.Helper()
 	stdout, stderr, err := runOrganicCommand(harness.t, organicBinary, harness.repo.worktree, harness.environment(), arguments...)
 	if err != nil {
-		harness.t.Fatalf("gentle-ai %v: %v\nstdout:\n%s\nstderr:\n%s", arguments, err, stdout, stderr)
+		harness.t.Fatalf("brunnr-code %v: %v\nstdout:\n%s\nstderr:\n%s", arguments, err, stdout, stderr)
 	}
 	return []byte(stdout)
 }
@@ -2129,7 +2129,7 @@ func (harness *organicHarness) corroborateRefuter(lineage string) string {
 	}
 	stdout, stderr, err := runOrganicCommand(harness.t, organicBinary, harness.repo.worktree, environment, binding...)
 	if err != nil {
-		harness.t.Fatalf("gentle-ai %v: %v\nstdout:\n%s\nstderr:\n%s", binding, err, stdout, stderr)
+		harness.t.Fatalf("brunnr-code %v: %v\nstdout:\n%s\nstderr:\n%s", binding, err, stdout, stderr)
 	}
 	return stdout
 }
@@ -2258,15 +2258,15 @@ func (harness *organicHarness) enableReview() organicModeResult {
 }
 
 // organicNamedContinuation returns the argument tokens of the first
-// `gentle-ai ...` command a product message names, read exactly as an operator
+// `brunnr-code ...` command a product message names, read exactly as an operator
 // would: to the end of the line, stopping at the first `<placeholder>` whose
 // value the operator supplies.
 func organicNamedContinuation(t *testing.T, message string) []string {
 	t.Helper()
-	const product = "gentle-ai "
+	const product = "brunnr-code "
 	index := strings.Index(message, product)
 	if index < 0 {
-		t.Fatalf("message names no runnable gentle-ai command: %q", message)
+		t.Fatalf("message names no runnable brunnr-code command: %q", message)
 	}
 	tail := message[index+len(product):]
 	if cut := strings.IndexAny(tail, "\n"); cut >= 0 {
@@ -2281,19 +2281,19 @@ func organicNamedContinuation(t *testing.T, message string) []string {
 		tokens = append(tokens, token)
 	}
 	if len(tokens) == 0 {
-		t.Fatalf("message names no runnable gentle-ai command: %q", message)
+		t.Fatalf("message names no runnable brunnr-code command: %q", message)
 	}
 	return tokens
 }
 
-// runNamedReviewStart dispatches a `gentle-ai review start ...` continuation
+// runNamedReviewStart dispatches a `brunnr-code review start ...` continuation
 // read out of a product message, with the working directory already at the
 // repository so the invocation runs exactly as printed. extra carries only an
 // operator-supplied placeholder value the message asked for.
 func (harness *organicHarness) runNamedReviewStart(tokens []string, extra ...string) organicStartResult {
 	harness.t.Helper()
 	if len(tokens) < 2 || tokens[0] != "review" || tokens[1] != "start" {
-		harness.t.Fatalf("named continuation is %v, want gentle-ai review start", tokens)
+		harness.t.Fatalf("named continuation is %v, want brunnr-code review start", tokens)
 	}
 	payload := harness.gentle(append(append([]string{}, tokens...), extra...)...)
 	var started organicStartResult
@@ -2855,7 +2855,7 @@ func buildOrganicBinary(workspace string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	name := "gentle-ai"
+	name := "brunnr-code"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
@@ -2866,11 +2866,11 @@ func buildOrganicBinary(workspace string) (string, error) {
 	command.Dir = moduleRoot
 	command.Env = os.Environ()
 	if output, err := command.CombinedOutput(); err != nil {
-		return "", fmt.Errorf("build the gentle-ai test binary: %w\n%s", err, output)
+		return "", fmt.Errorf("build the brunnr-code test binary: %w\n%s", err, output)
 	}
 	info, err := os.Stat(path)
 	if err != nil || !info.Mode().IsRegular() {
-		return "", fmt.Errorf("built gentle-ai binary %q is unusable: %v", path, err)
+		return "", fmt.Errorf("built brunnr-code binary %q is unusable: %v", path, err)
 	}
 	return path, nil
 }

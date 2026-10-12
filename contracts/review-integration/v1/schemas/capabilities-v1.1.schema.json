@@ -225,7 +225,7 @@
       "additionalProperties": false,
       "required": ["command", "target_selector_variants", "required_feature", "unsupported_outcome", "parent_only"],
       "properties": {
-        "command": {"const": "gentle-ai review status --cwd <repo> --contract gentle-ai.review-integration/v1 --next-transition"},
+        "command": {"const": "brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v1 --next-transition"},
         "target_selector_variants": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"$ref": "#/$defs/target_selector"}},
         "required_feature": {"const": "native_next_transition"},
         "unsupported_outcome": {"const": "unsupported-capability"},

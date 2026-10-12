@@ -75,7 +75,7 @@ type reviewStopHookReminderRecord struct {
 	LastSeenTargetIdentity string `json:"last_seen_target_identity,omitempty"`
 }
 
-// RunReviewStopHook is the `gentle-ai review stop-hook` entry point. Claude
+// RunReviewStopHook is the `brunnr-code review stop-hook` entry point. Claude
 // Code runs it as both a SessionStart and a Stop hook. On SessionStart it
 // records the repository's current unreviewed-candidate identity (if any) as
 // this session's baseline, with zero output. On Stop it prints one reminder,
@@ -292,7 +292,7 @@ func reviewStopHookResolveTargetIdentity(ctx context.Context, repo, runtimeAgent
 // (carrying --consent=relay), the lossless-relay instruction for any consent
 // envelope that START returns, and the once-per-candidate scope of this hook.
 func reviewStopHookReasonText(targetIdentity, root, runtimeAgent, startCommand string) string {
-	statusCommand := fmt.Sprintf("gentle-ai review status --cwd %s --contract %s --agent %s --next-transition", root, ReviewIntegrationContractV2, runtimeAgent)
+	statusCommand := fmt.Sprintf("brunnr-code review status --cwd %s --contract %s --agent %s --next-transition", root, ReviewIntegrationContractV2, runtimeAgent)
 	return strings.Join([]string{
 		"Receipt-driven development is enabled for this repository, and it holds an unreviewed candidate (target_identity " + targetIdentity + ").",
 		"By the review contract entry rule, you must run the selectorless STATUS preflight below and route only from its returned next_transition before reporting completion; never infer a command from prose or a stale reply.",

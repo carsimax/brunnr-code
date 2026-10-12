@@ -20,9 +20,9 @@ type hookWriter struct {
 
 func hookWriters() []hookWriter {
 	return []hookWriter{
-		{"claude retained hooks", model.AgentClaudeCode, "gentle-ai review stop-hook --agent claude-code", InstallRetainedClaudeHooks},
-		{"claude skill registry", model.AgentClaudeCode, "gentle-ai skill-registry refresh", InstallSkillRegistry},
-		{"codex skill registry", model.AgentCodex, "gentle-ai skill-registry refresh", InstallSkillRegistry},
+		{"claude retained hooks", model.AgentClaudeCode, "brunnr-code review stop-hook --agent claude-code", InstallRetainedClaudeHooks},
+		{"claude skill registry", model.AgentClaudeCode, "brunnr-code skill-registry refresh", InstallSkillRegistry},
+		{"codex skill registry", model.AgentCodex, "brunnr-code skill-registry refresh", InstallSkillRegistry},
 	}
 }
 

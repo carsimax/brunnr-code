@@ -50,11 +50,11 @@ func parseReviewStartEscalation(args []string, item, reason string) (*reviewtran
 	escalation, fault := reviewEscalationFromFlags(args, item, reason)
 	switch fault {
 	case reviewEscalationUnpaired:
-		return nil, errors.New("review start --escalate-item and --escalate-reason must be passed together; rerun `gentle-ai review start --escalate-item <1-6> --escalate-reason <text>`")
+		return nil, errors.New("review start --escalate-item and --escalate-reason must be passed together; rerun `brunnr-code review start --escalate-item <1-6> --escalate-reason <text>`")
 	case reviewEscalationBadItem:
-		return nil, fmt.Errorf("review start --escalate-item %q must be an integer from 1 to 6 naming a high-risk item; rerun `gentle-ai review start --escalate-item <1-6> --escalate-reason <text>`", item)
+		return nil, fmt.Errorf("review start --escalate-item %q must be an integer from 1 to 6 naming a high-risk item; rerun `brunnr-code review start --escalate-item <1-6> --escalate-reason <text>`", item)
 	case reviewEscalationBadReason:
-		return nil, fmt.Errorf("review start --escalate-reason must be non-empty and at most %d characters; rerun `gentle-ai review start --escalate-item <1-6> --escalate-reason <text>` with a one-line reason", reviewtransaction.AgentEscalationReasonMax)
+		return nil, fmt.Errorf("review start --escalate-reason must be non-empty and at most %d characters; rerun `brunnr-code review start --escalate-item <1-6> --escalate-reason <text>` with a one-line reason", reviewtransaction.AgentEscalationReasonMax)
 	}
 	return escalation, nil
 }
@@ -92,7 +92,7 @@ type reviewLensSelection struct {
 	Reason string
 }
 
-const reviewLensSelectionRerun = "rerun `gentle-ai review start --lenses <risk,resilience,readability,reliability> --lenses-reason <text>`"
+const reviewLensSelectionRerun = "rerun `brunnr-code review start --lenses <risk,resilience,readability,reliability> --lenses-reason <text>`"
 
 // parseReviewStartLensSelection validates the optional --lenses and
 // --lenses-reason pair: both or neither, known lens names without repeats, a

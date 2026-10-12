@@ -20,10 +20,10 @@ import (
 var retiredWorkflowReference = regexp.MustCompile(`(?i)sdd|openspec`)
 
 // TestRenderedGuidanceHasNoRetiredWorkflowReferences is a ratchet over what
-// Gentle AI writes into each runtime: guidance and orchestrator blocks, strict
+// Brunnr-Code writes into each runtime: guidance and orchestrator blocks, strict
 // TDD, personas and output styles, Engram protocol, CodeGraph guidance, and
 // native review/Judgment Day agents. Every scan starts from an empty home, so
-// any match was rendered by Gentle AI itself. There is no allowlist: retirement
+// any match was rendered by Brunnr-Code itself. There is no allowlist: retirement
 // inventories live in Go cleanup code and are never rendered.
 func TestRenderedGuidanceHasNoRetiredWorkflowReferences(t *testing.T) {
 	engram.SetLookPathForTest(t, "/usr/local/bin/engram", "")

@@ -17,7 +17,7 @@ func issue3065Journeys() []Journey {
 		ID:     "j115-recovery-selector-is-collected-before-authorization",
 		Review: reviewOptedIn,
 		Title:  "Default workspace-overlay recovery collects an unrepresentable selector before authorization",
-		Source: "https://github.com/Gentleman-Programming/gentle-ai/issues/3065",
+		Source: "https://github.com/carsimax/brunnr-code/issues/3065",
 		Steps: []Step{
 			{Name: "fixture: linked worktree and remote", Fixture: linkedWorktreeWithRemote},
 			{Name: "fixture: commit base-diff predecessor candidate", Fixture: prepareIssue3065CurrentChangeCandidate},

@@ -99,7 +99,7 @@ func (capture reviewProviderCapture) continuation() string {
 // reviewProviderCaptureContinuation names the exact STATUS re-query every
 // capture role points a caller at once its bound slot is reoffered.
 func reviewProviderCaptureContinuation(runtime model.AgentID, lineageID string) string {
-	return fmt.Sprintf("gentle-ai review status --cwd <repo> --contract %s --agent %s --lineage %s --next-transition", ReviewIntegrationContractV2, runtime, lineageID)
+	return fmt.Sprintf("brunnr-code review status --cwd <repo> --contract %s --agent %s --lineage %s --next-transition", ReviewIntegrationContractV2, runtime, lineageID)
 }
 
 // reviewProviderCaptureRefusedError wraps the final refusal after both

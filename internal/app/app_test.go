@@ -404,7 +404,7 @@ func TestRunArgsReviewSubcommandHelpExitsSuccessfully(t *testing.T) {
 			if err := RunArgs([]string{command, "--help"}, &output); err != nil {
 				t.Fatalf("RunArgs(%s --help) error = %v", command, err)
 			}
-			if !strings.Contains(output.String(), "Usage: gentle-ai "+command+" [flags]") {
+			if !strings.Contains(output.String(), "Usage: brunnr-code "+command+" [flags]") {
 				t.Fatalf("RunArgs(%s --help) output:\n%s", command, output.String())
 			}
 		})
@@ -443,7 +443,7 @@ func TestRunArgsDispatchesReviewModeBeforePlatformValidation(t *testing.T) {
 	if err := RunArgs([]string{"review", "mode", "--help"}, &output); err != nil {
 		t.Fatalf("RunArgs(review mode --help) error = %v", err)
 	}
-	if !strings.Contains(output.String(), "gentle-ai review mode <enable|disable|status>") {
+	if !strings.Contains(output.String(), "brunnr-code review mode <enable|disable|status>") {
 		t.Fatalf("review mode help missing:\n%s", output.String())
 	}
 

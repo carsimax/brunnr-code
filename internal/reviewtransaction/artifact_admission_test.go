@@ -174,7 +174,7 @@ func TestAdmitArtifactIgnoresFreeTextInspectionClaims(t *testing.T) {
 		}
 		if !strings.Contains(admission.Diagnostic, "could not be "+"inspected") ||
 			!strings.Contains(admission.Diagnostic, "inspection.status: \"unavailable\"") ||
-			!strings.Contains(admission.Diagnostic, "gentle-ai review capture-result") {
+			!strings.Contains(admission.Diagnostic, "brunnr-code review capture-result") {
 			t.Fatalf("backstop diagnostic = %q", admission.Diagnostic)
 		}
 	})
@@ -523,8 +523,8 @@ func TestAdmitArtifactRefusesToDowngradeOnDegradedEvidenceDerivation(t *testing.
 	if !strings.Contains(admission.Diagnostic, request.EvidenceDerivationReason) {
 		t.Fatalf("admission.Diagnostic = %q, want the evidence-derivation reason named", admission.Diagnostic)
 	}
-	if !strings.Contains(admission.Diagnostic, "gentle-ai review capture-result") {
-		t.Fatalf("admission.Diagnostic = %q, want a gentle-ai capture-result continuation named", admission.Diagnostic)
+	if !strings.Contains(admission.Diagnostic, "brunnr-code review capture-result") {
+		t.Fatalf("admission.Diagnostic = %q, want a brunnr-code capture-result continuation named", admission.Diagnostic)
 	}
 	var admissionErr *ArtifactAdmissionError
 	if !errors.As(err, &admissionErr) || admissionErr.Diagnostic == nil ||

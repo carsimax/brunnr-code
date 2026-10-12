@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Local cross-lane integration battery. NOT wired into CI on purpose:
 # the optional --with-model lane spends real reviewer model runs on the
-# development subscription, and every lane drives a real gentle-ai binary
+# development subscription, and every lane drives a real brunnr-code binary
 # end to end against live scratch repositories.
 #
 # Usage:
-#   scripts/cross-lane-battery.sh --binary /path/to/gentle-ai [--with-model] [--with-host] [--keep-work]
+#   scripts/cross-lane-battery.sh --binary /path/to/brunnr-code [--with-model] [--with-host] [--keep-work]
 #
 # Deterministic lanes (always run):
 #   claude    - one low-risk full lifecycle to gate allow, plus one medium

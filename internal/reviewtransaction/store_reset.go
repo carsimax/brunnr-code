@@ -34,7 +34,7 @@ import (
 //
 // The kill switch is not lineage state. It lives in two places, and one of them
 // (review-transactions/rar-authority/v1/rdd-mode) is *inside* the authority
-// tree, still written for gentle-ai builds installed before #2882 that read
+// tree, still written for brunnr-code builds installed before #2882 that read
 // only that location. A reset that removed review-transactions/ wholesale would
 // switch reviews back on for a user who had turned them off, which is the worst
 // thing this command could possibly do.
@@ -45,7 +45,7 @@ import (
 //
 // A fourth rule follows from the third. The safety this command advertises --
 // the exclusive maintenance lease and the in-flight refusal -- only covers the
-// state gentle-ai itself writes, so only categories it writes are removable.
+// state brunnr-code itself writes, so only categories it writes are removable.
 
 // StoreResetReportSchema identifies the clone-scoped review store reset
 // projection.
@@ -146,7 +146,7 @@ var storeResetRemovableTargets = []storeResetTarget{
 
 // storeResetPreservedTargets is the complete exclusion list. Two of these are
 // the kill switch, two are state another component owns, and one is a path no
-// gentle-ai code has ever written -- which is itself the reason.
+// brunnr-code code has ever written -- which is itself the reason.
 var storeResetPreservedTargets = []storeResetTarget{
 	{
 		name: "review-mode", parts: []string{"review-mode"},
@@ -166,7 +166,7 @@ var storeResetPreservedTargets = []storeResetTarget{
 	},
 	{
 		name: "review-artifacts", parts: []string{"review-artifacts"},
-		reason: "no gentle-ai code writes or reads this path, so its contents were placed by hand; a reset never removes what the product did not create",
+		reason: "no brunnr-code code writes or reads this path, so its contents were placed by hand; a reset never removes what the product did not create",
 	},
 	{
 		name: "REVIEW-MAINTENANCE.lock", parts: []string{"REVIEW-MAINTENANCE.lock"},
@@ -268,7 +268,7 @@ func (err *StoreResetInFlightError) Error() string {
 		names = append(names, fmt.Sprintf("%s (%s)", lineage.LineageID, lineage.State))
 	}
 	return fmt.Sprintf(
-		"review store reset refused: %d review(s) have not reached a terminal state: %s; finish or abandon them, or run `gentle-ai review store-reset --cwd %s --confirm --include-in-flight` to remove them anyway",
+		"review store reset refused: %d review(s) have not reached a terminal state: %s; finish or abandon them, or run `brunnr-code review store-reset --cwd %s --confirm --include-in-flight` to remove them anyway",
 		len(err.Lineages), strings.Join(names, ", "), err.Repository,
 	)
 }

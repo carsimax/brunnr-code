@@ -124,7 +124,7 @@ func TestReviewStartValidatesLensSelection(t *testing.T) {
 			// Parsed before the repository is resolved, so nothing is written.
 			var output bytes.Buffer
 			err := RunReview(append([]string{"start", "--cwd", t.TempDir()}, tt.args...), &output)
-			if err == nil || !strings.Contains(err.Error(), tt.want) || !strings.Contains(err.Error(), "gentle-ai review start") {
+			if err == nil || !strings.Contains(err.Error(), tt.want) || !strings.Contains(err.Error(), "brunnr-code review start") {
 				t.Fatalf("START selection error = %v, want %q and a rerun command", err, tt.want)
 			}
 		})
@@ -221,7 +221,7 @@ func TestReviewStatusPreflightCarriesLensSelectionIntoStart(t *testing.T) {
 		t.Fatalf("STATUS accepted an unpaired selection:\n%s", payload)
 	} else if failure := decodeReviewIntegrationFailure(t, payload); failure.Code != "invalid_request" ||
 		!strings.Contains(failure.Cause, "review status --lenses and --lenses-reason must be passed together") ||
-		!strings.Contains(failure.Cause, "gentle-ai review status --contract") {
+		!strings.Contains(failure.Cause, "brunnr-code review status --contract") {
 		t.Fatalf("unpaired STATUS selection refusal = %#v", failure)
 	}
 	status, payload, err := runStartPreflightStatus(t, ReviewIntegrationContractV2, repo,

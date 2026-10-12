@@ -135,7 +135,7 @@ func TestOrchestratorModuleBaseline(t *testing.T) {
 				if got := strings.Count(rendered, contract); got != 1 {
 					t.Fatalf("rendered %s carries its review contract %d times, want 1", input.id, got)
 				}
-				if !strings.Contains(rendered, "#### Gentle AI Provider Defect Handoff (MANDATORY)") {
+				if !strings.Contains(rendered, "#### Brunnr-Code Provider Defect Handoff (MANDATORY)") {
 					t.Fatalf("rendered %s lost the provider defect handoff", input.id)
 				}
 				variant.ContractBytes, variant.ContractSHA256 = len(contract), sha256Hex(contract)

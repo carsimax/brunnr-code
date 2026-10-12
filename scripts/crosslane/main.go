@@ -1,6 +1,6 @@
 // Command crosslane is the local cross-lane integration battery.
 //
-// It drives one real gentle-ai binary (--binary) end to end across the
+// It drives one real brunnr-code binary (--binary) end to end across the
 // integration boundaries where host runtimes meet the Go facade:
 //
 //   - claude lane: one low-risk lifecycle ending in exact acknowledgement then authority burn and five
@@ -35,10 +35,10 @@ func main() {
 
 // run holds the battery body so deferred cleanup (work-root removal or the
 // --keep-work banner) always executes before the process exits nonzero.
-var semverVersionLine = regexp.MustCompile(`(?m)^gentle-ai\s+\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\s*$`)
+var semverVersionLine = regexp.MustCompile(`(?m)^brunnr-code\s+\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\s*$`)
 
 func run() int {
-	binary := flag.String("binary", "", "path to the gentle-ai binary under test (required)")
+	binary := flag.String("binary", "", "path to the brunnr-code binary under test (required)")
 	withModel := flag.Bool("with-model", false, "reserved; live Claude model proof remains intentionally disabled")
 	withHost := flag.Bool("with-host", false, "spawn REAL host applications (codex exec) end to end (uses the dev subscription)")
 	keepWork := flag.Bool("keep-work", false, "keep the scratch working directory for inspection")
@@ -57,7 +57,7 @@ func run() int {
 		return 2
 	}
 	// Lanes compare the reported --version against a semver (a plain
-	// `go build` reports "gentle-ai dev"), which would otherwise surface as a
+	// `go build` reports "brunnr-code dev"), which would otherwise surface as a
 	// misleading "binary unavailable" lane failure.
 	if output, versionErr := exec.Command(resolved, "--version").Output(); versionErr != nil || !semverVersionLine.Match(output) {
 		fmt.Fprintf(os.Stderr, "crosslane: binary %q must report a semver version (got %q); build it with -ldflags \"-X main.version=$(git describe --tags --abbrev=0 | sed s/^v//)-dev\"\n", *binary, strings.TrimSpace(string(output)))

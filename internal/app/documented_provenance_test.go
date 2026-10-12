@@ -113,7 +113,7 @@ func TestRenderedSurfaceNamesOnlyItsOwnRuntime(t *testing.T) {
 		}
 
 		if raw := len(rawAgentBindingRegexp.FindAllString(string(content), -1)); raw != found {
-			t.Errorf("golden:%s carries %d --agent bindings but only %d sit inside extractable gentle-ai invocations; the difference is invisible to this rule and must be moved into a documented invocation or removed", name, raw, found)
+			t.Errorf("golden:%s carries %d --agent bindings but only %d sit inside extractable brunnr-code invocations; the difference is invisible to this rule and must be moved into a documented invocation or removed", name, raw, found)
 		}
 	}
 

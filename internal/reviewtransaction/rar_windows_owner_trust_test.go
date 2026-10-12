@@ -233,7 +233,7 @@ func TestRARWindowsRepairOwnerRefusesEveryPrincipalOutsideTheToken(t *testing.T)
 	}
 }
 
-// ownerOnlyDirectory is exactly what gentle-ai writes for an owner-only RAR
+// ownerOnlyDirectory is exactly what brunnr-code writes for an owner-only RAR
 // directory, as it reads back from Windows: protected DACL, this process's
 // principal as owner, one inheritable access-allowed entry granting that same
 // principal FILE_ALL_ACCESS.
@@ -274,7 +274,7 @@ func TestRARWindowsOwnerOnlyMismatch(t *testing.T) {
 		names     string
 	}{
 		{
-			name:      "the descriptor gentle-ai writes for a directory",
+			name:      "the descriptor brunnr-code writes for a directory",
 			observed:  ownerOnlyDirectory(),
 			principal: ownerTrustTokenUser,
 			directory: true,
@@ -290,7 +290,7 @@ func TestRARWindowsOwnerOnlyMismatch(t *testing.T) {
 			accept:    true,
 		},
 		{
-			name: "the descriptor gentle-ai writes for a file",
+			name: "the descriptor brunnr-code writes for a file",
 			observed: withOwnerOnlyDirectory(func(observed *rarWindowsOwnerOnlyDescriptor) {
 				observed.ACEs[0].Flags = 0
 			}),

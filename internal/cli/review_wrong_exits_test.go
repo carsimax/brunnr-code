@@ -81,7 +81,7 @@ func TestNegotiatedStatusOverlayWithoutBaseRefIsInvalidRequestWithCause(t *testi
 		t.Fatalf("overlay-without-base STATUS failure = %#v, want invalid_request/correct_request", failure)
 	}
 	if !strings.Contains(failure.Cause, "--workspace-overlay") || !strings.Contains(failure.Cause, "--base-ref") ||
-		!strings.Contains(failure.Cause, "gentle-ai review status") {
+		!strings.Contains(failure.Cause, "brunnr-code review status") {
 		t.Fatalf("overlay-without-base cause = %q, want the exact flag combination and the runnable STATUS continuation", failure.Cause)
 	}
 }
@@ -122,7 +122,7 @@ func TestNegotiatedStatusWithUnknownLineageFailsClosedFromForeignRepository(t *t
 	}
 	failure := decodeReviewIntegrationFailure(t, foreignOutput.Bytes())
 	if failure.Operation != "review.status" || failure.Code != reviewIntegrationInvalidRequestCode || failure.NextAction != "correct_request" ||
-		!strings.Contains(failure.Cause, started.LineageID) || !strings.Contains(failure.Cause, "gentle-ai review status --cwd") {
+		!strings.Contains(failure.Cause, started.LineageID) || !strings.Contains(failure.Cause, "brunnr-code review status --cwd") {
 		t.Fatalf("foreign-cwd continuation failure = %#v, want invalid_request naming the lineage and the --cwd continuation", failure)
 	}
 	var preflight *reviewIntegrationPreflightError

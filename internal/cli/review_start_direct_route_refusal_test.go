@@ -37,7 +37,7 @@ func TestReviewFacadeStartDirectRouteRefusesUncompletableReview(t *testing.T) {
 	if err == nil {
 		t.Fatalf("direct route start with lenses required succeeded = %s, want an up-front refusal", output.String())
 	}
-	if !strings.Contains(err.Error(), "gentle-ai review start --contract") {
+	if !strings.Contains(err.Error(), "brunnr-code review start --contract") {
 		t.Fatalf("refusal error = %v, want it to name the exact negotiated review start continuation", err)
 	}
 	if !strings.Contains(err.Error(), "--base-ref") || !strings.Contains(err.Error(), "--committed-only") {

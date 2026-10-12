@@ -57,7 +57,7 @@ func TestReviewNarrationRegistryCoversEveryStopReasonCode(t *testing.T) {
 
 // TestReviewNarrationNeverClaimsNothingMoreToDo is the RED-first proof that
 // the four stop reason codes review_narration.go used to tell a human "there
-// is nothing more to do from here" are wrong: `gentle-ai review mode
+// is nothing more to do from here" are wrong: `brunnr-code review mode
 // disable` is always available (dispatched ahead of the review facade
 // specifically to stay reachable while review authority is broken --
 // internal/app/app.go's `case "review":` arm; zero required flags; proven
@@ -70,7 +70,7 @@ func TestReviewNarrationNeverClaimsNothingMoreToDo(t *testing.T) {
 	for code, statement := range reviewStopReasonNarration {
 		lowered := strings.ToLower(statement)
 		if strings.Contains(lowered, bannedClaim) {
-			t.Errorf("stop reason %q narration still claims %q, which is false: `gentle-ai review mode disable` is always reachable: %q", code, bannedClaim, statement)
+			t.Errorf("stop reason %q narration still claims %q, which is false: `brunnr-code review mode disable` is always reachable: %q", code, bannedClaim, statement)
 		}
 	}
 }
@@ -80,20 +80,20 @@ func TestReviewNarrationNeverClaimsNothingMoreToDo(t *testing.T) {
 // (TestEveryReviewStopReasonCodeHasAShippedContinuation in
 // review_next_transition_docs_test.go) and of TestCompactBlockedNamesExitForEveryReachableReason
 // in internal/sddstatus: every registered Tier C stop statement must either
-// name a real `gentle-ai` command / `--flag` of its own, or fall back to the
-// universal self-service exit `gentle-ai review mode disable`
+// name a real `brunnr-code` command / `--flag` of its own, or fall back to the
+// universal self-service exit `brunnr-code review mode disable`
 // (blocking-budget rule 2: every blocking gate offers a documented
 // self-service exit that requires no source-code archaeology). A statement
 // naming neither is a dead end on the one human-facing surface stop reason
 // codes render to.
 func TestReviewNarrationNamesAUniversalOrBetterExit(t *testing.T) {
-	namesOtherContinuation := regexp.MustCompile("`gentle-ai [a-z][a-z-]*|`--[a-z][a-z-]*")
+	namesOtherContinuation := regexp.MustCompile("`brunnr-code [a-z][a-z-]*|`--[a-z][a-z-]*")
 	for code, statement := range reviewStopReasonNarration {
 		if strings.Contains(statement, reviewConsentOffPathCommand) {
 			continue
 		}
 		if !namesOtherContinuation.MatchString(statement) {
-			t.Errorf("stop reason %q narration names no runnable `gentle-ai` command, no `--flag`, and no %q fallback, so this stop reads as a dead end: %q", code, reviewConsentOffPathCommand, statement)
+			t.Errorf("stop reason %q narration names no runnable `brunnr-code` command, no `--flag`, and no %q fallback, so this stop reads as a dead end: %q", code, reviewConsentOffPathCommand, statement)
 		}
 	}
 }
@@ -102,13 +102,13 @@ func TestReviewNarrationNamesAUniversalOrBetterExit(t *testing.T) {
 // execution-based RED-first proof for adversarial finding F6, applied to all
 // nine narration entries: `--scope` defaults to `global`
 // (review_mode.go's own flag default), so any narration naming the bare
-// `gentle-ai review mode disable` would let an orchestrator silently
+// `brunnr-code review mode disable` would let an orchestrator silently
 // disable receipt-driven development for every repository on the machine.
 // Verified by execution: the bare form writes ~/.gentle-ai/state.json;
 // `--scope clone --cwd <repo>` writes only under that repository's own
 // .git/gentle-ai directory.
 func TestReviewNarrationReviewModeDisableIsAlwaysCloneScoped(t *testing.T) {
-	re := regexp.MustCompile("`gentle-ai review mode disable[^`]*`")
+	re := regexp.MustCompile("`brunnr-code review mode disable[^`]*`")
 	found := 0
 	for code, statement := range reviewStopReasonNarration {
 		for _, invocation := range re.FindAllString(statement, -1) {
@@ -119,20 +119,20 @@ func TestReviewNarrationReviewModeDisableIsAlwaysCloneScoped(t *testing.T) {
 		}
 	}
 	if found == 0 {
-		t.Fatal("found no `gentle-ai review mode disable` invocations in reviewStopReasonNarration; the extraction is stale")
+		t.Fatal("found no `brunnr-code review mode disable` invocations in reviewStopReasonNarration; the extraction is stale")
 	}
 }
 
 // TestReviewNarrationNamedCommandsAreAlwaysComplete is the execution-based
 // RED-first proof for adversarial findings F1 and F7 applied to
-// review_narration.go: `gentle-ai review status --next-transition` alone is
+// review_narration.go: `brunnr-code review status --next-transition` alone is
 // refused by this real CLI without `--contract gentle-ai.review-integration/v2
-// --agent claude-code`, and `gentle-ai review reopen-results` is refused
+// --agent claude-code`, and `brunnr-code review reopen-results` is refused
 // without --cwd/--lineage/--expected-revision/--target/--reason/--actor
 // (both verified by execution against a fresh binary).
 func TestReviewNarrationNamedCommandsAreAlwaysComplete(t *testing.T) {
-	statusRe := regexp.MustCompile("`gentle-ai review status[^`]*--next-transition`")
-	reopenRe := regexp.MustCompile("`gentle-ai review reopen-results[^`]*`")
+	statusRe := regexp.MustCompile("`brunnr-code review status[^`]*--next-transition`")
+	reopenRe := regexp.MustCompile("`brunnr-code review reopen-results[^`]*`")
 	for code, statement := range reviewStopReasonNarration {
 		for _, invocation := range statusRe.FindAllString(statement, -1) {
 			// --agent must be BOUND, not fixed. Narration is read by every

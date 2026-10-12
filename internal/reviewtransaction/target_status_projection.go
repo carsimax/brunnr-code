@@ -132,11 +132,11 @@ func loadCompactTargetStatusCandidates(ctx context.Context, repo, lineageID stri
 		if carrier, cause := compactAuthorityBlockingCause(records, violations, lineageID); cause != nil {
 			if carrier == lineageID {
 				return nil, fmt.Errorf(
-					"compact authority lineage %q cannot govern: %w. Every other lineage is unaffected; see this entry's own diagnosis and sanctioned exits with `gentle-ai review inspect-authority`",
+					"compact authority lineage %q cannot govern: %w. Every other lineage is unaffected; see this entry's own diagnosis and sanctioned exits with `brunnr-code review inspect-authority`",
 					lineageID, cause)
 			}
 			return nil, fmt.Errorf(
-				"compact authority lineage %q cannot govern because the entry %q it recovers from carries: %w. Every lineage that does not recover through %q is unaffected; see that entry's own diagnosis and sanctioned exits with `gentle-ai review inspect-authority`",
+				"compact authority lineage %q cannot govern because the entry %q it recovers from carries: %w. Every lineage that does not recover through %q is unaffected; see that entry's own diagnosis and sanctioned exits with `brunnr-code review inspect-authority`",
 				lineageID, carrier, cause, carrier)
 		}
 		if priorSchema[lineageID] {

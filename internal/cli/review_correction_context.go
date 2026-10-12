@@ -138,8 +138,8 @@ func reviewCorrectionContextBudgetAction(eligibility reviewtransaction.CompactAb
 			reviewModeDisableCloneCommand + "` " + reviewModeDisableCloneCaveat + " to deliver under ordinary repository policy instead."
 	}
 	return reviewCorrectionContextBudgetPreamble + fmt.Sprintf(
-		" Review authority DOES exist for this work, so it has to be released rather than left in place: run `gentle-ai review abandon --cwd %q --lineage %q --expected-revision %q --reason operator_disposition --actor <you> --maintainer-authorization <binding>`"+
-			" (run `gentle-ai review abandon` with no flags to print the exact binding template and where every value is read; the frozen candidate it binds is %q)."+
+		" Review authority DOES exist for this work, so it has to be released rather than left in place: run `brunnr-code review abandon --cwd %q --lineage %q --expected-revision %q --reason operator_disposition --actor <you> --maintainer-authorization <binding>`"+
+			" (run `brunnr-code review abandon` with no flags to print the exact binding template and where every value is read; the frozen candidate it binds is %q)."+
 			" Then review this change as smaller candidates, or run `%s` %s to deliver under ordinary repository policy instead.",
 		repo, lineage, eligibility.Revision, eligibility.SnapshotIdentity,
 		reviewModeDisableCloneCommand, reviewModeDisableCloneCaveat)
@@ -156,7 +156,7 @@ const reviewCorrectionContextBudgetPreamble = "This candidate's correction evide
 // caller has to recover it from prose.
 //
 // It exists because the Pi facade contract may not name a raw
-// `gentle-ai review ` route at all (validPiFacadeLifecycle), so the shipped Pi
+// `brunnr-code review ` route at all (validPiFacadeLifecycle), so the shipped Pi
 // ledger row's "the release command the stop's `continuation` names" is the
 // only channel through which that route can reach a Pi maintainer.
 //

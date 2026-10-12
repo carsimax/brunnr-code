@@ -37,7 +37,7 @@ func startStatusContinuationExecution(t *testing.T, started ReviewIntegrationSta
 		}
 		tokens = append(tokens, argument.Token)
 	}
-	if execution.Command != "gentle-ai review status "+strings.Join(tokens, " ") {
+	if execution.Command != "brunnr-code review status "+strings.Join(tokens, " ") {
 		t.Fatalf("START continuation command %q does not execute exactly its arguments %v", execution.Command, tokens)
 	}
 	for index, name := range []string{"contract", "next-transition", "lineage", "repository-context"} {

@@ -142,7 +142,7 @@ func classifyCompactRecoveryEdgeAnomalies(predecessor, successor CompactRecord) 
 // read-only prediction (InspectCompactPristineAbandonment) accepted the
 // lineage may render this, so the command printed is the command that runs.
 func compactAbandonCommandText(repo, lineage string, eligibility CompactAbandonEligibility) string {
-	return fmt.Sprintf("`gentle-ai review abandon --cwd %s --lineage %q --expected-revision %q --reason %q --actor \"<actor>\" --maintainer-authorization \"<maintainer-authorization>\"`;"+
+	return fmt.Sprintf("`brunnr-code review abandon --cwd %s --lineage %q --expected-revision %q --reason %q --actor \"<actor>\" --maintainer-authorization \"<maintainer-authorization>\"`;"+
 		" the abandonment moves the entry into the audited quarantine and rewrites nothing, so the recorded authorization bytes survive exactly as persisted."+
 		" --maintainer-authorization is exactly these nine lines, joined by LF, with no trailing newline, using the same --actor:\n%s",
 		pathquote.Quote(repo), lineage, eligibility.Revision, CompactAbandonReasonOperatorDisposition,

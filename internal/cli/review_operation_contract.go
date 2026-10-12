@@ -186,7 +186,7 @@ type ReviewIntegrationFailure struct {
 	Context *ReviewIntegrationFailureContext `json:"context,omitempty"`
 	// Continuation is the one candidate-preserving runnable follow-up a
 	// managed_assets_outdated refusal can offer (#3299, #4170): the exact
-	// `gentle-ai sync` invocation that reconciles the recorded digest. It is
+	// `brunnr-code sync` invocation that reconciles the recorded digest. It is
 	// additive and, on THIS envelope, only ever set for that one refusal code;
 	// the release continuation the type also carries travels on a STATUS stop,
 	// never here.
@@ -200,7 +200,7 @@ type ReviewIntegrationFailure struct {
 // correction_context_budget_exceeded stop requires. Command is the runnable
 // command line, bound to the same runtime agent the blocked operation was
 // asked for. When this process can identify its executable, the token is
-// anchored to that binary (#4434). The final bare `gentle-ai` compatibility
+// anchored to that binary (#4434). The final bare `brunnr-code` compatibility
 // fallback is not an exact executable identity and may resolve through PATH.
 // StaleAssets carries the stale recorded digest when it is known. Detail is
 // set only where the command is a preparatory step rather than the whole
@@ -216,7 +216,7 @@ type ReviewStopContinuation struct {
 // managedAssetsContinuationCommandPattern is the executable-identity half of
 // the published managed_assets_continuation `command` contract (failure.schema
 // .json carries the same regex). The executable token is either the bare
-// `gentle-ai` fallback, an unquoted path, or one of the two shell quoting forms
+// `brunnr-code` fallback, an unquoted path, or one of the two shell quoting forms
 // the renderer picks per platform -- POSIX single quotes (the only form no
 // POSIX shell expands) or Windows double quotes (cmd.exe command syntax) --
 // followed by `sync` and an optional `--agent <id>`. Keeping the JSON schema
@@ -271,7 +271,7 @@ func managedAssetsExecutableToken(path string) string {
 // managedAssetsContinuationExecutable resolves the executable identity the
 // continuation is anchored to. os.Executable is authoritative when it returns
 // a safe single-line path; an absolute argv[0] is the bounded fallback for
-// hosts where that lookup fails. The final bare `gentle-ai` fallback retains legacy
+// hosts where that lookup fails. The final bare `brunnr-code` fallback retains legacy
 // recovery behavior but is intentionally not presented as an exact identity.
 func managedAssetsContinuationExecutable() string {
 	if path, err := reviewManagedAssetsExecutablePath(); err == nil && managedAssetsExecutableIdentity(path) {
@@ -280,7 +280,7 @@ func managedAssetsContinuationExecutable() string {
 	if len(os.Args) > 0 && managedAssetsArgvZeroIdentity(os.Args[0]) {
 		return managedAssetsExecutableToken(os.Args[0])
 	}
-	return "gentle-ai"
+	return "brunnr-code"
 }
 
 // managedAssetsExecutableIdentity accepts os.Executable's resolved identity
@@ -927,7 +927,7 @@ func newReviewIntegrationFailure(operation string, args []string, runErr error) 
 		// #3497: a Git dubious-ownership refusal (a UNC share, for example)
 		// is a distinct, typed, path-free condition -- reviewGitOwnershipRefusal
 		// already exists to name it -- and no review action can repair it, since
-		// gentle-ai never provisions safe.directory. Before this branch, only
+		// brunnr-code never provisions safe.directory. Before this branch, only
 		// resolveOpaqueReviewRepositoryRoot consulted that classifier, so every
 		// other route through this generic mapper (including negotiated
 		// review.status) reported the same refusal as the content-free
@@ -1085,7 +1085,7 @@ func newReviewIntegrationFailure(operation string, args []string, runErr error) 
 			// that re-derives this discovery and returns the exact
 			// transition, which for a candidate nothing governs is the
 			// review.start the message names.
-			failure.Message = "No approved review receipt covers this candidate; review it with gentle-ai review start."
+			failure.Message = "No approved review receipt covers this candidate; review it with brunnr-code review start."
 			failure.NextAction = "review.status"
 		case ReviewReceiptScopeChanged:
 			if discovery.Context != nil {
@@ -1523,7 +1523,7 @@ func (failure ReviewIntegrationFailure) Validate() error {
 
 // validManagedAssetsContinuationCommand reports whether one rendered
 // continuation command satisfies the published managed_assets_continuation
-// pattern: the bare `gentle-ai` fallback or an invoking-executable path --
+// pattern: the bare `brunnr-code` fallback or an invoking-executable path --
 // quoted when it contains whitespace -- followed by `sync` and an optional
 // `--agent <id>` (#4434).
 func validManagedAssetsContinuationCommand(command string) bool {

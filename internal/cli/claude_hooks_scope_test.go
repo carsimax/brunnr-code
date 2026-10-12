@@ -53,7 +53,7 @@ func TestInstallClaudeHooksRollbackWithoutPersona(t *testing.T) {
 					}
 					plan := priorPlan(rt)
 					plan.Apply = append(plan.Apply, claudeHooksRollbackFailureStep{run: func() error {
-						observed = strings.Count(readTextFile(t, settings), "gentle-ai review stop-hook --agent claude-code") == 2
+						observed = strings.Count(readTextFile(t, settings), "brunnr-code review stop-hook --agent claude-code") == 2
 						return failure
 					}})
 					return plan
@@ -136,7 +136,7 @@ func TestInstallClaudeHooksRespectScope(t *testing.T) {
 			for event, entries := range settings.Hooks {
 				for _, entry := range entries {
 					for _, hook := range entry.Hooks {
-						if strings.HasPrefix(hook.Command, "gentle-ai ") || strings.Contains(hook.Command, "gentle-ai skill-registry refresh") {
+						if strings.HasPrefix(hook.Command, "brunnr-code ") || strings.Contains(hook.Command, "brunnr-code skill-registry refresh") {
 							got[event]++
 						}
 						if hook.Command == "echo personal" {

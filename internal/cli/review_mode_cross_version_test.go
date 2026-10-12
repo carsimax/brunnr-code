@@ -11,8 +11,8 @@ import (
 // TestCloneScopeDisableReportsHowFarItReached is #3284 at the surface the
 // operator reads.
 //
-// The clone-scope switch is machine state: a modern gentle-ai publishes it
-// under the relocated switch root, and every gentle-ai installed before that
+// The clone-scope switch is machine state: a modern brunnr-code publishes it
+// under the relocated switch root, and every brunnr-code installed before that
 // relocation reads its own location. The disable used to report plain success
 // either way, so an operator who had turned reviews off kept being blocked by
 // another build on the same machine with nothing in the output to explain it.
@@ -63,7 +63,7 @@ func TestCloneScopeDisableSaysWhenItReachedOnlyThisBuild(t *testing.T) {
 		t.Fatalf("repeated clone-scoped disable failed: %v", err)
 	}
 	if !strings.Contains(output.String(), "note:") ||
-		!strings.Contains(output.String(), "applied for this gentle-ai only") {
+		!strings.Contains(output.String(), "applied for this brunnr-code only") {
 		t.Fatalf("the human-readable disable claimed a machine-wide switch it did not publish:\n%s", output.String())
 	}
 }

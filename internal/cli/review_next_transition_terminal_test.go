@@ -282,7 +282,7 @@ func grantedDerivedRangeStart(t *testing.T, repo string, offered ReviewTargetSta
 			continue
 		}
 		fields := strings.Fields(choice.Invocation)
-		if len(fields) < 3 || fields[0] != "gentle-ai" || fields[1] != "review" {
+		if len(fields) < 3 || fields[0] != "brunnr-code" || fields[1] != "review" {
 			t.Fatalf("granted invocation = %q", choice.Invocation)
 		}
 		output.Reset()

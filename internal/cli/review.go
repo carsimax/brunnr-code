@@ -54,7 +54,7 @@ func newReviewFlagSet(name string, stdout io.Writer, details string) *flag.FlagS
 	flags := flag.NewFlagSet(name, flag.ContinueOnError)
 	flags.SetOutput(stdout)
 	flags.Usage = func() {
-		_, _ = fmt.Fprintf(stdout, "Usage: gentle-ai %s [flags]\n\n%s\n\nFlags:\n", name, details)
+		_, _ = fmt.Fprintf(stdout, "Usage: brunnr-code %s [flags]\n\n%s\n\nFlags:\n", name, details)
 		flags.VisitAll(func(current *flag.Flag) {
 			placeholder := " <value>"
 			if boolean, ok := current.Value.(interface{ IsBoolFlag() bool }); ok && boolean.IsBoolFlag() {
@@ -274,7 +274,7 @@ func (err ReviewGateDeniedError) Error() string {
 	// the operator supplied. When the gate froze both sides of the comparison,
 	// the terminal states both. No command is named because none is derivable
 	// here -- what unblocks this is rebuilding the publication on the reviewed
-	// base, and that is a fact about the repository, not a gentle-ai
+	// base, and that is a fact about the repository, not a brunnr-code
 	// invocation.
 	if mismatch := err.Context.BaseMismatch; mismatch != nil && strings.TrimSpace(err.Reason) != "" {
 		return fmt.Sprintf("%s: %s: the reviewed base is %s, but this target was derived from %s",
@@ -351,7 +351,7 @@ func reviewRunnableCommand(operation string) string {
 	if !dotted {
 		return trimmed
 	}
-	return "gentle-ai review " + strings.ReplaceAll(verb, "_", "-")
+	return "brunnr-code review " + strings.ReplaceAll(verb, "_", "-")
 }
 
 func (err ReviewGateDeniedError) Unwrap() error { return err.Cause }
@@ -390,7 +390,7 @@ func reviewDiscoveryDenialContinuation(denial *reviewtransaction.GateDenial) str
 	}
 	switch ReviewReceiptDiscoveryKind(denial.Code) {
 	case ReviewReceiptMissing, ReviewReceiptUnrelated:
-		return "no terminal review receipt governs this candidate; review it with gentle-ai review start"
+		return "no terminal review receipt governs this candidate; review it with brunnr-code review start"
 	}
 	return ""
 }
@@ -427,7 +427,7 @@ func (values *repeatedString) Set(value string) error {
 }
 
 func RunReviewStart(args []string, stdout io.Writer) error {
-	flags := newReviewFlagSet("review-start", stdout, "Read-only legacy v1 compatibility command. New authority is created with gentle-ai review start.")
+	flags := newReviewFlagSet("review-start", stdout, "Read-only legacy v1 compatibility command. New authority is created with brunnr-code review start.")
 	cwd := flags.String("cwd", "", "repository root")
 	_ = flags.String("kind", string(reviewtransaction.TargetCurrentChanges), "legacy target kind")
 	_ = flags.String("base-ref", "", "legacy base revision")
@@ -454,7 +454,7 @@ func RunReviewStart(args []string, stdout io.Writer) error {
 	if strings.TrimSpace(*cwd) == "" || strings.TrimSpace(*lineage) == "" || strings.TrimSpace(*policyFile) == "" {
 		return errors.New("review-start requires --cwd, --lineage, and --policy-file")
 	}
-	return fmt.Errorf("%w: review-start cannot create v1 authority; use gentle-ai review start", reviewtransaction.NewLegacyReadOnlyError("review/start", *lineage))
+	return fmt.Errorf("%w: review-start cannot create v1 authority; use brunnr-code review start", reviewtransaction.NewLegacyReadOnlyError("review/start", *lineage))
 }
 
 func RunReviewResume(args []string, stdout io.Writer) error {

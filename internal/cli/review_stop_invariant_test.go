@@ -90,7 +90,7 @@ var reviewStopInvariantClassification = map[string]reviewStopDisposition{
 	},
 	"managed_assets_outdated": {
 		Terminal:      false,
-		Justification: "caller-continuable: the stop's own `continuation` field names the exact `gentle-ai sync` command that reconciles the recorded managed-asset digest; re-querying STATUS afterward offers the same candidate's START again — a concrete, flag-driven continuation (#3299, #4170), not a maintainer-only action",
+		Justification: "caller-continuable: the stop's own `continuation` field names the exact `brunnr-code sync` command that reconciles the recorded managed-asset digest; re-querying STATUS afterward offers the same candidate's START again — a concrete, flag-driven continuation (#3299, #4170), not a maintainer-only action",
 	},
 	"corrupted_or_unverifiable_authority": {
 		Terminal:      true,
@@ -133,11 +133,11 @@ var reviewStopInvariantClassification = map[string]reviewStopDisposition{
 	},
 	"unachievable_lens_slot": {
 		Terminal:      false,
-		Justification: "caller-continuable: a host reported that a selected reviewer slot cannot be completed under current conditions (issue #3442); if that report was a mistaken transient failure, `gentle-ai review capture-unachievable` with the same binding and `--withdraw=true` retracts it on the SAME lineage and STATUS re-offers the slot -- a concrete, flag-driven continuation, not a maintainer-only action. Only a genuinely deterministic failure has no in-lineage exit, and that case is resolved by starting a new review, exactly like every other stop whose row also names a fresh-candidate exit without being reclassified for it",
+		Justification: "caller-continuable: a host reported that a selected reviewer slot cannot be completed under current conditions (issue #3442); if that report was a mistaken transient failure, `brunnr-code review capture-unachievable` with the same binding and `--withdraw=true` retracts it on the SAME lineage and STATUS re-offers the slot -- a concrete, flag-driven continuation, not a maintainer-only action. Only a genuinely deterministic failure has no in-lineage exit, and that case is resolved by starting a new review, exactly like every other stop whose row also names a fresh-candidate exit without being reclassified for it",
 	},
 	"rdd_disabled": {
 		Terminal:      false,
-		Justification: "caller-continuable: receipt-driven development is disabled; run `gentle-ai review mode enable` to turn it back on, then re-run the exact `review status --next-transition --contract <contract> <selector-args>` command that produced this stop — a concrete, flag-driven continuation; the same typed error the start gate already names",
+		Justification: "caller-continuable: receipt-driven development is disabled; run `brunnr-code review mode enable` to turn it back on, then re-run the exact `review status --next-transition --contract <contract> <selector-args>` command that produced this stop — a concrete, flag-driven continuation; the same typed error the start gate already names",
 	},
 }
 

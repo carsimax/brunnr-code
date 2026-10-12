@@ -822,7 +822,7 @@ func (builder SnapshotBuilder) IntendedUntrackedInventory(ctx context.Context) (
 // intendedUntrackedInventoryCommand is the runnable STATUS that publishes the
 // canonical untracked inventory; the bare `--next-transition` form is refused
 // without a negotiated contract and runtime identity (issue #2895).
-const intendedUntrackedInventoryCommand = "gentle-ai review status --cwd <repo> --contract gentle-ai.review-integration/v2 --agent <runtime> --next-transition"
+const intendedUntrackedInventoryCommand = "brunnr-code review status --cwd <repo> --contract gentle-ai.review-integration/v2 --agent <runtime> --next-transition"
 
 // StillUntracked keeps the entries of a frozen intended-untracked declaration
 // that the index does not carry yet (issue #3759). A declared path committed
@@ -1833,7 +1833,7 @@ func (err *GitCommandError) Unwrap() error { return err.Cause }
 
 var ErrGitOutputLimit = errors.New("git output exceeded deterministic byte limit")
 
-// refusal:by-design world-action: unexpected Git diagnostics require repairing the repository or its environment; no Gentle AI command can safely infer that repair.
+// refusal:by-design world-action: unexpected Git diagnostics require repairing the repository or its environment; no Brunnr-Code command can safely infer that repair.
 var ErrGitInventoryDiagnostics = errors.New("git inventory produced diagnostics")
 
 // GitInventoryDiagnosticsError reports unexpected diagnostics from a Git

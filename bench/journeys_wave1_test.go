@@ -9,14 +9,14 @@ import (
 )
 
 func TestWaveReviewInvocationArgs(t *testing.T) {
-	got, err := waveReviewInvocationArgs("gentle-ai review start --contract=gentle-ai.review-integration/v2 --consent=relay")
+	got, err := waveReviewInvocationArgs("brunnr-code review start --contract=gentle-ai.review-integration/v2 --consent=relay")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if joined := strings.Join(got, "\x00"); joined != "review\x00start\x00--contract=gentle-ai.review-integration/v2\x00--consent=relay" {
 		t.Fatalf("review invocation args = %q", joined)
 	}
-	for _, invalid := range []string{"", "other review start", "gentle-ai status"} {
+	for _, invalid := range []string{"", "other review start", "brunnr-code status"} {
 		if _, err := waveReviewInvocationArgs(invalid); err == nil {
 			t.Fatalf("accepted invalid review invocation %q", invalid)
 		}

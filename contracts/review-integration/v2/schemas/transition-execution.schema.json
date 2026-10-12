@@ -44,7 +44,7 @@
       "required": ["operation", "arguments", "preconditions", "binding"],
       "properties": {
         "operation": {"enum": ["review.start", "review.status", "review.recover", "review.repair", "review.validate"]},
-        "command": {"type": "string", "minLength": 1, "pattern": "^gentle-ai review [a-z][a-z-]*"},
+        "command": {"type": "string", "minLength": 1, "pattern": "^brunnr-code review [a-z][a-z-]*"},
         "arguments": {"type": "array", "items": {"$ref": "#/$defs/executable_transition_argument"}},
         "selector_arguments": {"type": "array", "items": {"$ref": "#/$defs/transition_argument"}},
         "preconditions": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/transition_argument"}},
@@ -62,7 +62,7 @@
       "required": ["operation", "command", "arguments", "preconditions", "binding"],
       "properties": {
         "operation": {"const": "review.status"},
-        "command": {"type": "string", "pattern": "^gentle-ai review status(?: |$)"},
+        "command": {"type": "string", "pattern": "^brunnr-code review status(?: |$)"},
         "arguments": {
           "type": "array",
           "minItems": 4,
@@ -104,7 +104,7 @@
       "required": ["operation", "command", "arguments", "selector_arguments", "preconditions", "binding"],
       "properties": {
         "operation": {"const": "review.status"},
-        "command": {"type": "string", "pattern": "^gentle-ai review status(?: |$)"},
+        "command": {"type": "string", "pattern": "^brunnr-code review status(?: |$)"},
         "arguments": {
           "type": "array",
           "minItems": 5,
@@ -153,7 +153,7 @@
       "required": ["operation", "command", "arguments", "preconditions", "binding"],
       "properties": {
         "operation": {"const": "review.acknowledge-approved"},
-        "command": {"type": "string", "pattern": "^gentle-ai review acknowledge-approved"},
+        "command": {"type": "string", "pattern": "^brunnr-code review acknowledge-approved"},
         "arguments": {
           "type": "array",
           "minItems": 5,

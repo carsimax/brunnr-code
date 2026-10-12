@@ -71,7 +71,7 @@ type RoutingOptions struct {
 // managed section placed ahead of routing (see RenderOrchestrator); a v3.7.0
 // sdd-orchestrator block is converted in place so exactly one remains.
 //
-// Only the marked sections are owned by Gentle AI: everything a user wrote
+// Only the marked sections are owned by Brunnr-Code: everything a user wrote
 // around them is preserved verbatim, and a second identical injection is a no-op.
 func InjectRoutingWithOptions(targetDir string, agent model.AgentID, options RoutingOptions) (Result, error) {
 	// Render before resolving the delivery so an unsupported agent is rejected

@@ -43,7 +43,7 @@ func InstallRetainedClaudeHooks(homeDir string, adapter agents.Adapter) (Result,
 	if !ok {
 		hooks = map[string]any{}
 	}
-	command := fmt.Sprintf("gentle-ai review stop-hook --agent %s", adapter.Agent())
+	command := fmt.Sprintf("brunnr-code review stop-hook --agent %s", adapter.Agent())
 	entries := []struct {
 		key, matcher, command string
 		timeout               int

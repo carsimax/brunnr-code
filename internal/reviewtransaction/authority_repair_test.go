@@ -271,7 +271,7 @@ func TestAssessAuthorityRepairStopsLockedAndTruncatedInventory(t *testing.T) {
 			t.Fatal(err)
 		}
 		// authorityRepairMaxLineages+1 = 257 entries: past the 256-lineage
-		// cap from issue #3371 ("gentle-ai review repair --preflight is
+		// cap from issue #3371 ("brunnr-code review repair --preflight is
 		// blind past 256 lineages").
 		for index := 0; index <= authorityRepairMaxLineages; index++ {
 			path := filepath.Join(versionRoot, fmt.Sprintf("unexpected-%03d.json", index))

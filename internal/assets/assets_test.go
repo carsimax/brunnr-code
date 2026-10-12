@@ -110,7 +110,7 @@ func TestClaudeODDOnlyOrchestrator(t *testing.T) {
 		"{{GENTLE_AI_ODD_SECTION:Organic Driven Development Is The Default Workflow (MANDATORY)}}",
 		"{{GENTLE_AI_ODD_SECTION:Language Domain Contract}}",
 		"{{GENTLE_AI_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}",
-		"Lossless Blocking Prompts", "Gentle AI Provider Defect Handoff",
+		"Lossless Blocking Prompts", "Brunnr-Code Provider Defect Handoff",
 		"Native Checking Contract", "Review Execution Contract", "Mandatory Delegation Triggers",
 	} {
 		if !strings.Contains(content, required) {
@@ -145,7 +145,7 @@ func TestPrimaryODDOnlyOrchestrator(t *testing.T) {
 			for _, required := range []string{
 				"{{GENTLE_AI_ODD_SECTION:Organic Driven Development Is The Default Workflow (MANDATORY)}}",
 				"{{GENTLE_AI_ODD_SECTION:Delegated Verification Gate (MANDATORY)}}",
-				"Lossless Blocking Prompts", "Gentle AI Provider Defect Handoff",
+				"Lossless Blocking Prompts", "Brunnr-Code Provider Defect Handoff",
 				"Mandatory Delegation Triggers", "Native Checking Contract", "Review Execution Contract",
 			} {
 				if !strings.Contains(content, required) {

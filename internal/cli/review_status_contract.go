@@ -828,7 +828,7 @@ func (result ReviewTargetStatusResult) validateFrozenManifestBinding() error {
 
 func (result ReviewTargetStatusResult) validateIntendedUntrackedSelectionTransition() error {
 	if result.NextTransition.Collect == nil || len(result.NextTransition.Collect.Inputs) != 1 {
-		return errors.New("fresh target lacks an intended-untracked selection transition; rerun `gentle-ai review status --next-transition`")
+		return errors.New("fresh target lacks an intended-untracked selection transition; rerun `brunnr-code review status --next-transition`")
 	}
 	input := result.NextTransition.Collect.Inputs[0]
 	// The submission rule is stated on submission validity, not on an
@@ -843,11 +843,11 @@ func (result ReviewTargetStatusResult) validateIntendedUntrackedSelectionTransit
 	if input.Name != "intended_untracked_selection" || input.Schema != reviewIntendedUntrackedSelectionSchema ||
 		input.CaptureOperation != "external.select_intended_untracked" || len(input.Arguments) != 6 ||
 		submissionInvalidWhenPresent || v5ForbidsSubmission || v6RequiresSubmission {
-		return errors.New("fresh target lacks an intended-untracked selection transition; rerun `gentle-ai review status --next-transition`")
+		return errors.New("fresh target lacks an intended-untracked selection transition; rerun `brunnr-code review status --next-transition`")
 	}
 	if !reflect.DeepEqual(input.Arguments[:4], reviewTargetArguments(result)) || input.Arguments[4].Name != "eligible_paths_json" ||
 		input.Arguments[5].Name != "expected_untracked_inventory" || input.Arguments[5].Value == "" {
-		return errors.New("fresh target lacks an intended-untracked selection transition; rerun `gentle-ai review status --next-transition`")
+		return errors.New("fresh target lacks an intended-untracked selection transition; rerun `brunnr-code review status --next-transition`")
 	}
 	return nil
 }

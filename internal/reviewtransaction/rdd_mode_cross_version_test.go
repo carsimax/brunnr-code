@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// preRelocationCloneMode reports the clone-local mode exactly as a gentle-ai
+// preRelocationCloneMode reports the clone-local mode exactly as a brunnr-code
 // installed before the switch moved out of the review authority tree reads it.
 // Those builds look in one place only, so this deliberately never consults the
 // switch's own root: it is the other reader on the machine, not this one.
@@ -34,7 +34,7 @@ func preRelocationCloneMode(t *testing.T, ctx context.Context, repo string) RDDM
 // TestCloneScopeDisableAppliesToPreRelocationBuilds is the #3284 guard.
 //
 // The kill switch is machine state, not build state. A clone-scope disable that
-// only this build can see reports success while every older gentle-ai on the
+// only this build can see reports success while every older brunnr-code on the
 // same machine keeps enforcing review, which is the one thing a safety switch
 // may never do.
 func TestCloneScopeDisableAppliesToPreRelocationBuilds(t *testing.T) {
@@ -46,7 +46,7 @@ func TestCloneScopeDisableAppliesToPreRelocationBuilds(t *testing.T) {
 	}
 
 	if status := preRelocationCloneMode(t, ctx, repo); status.Enabled() {
-		t.Fatalf("a pre-relocation gentle-ai still reports reviews on: %#v; the clone-scope disable reported success without applying", status)
+		t.Fatalf("a pre-relocation brunnr-code still reports reviews on: %#v; the clone-scope disable reported success without applying", status)
 	}
 	assertCloneModeLocationsAgree(t, ctx, repo)
 }
@@ -68,7 +68,7 @@ func TestCloneScopeEnableAlsoReachesPreRelocationBuilds(t *testing.T) {
 	}
 
 	if status := preRelocationCloneMode(t, ctx, repo); !status.Enabled() {
-		t.Fatalf("a pre-relocation gentle-ai still reports reviews off: %#v; the clone-scope enable never reached it", status)
+		t.Fatalf("a pre-relocation brunnr-code still reports reviews off: %#v; the clone-scope enable never reached it", status)
 	}
 	assertCloneModeLocationsAgree(t, ctx, repo)
 }
@@ -123,7 +123,7 @@ func TestCloneScopeRerunRepairsABuildLocalDisable(t *testing.T) {
 		t.Fatalf("rerun status = %#v; want a fresh revision published with machine-wide reach", repaired)
 	}
 	if status := preRelocationCloneMode(t, ctx, repo); status.Enabled() {
-		t.Fatalf("rerunning the disable left a pre-relocation gentle-ai enforcing review: %#v", status)
+		t.Fatalf("rerunning the disable left a pre-relocation brunnr-code enforcing review: %#v", status)
 	}
 	assertCloneModeLocationsAgree(t, ctx, repo)
 
@@ -136,7 +136,7 @@ func TestCloneScopeRerunRepairsABuildLocalDisable(t *testing.T) {
 }
 
 // TestCloneScopeWriteSupersedesHigherPreRelocationGenerations covers the slot
-// arithmetic across two locations. A gentle-ai from before the relocation
+// arithmetic across two locations. A brunnr-code from before the relocation
 // publishes generations of its own, so this build's next slot has to clear
 // whichever location has gone further: colliding would refuse the write, and
 // publishing underneath would leave that build reading its own older record.
@@ -171,14 +171,14 @@ func TestCloneScopeWriteSupersedesHigherPreRelocationGenerations(t *testing.T) {
 		t.Fatalf("pre-relocation head = %d, %v; want %d", head, err, foreign.Generation+1)
 	}
 	if status := preRelocationCloneMode(t, ctx, repo); !status.Enabled() {
-		t.Fatalf("a pre-relocation gentle-ai kept its own older record: %#v", status)
+		t.Fatalf("a pre-relocation brunnr-code kept its own older record: %#v", status)
 	}
 	assertCloneModeLocationsAgree(t, ctx, repo)
 }
 
 // TestCloneScopeWriteRefusesToClaimSuccessOnAPartialPublish is the partial
 // failure this dual write introduces: the other location opened, so a
-// pre-relocation gentle-ai can read it, and the publish there failed anyway.
+// pre-relocation brunnr-code can read it, and the publish there failed anyway.
 // The decision applied here and did not apply there, and saying so is the whole
 // point -- a switch reported as working while half the machine still enforces
 // review is the defect, not the recovery.
@@ -205,7 +205,7 @@ func TestCloneScopeWriteRefusesToClaimSuccessOnAPartialPublish(t *testing.T) {
 	if !errors.Is(err, ErrRDDModePartiallyApplied) || !errors.As(err, &reported) {
 		t.Fatalf("partial publish error = %v, want ErrRDDModePartiallyApplied", err)
 	}
-	if reported.Mode != RDDModeUnset || !strings.Contains(err.Error(), "gentle-ai review mode enable --scope clone") {
+	if reported.Mode != RDDModeUnset || !strings.Contains(err.Error(), "brunnr-code review mode enable --scope clone") {
 		t.Fatalf("partial publish refusal names no rerun: %v", err)
 	}
 	// The decision is real for this build; reporting it as reached-nowhere
@@ -279,7 +279,7 @@ func TestCloneScopeWriteStaysReachableWhenTheOtherLocationIsNot(t *testing.T) {
 // enumerate its published slots. Its head is then unknown, not zero, and the
 // difference decides everything: publishing this build's next slot number into
 // a location whose head is higher lands the decision UNDERNEATH the record a
-// pre-relocation gentle-ai actually reads. That build keeps enforcing the
+// pre-relocation brunnr-code actually reads. That build keeps enforcing the
 // mode the operator just changed while the write reports it reached the whole
 // machine, which is #3284 wearing a success message.
 func TestCloneScopeWriteNeverClaimsTheMachineOverAnUnscannableMirror(t *testing.T) {
@@ -291,7 +291,7 @@ func TestCloneScopeWriteNeverClaimsTheMachineOverAnUnscannableMirror(t *testing.
 	if err != nil {
 		t.Fatalf("SetCloneLocalRDDMode(off) error = %v", err)
 	}
-	// A pre-relocation gentle-ai then published generations of its own, so the
+	// A pre-relocation brunnr-code then published generations of its own, so the
 	// other location has gone further than this build's root. Its slot 2 is
 	// free, which is exactly what makes the mis-publish silent instead of loud.
 	legacy := legacyCloneModeRootForTest(t, ctx, repo)
@@ -311,7 +311,7 @@ func TestCloneScopeWriteNeverClaimsTheMachineOverAnUnscannableMirror(t *testing.
 	}
 	if status.Reach == RDDModeReachMachine {
 		if pre := preRelocationCloneMode(t, ctx, repo); !pre.Enabled() {
-			t.Fatalf("the write claimed machine-wide reach while a pre-relocation gentle-ai still reads reviews off: %#v", pre)
+			t.Fatalf("the write claimed machine-wide reach while a pre-relocation brunnr-code still reads reviews off: %#v", pre)
 		}
 	}
 	if status.Reach != RDDModeReachThisBuild {
@@ -380,13 +380,13 @@ func TestCloneScopeConcurrentWritesLeaveBothLocationsAgreeing(t *testing.T) {
 		t.Fatalf("concurrent clone-scope writers = %d winners, want 1", winners)
 	}
 	if status := preRelocationCloneMode(t, ctx, repo); status.Enabled() {
-		t.Fatalf("concurrent writers left a pre-relocation gentle-ai enforcing review: %#v", status)
+		t.Fatalf("concurrent writers left a pre-relocation brunnr-code enforcing review: %#v", status)
 	}
 	assertCloneModeLocationsAgree(t, ctx, repo)
 }
 
 // assertCloneModeLocationsAgree checks the property the two locations exist to
-// hold jointly: the same head record, byte for byte. A pre-relocation gentle-ai
+// hold jointly: the same head record, byte for byte. A pre-relocation brunnr-code
 // re-derives the digest and rejects anything that is not canonical, so equal
 // bytes is the only form of agreement that survives its parser.
 func assertCloneModeLocationsAgree(t *testing.T, ctx context.Context, repo string) {

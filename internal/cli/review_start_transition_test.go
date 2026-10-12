@@ -208,7 +208,7 @@ func TestNegotiatedV2FreshStatusIncludesExactConsentRelay(t *testing.T) {
 	if consent != (ReviewTransitionArgument{Name: "consent", Value: "relay", Token: "--consent=relay"}) {
 		t.Fatalf("v2 START consent argument = %#v", consent)
 	}
-	wantCommand := "gentle-ai review start" +
+	wantCommand := "brunnr-code review start" +
 		" " + reviewTransitionShellWord("--cwd="+repo) +
 		" --contract=" + ReviewIntegrationContractV2 +
 		" --target=" + status.TargetIdentity +

@@ -46,7 +46,7 @@ type documentedInvocation struct {
 
 // --- extraction -----------------------------------------------------------
 
-var inlineInvocationRegexp = regexp.MustCompile("`(gentle-ai [^`\n]+)`")
+var inlineInvocationRegexp = regexp.MustCompile("`(brunnr-code [^`\n]+)`")
 
 func extractInvocations(source, content string) []documentedInvocation {
 	var out []documentedInvocation
@@ -65,7 +65,7 @@ func extractInvocations(source, content string) []documentedInvocation {
 				index++
 				command = strings.TrimSuffix(command, "\\") + " " + strings.TrimSpace(lines[index])
 			}
-			if strings.HasPrefix(command, "gentle-ai ") {
+			if strings.HasPrefix(command, "brunnr-code ") {
 				out = append(out, documentedInvocation{source: at, command: command})
 			}
 			continue
@@ -200,7 +200,7 @@ func classifyWords(words []string, safeVerbs map[string]bool, repo string) ([]st
 			// A placeholder is only substitutable where a value belongs: in a
 			// --flag word or as the value of the bare flag before it. In a
 			// verb or positional slot the command's own identity is
-			// templated ("gentle-ai review <verb>"), a reference to a family
+			// templated ("brunnr-code review <verb>"), a reference to a family
 			// of commands rather than a runnable claim.
 			bareFlagBefore := index > 0 && strings.HasPrefix(words[index-1], "--") && !strings.Contains(words[index-1], "=")
 			if !strings.HasPrefix(word, "--") && !bareFlagBefore {

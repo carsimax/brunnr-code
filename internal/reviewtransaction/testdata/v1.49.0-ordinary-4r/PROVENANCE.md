@@ -1,13 +1,13 @@
 # Published v1.49.0 ordinary 4R authority fixture
 
-This fixture is a byte-for-byte copy of the immutable review authority emitted by the published Gentle AI v1.49.0 Linux AMD64 binary.
+This fixture is a byte-for-byte copy of the immutable review authority emitted by the published Brunnr-Code v1.49.0 Linux AMD64 binary.
 
 - Release: `v1.49.0`
-- Release URL: `https://github.com/Gentleman-Programming/gentle-ai/releases/tag/v1.49.0`
+- Release URL: `https://github.com/carsimax/brunnr-code/releases/tag/v1.49.0`
 - Archive: `gentle-ai_1.49.0_linux_amd64.tar.gz`
 - Archive SHA-256: `0911f76e22446361758c1ece1cb26f37ffc91242a98abc5b122de93ed85a3954`
 - Binary SHA-256: `f78aff151c9da49b85d55fba3da410ad17cddff77ecdcec29e13309eb07510de`
-- Binary-reported version: `gentle-ai 1.49.0`
+- Binary-reported version: `brunnr-code 1.49.0`
 - Source reproduction: `/tmp/gentle-ai-1307-runtime-legacy/valid/.git/gentle-ai/review-transactions/v1/legacy-valid`
 
 Canonical authority checksums:

@@ -2164,8 +2164,8 @@ func retiredCompactSnapshotIdentity(snapshot Snapshot) string {
 // older binary parse newer bytes. The message therefore names the only thing
 // that does resolve it: run a build at least as new as the writer.
 var ErrCompactAuthorityFromNewerRelease = errors.New(
-	"this compact review authority was written by a newer gentle-ai than the one reading it, which cannot parse it; " +
-		"upgrade the reading gentle-ai to at least the build that wrote this authority",
+	"this compact review authority was written by a newer brunnr-code than the one reading it, which cannot parse it; " +
+		"upgrade the reading brunnr-code to at least the build that wrote this authority",
 )
 
 // compactAuthorityFromNewerRelease reports whether a strict-decode failure is

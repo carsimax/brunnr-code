@@ -1,7 +1,7 @@
 # issue #2995 released-record fixtures
 
 These two `review-state.json` files are byte-identical copies of compact
-review authority produced by the released gentle-ai v2.2.0 binary. They are
+review authority produced by the released brunnr-code v2.2.0 binary. They are
 forensic evidence for issue #2995 (classification honesty for released
 v2.2.x records): a genuine CLI transaction wrote them, and every hash below
 pins the exact bytes. Never edit them in place; a drifted fixture proves

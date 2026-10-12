@@ -70,8 +70,8 @@ func runLegacyFacadeStartForTest(t *testing.T, args []string, stdout io.Writer) 
 	}
 	if selectedProjection == reviewtransaction.ProjectionStaged && strings.TrimSpace(*baseRef) != "" && !*workspaceOverlay {
 		return fmt.Errorf("review start with --projection staged and --base-ref is refused because intent is ambiguous: for a staged-index review rerun with %q; for a base-diff review rerun with %q",
-			"gentle-ai review start --projection staged",
-			fmt.Sprintf("gentle-ai review start --base-ref %s --committed-only", strings.TrimSpace(*baseRef)))
+			"brunnr-code review start --projection staged",
+			fmt.Sprintf("brunnr-code review start --base-ref %s --committed-only", strings.TrimSpace(*baseRef)))
 	}
 	if strings.TrimSpace(*baseRef) != "" && !*workspaceOverlay {
 		dirtyTracked, dirtyErr := rootBuilder.HasDirtyTrackedChanges(ctx)
