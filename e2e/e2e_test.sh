@@ -124,30 +124,22 @@ test_dry_run_agent_claude_code() {
     assert_output_contains "$output" "claude-code" "Dry-run output shows claude-code agent"
 }
 
-test_dry_run_agent_opencode() {
-    log_test "Dry-run with --agent opencode"
-
-    output=$($BINARY install --agent opencode --dry-run 2>&1) || true
-
-    assert_output_contains "$output" "opencode" "Dry-run output shows opencode agent"
-}
-
 test_dry_run_agent_both() {
     log_test "Dry-run with both agents"
 
-    output=$($BINARY install --agent claude-code --agent opencode --dry-run 2>&1) || true
+    output=$($BINARY install --agent claude-code --agent codex --dry-run 2>&1) || true
 
     assert_output_contains "$output" "claude-code" "Both agents: shows claude-code"
-    assert_output_contains "$output" "opencode" "Both agents: shows opencode"
+    assert_output_contains "$output" "codex" "Both agents: shows codex"
 }
 
 test_dry_run_agent_csv() {
     log_test "Dry-run with --agent as CSV"
 
-    output=$($BINARY install --agent claude-code,opencode --dry-run 2>&1) || true
+    output=$($BINARY install --agent claude-code,codex --dry-run 2>&1) || true
 
     assert_output_contains "$output" "claude-code" "CSV agents: shows claude-code"
-    assert_output_contains "$output" "opencode" "CSV agents: shows opencode"
+    assert_output_contains "$output" "codex" "CSV agents: shows codex"
 }
 
 # --- Category 1d: Preset flags ---
@@ -262,13 +254,12 @@ test_preset_full_components() {
     assert_output_contains "$components_line" "permissions" "Full includes permissions"
     assert_output_contains "$components_line" "gga" "Full includes gga"
     assert_output_contains "$components_line" "claude-theme" "Full includes Claude Gentleman theme"
-    assert_output_contains "$components_line" "opencode-gentle-logo" "Full includes OpenCode Gentle logo"
 }
 
 test_dry_run_full_preset_persona_before_engram() {
     log_test "Dry-run: persona appears before engram in component order"
 
-    output=$($BINARY install --preset full-gentleman --agent opencode --dry-run 2>&1) || true
+    output=$($BINARY install --preset full-gentleman --agent claude-code --dry-run 2>&1) || true
 
     local components_line
     components_line=$(echo "$output" | grep "Components order:")
@@ -314,7 +305,7 @@ test_preset_no_legacy_theme_in_any_preset() {
         fi
     done
 
-    for component in claude-theme opencode-gentle-logo; do
+    for component in claude-theme; do
         if echo "$full_order_str" | tr ',' '\n' | grep -qx "$component"; then
             log_pass "Preset 'full-gentleman' includes safe visual component '$component'"
         else
@@ -376,7 +367,7 @@ test_dry_run_component_persona() {
 
 test_dry_run_component_permissions() {
     log_test "Dry-run with --component permissions"
-    output=$($BINARY install --agent opencode --component permissions --dry-run 2>&1) || true
+    output=$($BINARY install --agent claude-code --component permissions --dry-run 2>&1) || true
     assert_output_contains "$output" "permissions" "Shows permissions component"
 }
 
@@ -388,7 +379,7 @@ test_dry_run_component_gga() {
 
 test_dry_run_component_theme() {
     log_test "Dry-run with --component theme"
-    output=$($BINARY install --agent opencode --component theme --dry-run 2>&1) || true
+    output=$($BINARY install --agent claude-code --component theme --dry-run 2>&1) || true
     assert_output_contains "$output" "theme" "Shows theme component"
 }
 
@@ -524,19 +515,6 @@ test_cc_persona_custom_does_nothing() {
         assert_file_not_exists "$HOME/.claude/output-styles/gentleman.md" "No output-style for custom"
     else
         log_fail "Custom persona install command failed"
-    fi
-}
-
-test_oc_persona_custom_does_nothing() {
-    log_test "OpenCode: persona custom does nothing (user keeps own personality)"
-    cleanup_test_env
-
-    if $BINARY install --agent opencode --component persona --persona custom 2>&1; then
-        # Custom persona should NOT create AGENTS.md (persona does nothing).
-        local agents_md="$HOME/.config/opencode/AGENTS.md"
-        assert_file_not_exists "$agents_md" "AGENTS.md not created by custom persona"
-    else
-        log_fail "OpenCode custom persona install command failed"
     fi
 }
 
@@ -704,111 +682,6 @@ test_cc_theme_injection() {
     fi
 }
 
-# --- Category 3: OpenCode component injection ---
-
-test_oc_engram_injection() {
-    log_test "OpenCode: engram injection (opencode.json)"
-    cleanup_test_env
-
-    if $BINARY install --agent opencode --component engram 2>&1; then
-        local settings="$HOME/.config/opencode/opencode.json"
-        local agents_md="$HOME/.config/opencode/AGENTS.md"
-        assert_file_exists "$settings" "OpenCode opencode.json"
-        assert_file_contains "$settings" '"mcp"' "Has mcp key"
-        assert_file_contains "$settings" '"engram"' "Has engram MCP entry"
-        assert_file_contains "$settings" '"command"' "Has command key"
-        assert_file_contains "$settings" '"type": "local"' "Engram uses local MCP type"
-        assert_valid_json "$settings" "opencode.json is valid JSON"
-
-        # Fallback safety: AGENTS.md must include engram protocol section.
-        assert_file_exists "$agents_md" "OpenCode AGENTS.md"
-        assert_file_contains "$agents_md" 'gentle-ai:engram-protocol' "AGENTS.md has engram-protocol section"
-        assert_file_contains "$agents_md" 'mem_save' "AGENTS.md has memory protocol content"
-    else
-        log_fail "OpenCode engram install command failed"
-    fi
-}
-
-test_oc_persona_gentleman() {
-    log_test "OpenCode: persona injection (gentleman)"
-    cleanup_test_env
-
-    if $BINARY install --agent opencode --component persona --persona gentleman 2>&1; then
-        local agents_md="$HOME/.config/opencode/AGENTS.md"
-        assert_file_exists "$agents_md" "AGENTS.md exists"
-        assert_file_contains "$agents_md" "Senior Architect" "Gentleman persona has 'Senior Architect'"
-        assert_file_size_min "$agents_md" 200 "AGENTS.md has substantial content"
-    else
-        log_fail "OpenCode persona (gentleman) install command failed"
-    fi
-}
-
-test_oc_persona_neutral() {
-    log_test "OpenCode: persona injection (neutral)"
-    cleanup_test_env
-
-    if $BINARY install --agent opencode --component persona --persona neutral 2>&1; then
-        local agents_md="$HOME/.config/opencode/AGENTS.md"
-        assert_file_exists "$agents_md" "AGENTS.md exists"
-        assert_file_contains "$agents_md" "Senior Architect" "Neutral persona keeps the teacher identity"
-        assert_file_not_contains "$agents_md" "Rioplatense\|voseo\|loco\|ponete las pilas" "Neutral persona excludes regional language"
-    else
-        log_fail "OpenCode persona (neutral) install command failed"
-    fi
-}
-
-test_oc_skills_minimal() {
-    log_test "OpenCode: skills injection (minimal)"
-    cleanup_test_env
-
-    if $BINARY install --agent opencode --component skills --preset minimal --persona custom 2>&1; then
-        local skill_dir="$HOME/.config/opencode/skills"
-        if [ -d "$skill_dir" ]; then
-            assert_file_count "$skill_dir" "SKILL.md" 1 "Minimal OpenCode skills component installs only judgment-day"
-            assert_file_exists "$skill_dir/judgment-day/SKILL.md" "Minimal OpenCode skills include judgment-day"
-        else
-            log_fail "Minimal OpenCode skills component did not create judgment-day skills directory"
-        fi
-    else
-        log_fail "OpenCode skills (minimal) install command failed"
-    fi
-}
-
-test_oc_skills_full() {
-    log_test "OpenCode: skills injection (full-gentleman = 7 foundation skills)"
-    cleanup_test_env
-
-    # #4669: the six contributor workflow skills are selectable, never default.
-    if $BINARY install --agent opencode --component skills --preset full-gentleman 2>&1; then
-        local skill_dir="$HOME/.config/opencode/skills"
-        assert_dir_exists "$skill_dir" "OpenCode skill directory"
-        assert_file_count "$skill_dir" "SKILL.md" 8 "Full preset (skills alone): 8 skill files"
-        assert_file_exists "$skill_dir/go-testing/SKILL.md" "go-testing skill"
-        assert_file_exists "$skill_dir/skill-creator/SKILL.md" "skill-creator skill"
-        assert_file_not_exists "$skill_dir/branch-pr/SKILL.md" "branch-pr NOT installed by default"
-        assert_file_not_exists "$skill_dir/issue-creation/SKILL.md" "issue-creation NOT installed by default"
-        assert_file_size_min "$skill_dir/go-testing/SKILL.md" 200 "go-testing skill has real content"
-    else
-        log_fail "OpenCode skills (full) install command failed"
-    fi
-}
-
-test_oc_context7_injection() {
-    log_test "OpenCode: context7 injection (opencode.json MCP)"
-    cleanup_test_env
-
-    if $BINARY install --agent opencode --component context7 2>&1; then
-        local settings="$HOME/.config/opencode/opencode.json"
-        assert_file_exists "$settings" "OpenCode opencode.json"
-        assert_file_contains "$settings" '"mcp"' "Has mcp key"
-        assert_file_contains "$settings" '"context7"' "Has context7 entry"
-        assert_file_contains "$settings" 'https://mcp.context7.com/mcp' "Has Context7 MCP URL"
-        assert_valid_json "$settings" "opencode.json is valid JSON"
-    else
-        log_fail "OpenCode context7 install command failed"
-    fi
-}
-
 # --- Category 4: Qwen Code injection ---
 
 test_qwen_engram_injection() {
@@ -859,37 +732,6 @@ test_qwen_engram_idempotency() {
     fi
 }
 
-test_oc_permissions_injection() {
-    log_test "OpenCode: permissions injection"
-    cleanup_test_env
-
-    if $BINARY install --agent opencode --component permissions 2>&1; then
-        local settings="$HOME/.config/opencode/opencode.json"
-        assert_file_exists "$settings" "OpenCode opencode.json"
-        assert_file_contains "$settings" '"permission"' "Has permission key"
-        assert_file_contains "$settings" '"bash"' "Has bash permissions"
-        assert_file_contains "$settings" '"read"' "Has read permissions"
-        assert_valid_json "$settings" "opencode.json is valid JSON"
-    else
-        log_fail "OpenCode permissions install command failed"
-    fi
-}
-
-test_oc_theme_injection() {
-    log_test "OpenCode: theme injection"
-    cleanup_test_env
-
-    if $BINARY install --agent opencode --component theme 2>&1; then
-        local settings="$HOME/.config/opencode/opencode.json"
-        assert_file_exists "$settings" "OpenCode opencode.json"
-        assert_file_contains "$settings" '"theme"' "Has theme key"
-        assert_file_contains "$settings" 'gentleman' "Has gentleman theme"
-        assert_valid_json "$settings" "opencode.json is valid JSON"
-    else
-        log_fail "OpenCode theme install command failed"
-    fi
-}
-
 # --- Category 4: Full preset integration ---
 
 test_full_preset_claude_code() {
@@ -933,59 +775,6 @@ test_full_preset_claude_code() {
     fi
 }
 
-test_full_preset_opencode() {
-    log_test "Full-gentleman preset: OpenCode (all components coexist)"
-    cleanup_test_env
-
-    if $BINARY install --agent opencode --component engram --component persona --component skills --component context7 --component permissions --component theme --preset full-gentleman --persona gentleman 2>&1; then
-        local settings="$HOME/.config/opencode/opencode.json"
-        local agents_md="$HOME/.config/opencode/AGENTS.md"
-
-        # opencode.json should have all overlays merged
-        assert_file_exists "$settings" "OpenCode opencode.json"
-        assert_file_contains "$settings" '"permission"' "Has permission config"
-        assert_file_contains "$settings" '"theme"' "Has theme"
-        assert_file_contains "$settings" '"mcp"' "Has MCP servers"
-        assert_file_contains "$settings" '"context7"' "Has context7 MCP"
-        assert_valid_json "$settings" "opencode.json is valid JSON"
-
-        # OpenCode owns ODD routing in the managed orchestrator prompt in opencode.json.
-        assert_file_exists "$agents_md" "AGENTS.md exists"
-        assert_file_contains "$agents_md" "Senior Architect" "Gentleman persona"
-        assert_file_contains "$settings" "gentle-ai:agent-routing" "OpenCode orchestrator has ODD routing"
-        assert_file_contains "$agents_md" "gentle-ai:engram-protocol" "AGENTS.md has engram protocol"
-        assert_no_duplicate_section "$agents_md" "engram-protocol" "No duplicate engram section in AGENTS.md"
-        assert_file_count_min "$HOME/.config/opencode/skills" "SKILL.md" 8 "At least 8 foundation skill files"
-
-        log_pass "Full preset: all OpenCode injection-only components coexist"
-    else
-        log_fail "Full preset (OpenCode) install command failed"
-    fi
-}
-
-test_minimal_preset_opencode_only_engram_no_persona() {
-    log_test "Minimal preset: OpenCode (engram only, no persona side effect)"
-    cleanup_test_env
-
-    if $BINARY install --agent opencode --preset minimal --persona custom 2>&1; then
-        local settings="$HOME/.config/opencode/opencode.json"
-        local agents_md="$HOME/.config/opencode/AGENTS.md"
-
-        assert_file_exists "$settings" "OpenCode opencode.json exists"
-        assert_file_contains "$settings" '"engram"' "OpenCode has engram MCP"
-
-        # Minimal preset should NOT silently install persona.
-        if [ -f "$agents_md" ]; then
-            assert_file_not_contains "$agents_md" "gentle-ai:persona" "No persona marker in minimal preset"
-            assert_file_not_contains "$agents_md" "Senior Architect" "No persona content in minimal preset"
-        else
-            log_pass "No AGENTS.md created by minimal preset (correct)"
-        fi
-    else
-        log_fail "Minimal preset (OpenCode) install command failed"
-    fi
-}
-
 test_minimal_preset_claude_only_engram() {
     log_test "Minimal preset: Claude Code (only engram, nothing else)"
     cleanup_test_env
@@ -1018,41 +807,21 @@ test_ecosystem_both_agents() {
     log_test "Ecosystem preset: both agents"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --agent opencode --component engram --component skills --component context7 --preset ecosystem-only 2>&1; then
+    if $BINARY install --agent claude-code --agent codex --component engram --component skills --component context7 --preset ecosystem-only 2>&1; then
         # Claude Code
         assert_file_exists "$HOME/.claude/CLAUDE.md" "Claude CLAUDE.md"
         assert_file_contains "$HOME/.claude/CLAUDE.md" "gentle-ai:agent-routing" "Claude has ODD routing"
         assert_file_contains "$HOME/.claude.json" '"context7"' "Claude context7 MCP"
         assert_file_count_min "$HOME/.claude/skills" "SKILL.md" 8 "Claude foundation skills"
 
-        # OpenCode
-        assert_file_contains "$HOME/.config/opencode/opencode.json" "gentle-ai:agent-routing" "OpenCode orchestrator has ODD routing"
-        assert_file_count_min "$HOME/.config/opencode/skills" "SKILL.md" 8 "OpenCode foundation skills"
-        assert_file_contains "$HOME/.config/opencode/opencode.json" '"context7"' "OpenCode context7"
-        assert_valid_json "$HOME/.config/opencode/opencode.json" "OpenCode opencode.json valid JSON"
+        # Codex
+        assert_file_contains "$HOME/.codex/AGENTS.md" "gentle-ai:agent-routing" "Codex has ODD routing"
+        assert_file_count_min "$HOME/.codex/skills" "SKILL.md" 8 "Codex foundation skills"
+        assert_file_contains "$HOME/.codex/config.toml" "context7" "Codex context7"
 
         log_pass "Ecosystem preset: both agents have matching components"
     else
         log_fail "Ecosystem preset (both agents) install command failed"
-    fi
-}
-
-test_both_agents_permissions() {
-    log_test "Both agents: permissions injection"
-    cleanup_test_env
-
-    if $BINARY install --agent opencode --agent claude-code --component permissions 2>&1; then
-        local oc_settings="$HOME/.config/opencode/opencode.json"
-        local cc_settings="$HOME/.claude/settings.json"
-
-        assert_file_exists "$oc_settings" "OpenCode opencode.json"
-        assert_file_exists "$cc_settings" "Claude settings.json"
-        assert_file_contains "$oc_settings" '"permission"' "OpenCode has permission config"
-        assert_file_contains "$cc_settings" '"permissions"' "Claude has permissions"
-        assert_valid_json "$oc_settings" "OpenCode opencode valid JSON"
-        assert_valid_json "$cc_settings" "Claude settings valid JSON"
-    else
-        log_fail "Both agents + permissions install command failed"
     fi
 }
 
@@ -1121,25 +890,6 @@ test_content_mcp_json_valid() {
 }
 
 # --- Category 6: Idempotency ---
-
-test_idempotent_permissions_opencode() {
-    log_test "Idempotency: permissions on OpenCode (run twice, same result)"
-    cleanup_test_env
-
-    $BINARY install --agent opencode --component permissions 2>&1 || true
-    local first_hash
-    first_hash=$(md5sum "$HOME/.config/opencode/opencode.json" 2>/dev/null | cut -d' ' -f1)
-
-    $BINARY install --agent opencode --component permissions 2>&1 || true
-    local second_hash
-    second_hash=$(md5sum "$HOME/.config/opencode/opencode.json" 2>/dev/null | cut -d' ' -f1)
-
-    if [ "$first_hash" = "$second_hash" ] && [ -n "$first_hash" ]; then
-        log_pass "Idempotent: same permissions config after two runs"
-    else
-        log_fail "Permissions config changed between runs ($first_hash vs $second_hash)"
-    fi
-}
 
 test_idempotent_persona_claude() {
     log_test "Idempotency: persona on Claude Code (no duplicate sections)"
@@ -1266,25 +1016,6 @@ test_idempotent_skills_claude() {
     fi
 }
 
-test_idempotent_theme_opencode() {
-    log_test "Idempotency: theme on OpenCode (run twice, same result)"
-    cleanup_test_env
-
-    $BINARY install --agent opencode --component theme 2>&1 || true
-    local first_hash
-    first_hash=$(md5sum "$HOME/.config/opencode/opencode.json" 2>/dev/null | cut -d' ' -f1)
-
-    $BINARY install --agent opencode --component theme 2>&1 || true
-    local second_hash
-    second_hash=$(md5sum "$HOME/.config/opencode/opencode.json" 2>/dev/null | cut -d' ' -f1)
-
-    if [ "$first_hash" = "$second_hash" ] && [ -n "$first_hash" ]; then
-        log_pass "Idempotent: same theme config after two runs"
-    else
-        log_fail "Theme config changed between runs ($first_hash vs $second_hash)"
-    fi
-}
-
 test_idempotent_full_claude() {
     log_test "Idempotency: full injection-only on Claude Code"
     cleanup_test_env
@@ -1351,10 +1082,10 @@ test_edge_multiple_agents_same_component() {
     log_test "Edge case: multiple agents with same component"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --agent opencode --component context7 2>&1; then
+    if $BINARY install --agent claude-code --agent codex --component context7 2>&1; then
         # Both agents should have context7
         assert_file_contains "$HOME/.claude.json" '"context7"' "Claude context7"
-        assert_file_contains "$HOME/.config/opencode/opencode.json" '"context7"' "OpenCode context7"
+        assert_file_contains "$HOME/.codex/config.toml" "context7" "Codex context7"
     else
         log_fail "Multiple agents + context7 install command failed"
     fi
@@ -1382,62 +1113,6 @@ test_edge_persona_switch() {
     assert_file_contains "$HOME/.claude/output-styles/neutral.md" "Push back when user asks for code without context or understanding" "Second install: neutral output-style has the mentor identity"
     assert_file_not_contains "$HOME/.claude/output-styles/neutral.md" "Rioplatense\|voseo\|ponete las pilas" "Second install: regional language removed from output style"
     assert_no_duplicate_section "$HOME/.claude/CLAUDE.md" "persona" "No duplicate persona after switch"
-}
-
-test_edge_persona_switch_preserves_sections_opencode() {
-    log_test "Edge case: persona switch preserves managed sections (OpenCode)"
-    cleanup_test_env
-
-    # Step 1: Install persona and memory with gentleman.
-    $BINARY install --agent opencode --component persona --component engram --persona gentleman 2>&1 || true
-
-    local agents_md="$HOME/.config/opencode/AGENTS.md"
-    assert_file_exists "$agents_md" "AGENTS.md after full install"
-    assert_file_contains "$agents_md" "gentle-ai:engram-protocol" "Engram section present before switch"
-
-    # Step 2: Switch to neutral persona
-    $BINARY install --agent opencode --component persona --persona neutral 2>&1 || true
-
-    # Step 3: Verify sections survived
-    assert_file_contains "$agents_md" "Senior Architect" "Neutral persona present after switch"
-    assert_file_not_contains "$agents_md" "Rioplatense" "Regional language removed after switch"
-    assert_file_contains "$agents_md" "gentle-ai:engram-protocol" "Engram section survived persona switch"
-    assert_no_duplicate_section "$agents_md" "engram-protocol" "No duplicate engram after switch"
-}
-
-test_edge_json_merge_preserves_existing() {
-    log_test "Edge case: JSON merge preserves existing settings"
-    cleanup_test_env
-
-    # Create pre-existing settings
-    mkdir -p "$HOME/.config/opencode"
-    echo '{"existingKey": "preserved"}' > "$HOME/.config/opencode/opencode.json"
-
-    # Install permissions on top
-    $BINARY install --agent opencode --component permissions 2>&1 || true
-
-    local settings="$HOME/.config/opencode/opencode.json"
-    assert_file_contains "$settings" '"existingKey"' "Pre-existing key preserved"
-    assert_file_contains "$settings" '"preserved"' "Pre-existing value preserved"
-    assert_file_contains "$settings" '"permission"' "Permission config merged in"
-    assert_valid_json "$settings" "Merged JSON is valid"
-}
-
-test_edge_multiple_json_overlays() {
-    log_test "Edge case: multiple JSON overlays merge correctly"
-    cleanup_test_env
-
-    # Install permissions, then theme, then context7 — all into OpenCode opencode.json
-    $BINARY install --agent opencode --component permissions 2>&1 || true
-    $BINARY install --agent opencode --component theme 2>&1 || true
-    $BINARY install --agent opencode --component context7 2>&1 || true
-
-    local settings="$HOME/.config/opencode/opencode.json"
-    assert_file_contains "$settings" '"permission"' "Permission config present after 3 merges"
-    assert_file_contains "$settings" '"theme"' "Theme present after 3 merges"
-    assert_file_contains "$settings" '"mcp"' "MCP servers present after 3 merges"
-    assert_file_contains "$settings" '"context7"' "Context7 present after 3 merges"
-    assert_valid_json "$settings" "Final merged JSON is valid"
 }
 
 # --- Category: GGA tests ---
@@ -1544,8 +1219,8 @@ test_integrity_full_preset_all_skills_nonempty() {
     log_test "Integrity: full preset — every SKILL.md is non-empty"
     cleanup_test_env
 
-    if $BINARY install --agent opencode --component skills --preset full-gentleman 2>&1; then
-        local skill_dir="$HOME/.config/opencode/skills"
+    if $BINARY install --agent claude-code --component skills --preset full-gentleman 2>&1; then
+        local skill_dir="$HOME/.claude/skills"
         assert_file_count "$skill_dir" "SKILL.md" 8 "Full preset installs 8 foundation skills"
         local all_ok=true
         local empty_count=0
@@ -1581,7 +1256,7 @@ test_backup_created_on_install() {
     cleanup_test_env
     setup_fake_configs
 
-    if $BINARY install --agent opencode --component permissions 2>&1; then
+    if $BINARY install --agent claude-code --component permissions 2>&1; then
         local backup_count
         backup_count=$(find "$HOME/.gentle-ai/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
         if [ "$backup_count" -gt 0 ]; then
@@ -1599,7 +1274,7 @@ test_backup_contains_original_files() {
     cleanup_test_env
     setup_fake_configs
 
-    if $BINARY install --agent opencode --component permissions 2>&1; then
+    if $BINARY install --agent claude-code --component permissions 2>&1; then
         local latest_backup
         latest_backup=$(find "$HOME/.gentle-ai/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)
         if [ -n "$latest_backup" ]; then
@@ -1623,7 +1298,7 @@ test_backup_manifest_exists() {
     cleanup_test_env
     setup_fake_configs
 
-    if $BINARY install --agent opencode --component permissions 2>&1; then
+    if $BINARY install --agent claude-code --component permissions 2>&1; then
         local latest_backup
         latest_backup=$(find "$HOME/.gentle-ai/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)
         if [ -n "$latest_backup" ]; then
@@ -1644,13 +1319,13 @@ test_backup_idempotent_install() {
     log_test "Idempotent: running install twice produces same result (with backup)"
     cleanup_test_env
 
-    $BINARY install --agent opencode --component permissions 2>&1 || true
+    $BINARY install --agent claude-code --component permissions 2>&1 || true
     local first_content
-    first_content=$(cat "$HOME/.config/opencode/opencode.json" 2>/dev/null)
+    first_content=$(cat "$HOME/.claude/settings.json" 2>/dev/null)
 
-    $BINARY install --agent opencode --component permissions 2>&1 || true
+    $BINARY install --agent claude-code --component permissions 2>&1 || true
     local second_content
-    second_content=$(cat "$HOME/.config/opencode/opencode.json" 2>/dev/null)
+    second_content=$(cat "$HOME/.claude/settings.json" 2>/dev/null)
 
     if [ "$first_content" = "$second_content" ] && [ -n "$first_content" ]; then
         log_pass "Idempotent: same config after two runs (with backup)"
@@ -1664,9 +1339,9 @@ test_backup_multiple_snapshots() {
     cleanup_test_env
     setup_fake_configs
 
-    $BINARY install --agent opencode --component permissions 2>&1 || true
+    $BINARY install --agent claude-code --component permissions 2>&1 || true
     sleep 0.1
-    $BINARY install --agent opencode --component theme 2>&1 || true
+    $BINARY install --agent claude-code --component claude-theme 2>&1 || true
 
     local backup_count
     backup_count=$(find "$HOME/.gentle-ai/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
@@ -1713,7 +1388,6 @@ test_dry_run_detects_linux
 
 # Category 1c: Agent flags
 test_dry_run_agent_claude_code
-test_dry_run_agent_opencode
 test_dry_run_agent_both
 test_dry_run_agent_csv
 
@@ -1767,24 +1441,10 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
     test_cc_permissions_injection
     test_cc_theme_injection
 
-    # Category 3: OpenCode injection
-    test_oc_engram_injection
-    test_oc_persona_gentleman
-    test_oc_persona_neutral
-    test_oc_persona_custom_does_nothing
-    test_oc_skills_minimal
-    test_oc_skills_full
-    test_oc_context7_injection
-    test_oc_permissions_injection
-    test_oc_theme_injection
-
     # Category 4: Full preset integration
     test_full_preset_claude_code
-    test_full_preset_opencode
     test_minimal_preset_claude_only_engram
-    test_minimal_preset_opencode_only_engram_no_persona
     test_ecosystem_both_agents
-    test_both_agents_permissions
 
     # Category 5: Content validation
     test_content_claude_md_sections_substantial
@@ -1792,11 +1452,9 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
     test_content_mcp_json_valid
 
     # Category 6: Idempotency
-    test_idempotent_permissions_opencode
     test_idempotent_persona_claude
     test_idempotent_engram_claude
     test_idempotent_skills_claude
-    test_idempotent_theme_opencode
     test_idempotent_full_claude
 
     # Category 6b: Gemini/Codex engram parity
@@ -1808,9 +1466,6 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
     test_edge_theme_not_in_presets
     test_edge_multiple_agents_same_component
     test_edge_persona_switch
-    test_edge_persona_switch_preserves_sections_opencode
-    test_edge_json_merge_preserves_existing
-    test_edge_multiple_json_overlays
 
     # GGA
     test_gga_config

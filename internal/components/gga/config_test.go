@@ -24,13 +24,8 @@ func TestProviderForAgents(t *testing.T) {
 			want:   "claude",
 		},
 		{
-			name:   "opencode maps to opencode",
-			agents: []model.AgentID{model.AgentOpenCode},
-			want:   "opencode",
-		},
-		{
-			name:   "both claude and opencode defaults to claude",
-			agents: []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode},
+			name:   "both claude and codex defaults to claude",
+			agents: []model.AgentID{model.AgentClaudeCode, model.AgentCodex},
 			want:   "claude",
 		},
 		{
@@ -217,7 +212,7 @@ get_pr_files "$2" "$FILE_PATTERNS" "$EXCLUDE_PATTERNS"
 }
 
 func TestBuildConfigDifferentProviders(t *testing.T) {
-	for _, provider := range []string{"claude", "opencode", "gemini", "ollama:llama3.2"} {
+	for _, provider := range []string{"claude", "codex", "gemini", "ollama:llama3.2"} {
 		config := string(BuildConfig(provider))
 		expected := `PROVIDER="` + provider + `"`
 		if !strings.Contains(config, expected) {
@@ -279,7 +274,7 @@ func TestInjectIsIdempotent(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
 
-	first, err := Inject(home, []model.AgentID{model.AgentOpenCode})
+	first, err := Inject(home, []model.AgentID{model.AgentCodex})
 	if err != nil {
 		t.Fatalf("Inject() first error = %v", err)
 	}
@@ -287,7 +282,7 @@ func TestInjectIsIdempotent(t *testing.T) {
 		t.Fatal("Inject() first run should report changed")
 	}
 
-	second, err := Inject(home, []model.AgentID{model.AgentOpenCode})
+	second, err := Inject(home, []model.AgentID{model.AgentCodex})
 	if err != nil {
 		t.Fatalf("Inject() second error = %v", err)
 	}

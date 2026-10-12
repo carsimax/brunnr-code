@@ -11,7 +11,6 @@ package model
 var receiptDrivenDevelopmentAgents = []AgentID{
 	AgentClaudeCode,
 	AgentCodex,
-	AgentOpenCode,
 }
 
 // SupportsReceiptDrivenDevelopment reports whether agent receives

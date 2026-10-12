@@ -306,7 +306,7 @@ func TestClaudeRuntimeBuiltInSubagentsMapToAggregateClasses(t *testing.T) {
 		{name: "Explore built-in is explore", agentType: "Explore", wantKind: "built_in", wantClass: "explore"},
 		{name: "lowercase explore stays a custom name", agentType: "explore", wantKind: "custom", wantClass: "unknown"},
 		{name: "literal worker stays a custom name", agentType: "worker", wantKind: "custom", wantClass: "unknown"},
-		{name: "OpenCode general name stays custom", agentType: "general", wantKind: "custom", wantClass: "unknown"},
+		{name: "bare general name stays custom", agentType: "general", wantKind: "custom", wantClass: "unknown"},
 		{name: "case variant of general-purpose stays custom", agentType: "General-Purpose", wantKind: "custom", wantClass: "unknown"},
 	}
 	for _, tt := range tests {

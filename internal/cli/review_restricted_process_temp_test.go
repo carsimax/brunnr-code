@@ -16,7 +16,7 @@ import (
 // Issues #2044 and #2132: negotiated review status failed in `pre_native` with
 // the content-free `operation_failed` envelope for every reporter whose runtime
 // did not expose a usable process temp directory. Sandboxed agent runtimes are
-// exactly that shape, which is why the reports came from OpenCode, Claude Code
+// exactly that shape, which is why the reports came from Claude Code
 // and Codex on Windows, Linux and macOS alike while plain `review status`
 // stayed healthy: only the negotiated route derives a candidate snapshot, and
 // only snapshot derivation reached for the process temp directory.

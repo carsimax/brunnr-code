@@ -59,10 +59,10 @@ func TestRetiredSDDAssetInventoryMatchesRegistry(t *testing.T) {
 	if !slices.Equal(registered, enumerated) {
 		t.Fatalf("registry commands %v differ from enumerated %v", registered, enumerated)
 	}
-	paths := inventoryPaths(model.AgentOpenCode, SDDAssetDirs{Skills: "skills", Commands: "commands"})
+	paths := inventoryPaths(model.AgentCodex, SDDAssetDirs{Skills: "skills", Commands: "commands"})
 	for _, path := range paths {
 		if strings.HasPrefix(filepath.Base(path), "gentle-") {
-			t.Errorf("OpenCode inventory lists Claude-only command %s", path)
+			t.Errorf("Codex inventory lists Claude-only command %s", path)
 		}
 	}
 	for _, want := range []string{
@@ -91,7 +91,7 @@ func TestRetireSDDAssetsRemovesOnlyOwnedFiles(t *testing.T) {
 		filepath.Join(dirs.Skills, "sdd-verify", "references", "report-format.md"),
 		filepath.Join(dirs.Skills, "_shared", "sdd-orchestrator-sections.md"),
 	}
-	writeFixture(t, owned[0], releasedFixture(t, "v3.7.0", "opencode-sdd-init.md"))
+	writeFixture(t, owned[0], releasedFixture(t, "v2.0.0", "claude-sdd-init.md"))
 	// Line endings converted by an editor or checkout are not authorship.
 	writeFixture(t, owned[1], []byte(strings.ReplaceAll(string(skill), "\n", "\r\n")))
 	writeFixture(t, owned[2], releasedFixture(t, "v3.7.0", "skill-sdd-verify-report-format.md"))
@@ -107,7 +107,7 @@ func TestRetireSDDAssetsRemovesOnlyOwnedFiles(t *testing.T) {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
 
-	res, err := RetireSDDAssets(model.AgentOpenCode, dirs)
+	res, err := RetireSDDAssets(model.AgentCodex, dirs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestRetireSDDAssetsRemovesOnlyOwnedFiles(t *testing.T) {
 		t.Errorf("ManualActions = %v", actions)
 	}
 
-	again, err := RetireSDDAssets(model.AgentOpenCode, dirs)
+	again, err := RetireSDDAssets(model.AgentCodex, dirs)
 	if err != nil || len(again.Removed) != 0 || !slices.Equal(again.Preserved, res.Preserved) {
 		t.Fatalf("second retirement = %+v, %v", again, err)
 	}

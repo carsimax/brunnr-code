@@ -2,27 +2,18 @@
 package reviewassets
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/capabilitymanifest"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewerprovider"
 )
 
 const identityPlaceholder = "{{GENTLE_AI_RUNTIME_AGENT_ID}}"
 const captureStart = "<!-- reviewer-capture-transport:start -->"
 const captureEnd = "<!-- reviewer-capture-transport:end -->"
-
-const openCodeGroup = "### OpenCode Concurrent Reviewer Group (MANDATORY)\n\n" +
-	"When one fresh `collect.inputs` set contains multiple distinct independent `review.capture-result` reviewer slots, emit one grouped OpenCode `task` tool-call response with one foreground task per input in provider order. For canonical 4R, preserve `review-risk`, `review-resilience`, `review-readability`, `review-reliability` order.\n\n" +
-	"Each task copies its own `provider_task.agent` exactly as `subagent_type` and its own `provider_task.prompt` exactly as `prompt`. Do not parse, reconstruct, fence, or append text to either value. Do not set a `background` flag. Do not wait between launches; wait for every foreground task result. Completion order is not authority: shared Go admission/election owns reduction and semantics. The final admitted capture owns reduction and closure. On `approved`, authority is already burned: do not FINALIZE or issue a trailing STATUS. On `correction_required`, continue only through exact bound STATUS and the provider-issued `review.capture-correction-plan` binding. After a malformed or nonterminal capture, reconcile through exact bound STATUS and retry only an identically reoffered slot."
-
-// OpenCodeConcurrentReviewerGroupContract is the runtime-specific group wording.
-const OpenCodeConcurrentReviewerGroupContract = openCodeGroup
 
 const concurrentGroup = "### Concurrent Reviewer Group (MANDATORY)\n\n" +
 	"When one fresh `collect.inputs` set contains multiple distinct independent `review.capture-result` reviewer slots, launch every returned capture operation concurrently in provider order: start all without waiting between launches, then wait for every result. For canonical 4R, preserve `review-risk`, `review-resilience`, `review-readability`, `review-reliability` order.\n\n" +
@@ -45,14 +36,7 @@ func ReviewExecutionContractFor(agent model.AgentID) (string, error) {
 // ContractFor renders the shared review contract for an agent's transport.
 func ContractFor(agent model.AgentID) string {
 	contract := selectTransport(strings.TrimSpace(assets.MustRead("skills/_shared/review-ledger-contract.md")), agent)
-	switch {
-	case agent == model.AgentOpenCode:
-		rendered := contract + "\n\n" + openCodeGroup
-		if major, err := opencode.DetectRuntimeMajor(context.Background()); err == nil && major == opencode.RuntimeV2 {
-			rendered = strings.NewReplacer("`task`", "`subagent`", "`subagent_type`", "`agent`").Replace(rendered)
-		}
-		return rendered
-	case reviewerprovider.RegisteredRuntime(agent):
+	if reviewerprovider.RegisteredRuntime(agent) {
 		return contract + "\n\n" + concurrentGroup
 	}
 	return contract

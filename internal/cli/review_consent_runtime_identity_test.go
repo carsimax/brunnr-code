@@ -1,7 +1,7 @@
 package cli
 
 // Issue #2676: a negotiated START explicitly bound to a non-Claude runtime
-// (OpenCode, Codex) reported "claude-code" as the consent/v3 envelope's
+// (Codex) reported "claude-code" as the consent/v3 envelope's
 // top-level `agent`, while the envelope's own follow-up invocations were
 // already correctly bound to the real runtime. These tests pin the fix: the
 // top-level identity now matches the declared binding, and Validate() stays
@@ -21,7 +21,7 @@ import (
 // declared binding, exactly like its follow-up invocations already did. The
 // claude-code case is the regression check: it must stay exactly as today.
 func TestNegotiatedConsentEnvelopeBindsTheDeclaredRuntimeIdentity(t *testing.T) {
-	for _, agent := range []string{"opencode", "codex", "claude-code"} {
+	for _, agent := range []string{"codex", "claude-code"} {
 		t.Run(agent, func(t *testing.T) {
 			reviewEnabledHome(t)
 			repo := initReviewCLIRepo(t)
@@ -71,11 +71,7 @@ func TestConsentValidateRejectsUnknownOrEmptyRuntimeIdentity(t *testing.T) {
 		agent string
 	}{
 		{name: "unknown runtime", agent: "not-a-real-runtime"},
-		// Kilocode is eligible under the fixed RDD policy but dormant for the
-		// immutable-review-executor contract (no proven fresh-reviewer
-		// boundary yet), so it can never legitimately reach negotiated START
-		// consent; the v3 envelope must not name it either.
-		{name: "eligible but unsupported runtime", agent: "kilocode"},
+		{name: "retired runtime", agent: "retired-runtime"},
 		{name: "empty runtime", agent: ""},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

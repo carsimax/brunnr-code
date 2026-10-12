@@ -10,8 +10,7 @@ import (
 )
 
 // The documented negotiated lifecycle route in
-// internal/assets/claude/commands/gentle-sdd-apply.md and
-// internal/assets/opencode/commands/sdd-apply.md declares no runtime
+// internal/assets/claude/commands/gentle-sdd-apply.md declares no runtime
 // identity. A read-only STATUS creates no authority, tier, budget, or
 // collection state, so it has nothing to fail closed over: an undeclared
 // identity is the manual/non-agent compatibility path that
@@ -98,22 +97,14 @@ func TestNegotiatedRouteWithoutRuntimeIdentityReachesStart(t *testing.T) {
 
 // The refusal for a genuinely unsupported declared runtime is untouched.
 //
-// OpenCode used to stand here as this test's eligible-but-transport-disabled
-// example. Issue #2417 gave it a genuine immutable transport, so it is no
-// longer an instance of the class this test is about, and asserting it still
-// refuses would assert the defect rather than the property. Kilocode replaces
-// it and keeps this arm's coverage exact: it is eligible, has no transport,
-// and fails with the same reviewImmutableTransportUnsupportedCode, unlike Pi,
-// which fails earlier with reviewTransportCapabilityUnsupportedCode.
-//
-// Codex also reaches the shared provider contract through its native adapter,
+// Codex reaches the shared provider contract through its native adapter,
 // so it is not an instance of the unsupported class either. The unknown
 // identity is unchanged, so the property this test protects -- a declared
 // identity is validated exactly as before, and every unsupported one still
 // stops -- is still proven by two runtimes.
 func TestDeclaredUnsupportedRuntimeStillRefusesNegotiatedStatus(t *testing.T) {
 	repo := initReviewCLIRepo(t)
-	for _, runtime := range []string{string(model.AgentKilocode), "unknown-runtime"} {
+	for _, runtime := range []string{"retired-runtime", "unknown-runtime"} {
 		t.Run(runtime, func(t *testing.T) {
 			var output bytes.Buffer
 			if err := RunReview([]string{
@@ -131,16 +122,14 @@ func TestDeclaredUnsupportedRuntimeStillRefusesNegotiatedStatus(t *testing.T) {
 
 // TestDeclaredBuiltInRuntimeUsesProvenExecutorBoundary prevents the capability
 // declaration from drifting from the supported fresh reviewer paths. Claude
-// and OpenCode use their native provider contract in an ordinary session,
-// without `OPENCODE_DISABLE_*` environment controls; Codex invokes its native
-// provider adapter through the same Go-owned contract.
+// uses its native provider contract in an ordinary session; Codex invokes its
+// native provider adapter through the same Go-owned contract.
 func TestDeclaredBuiltInRuntimeUsesProvenExecutorBoundary(t *testing.T) {
 	repo := initReviewCLIRepo(t)
 	for _, test := range []struct {
 		runtime string
 	}{
 		{runtime: string(model.AgentClaudeCode)},
-		{runtime: string(model.AgentOpenCode)},
 		{runtime: string(model.AgentCodex)},
 	} {
 		t.Run(test.runtime, func(t *testing.T) {

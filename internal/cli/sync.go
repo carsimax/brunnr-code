@@ -3,7 +3,6 @@ package cli
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -18,7 +17,6 @@ import (
 	"time"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
-	opencodeagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/agentguidance"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/communitytool"
@@ -26,17 +24,12 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/gga"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/mcp"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencodedefault"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencodeplugin"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencoderuntimeplugins"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/permissions"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/persona"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/reviewassets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/skills"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/telemetryruntime"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/theme"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	opencodeactivation "github.com/gentleman-programming/gentle-ai/v4/internal/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/pipeline"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/planner"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
@@ -55,9 +48,6 @@ type SyncFlags struct {
 	IncludeTheme       bool
 	Scope              string
 	DryRun             bool
-
-	OpenCodeBackgroundSubagents    string
-	OpenCodeBackgroundSubagentsSet bool
 
 	skillsSet      bool
 	sddModeSet     bool
@@ -90,9 +80,6 @@ type SyncResult struct {
 	// DryRunStops lists refusals a dry-run found that the real sync would stop
 	// on before writing anything.
 	DryRunStops []string
-
-	Background              OpenCodeBackgroundResolution
-	BackgroundPolicyEnabled bool
 
 	// SkippedAgents lists selected agents this sync deliberately did not
 	// touch, each with the actionable reason. A non-empty list makes the sync
@@ -131,33 +118,6 @@ func (s SyncSkippedAgent) Action() string {
 	return fmt.Sprintf("%s was skipped: %s; then re-run `gentle-ai sync`", s.Agent, s.Reason)
 }
 
-// skipUndetectableOpenCode probes the OpenCode runtime once per sync, before
-// any plan is built. Every OpenCode sync step is either version-specific
-// (managed plugins, telemetry, SDK preflight) or shares OpenCode's config
-// transaction, so an unknown runtime removes OpenCode from the selection as a
-// whole and the other agents still sync. An OpenCode-only sync has nothing
-// else to apply and keeps the fail-closed refusal.
-func skipUndetectableOpenCode(selection *model.Selection) ([]SyncSkippedAgent, error) {
-	if !containsAgent(selection.Agents, model.AgentOpenCode) {
-		return nil, nil
-	}
-	_, err := openCodeRuntimeMajorForManagedAssets()
-	if err == nil {
-		return nil, nil
-	}
-	remaining := make([]model.AgentID, 0, len(selection.Agents))
-	for _, agent := range selection.Agents {
-		if agent != model.AgentOpenCode {
-			remaining = append(remaining, agent)
-		}
-	}
-	if len(remaining) == 0 {
-		return nil, err
-	}
-	selection.Agents = remaining
-	return []SyncSkippedAgent{{Agent: model.AgentOpenCode, Reason: err.Error()}}, nil
-}
-
 // finishPartialSync attaches skipped agents to a sync result and turns an
 // otherwise successful partial sync into a *PartialSyncError.
 func finishPartialSync(result SyncResult, err error, skipped []SyncSkippedAgent) (SyncResult, error) {
@@ -189,7 +149,6 @@ func ParseSyncFlags(args []string) (SyncFlags, error) {
 	fs.BoolVar(&opts.IncludePermissions, "include-permissions", false, "include permissions component in sync")
 	fs.BoolVar(&opts.IncludeTheme, "include-theme", false, "include theme component in sync")
 	fs.StringVar(&opts.Scope, "scope", "", "sync scope: global (default) or workspace — env: GENTLE_AI_INSTALL_SCOPE")
-	fs.StringVar(&opts.OpenCodeBackgroundSubagents, "opencode-background-subagents", "", "--opencode-background-subagents=auto|on|off; env: GENTLE_AI_OPENCODE_BACKGROUND_SUBAGENTS; eligible versions use a managed launcher")
 	fs.BoolVar(&opts.DryRun, "dry-run", false, "preview plan without executing")
 
 	if err := fs.Parse(args); err != nil {
@@ -216,8 +175,6 @@ func ParseSyncFlags(args []string) (SyncFlags, error) {
 			opts.permissionsSet = true
 		case "include-theme":
 			opts.themeSet = true
-		case "opencode-background-subagents":
-			opts.OpenCodeBackgroundSubagentsSet = true
 		}
 	})
 
@@ -244,9 +201,6 @@ FLAGS
   --include-theme                    Include theme component
   --scope global|workspace           Sync scope (env: GENTLE_AI_INSTALL_SCOPE)
                                      workspace refreshes only workspace-scoped files and never mutates global state, telemetry, backups, plugins, or routing guidance; components managed only globally are skipped
-  --opencode-background-subagents=auto|on|off
-                                     Resolve OpenCode capability and manage a launcher when eligible; env: GENTLE_AI_OPENCODE_BACKGROUND_SUBAGENTS
-                                     auto inherits managed on/off, unsupported/unknown stays foreground, off removes only owned launchers
   --dry-run                          Preview plan without executing
   --help, -h                         Show this help
 `)
@@ -405,37 +359,6 @@ func DiscoverAgents(homeDir string) []model.AgentID {
 	return ids
 }
 
-// syncOpenCodeSettingsPath is the sync-layer OpenCode settings resolver.
-// Global scope delegates to the shared project-over-global resolver; workspace
-// scope targets the project file OpenCode actually loads in the workspace —
-// never the global authority, and never the unreadable
-// <workspace>/.config/opencode/opencode.json (issue #1074). Non-OpenCode
-// adapters keep their scoped settings path.
-func syncOpenCodeSettingsPath(homeDir, workspaceDir string, scope InstallScope, adapter agents.Adapter) string {
-	if adapter.Agent() == model.AgentOpenCode && scope == ScopeWorkspace {
-		return workspaceOpenCodeSettingsPath(workspaceDir)
-	}
-	return effectiveOpenCodeSettingsPath(homeDir, workspaceDir, scope, adapter)
-}
-
-// workspaceOpenCodeSettingsPath resolves the project settings document a
-// workspace-scoped sync writes for OpenCode: <workspace>/opencode.json, or an
-// existing opencode.jsonc (OpenCode loads both from the project root),
-// defaulting to opencode.json when neither exists. OpenCode never reads
-// <workspace>/.config/opencode/opencode.json, so writing that file would be a
-// false success the runtime can never observe (issue #1074).
-func workspaceOpenCodeSettingsPath(workspaceDir string) string {
-	jsonPath := filepath.Join(workspaceDir, "opencode.json")
-	if info, err := os.Lstat(jsonPath); err == nil && info.Mode().IsRegular() {
-		return jsonPath
-	}
-	jsoncPath := filepath.Join(workspaceDir, "opencode.jsonc")
-	if info, err := os.Lstat(jsoncPath); err == nil && info.Mode().IsRegular() {
-		return jsoncPath
-	}
-	return jsonPath
-}
-
 // syncRuntime mirrors installRuntime but builds a sync-scoped StagePlan.
 // It reuses backup/rollback infrastructure but only calls inject functions —
 // no agentInstallStep, no engram setup, no persona.
@@ -452,9 +375,6 @@ type syncRuntime struct {
 	changedFiles         []string // accumulates candidate paths reported by component injectors
 	skippedActions       []string // workspace-scope skips of global-only operations, surfaced as manual actions
 	skippedParts         []SyncSkippedAgent
-	backgroundPolicy     bool
-	backgroundActivation *opencodeactivation.ActivationPlan
-	runtimeReady         bool
 }
 
 // newSyncRuntimeWithScope builds the sync runtime for the requested scope.
@@ -518,49 +438,22 @@ func (r *syncRuntime) stagePlan() pipeline.StagePlan {
 		},
 	}
 
-	telemetryDir := openCodeTelemetryConfigDir(r.homeDir, r.workspaceDir, r.scope, r.agentIDs)
-	if telemetryDir != "" {
-		prepare = append([]pipeline.Step{openCodeTelemetryStep{id: "prepare:opencode-telemetry", configDir: telemetryDir, checkOnly: true}}, prepare...)
-	}
-	if containsAgent(r.agentIDs, model.AgentOpenCode) {
-		prepare = append([]pipeline.Step{openCodePluginDependencyPreflightStep{id: "prepare:opencode-plugin-dependency", homeDir: r.homeDir}}, prepare...)
-	}
-	// The read-only settings refusal is prepended last so it runs first in the
-	// prepare stage (issue #5035): an unsafe selected settings document must
-	// fail before the SDK dependency install, telemetry, plugin, Persona,
-	// Engram, or guidance steps can mutate any managed file.
-	if containsAgent(r.agentIDs, model.AgentOpenCode) {
-		prepare = append([]pipeline.Step{openCodeSettingsValidationStep{
-			id:           "prepare:opencode-settings-validation",
-			settingsPath: syncOpenCodeSettingsPath(r.homeDir, r.workspaceDir, r.scope, opencodeagent.NewAdapter()),
-			// A workspace sync skips OpenCode routing guidance (global only), but
-			// persisted model assignments still write agent in every scope.
-			touchedKeys: openCodeSettingsWriterKeys(installOrderedComponents(r.selection.Components), r.scope != ScopeWorkspace, len(r.selection.ModelAssignments) > 0),
-		}}, prepare...)
-	}
 	apply := []pipeline.Step{
-		rollbackRestoreStep{id: "apply:rollback-restore", state: r.state, homeDir: r.homeDir, workspaceDir: r.workspaceDir, telemetryConfigDir: telemetryDir},
-	}
-	if telemetryDir != "" {
-		apply = append(apply, openCodeTelemetryStep{id: "sync:opencode:telemetry-runtime", configDir: telemetryDir, changedFiles: &r.changedFiles, state: r.state})
-	}
-	if r.backgroundActivation != nil {
-		apply = append(apply, openCodeBackgroundActivationStep{id: "sync:opencode:background-activation", plan: r.backgroundActivation, state: r.state, ready: &r.runtimeReady})
+		rollbackRestoreStep{id: "apply:rollback-restore", state: r.state, homeDir: r.homeDir, workspaceDir: r.workspaceDir},
 	}
 
 	for _, component := range installOrderedComponents(r.selection.Components) {
 		apply = append(apply, componentSyncStep{
-			id:               "sync:component:" + string(component),
-			component:        component,
-			homeDir:          r.homeDir,
-			workspaceDir:     r.workspaceDir,
-			scope:            r.scope,
-			agents:           r.agentIDs,
-			selection:        r.selection,
-			changedFiles:     &r.changedFiles,
-			skipped:          &r.skippedActions,
-			state:            r.state,
-			backgroundPolicy: r.backgroundPolicy,
+			id:           "sync:component:" + string(component),
+			component:    component,
+			homeDir:      r.homeDir,
+			workspaceDir: r.workspaceDir,
+			scope:        r.scope,
+			agents:       r.agentIDs,
+			selection:    r.selection,
+			changedFiles: &r.changedFiles,
+			skipped:      &r.skippedActions,
+			state:        r.state,
 		})
 	}
 	if r.scope == ScopeGlobal && needsCompatibilitySkillsRefresh(r.selection.Components) {
@@ -584,8 +477,6 @@ func (r *syncRuntime) stagePlan() pipeline.StagePlan {
 	// After the native installer: it rewrites a Gentle-owned v3 Kimi
 	// gentleman.yaml, so the SDD subagents it declared can be retired now.
 	apply = append(apply, retiredSDDAgentSteps("sync:agent:retire-sdd:", r.homeDir, r.scope, r.agentIDs, &r.changedFiles, r.state)...)
-	// Before routing guidance, which rewrites the same settings documents.
-	apply = append(apply, retiredOpenCodeSDDSettingsSteps("sync:agent:retire-sdd-settings:", r.homeDir, r.workspaceDir, r.scope, r.agentIDs, &r.changedFiles, r.state)...)
 
 	// Routing guidance is refreshed per agent and outside the component loop, for
 	// the same reason install schedules it there: a persisted selection without
@@ -606,7 +497,6 @@ func (r *syncRuntime) stagePlan() pipeline.StagePlan {
 			codexPhaseModels: r.selection.CodexPhaseModelAssignments,
 			codexEfforts:     r.selection.CodexModelAssignments,
 			codexCarrils:     r.selection.CodexCarrilModelAssignments,
-			backgroundPolicy: r.backgroundPolicy,
 			legacySDD:        false,
 			id:               "sync:agent-guidance:" + string(agent),
 			agent:            agent,
@@ -614,45 +504,6 @@ func (r *syncRuntime) stagePlan() pipeline.StagePlan {
 			workspaceDir:     r.workspaceDir,
 			scope:            r.scope,
 			changedFiles:     &r.changedFiles,
-		})
-	}
-
-	// Model assignments belong to the retained OpenCode sync route, not the
-	// retired SDD component. Run after guidance so both updates to opencode.json
-	// are included in the same sync transaction.
-	if len(r.selection.ModelAssignments) > 0 {
-		for _, adapter := range adapters {
-			if adapter.Agent() == model.AgentOpenCode {
-				apply = append(apply, openCodeModelAssignmentSyncStep{
-					path:        syncOpenCodeSettingsPath(r.homeDir, r.workspaceDir, r.scope, adapter),
-					assignments: r.selection.ModelAssignments, changedFiles: &r.changedFiles,
-				})
-			}
-		}
-	}
-
-	// Retire remaining markers only after routing has consumed them as ownership
-	// proof to remove retired agents and refresh current roles. Assignments may
-	// also write settings, so cleanup runs after those updates as well.
-	for _, adapter := range adapters {
-		if adapter.Agent() == model.AgentOpenCode {
-			apply = append(apply, &openCodeMarkerMigrationSyncStep{
-				path: syncOpenCodeSettingsPath(r.homeDir, r.workspaceDir, r.scope, adapter), changedFiles: &r.changedFiles,
-			})
-		}
-	}
-
-	// Managed OpenCode-compatible plugins are versioned runtime artifacts tied
-	// to the installed binary (OpenCode and Kilocode receive them). Sync
-	// converges them exactly as install does, so upgrades refresh them and a
-	// missing plugin is recreated (issues #1440, #5192, #5099).
-	if r.scope == ScopeGlobal && anyAgentReceivesManagedOpenCodePlugins(r.agentIDs) {
-		apply = append(apply, openCodePluginSyncStep{
-			id:           "sync:opencode:managed-plugins",
-			homeDir:      r.homeDir,
-			agents:       r.agentIDs,
-			changedFiles: &r.changedFiles,
-			skipped:      &r.skippedParts,
 		})
 	}
 
@@ -718,18 +569,6 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 		if component == model.ComponentPersona {
 			plan := persona.ResourcePlanFor(selection.Persona)
 			for _, adapter := range componentAdapters {
-				if adapter.Agent() == model.AgentOpenCode || adapter.Agent() == model.AgentKilocode {
-					// Persona sync can remove stale managed agent state from settings.
-					// This target is backup-only: syncPersonaPaths intentionally does
-					// not make best-effort cleanup a post-sync verification target.
-					path := adapter.SettingsPath(componentInjectionDirScoped(homeDir, workspaceDir, scope, adapter))
-					if adapter.Agent() == model.AgentOpenCode {
-						path = syncOpenCodeSettingsPath(homeDir, workspaceDir, scope, adapter)
-					}
-					if path != "" {
-						paths[path] = struct{}{}
-					}
-				}
 				if !adapter.SupportsOutputStyles() {
 					continue
 				}
@@ -737,18 +576,6 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 				for _, path := range plan.OutputStylePaths(adapter.OutputStyleDir(targetDir)).Backup {
 					paths[path] = struct{}{}
 				}
-			}
-		}
-	}
-	for _, adapter := range adapters {
-		if adapter.Agent() == model.AgentOpenCode {
-			paths[syncOpenCodeSettingsPath(homeDir, workspaceDir, scope, adapter)] = struct{}{}
-		}
-	}
-	if len(selection.ModelAssignments) > 0 {
-		for _, adapter := range adapters {
-			if adapter.Agent() == model.AgentOpenCode {
-				paths[syncOpenCodeSettingsPath(homeDir, workspaceDir, scope, adapter)] = struct{}{}
 			}
 		}
 	}
@@ -785,11 +612,6 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 	for _, path := range retiredSDDAgentBackupPaths(homeDir, scope, adapters) {
 		paths[path] = struct{}{}
 	}
-	for _, adapter := range adapters {
-		for _, path := range retiredOpenCodeSDDBackupPaths(homeDir, workspaceDir, scope, []model.AgentID{adapter.Agent()}) {
-			paths[path] = struct{}{}
-		}
-	}
 	for _, adapter := range guidanceAdapters {
 		// The routing step installs the retained review/telemetry and
 		// skill-registry hooks into the home Claude settings, whatever
@@ -810,27 +632,6 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 		}
 		if adapter.Agent() == model.AgentCodex {
 			paths[filepath.Join(adapter.GlobalConfigDir(componentInjectionDirScoped(homeDir, workspaceDir, scope, adapter)), "hooks.json")] = struct{}{}
-		}
-	}
-	if configDir := openCodeTelemetryConfigDir(homeDir, workspaceDir, scope, selection.Agents); configDir != "" {
-		for _, path := range telemetryruntime.ManagedPaths(configDir) {
-			paths[path] = struct{}{}
-		}
-	}
-	// Managed OpenCode-compatible plugin paths are part of sync's
-	// backup/snapshot contract whenever a plugin-receiving agent (OpenCode,
-	// Kilocode) is synced: openCodePluginSyncStep may write, recreate, or
-	// retire them (issue #1440).
-	// Plugins are binary-versioned runtime artifacts in the global config root,
-	// so a workspace sync neither refreshes nor snapshots them.
-	if !workspace {
-		for _, adapter := range adapters {
-			if !opencoderuntimeplugins.AgentReceivesManagedOpenCodePlugins(adapter.Agent()) {
-				continue
-			}
-			for _, path := range opencoderuntimeplugins.PluginPaths(homeDir, adapter) {
-				paths[path] = struct{}{}
-			}
 		}
 	}
 	adapterSkillPaths, err := syncAdapterSkillBackupTargetsScoped(homeDir, workspaceDir, scope, selection, adapters)
@@ -860,12 +661,6 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 			paths[path] = struct{}{}
 		}
 	}
-	if !workspace && containsAgent(selection.Agents, model.AgentOpenCode) {
-		for _, path := range opencodeactivation.LauncherPaths(homeDir, runtime.GOOS) {
-			paths[path] = struct{}{}
-		}
-	}
-
 	targets := make([]string, 0, len(paths))
 	for path := range paths {
 		if workspace && pathUnderHomeOnly(path, homeDir, workspaceDir) {
@@ -908,16 +703,10 @@ func syncAdapterSkillBackupTargetsScoped(homeDir, workspaceDir string, scope Ins
 	return paths, nil
 }
 
-// syncComponentPaths declares the file paths sync writes for a given component.
-//
-// For most components the contract is identical to install (componentPaths).
-// ComponentPersona is the exception: sync calls persona.InjectForSync rather
-// than merging persona definitions. Its narrow OpenCode cleanup remains a
-// backup-only transaction target, not a post-sync verification path.
 // pathUnderHomeOnly reports whether a declared managed path resolves under
 // the home root without being inside the workspace. Workspace-scoped syncs
-// never write there, so such declarations (for example the global OpenCode
-// settings authority) must not become workspace verification targets.
+// never write there, so such declarations must not become workspace
+// verification targets.
 func pathUnderHomeOnly(path, homeDir, workspaceDir string) bool {
 	if pathUnder(path, workspaceDir) {
 		return false
@@ -938,7 +727,7 @@ func pathUnder(path, dir string) bool {
 // leaking writes into the user's home (issue #1074).
 func workspaceGlobalOnlyComponent(component model.ComponentID) bool {
 	switch component {
-	case model.ComponentGGA, model.ComponentClaudeTheme, model.ComponentOpenCodeGentleLogo:
+	case model.ComponentGGA, model.ComponentClaudeTheme:
 		return true
 	}
 	return false
@@ -954,23 +743,19 @@ func workspaceAdapterManagedGlobally(component model.ComponentID, agent model.Ag
 		// ~/.openclaw/openclaw.json.
 		return agent == model.AgentOpenClaw
 	case model.ComponentPermission, model.ComponentTheme:
-		// Only OpenCode resolves a workspace-managed settings authority; other
-		// agents write their global settings file.
-		return agent != model.AgentOpenCode
+		// Every agent writes its global settings file.
+		return true
 	}
 	return false
 }
 
 // workspaceRoutingGuidanceGlobalOnly reports whether an agent's routing
-// guidance step mutates home-level state regardless of scope: orchestrator
-// settings (OpenCode, Kilocode), home-targeted hook installation (Claude Code
-// review hooks, Codex telemetry/skill-registry hooks). The step couples those global writes with prompt guidance and
+// guidance step mutates home-level state regardless of scope: home-targeted
+// hook installation (Claude Code review hooks, Codex telemetry/skill-registry
+// hooks). The step couples those global writes with prompt guidance and
 // lives outside this file's scope, so a workspace sync skips the whole step
 // instead of leaking (issue #1074).
 func workspaceRoutingGuidanceGlobalOnly(agent model.AgentID) bool {
-	if agentguidance.DeliversThroughOrchestratorPrompt(agent) {
-		return true
-	}
 	switch agent {
 	case model.AgentClaudeCode, model.AgentCodex:
 		return true
@@ -1035,163 +820,6 @@ func syncPersonaPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Ins
 	return paths
 }
 
-// componentSyncStep is the sync-specific apply step.
-// Unlike componentApplyStep, it ONLY calls inject functions —
-// no binary install, no engram setup, no persona injection.
-//
-// changedFiles is a shared slice pointer. Each step appends candidate paths
-// from its aggregate InjectionResult when any file changed. RunSync compares
-// candidates with pre-sync snapshots before exposing persisted changes.
-// openCodeMarkerMigrationSyncStep retires only known legacy generated-agent
-// markers. The pipeline snapshot includes its settings path for rollback.
-type openCodeMarkerMigrationSyncStep struct {
-	path         string
-	changedFiles *[]string
-	before       []byte
-	mode         os.FileMode
-	changed      bool
-}
-
-func (s *openCodeMarkerMigrationSyncStep) ID() string { return "sync:opencode:legacy-markers" }
-
-func (s *openCodeMarkerMigrationSyncStep) Run() error {
-	info, err := os.Lstat(s.path)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("stat OpenCode settings: %w", err)
-	}
-	if !info.Mode().IsRegular() {
-		return fmt.Errorf("refuse non-regular OpenCode settings %q: inspect the path and use a regular settings file (not a symlink), then rerun gentle-ai sync", s.path)
-	}
-	raw, err := os.ReadFile(s.path)
-	if err != nil {
-		return fmt.Errorf("read OpenCode settings: %w", err)
-	}
-	// Retired sdd-* agents are never eligible: their marker is the ownership
-	// proof the settings retirement deletes them by.
-	names := append([]string{"gentle-orchestrator"}, opencodeactivation.GentleAIODDPhases()...)
-	names = append(names, opencodeactivation.JDPhases()...)
-	names = append(names, opencodeactivation.ReviewPhases()...)
-	updated, err := filemerge.RemoveLegacyOpenCodeAgentMarkers(s.path, raw, names)
-	if err != nil {
-		return fmt.Errorf("migrate OpenCode agent markers: %w", err)
-	}
-	if bytes.Equal(raw, updated) {
-		return nil
-	}
-	s.before, s.mode = raw, info.Mode().Perm()
-	result, err := filemerge.WriteFileAtomic(s.path, updated, s.mode)
-	s.changed = result.Changed
-	if result.Changed && s.changedFiles != nil {
-		*s.changedFiles = append(*s.changedFiles, s.path)
-	}
-	if err != nil {
-		return fmt.Errorf("write OpenCode agent markers: %w", err)
-	}
-	return nil
-}
-
-func (s *openCodeMarkerMigrationSyncStep) Rollback() error {
-	if !s.changed {
-		return nil
-	}
-	_, err := filemerge.WriteFileAtomicMode(s.path, s.before, s.mode)
-	return err
-}
-
-// openCodeModelAssignmentSyncStep persists picker choices independently of the
-// retired SDD component. Only current picker identities are eligible; legacy
-// saved SDD keys must not be resurrected by an ordinary sync.
-type openCodeModelAssignmentSyncStep struct {
-	path         string
-	assignments  map[string]model.ModelAssignment
-	changedFiles *[]string
-}
-
-func (s openCodeModelAssignmentSyncStep) ID() string { return "sync:opencode:model-assignments" }
-
-func (s openCodeModelAssignmentSyncStep) Run() error {
-	// Refuse leaf links before discovery/read: following one can read and then
-	// overwrite a target not covered by the sync snapshot. The atomic writer
-	// independently refuses leaf links at publication time.
-	info, err := os.Lstat(s.path)
-	if err == nil && !info.Mode().IsRegular() {
-		return fmt.Errorf("refuse non-regular OpenCode settings %q: move the symlink or directory aside, place a regular file at this path, then rerun `gentle-ai sync`", s.path)
-	}
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("stat OpenCode settings: %w", err)
-	}
-	custom, err := opencodedefault.DiscoverCustomAgents(s.path)
-	if err != nil {
-		return fmt.Errorf("discover OpenCode custom agents: %w", err)
-	}
-	allowed := map[string]bool{"gentle-orchestrator": true, "general": true, "explore": true}
-	for _, name := range opencodeactivation.GentleAIODDPhases() {
-		allowed[name] = true
-	}
-	for _, name := range opencodeactivation.JDPhases() {
-		allowed[name] = true
-	}
-	for _, name := range opencodeactivation.ReviewPhases() {
-		allowed[name] = true
-	}
-	for _, name := range custom {
-		allowed[name] = true
-	}
-	agents := make(map[string]any)
-	for name, assignment := range s.assignments {
-		if !allowed[name] || assignment.ProviderID == "" || assignment.ModelID == "" {
-			continue
-		}
-		entry := map[string]any{"model": assignment.FullID()}
-		// Omitting variant on an effortless custom assignment preserves the
-		// user's own value; an explicit picker effort may replace it (#3262).
-		if assignment.Effort != "" {
-			entry["variant"] = assignment.Effort
-		}
-		agents[name] = entry
-	}
-	if len(agents) == 0 {
-		return nil
-	}
-	original, err := os.ReadFile(s.path)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("read OpenCode settings: %w", err)
-	}
-	if len(original) > 0 {
-		if _, err := filemerge.UnmarshalJSONObject(original); err != nil {
-			return fmt.Errorf("refuse to change malformed OpenCode settings: %w", err)
-		}
-	}
-	overlay, err := json.Marshal(map[string]any{"agent": agents})
-	if err != nil {
-		return fmt.Errorf("marshal OpenCode model assignments: %w", err)
-	}
-	updated, err := filemerge.MergeJSONObjectsForPath(s.path, original, overlay)
-	if err != nil {
-		return fmt.Errorf("merge OpenCode model assignments: %w", err)
-	}
-	if bytes.Equal(original, updated) {
-		return nil
-	}
-	mode := os.FileMode(0644)
-	if info != nil {
-		mode = info.Mode().Perm()
-	}
-	result, err := filemerge.WriteFileAtomic(s.path, updated, mode)
-	// Publication can land before a subsequent durability check fails. Report
-	// the landed path so transaction rollback has the correct evidence.
-	if result.Changed {
-		*s.changedFiles = append(*s.changedFiles, s.path)
-	}
-	if err != nil {
-		return fmt.Errorf("write OpenCode model assignments: %w", err)
-	}
-	return nil
-}
-
 type componentSyncStep struct {
 	id           string
 	component    model.ComponentID
@@ -1219,55 +847,6 @@ type codeGraphGuidanceSyncStep struct {
 	guidanceBeforeSync bool
 }
 
-// openCodePluginSyncStep converges managed OpenCode-compatible plugins
-// (OpenCode, Kilocode) with install: it rewrites them from the running
-// binary's assets, recreates missing ones, and retires legacy plugins. Bytes no
-// Gentle AI release shipped are refused and preserved (issues #5185, #5192,
-// #5099).
-type openCodePluginSyncStep struct {
-	id           string
-	homeDir      string
-	agents       []model.AgentID
-	changedFiles *[]string
-	// skipped collects agents whose plugin convergence was refused because a
-	// plugin path is user-owned; the rest of the sync still runs (#5393).
-	skipped *[]SyncSkippedAgent
-}
-
-func (s openCodePluginSyncStep) ID() string { return s.id }
-
-func (s openCodePluginSyncStep) Run() error {
-	for _, adapter := range resolveAdapters(s.agents) {
-		if !opencoderuntimeplugins.AgentReceivesManagedOpenCodePlugins(adapter.Agent()) {
-			continue
-		}
-		res, err := opencoderuntimeplugins.Install(s.homeDir, adapter)
-		var userOwned *opencoderuntimeplugins.UserOwnedPathError
-		if errors.As(err, &userOwned) && s.skipped != nil {
-			*s.skipped = append(*s.skipped, SyncSkippedAgent{Agent: adapter.Agent(), Part: "managed plugins", Reason: err.Error()})
-			continue
-		}
-		if err != nil {
-			return fmt.Errorf("sync managed OpenCode plugins: %w", err)
-		}
-		if s.changedFiles != nil && res.Changed {
-			*s.changedFiles = append(*s.changedFiles, res.Files...)
-		}
-	}
-	return nil
-}
-
-// anyAgentReceivesManagedOpenCodePlugins reports whether any synced agent
-// receives the managed OpenCode-compatible plugins.
-func anyAgentReceivesManagedOpenCodePlugins(agentIDs []model.AgentID) bool {
-	for _, id := range agentIDs {
-		if opencoderuntimeplugins.AgentReceivesManagedOpenCodePlugins(id) {
-			return true
-		}
-	}
-	return false
-}
-
 func (s *codeGraphGuidanceSyncStep) ID() string {
 	return s.id
 }
@@ -1285,16 +864,6 @@ func (s *codeGraphGuidanceSyncStep) Run() (runErr error) {
 	}()
 
 	status := communitytool.DetectStatus(model.CommunityToolCodeGraph, s.homeDir, communitytool.DetectorFunc(cmdLookPath))
-	if status.CLI == communitytool.AvailabilityAvailable && communitytool.NeedsOpenCodeCodeGraphReconcile(s.homeDir) {
-		reconciled, err := communitytool.ReconcileOpenCodeCodeGraph(s.homeDir, s.runner)
-		if err != nil {
-			return fmt.Errorf("sync OpenCode CodeGraph wiring: %w", err)
-		}
-		if s.changedFiles != nil && reconciled.Changed {
-			*s.changedFiles = append(*s.changedFiles, reconciled.Files...)
-		}
-	}
-
 	res, configured, err := communitytool.RefreshCodeGraphGuidanceIfConfigured(s.homeDir, communitytool.DetectorFunc(cmdLookPath))
 	if err == nil && !configured && s.guidanceBeforeSync && status.CLI == communitytool.AvailabilityAvailable {
 		res, err = communitytool.InjectCodeGraphGuidance(s.homeDir)
@@ -1343,8 +912,16 @@ func (r codeGraphHomeRunner) Run(name string, args ...string) error {
 	return err
 }
 
+// codeGraphConfigHome resolves the XDG config root CodeGraph uses for
+// homeDir: an absolute XDG_CONFIG_HOME applies only to the real user home.
 func codeGraphConfigHome(homeDir string) string {
-	return filepath.Dir(opencodeagent.ConfigPath(homeDir))
+	if xdgConfigHome := strings.TrimSpace(os.Getenv("XDG_CONFIG_HOME")); filepath.IsAbs(xdgConfigHome) {
+		userHome, err := os.UserHomeDir()
+		if err == nil && filepath.Clean(homeDir) == filepath.Clean(userHome) {
+			return xdgConfigHome
+		}
+	}
+	return filepath.Join(homeDir, ".config")
 }
 
 func overrideCommandEnvironment(environment []string, overrides map[string]string) []string {
@@ -1418,7 +995,6 @@ func (s componentSyncStep) Run() error {
 			Version:                     engramVersion,
 		}
 		for _, adapter := range adapters {
-			engramOpts.OpenCodeSettingsPath = syncOpenCodeSettingsPath(s.homeDir, s.workspaceDir, s.scope, adapter)
 			var res engram.InjectionResult
 			var err error
 			if adapter.Agent() == model.AgentOpenClaw {
@@ -1447,13 +1023,7 @@ func (s componentSyncStep) Run() error {
 	case model.ComponentContext7:
 		for _, adapter := range adapters {
 			targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)
-			var res mcp.InjectionResult
-			var err error
-			if adapter.Agent() == model.AgentOpenCode {
-				res, err = mcp.InjectAtSettingsPath(s.homeDir, targetDir, adapter, syncOpenCodeSettingsPath(s.homeDir, s.workspaceDir, s.scope, adapter))
-			} else {
-				res, err = mcp.Inject(s.homeDir, targetDir, adapter)
-			}
+			res, err := mcp.Inject(s.homeDir, targetDir, adapter)
 			if err != nil {
 				return fmt.Errorf("sync context7 for %q: %w", adapter.Agent(), err)
 			}
@@ -1509,13 +1079,7 @@ func (s componentSyncStep) Run() error {
 	case model.ComponentPermission:
 		// Opt-in only — reached when --include-permissions is set.
 		for _, adapter := range adapters {
-			var res permissions.InjectionResult
-			var err error
-			if adapter.Agent() == model.AgentOpenCode {
-				res, err = permissions.InjectAtPath(syncOpenCodeSettingsPath(s.homeDir, s.workspaceDir, s.scope, adapter), adapter)
-			} else {
-				res, err = permissions.Inject(s.homeDir, adapter)
-			}
+			res, err := permissions.Inject(s.homeDir, adapter)
 			if err != nil {
 				return fmt.Errorf("sync permissions for %q: %w", adapter.Agent(), err)
 			}
@@ -1526,17 +1090,10 @@ func (s componentSyncStep) Run() error {
 	case model.ComponentPersona:
 		// Sync regenerates the persona block between
 		// <!-- gentle-ai:persona --> markers and (when supported) refreshes
-		// the Gentleman output-style overlay. We deliberately skip the
-		// OpenCode/Kilocode agent definition in opencode.json — that JSON
-		// merge conflicts with SDD's writes to the same settings file and
-		// remains an install-only concern.
+		// the Gentleman output-style overlay.
 		for _, adapter := range adapters {
 			targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)
-			selectedSettingsPath := ""
-			if adapter.Agent() == model.AgentOpenCode {
-				selectedSettingsPath = syncOpenCodeSettingsPath(s.homeDir, s.workspaceDir, s.scope, adapter)
-			}
-			res, err := injectSyncPersona(targetDir, adapter, s.selection.Persona, selectedSettingsPath)
+			res, err := injectSyncPersona(targetDir, adapter, s.selection.Persona)
 			if err != nil {
 				return fmt.Errorf("sync persona for %q: %w", adapter.Agent(), err)
 			}
@@ -1547,13 +1104,7 @@ func (s componentSyncStep) Run() error {
 	case model.ComponentTheme:
 		// Opt-in only — reached when --include-theme is set.
 		for _, adapter := range adapters {
-			var res theme.InjectionResult
-			var err error
-			if adapter.Agent() == model.AgentOpenCode {
-				res, err = theme.InjectAtPath(syncOpenCodeSettingsPath(s.homeDir, s.workspaceDir, s.scope, adapter))
-			} else {
-				res, err = theme.Inject(s.homeDir, adapter)
-			}
+			res, err := theme.Inject(s.homeDir, adapter)
 			if err != nil {
 				return fmt.Errorf("sync theme for %q: %w", adapter.Agent(), err)
 			}
@@ -1569,17 +1120,6 @@ func (s componentSyncStep) Run() error {
 			}
 			s.countChanged(boolToInt(res.Changed), res.Files...)
 		}
-		return nil
-
-	case model.ComponentOpenCodeGentleLogo:
-		if !containsAgent(s.agents, model.AgentOpenCode) {
-			return nil
-		}
-		res, err := opencodeplugin.Install(s.homeDir, model.OpenCodePluginGentleLogo)
-		if err != nil {
-			return fmt.Errorf("sync OpenCode Gentle Logo plugin: %w", err)
-		}
-		s.countChanged(boolToInt(res.Changed), res.Files...)
 		return nil
 
 	default:
@@ -1918,12 +1458,8 @@ func RunSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 		}
 		selection.Persona = persona
 	}
-	skipped, err := skipUndetectableOpenCode(&selection)
-	if err != nil {
-		return SyncResult{Agents: selection.Agents, Selection: selection}, err
-	}
 	result, err := runSyncWithSelectionScopeAfterSkip(homeDir, selection, scope)
-	return finishPartialSync(result, err, skipped)
+	return finishPartialSync(result, err, nil)
 }
 
 func runSyncWithSelectionScopeAfterSkip(homeDir string, selection model.Selection, scope InstallScope) (SyncResult, error) {
@@ -1931,26 +1467,16 @@ func runSyncWithSelectionScopeAfterSkip(homeDir string, selection model.Selectio
 	if persistedStateErr != nil && !os.IsNotExist(persistedStateErr) {
 		return SyncResult{Agents: selection.Agents, Selection: selection}, fmt.Errorf("read persisted installation state: %w", persistedStateErr)
 	}
-	background, err := resolveOpenCodeBackgroundCLI(false, "", persistedState)
-	if err != nil {
-		return SyncResult{Agents: selection.Agents, Selection: selection}, err
-	}
-	if scope == ScopeGlobal {
-		background.activationPlan, err = prepareOpenCodeBackgroundActivation(homeDir, &background, containsAgent(selection.Agents, model.AgentOpenCode))
-		if err != nil {
-			return SyncResult{Agents: selection.Agents, Selection: selection, Background: background}, fmt.Errorf("prepare OpenCode background activation: %w", err)
-		}
-	}
-	return runSyncWithSelectionScope(homeDir, selection, scope, persistedState, persistedStateErr, background)
+	return runSyncWithSelectionScope(homeDir, selection, scope, persistedState, persistedStateErr)
 }
 
 var syncStagePlan = func(runtime *syncRuntime) pipeline.StagePlan { return runtime.stagePlan() }
 var compareChangedSyncFiles = changedSyncFiles
 
-func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope InstallScope, persistedState state.InstallState, persistedStateErr error, background OpenCodeBackgroundResolution) (SyncResult, error) {
+func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope InstallScope, persistedState state.InstallState, persistedStateErr error) (SyncResult, error) {
 	agentIDs := selection.Agents
 	// The caller's preflight snapshot and its read error drive this sync, so
-	// background plans and persona resolve from one read (#1677). The alias
+	// persona resolves from one read (#1677). The alias
 	// migration and managed-asset provenance re-read under their own locks.
 	if err := validatePersistedSyncState(persistedState, persistedStateErr); err != nil {
 		return SyncResult{Agents: agentIDs, Selection: selection}, err
@@ -1967,10 +1493,6 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 		persistedPersona = persistedState.Persona
 		applyResolvedPersona(&selection, persistedPersona)
 	}
-	if len(selection.ModelAssignments) == 0 && len(persistedState.ModelAssignments) > 0 {
-		workspaceDir, _ := os.Getwd()
-		selection.ModelAssignments = restoreOpenCodeModelAssignmentsFromState(homeDir, workspaceDir, persistedState, selection.SDDMode)
-	}
 
 	// Migrate a persisted legacy alias BEFORE any early return: a no-agent
 	// no-op sync and a failing pipeline must still leave state.json remapped,
@@ -1985,9 +1507,8 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 	}
 
 	result := SyncResult{
-		Agents:     agentIDs,
-		Selection:  selection,
-		Background: background,
+		Agents:    agentIDs,
+		Selection: selection,
 	}
 
 	result, noOp, err := zeroAgentSyncNoOp(homeDir, scope, selection, result)
@@ -2001,15 +1522,6 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 	}
 	defer rt.state.cleanupCompatibilityTransaction()
 	defer rt.state.cleanupRollbackSnapshot()
-	rt.backgroundActivation = background.activationPlan
-	if rt.backgroundActivation != nil {
-		rt.runtimeReady = rt.backgroundActivation.Capability().Ready()
-		rt.backgroundPolicy = rt.runtimeReady && background.Effective == model.OpenCodeBackgroundOn
-	} else {
-		// Preserve the programmatic/TUI seam's historical behavior. CLI sync
-		// supplies an activation plan; direct callers do not.
-		rt.backgroundPolicy = background.Effective == model.OpenCodeBackgroundOn
-	}
 
 	stagePlan := syncStagePlan(rt)
 	result.Plan = stagePlan
@@ -2037,9 +1549,6 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 		return result, rollbackPostApplyError(orchestrator, result.Execution, err)
 	}
 	result.ChangedFiles = dedupPaths(append(result.ChangedFiles, compatibilityChanged...))
-	if background.activationPlan != nil {
-		result.ChangedFiles = dedupPaths(append(result.ChangedFiles, background.activationPlan.ChangedPaths()...))
-	}
 	result.FilesChanged = len(result.ChangedFiles)
 
 	// True no-op: agents were discovered but all managed assets were already
@@ -2052,15 +1561,7 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 
 	// Post-apply verification reuses the same component paths as install.
 	result.Verify = runPostSyncVerificationScoped(homeDir, rt.workspaceDir, scope, selection)
-	configChecks := verify.RunChecks(context.Background(), openCodeConfigChecks(homeDir, rt.workspaceDir, agentIDs))
-	result.Verify = verify.BuildReport(append(result.Verify.Checks, configChecks...))
 	result.Verify = withFailedSyncVerificationNote(result.Verify)
-	result.BackgroundPolicyEnabled = rt.runtimeReady && background.Effective == model.OpenCodeBackgroundOn
-	if background.activationPlan != nil {
-		background.Activation = background.activationPlan.Report()
-		result.Background.Activation = background.Activation
-	}
-	result.Verify = withOpenCodeBackgroundPending(result.Verify, background, rt.runtimeReady, agentIDs)
 	if !result.Verify.Ready {
 		verificationErr := fmt.Errorf("post-sync verification failed:\n%s", verify.RenderReport(result.Verify))
 		rollback := orchestrator.Rollback(result.Execution)
@@ -2074,10 +1575,9 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 		return result, rollbackPostApplyError(orchestrator, result.Execution, fmt.Errorf("derive managed asset writer identity: %w", err))
 	}
 	// A workspace sync is a pure managed-asset refresh: it never stamps the
-	// global state file with provenance, community tools, or background
-	// intents (issue #1074).
+	// global state file with provenance or community tools (issue #1074).
 	if scope == ScopeGlobal {
-		err := persistSyncManagedAssetStateWithBackground(homeDir, selection, writer, background.Persist)
+		err := persistSyncManagedAssetState(homeDir, selection, writer)
 		if err == nil {
 			err = recordCodexServiceTier(homeDir, rt.state.codexServiceTier)
 		}
@@ -2094,7 +1594,7 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 	return result, nil
 }
 
-func persistSyncManagedAssetStateWithBackground(homeDir string, selection model.Selection, writer string, background model.OpenCodeBackgroundIntent) error {
+func persistSyncManagedAssetState(homeDir string, selection model.Selection, writer string) error {
 	return withInstallStateLock(homeDir, func() error {
 		latest, err := state.Read(homeDir)
 		if errors.Is(err, os.ErrNotExist) {
@@ -2120,10 +1620,6 @@ func persistSyncManagedAssetStateWithBackground(homeDir string, selection model.
 		if !latest.CommunityToolsConfigured && selection.CommunityTools != nil {
 			latest.CommunityTools = communityToolIDsToStrings(selection.CommunityTools)
 			latest.CommunityToolsConfigured = true
-			shouldWrite = true
-		}
-		if background != "" && latest.BackgroundIntent != background {
-			latest.BackgroundIntent = background
 			shouldWrite = true
 		}
 		now := time.Now().UTC()
@@ -2182,10 +1678,6 @@ func RunSync(args []string) (SyncResult, error) {
 	if err := validatePersistedSyncState(persistedState, persistedStateErr); err != nil {
 		return SyncResult{Agents: agentIDs, Selection: selection}, err
 	}
-	background, err := resolveOpenCodeBackgroundCLI(flags.OpenCodeBackgroundSubagentsSet, flags.OpenCodeBackgroundSubagents, persistedState)
-	if err != nil {
-		return SyncResult{Agents: agentIDs, Selection: selection}, err
-	}
 	RestorePersistedSelection(&selection, persistedState, flags)
 	restoreCodexServiceTier(&selection, persistedState)
 	restorePersistedCommunityTools(homeDir, &selection, persistedState)
@@ -2225,10 +1717,6 @@ func RunSync(args []string) (SyncResult, error) {
 		}
 		selection.KiroModelAssignments = m
 	}
-	if len(selection.ModelAssignments) == 0 && len(persistedState.ModelAssignments) > 0 {
-		workspaceDir, _ := os.Getwd()
-		selection.ModelAssignments = restoreOpenCodeModelAssignmentsFromState(homeDir, workspaceDir, persistedState, selection.SDDMode)
-	}
 	if selection.CodexOrchestratorAssignment == nil && persistedState.CodexOrchestratorAssignment != nil {
 		selection.CodexOrchestratorAssignment = codexOrchestratorFromState(persistedState.CodexOrchestratorAssignment)
 	}
@@ -2264,10 +1752,9 @@ func RunSync(args []string) (SyncResult, error) {
 	if flags.DryRun {
 		// Build the plan for inspection, skip execution.
 		result := SyncResult{
-			Agents:     agentIDs,
-			Selection:  selection,
-			DryRun:     true,
-			Background: background,
+			Agents:    agentIDs,
+			Selection: selection,
+			DryRun:    true,
 		}
 		result, noOp, err := zeroAgentSyncNoOp(homeDir, scope, selection, result)
 		if err != nil || noOp {
@@ -2279,53 +1766,18 @@ func RunSync(args []string) (SyncResult, error) {
 		}
 		defer rt.state.cleanupCompatibilityTransaction()
 		defer rt.state.cleanupRollbackSnapshot()
-		if scope == ScopeGlobal {
-			backgroundActivation, activationErr := prepareOpenCodeBackgroundActivation(homeDir, &background, containsAgent(agentIDs, model.AgentOpenCode))
-			if activationErr != nil {
-				return result, fmt.Errorf("prepare OpenCode background activation: %w", activationErr)
-			}
-			background.activationPlan = backgroundActivation
-			rt.backgroundActivation = backgroundActivation
-			rt.runtimeReady = backgroundActivation != nil && backgroundActivation.Capability().Ready()
-			rt.backgroundPolicy = rt.runtimeReady && background.Effective == model.OpenCodeBackgroundOn
-			result.Background = background
-			result.BackgroundPolicyEnabled = rt.backgroundPolicy
-		}
 		result.Plan = rt.stagePlan()
 		for _, step := range result.Plan.Prepare {
 			if prepare, ok := step.(prepareBackupStep); ok && prepare.targetErr != nil {
 				return result, fmt.Errorf("resolve backup targets: %w", prepare.targetErr)
 			}
-			// Without consent the plugin SDK preflight only reads, so the
-			// dry-run reports the refusal the real sync would stop on.
-			if preflight, ok := step.(openCodePluginDependencyPreflightStep); ok && preflight.consent == nil {
-				if err := preflight.Run(); err != nil {
-					result.DryRunStops = append(result.DryRunStops, err.Error())
-				}
-			}
 		}
 		return result, nil
 	}
 
-	skipped, err := skipUndetectableOpenCode(&selection)
+	result, err := runSyncWithSelectionScope(homeDir, selection, scope, persistedState, persistedStateErr)
 	if err != nil {
-		return SyncResult{Agents: agentIDs, Selection: selection}, err
-	}
-	if len(skipped) > 0 {
-		agentIDs = selection.Agents
-		// A skipped OpenCode receives nothing, including a new background intent.
-		background.Persist = ""
-	}
-	if scope == ScopeGlobal {
-		backgroundActivation, err := prepareOpenCodeBackgroundActivation(homeDir, &background, containsAgent(agentIDs, model.AgentOpenCode))
-		if err != nil {
-			return finishPartialSync(SyncResult{Agents: agentIDs, Selection: selection, Background: background}, fmt.Errorf("prepare OpenCode background activation: %w", err), skipped)
-		}
-		background.activationPlan = backgroundActivation
-	}
-	result, err := runSyncWithSelectionScope(homeDir, selection, scope, persistedState, persistedStateErr, background)
-	if err != nil {
-		return finishPartialSync(result, err, skipped)
+		return finishPartialSync(result, err, nil)
 	}
 	result.DryRun = false
 	// A workspace sync never mutates the global tree: usage counters and the
@@ -2334,45 +1786,7 @@ func RunSync(args []string) (SyncResult, error) {
 		_ = telemetry.IncrementSyncs(homeDir)
 		TelemetryTrigger(homeDir)
 	}
-	return finishPartialSync(result, nil, skipped)
-}
-
-// restoreOpenCodeModelAssignmentsFromState reads current assignments from the
-// settings file OpenCode loads, whatever the install scope (#1825).
-func restoreOpenCodeModelAssignmentsFromState(homeDir, workspaceDir string, persistedState state.InstallState, sddMode model.SDDModeID) map[string]model.ModelAssignment {
-	if len(persistedState.ModelAssignments) == 0 {
-		return nil
-	}
-	presence := map[string]opencodeactivation.AssignmentPresence{}
-	settingsPath := openCodeLoadedSettingsPath(homeDir, workspaceDir, opencodeagent.NewAdapter())
-	if settingsPath != "" {
-		if _, err := os.Stat(settingsPath); err == nil {
-			snapshot, err := opencodeactivation.ReadConfigSnapshot(settingsPath)
-			if err == nil {
-				presence = snapshot.Assignments
-			}
-		}
-	}
-
-	assignments := make(map[string]model.ModelAssignment, len(persistedState.ModelAssignments))
-	for k, v := range persistedState.ModelAssignments {
-		if current, exists := presence[k]; exists && current.Present {
-			// Single mode intentionally generates managed agents without model fields,
-			// so their absence is not evidence of a user clear. Multi mode writes
-			// assignments into managed agents, making an absent/empty value explicit.
-			if current.Cleared && !(sddMode == model.SDDModeSingle && current.Managed) {
-				continue
-			}
-			if current.Assignment.ProviderID != "" || current.Assignment.ModelID != "" {
-				continue
-			}
-		}
-		assignments[k] = model.ModelAssignment{ProviderID: v.ProviderID, ModelID: v.ModelID, Effort: v.Effort}
-	}
-	if len(assignments) == 0 {
-		return nil
-	}
-	return assignments
+	return finishPartialSync(result, nil, nil)
 }
 
 // zeroAgentSyncNoOp reports whether a sync without agents has no compatible
@@ -2427,21 +1841,11 @@ func restorePersistedCommunityTools(homeDir string, selection *model.Selection, 
 //   - All managed assets were already current (NoOp=true, FilesChanged=0).
 func RenderSyncReport(result SyncResult) string {
 	var b strings.Builder
-	backgroundReport := func() {
+	warningReport := func() {
 		for _, check := range result.Verify.Checks {
 			if check.Status == verify.CheckStatusWarning {
 				fmt.Fprintf(&b, "WARNING: %s\n", check.Error)
 			}
-		}
-		if !containsAgent(result.Agents, model.AgentOpenCode) || result.Background.Intent == "" {
-			return
-		}
-		fmt.Fprintf(&b, "OpenCode background intent: %s (policy effective: %s)\n", result.Background.Intent, result.Background.Effective)
-		if result.Background.Effective == model.OpenCodeBackgroundOn {
-			fmt.Fprintln(&b, renderOpenCodeBackgroundRuntime(result.Background, result.BackgroundPolicyEnabled))
-			fmt.Fprintln(&b, renderOpenCodeBackgroundActivation(result.Background))
-		} else if result.Background.Effective == model.OpenCodeBackgroundOff && len(result.Background.Activation.LauncherPaths) > 0 {
-			fmt.Fprintln(&b, renderOpenCodeBackgroundActivation(result.Background))
 		}
 	}
 
@@ -2458,7 +1862,7 @@ func RenderSyncReport(result SyncResult) string {
 			}
 		}
 		renderSyncSkippedAgents(&b, result.SkippedAgents)
-		backgroundReport()
+		warningReport()
 		renderSyncManualActions(&b, result.ManualActions)
 		return strings.TrimRight(b.String(), "\n")
 	}
@@ -2479,7 +1883,7 @@ func RenderSyncReport(result SyncResult) string {
 		for _, stop := range result.DryRunStops {
 			fmt.Fprintf(&b, "Would stop: %s\n", stop)
 		}
-		backgroundReport()
+		warningReport()
 		return strings.TrimRight(b.String(), "\n")
 	}
 
@@ -2511,7 +1915,7 @@ func RenderSyncReport(result SyncResult) string {
 		fmt.Fprintln(&b, "Post-sync verification:")
 		fmt.Fprint(&b, verify.RenderReport(result.Verify))
 	}
-	backgroundReport()
+	warningReport()
 	renderSyncManualActions(&b, result.ManualActions)
 
 	return strings.TrimRight(b.String(), "\n")
@@ -2621,75 +2025,5 @@ func runPostSyncVerificationScoped(homeDir, workspaceDir string, scope InstallSc
 			})
 		}
 	}
-	// The shared component path declarations (componentPathsWithWorkspaceScoped)
-	// resolve OpenCode's settings authority through the project-over-global
-	// resolver, which a workspace sync never writes; pathUnderHomeOnly drops
-	// them. The sync steps instead write the workspace-managed settings
-	// authority, so verify that file when Engram, Context7, or Permission is
-	// selected (issue #1074). One check covers all three: they merge into the
-	// same settings document.
-	if workspace && containsAgent(selection.Agents, model.AgentOpenCode) {
-		needsSettingsCheck := false
-		for _, component := range selection.Components {
-			switch component {
-			case model.ComponentEngram, model.ComponentContext7, model.ComponentPermission:
-				needsSettingsCheck = true
-			}
-			if needsSettingsCheck {
-				break
-			}
-		}
-		if needsSettingsCheck {
-			for _, adapter := range adapters {
-				if adapter.Agent() != model.AgentOpenCode {
-					continue
-				}
-				settingsPath := syncOpenCodeSettingsPath(homeDir, workspaceDir, ScopeWorkspace, adapter)
-				if settingsPath == "" {
-					continue
-				}
-				currentPath := settingsPath
-				checks = append(checks, verify.Check{
-					ID:          "verify:sync:file:" + currentPath,
-					Description: "synced file exists",
-					Run: func(context.Context) error {
-						if _, err := os.Stat(currentPath); err != nil {
-							return err
-						}
-						return nil
-					},
-				})
-			}
-		}
-	}
-
-	// The global legacy-plugin check is a global-scope concern: workspace
-	// sync never touches the global plugin directory, so a pre-existing global
-	// legacy plugin must not fail (or be migrated by) a workspace refresh
-	// (issue #1074). Every plugin-receiving agent is checked, Kilocode included.
-	if !workspace {
-		for _, adapter := range adapters {
-			if !opencoderuntimeplugins.AgentReceivesManagedOpenCodePlugins(adapter.Agent()) {
-				continue
-			}
-			pluginsDir := filepath.Join(adapter.GlobalConfigDir(homeDir), "plugins")
-			for _, name := range opencoderuntimeplugins.RetiredPluginNames(adapter.Agent()) {
-				retiredPath := filepath.Join(pluginsDir, name)
-				checks = append(checks, verify.Check{
-					ID:          "verify:sync:file:" + retiredPath,
-					Description: "retired OpenCode plugin " + name + " removed",
-					Run: func(context.Context) error {
-						if _, err := os.Lstat(retiredPath); err == nil {
-							return fmt.Errorf("retired OpenCode plugin %s still exists; rerun `gentle-ai sync` to complete the managed plugin migration", retiredPath)
-						} else if !os.IsNotExist(err) {
-							return err
-						}
-						return nil
-					},
-				})
-			}
-		}
-	}
-
 	return verify.BuildReport(verify.RunChecks(context.Background(), checks))
 }

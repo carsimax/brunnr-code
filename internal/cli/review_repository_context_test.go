@@ -525,21 +525,9 @@ func rctx2ReviewRepositoryContextForTest(t *testing.T, repo string, binding revi
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Surfaces that take the handle without a --cwd flag -- the OpenCode relay
-	// the managed shim starts in place -- verify the digest against process
-	// cwd, so a test holding this handle stands where a real host stands.
+	// Surfaces that take the handle without a --cwd flag verify the digest
+	// against process cwd, so a test holding this handle stands where a real host stands.
 	t.Chdir(repo)
-	return handle
-}
-
-// openCodeReviewRepositoryContextForTest issues the sealed rctx3 handle OpenCode
-// collect inputs carry; the relay resolves it from any process cwd.
-func openCodeReviewRepositoryContextForTest(t *testing.T, repo string, binding reviewtransaction.ReviewRepositoryContextBinding) string {
-	t.Helper()
-	handle, err := reviewtransaction.DeriveOpenCodeReviewRepositoryContextHandle(t.Context(), repo, binding)
-	if err != nil {
-		t.Fatal(err)
-	}
 	return handle
 }
 

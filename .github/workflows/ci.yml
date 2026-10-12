@@ -15,24 +15,6 @@ on:
     - cron: "0 3 * * *"
 
 jobs:
-  opencode-v2-contracts:
-    name: OpenCode V2 Released SDK Contracts
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout exact event candidate
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd  # v5.0.1
-        with:
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Set up Node
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6
-        with:
-          node-version: '24'
-      - name: Test bounded V2 host activation polling
-        run: python3 -B -m unittest discover -s scripts -p test_opencode_v2_host_test.py
-      - name: Typecheck V2 assets against released 2.0.4
-        run: bash scripts/test-opencode-v2-contracts.sh
-
   installer-module-path:
     name: Installer Module Path Tests
     runs-on: ubuntu-latest
@@ -136,21 +118,6 @@ jobs:
             ([.journeys[] | select((.id | startswith("tr")) and .status == "completed")] | length) == 1 and
             completed_once("tr09-mode-flip-while-a-review-lineage-is-open")
           ' "$RUNNER_TEMP/bench-transition.json"
-          "$RUNNER_TEMP/gentle-ai-bench" run --binary "$RUNNER_TEMP/gentle-ai" --axis model-picker --only j97-opencode-custom-agent-model-picker-runtime --out "$RUNNER_TEMP/bench-model-picker-untagged.json"
-          jq -e '
-            def unsupported_once($id):
-              [.journeys[] | select(.id == $id)] as $matches
-              | ($matches | length == 1) and ($matches[0].status == "unsupported");
-            unsupported_once("j97-opencode-custom-agent-model-picker-runtime")
-          ' "$RUNNER_TEMP/bench-model-picker-untagged.json"
-          go build -tags bench_fixture -trimpath -o "$RUNNER_TEMP/gentle-ai-bench-fixture" ./cmd/gentle-ai
-          "$RUNNER_TEMP/gentle-ai-bench" run --binary "$RUNNER_TEMP/gentle-ai-bench-fixture" --axis model-picker --only j97-opencode-custom-agent-model-picker-runtime --out "$RUNNER_TEMP/bench-model-picker.json"
-          jq -e '
-            def completed_once($id):
-              [.journeys[] | select(.id == $id)] as $matches
-              | ($matches | length == 1) and ($matches[0].status == "completed");
-            completed_once("j97-opencode-custom-agent-model-picker-runtime")
-          ' "$RUNNER_TEMP/bench-model-picker.json"
 
       # Lives in this job, not the format job, because only Unit Tests is a
       # required status check on main. A guard that cannot block a merge is
@@ -405,19 +372,11 @@ jobs:
         with:
           node-version: "24"
 
-      - name: Install pinned OpenCode runtime
-        run: npm install --global opencode-ai@1.18.10
-
       - name: Install Claude Code runtime
         # This suite drives the real install pipeline end to end, so it needs
-        # the real binary the same way it needs OpenCode above — gentle-ai
-        # itself no longer installs this (agentInstallStep in
-        # internal/cli/run.go refuses instead), so CI installs what it needs
-        # to test, same as any other test dependency. No exact-pin test
-        # applies here the way TestOrganicRuntimeE2EUsesInstalledOpenCodePin
-        # asserts for OpenCode: there is no versions.go constant backing this
-        # one, since gentle-ai's own display-only refusal for Claude Code
-        # advises "latest" too (see internal/installcmd/resolver.go).
+        # the real binary — gentle-ai itself no longer installs this
+        # (agentInstallStep in internal/cli/run.go refuses instead), so CI
+        # installs what it needs to test, same as any other test dependency.
         run: npm install --global @anthropic-ai/claude-code@latest
 
       - name: Install pinned Codex runtime
@@ -434,21 +393,12 @@ jobs:
         # that machine's PATH (see the file's own comment). That means this
         # job is its only runner, so a rename or a dropped -tags flag here
         # must fail loudly rather than let the suite silently stop proving
-        # real Claude Code / OpenCode detection.
+        # real Claude Code / Codex detection.
         shell: pwsh
         run: |
           $tests = go test -tags real_agent_e2e -list '^TestOrganicConfiguredAgentReceivesRoutingGuidanceRealAgents$' ./e2e/organicruntime
           if ($LASTEXITCODE -ne 0 -or $tests -notcontains 'TestOrganicConfiguredAgentReceivesRoutingGuidanceRealAgents') {
             throw 'Real-agent detection E2E is missing'
-          }
-
-      - name: Verify live OpenCode provider isolation E2E is registered
-        shell: pwsh
-        run: |
-          if ($env:RUNNER_OS -ne 'Linux') { exit 0 }
-          $tests = go test -list '^TestOpenCodeRuntimeIsPinnedForTheLiveProviderTransport$' ./e2e/organicruntime
-          if ($LASTEXITCODE -ne 0 -or $tests -notcontains 'TestOpenCodeRuntimeIsPinnedForTheLiveProviderTransport') {
-            throw 'Live OpenCode provider isolation E2E is missing'
           }
 
       - name: Run organic journeys
@@ -463,9 +413,6 @@ jobs:
           # The Linux-only Codex journey invokes the registered adapter through
           # the product CLI under a process-scoped denying proxy and strace.
           GENTLE_AI_CODEX_RUNTIME_E2E: ${{ matrix.os == 'ubuntu-latest' && '1' || '0' }}
-          # The live OpenCode transport stays on Ubuntu because its process-scoped
-          # loopback denying proxy and strace proof require Linux.
-          GENTLE_AI_OPENCODE_RUNTIME_E2E: ${{ matrix.os == 'ubuntu-latest' && '1' || '0' }}
           # The large-workspace journey spawns one Git subprocess per intended
           # untracked path, so its cost is dominated by process creation. Linux
           # absorbs it; Windows does not, and gating it here keeps the real
@@ -519,21 +466,6 @@ jobs:
       # and push/schedule already prove they fit the step budget on the same
       # runners. Do not reintroduce per-event tier selection here without
       # renaming the checks to state the reduced scope.
-      - name: Diagnose pinned OpenCode runtime before E2E
-        run: |
-          docker run --rm --pull=never --network none --entrypoint /bin/bash \
-            gentle-ai-e2e-${{ matrix.platform.name }}:ci -c '
-              set -u
-              export HOME=$(mktemp -d)
-              export XDG_CONFIG_HOME="$HOME/config" XDG_DATA_HOME="$HOME/data"
-              export XDG_CACHE_HOME="$HOME/cache" XDG_STATE_HOME="$HOME/state"
-              command -v opencode
-              opencode --version
-              result=$?
-              printf "opencode version exit=%s\n" "$result"
-              exit "$result"
-            '
-
       - name: Run E2E tests
         timeout-minutes: 30
         env:

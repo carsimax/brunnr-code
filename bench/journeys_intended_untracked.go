@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 )
@@ -194,7 +191,7 @@ func unbornUntrackedExecutableCandidate(sandbox *Sandbox) error {
 func unbornUntrackedStatusCollectsSelection(r *journeyRun) error {
 	observation := r.run(productArgsFor(r,
 		"review", "status", "--cwd", r.sandbox.Repo, "--contract", reviewContractV2,
-		"--agent", "opencode", "--next-transition"), false)
+		"--agent", "claude-code", "--next-transition"), false)
 	if observation.ExitCode != 0 {
 		return fmt.Errorf("unborn STATUS exited %d: %s", observation.ExitCode, firstLine(observation.Stderr))
 	}
@@ -243,7 +240,7 @@ func unbornIntendedDeliveryCandidate(sandbox *Sandbox) error {
 }
 
 func selectAndStartUnbornIntendedDelivery(r *journeyRun) error {
-	status, err := readStatusForContract(r, reviewContractV2, "--agent", "opencode")
+	status, err := readStatusForContract(r, reviewContractV2, "--agent", "claude-code")
 	if err != nil {
 		return err
 	}
@@ -252,7 +249,7 @@ func selectAndStartUnbornIntendedDelivery(r *journeyRun) error {
 	}
 	digest := status.argument("expected_untracked_inventory")
 	selected, err := readStatusForContract(r, reviewContractV2,
-		"--agent", "opencode", "--untracked-scope=select", "--expected-untracked-inventory="+digest,
+		"--agent", "claude-code", "--untracked-scope=select", "--expected-untracked-inventory="+digest,
 		"--intended-untracked="+unbornIntendedDeliveryPath)
 	if err != nil {
 		return err
@@ -283,7 +280,7 @@ func requireUnbornIntendedStagedDeliveryStop(r *journeyRun) error {
 		return fmt.Errorf("unborn delivery real index = %q, %v", cached, err)
 	}
 	selectors := []string{
-		"--agent", "opencode", "--lineage", r.sandbox.Lineage, "--gate", "pre-commit",
+		"--agent", "claude-code", "--lineage", r.sandbox.Lineage, "--gate", "pre-commit",
 		"--untracked-scope=select", "--expected-untracked-inventory=" + r.sandbox.Scratch["unborn-intended-inventory"],
 		"--intended-untracked=" + unbornIntendedDeliveryPath,
 	}
@@ -309,7 +306,7 @@ func stageUnbornIntendedDeliveryCandidate(sandbox *Sandbox) error {
 
 func validateUnbornIntendedStagedDelivery(r *journeyRun) error {
 	status, err := readStatusForContract(r, reviewContractV2,
-		"--agent", "opencode", "--lineage", r.sandbox.Lineage, "--gate", "pre-commit", "--projection", "staged")
+		"--agent", "claude-code", "--lineage", r.sandbox.Lineage, "--gate", "pre-commit", "--projection", "staged")
 	if err != nil {
 		return err
 	}
@@ -562,7 +559,7 @@ func intendedUntrackedJourneys() []Journey {
 			Steps: []Step{
 				{Name: "fixture: unborn repository with one untracked executable candidate", Fixture: unbornUntrackedExecutableCandidate},
 				{Name: "mode enable", Requires: modeCapability, Args: productArgs("review", "mode", "enable", "--json")},
-				{Name: "v2 OpenCode STATUS collects the inventory-bound untracked selection", Requires: unbornIntendedUntrackedStatusCapability, Composite: unbornUntrackedStatusCollectsSelection},
+				{Name: "v2 Claude Code STATUS collects the inventory-bound untracked selection", Requires: unbornIntendedUntrackedStatusCapability, Composite: unbornUntrackedStatusCollectsSelection},
 			},
 		},
 		{
@@ -575,7 +572,7 @@ func intendedUntrackedJourneys() []Journey {
 				{Name: "select every untracked path and execute printed zero-lens START", Requires: unbornIntendedUntrackedStatusCapability, Composite: selectAndStartUnbornIntendedDelivery},
 				{Name: "the zero-lens terminal event emits acknowledgement before burning the unborn transaction", Requires: statusCapability, Composite: func(r *journeyRun) error {
 					return requireAtomicLineageAcknowledged(r, r.sandbox.Lineage,
-						"--agent", "opencode", "--untracked-scope=select",
+						"--agent", "claude-code", "--untracked-scope=select",
 						"--expected-untracked-inventory="+r.sandbox.Scratch["unborn-intended-inventory"],
 						"--intended-untracked="+unbornIntendedDeliveryPath,
 					)
@@ -592,83 +589,25 @@ func intendedUntrackedJourneys() []Journey {
 	}
 }
 
-var (
-	refuterRequestHashPattern = regexp.MustCompile(`"request_hash":"(sha256:[0-9a-f]{64})"`)
-	refuterFindingIDPattern   = regexp.MustCompile(`"finding_id":"([A-Za-z0-9-]+)"`)
-)
-
-// corroborateProviderRefuter answers a provider_refuter_required STATUS the
-// way an OpenCode host would: it relays the Go-issued refuter task through
-// `review opencode-transport`, corroborates every claim the task names, and
-// returns the capture the relay reports.
+// corroborateProviderRefuter answers a provider_refuter_required STATUS
+// through the compiled provider capture STATUS offers: the deterministic fake
+// provider corroborates every claim the compiled refuter request names, and
+// the capture reports its closure.
 func corroborateProviderRefuter(r *journeyRun, status statusEnvelope) (Observation, error) {
 	inputs := status.NextTransition.Collect.Inputs
-	if len(inputs) != 1 || inputs[0].ProviderTask == nil || inputs[0].ProviderTask.Role != "refuter" || inputs[0].ProviderTask.Prompt == "" {
+	if len(inputs) != 1 || inputs[0].Name != "provider_refuter" || inputs[0].ProviderTask != nil {
 		return Observation{}, fmt.Errorf("provider refuter collect input = %+v", inputs)
 	}
-	start, err := json.Marshal(map[string]string{
-		"schema": "gentle-ai.provider-transport/v1", "operation": "start", "prompt": inputs[0].ProviderTask.Prompt,
-	})
+	tokens := make([]string, 0, len(inputs[0].Arguments))
+	for _, argument := range inputs[0].Arguments {
+		tokens = append(tokens, argument.Token)
+	}
+	observation, err := runOfferedProviderCapture(r, inputs[0].CaptureOperation, tokens, nil)
 	if err != nil {
-		return Observation{}, err
+		return observation, err
 	}
-	observation, err := r.runInteractive([]string{"review", "opencode-transport"}, true, func(reader *bufio.Reader, writer io.WriteCloser) error {
-		if _, err := writer.Write(append(start, '\n')); err != nil {
-			return fmt.Errorf("write relay start: %w", err)
-		}
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("read relay prompt: %w", err)
-		}
-		var relayPrompt struct {
-			Operation string `json:"operation"`
-			Nonce     string `json:"nonce"`
-			Prompt    string `json:"prompt"`
-		}
-		if err := json.Unmarshal([]byte(line), &relayPrompt); err != nil || relayPrompt.Operation != "prompt" || relayPrompt.Nonce == "" {
-			return fmt.Errorf("relay prompt = %q: %w", line, err)
-		}
-		// The relayed child prompt carries the materialized refuter request.
-		hash := refuterRequestHashPattern.FindStringSubmatch(relayPrompt.Prompt)
-		if hash == nil {
-			return fmt.Errorf("relayed provider refuter prompt has no request hash")
-		}
-		results := []map[string]any{}
-		seen := map[string]bool{}
-		for _, match := range refuterFindingIDPattern.FindAllStringSubmatch(relayPrompt.Prompt, -1) {
-			if seen[match[1]] {
-				continue
-			}
-			seen[match[1]] = true
-			results = append(results, map[string]any{"finding_id": match[1], "outcome": "corroborated", "proof_refs": []string{"independent reproduction of " + match[1]}})
-		}
-		payload, err := json.Marshal(map[string]any{"refuter_request_hash": hash[1], "results": results})
-		if err != nil {
-			return err
-		}
-		completion, err := json.Marshal(map[string]string{
-			"schema": "gentle-ai.provider-transport/v1", "operation": "complete", "nonce": relayPrompt.Nonce, "output": string(payload),
-		})
-		if err != nil {
-			return err
-		}
-		if _, err := writer.Write(append(completion, '\n')); err != nil {
-			return fmt.Errorf("write relay completion: %w", err)
-		}
-		return nil
-	})
-	if err != nil || observation.ExitCode != 0 {
-		return observation, fmt.Errorf("provider refuter relay = exit %d err=%v stderr=%s", observation.ExitCode, err, firstLine(observation.Stderr))
+	if observation.ExitCode != 0 {
+		return observation, fmt.Errorf("compiled provider refuter capture = exit %d stderr=%s", observation.ExitCode, firstLine(observation.Stderr))
 	}
-	// The relay's last stdout frame carries the capture closure as its output.
-	lines := strings.Split(strings.TrimSpace(observation.Stdout), "\n")
-	var result struct {
-		Operation string `json:"operation"`
-		Output    string `json:"output"`
-	}
-	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &result); err != nil || result.Operation != "result" || result.Output == "" {
-		return observation, fmt.Errorf("provider refuter relay result frame = %q: %v", lines[len(lines)-1], err)
-	}
-	observation.Stdout = result.Output
 	return observation, nil
 }

@@ -59,7 +59,7 @@ func TestRefreshSkipAcceptsProjectMarkers(t *testing.T) {
 			}
 		}},
 		{"project skills workspace", func(t *testing.T, dir string) {
-			if err := os.MkdirAll(filepath.Join(dir, ".opencode", "skills"), 0o755); err != nil {
+			if err := os.MkdirAll(filepath.Join(dir, ".codex", "skills"), 0o755); err != nil {
 				t.Fatal(err)
 			}
 		}},

@@ -84,7 +84,7 @@ func TestIntegration_FullAgentBuilderFlow(t *testing.T) {
 
 	adapters := []AdapterInfo{
 		{AgentID: model.AgentClaudeCode, SkillsDir: dir1},
-		{AgentID: model.AgentOpenCode, SkillsDir: dir2},
+		{AgentID: model.AgentCodex, SkillsDir: dir2},
 	}
 
 	results, err := Install(agent, adapters, "")
@@ -125,7 +125,7 @@ func TestIntegration_FullAgentBuilderFlow(t *testing.T) {
 		Description:      agent.Description,
 		CreatedAt:        time.Now().UTC(),
 		GenerationEngine: model.AgentClaudeCode,
-		InstalledAgents:  []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode},
+		InstalledAgents:  []model.AgentID{model.AgentClaudeCode},
 	})
 
 	if err := SaveRegistry(regPath, reg); err != nil {

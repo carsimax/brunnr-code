@@ -25,8 +25,6 @@ func NewEngine(agentID model.AgentID) GenerationEngine {
 	switch agentID {
 	case model.AgentClaudeCode:
 		return &ClaudeEngine{}
-	case model.AgentOpenCode:
-		return &OpenCodeEngine{}
 	case model.AgentCodex:
 		return &CodexEngine{}
 	default:
@@ -51,27 +49,6 @@ func (e *ClaudeEngine) Generate(ctx context.Context, prompt string) (string, err
 	out, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("claude generate: %w\nstderr: %s", err, stderr.String())
-	}
-	return string(out), nil
-}
-
-// OpenCodeEngine drives OpenCode via `opencode run "{prompt}"`.
-type OpenCodeEngine struct{}
-
-func (e *OpenCodeEngine) Agent() model.AgentID { return model.AgentOpenCode }
-
-func (e *OpenCodeEngine) Available() bool {
-	_, err := exec.LookPath("opencode")
-	return err == nil
-}
-
-func (e *OpenCodeEngine) Generate(ctx context.Context, prompt string) (string, error) {
-	cmd := exec.CommandContext(ctx, "opencode", "run", prompt)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	out, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("opencode generate: %w\nstderr: %s", err, stderr.String())
 	}
 	return string(out), nil
 }

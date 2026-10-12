@@ -9,7 +9,7 @@ The skill registry is a project-local index that lets every supported agent find
 
 ## When To Use It
 
-Use `gentle-ai skill-registry refresh` after you add, remove, rename, or move skills. Normal installs wire this refresh into startup hooks where the agent supports them, including Codex, Claude Code, and OpenCode.
+Use `gentle-ai skill-registry refresh` after you add, remove, rename, or move skills. Normal installs wire this refresh into startup hooks where the agent supports them, including Codex and Claude Code.
 
 ## Runtime Flow
 
@@ -38,10 +38,10 @@ Subagent executes with original skill intent preserved
 gentle-ai skill-registry refresh
    │
    ├─ Scan project skill roots first
-   │     skills/, .opencode/skills/, .claude/skills/, ...
+   │     skills/, .claude/skills/, ...
    │
    ├─ Scan global agent skill roots second
-   │     ~/.config/opencode/skills/, ~/.claude/skills/, ...
+   │     ~/.claude/skills/, ~/.codex/skills/, ...
    │
    ├─ Deduplicate by skill name
    │     project skill wins over global skill
@@ -78,7 +78,6 @@ Read these exact files before reading, writing, reviewing, testing, or creating 
 
 The subagent then reads those files. This keeps the original `SKILL.md` as the source of truth and avoids breaking author intent through automatic summarization.
 
-OpenCode delegators list installed skills by the identifier the native `skill` tool takes instead of a path. Installed skills live in the OpenCode config directory, outside the workspace, where a delegated agent may be denied reads; the `skill` tool loads them by `<name>` on OpenCode 1.x and by the skill's `<id>` as listed (its directory name for `<dir>/SKILL.md`) on OpenCode 2.x, and `<available_skills>` lists the identifier each major expects. Skill files inside the workspace are still listed by their workspace-relative `SKILL.md` path.
 
 ## Skill Authoring Flow
 

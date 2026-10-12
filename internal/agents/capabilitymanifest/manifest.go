@@ -165,7 +165,6 @@ var reviewTransportExposureByAgent = func() map[model.AgentID]ContractExposure {
 		exposure[agent] = ContractExposureDormant
 	}
 	exposure[model.AgentClaudeCode] = ContractExposureAdvertised
-	exposure[model.AgentOpenCode] = ContractExposureAdvertised
 	exposure[model.AgentCodex] = ContractExposureAdvertised
 	return exposure
 }()
@@ -173,11 +172,8 @@ var reviewTransportExposureByAgent = func() map[model.AgentID]ContractExposure {
 // immutableReviewExecutorExposureByAgent declares only providers with an
 // enforceable fresh-reviewer boundary. Claude launches a generated subagent
 // with no live tools and receives only the native prompt-carried evidence;
-// OpenCode relays one host Task through a Go-native transport process, which
-// materializes the bound prompt and captures matching raw output from an
-// ordinary already-running session -- no restart, child process, special
-// user-visible session, or `OPENCODE_DISABLE_*` variable (rdd-advisory-
-// transport SKILL.md). Capability advertisement records the provider contract
+// Codex runs its provider-bound subprocess (rdd-advisory-transport SKILL.md).
+// Capability advertisement records the provider contract
 // that can reach Go-owned admission; organic runtime proof is recorded by the
 // provider's own execution tests. Every other runtime remains explicitly
 // dormant until it owns an equivalent native boundary.
@@ -187,7 +183,6 @@ var immutableReviewExecutorExposureByAgent = func() map[model.AgentID]ContractEx
 		exposure[agent] = ContractExposureDormant
 	}
 	exposure[model.AgentClaudeCode] = ContractExposureAdvertised
-	exposure[model.AgentOpenCode] = ContractExposureAdvertised
 	exposure[model.AgentCodex] = ContractExposureAdvertised
 	return exposure
 }()
@@ -307,8 +302,5 @@ var featureClaimsByAgent = map[model.AgentID]AgentFeatureClaims{
 	},
 	model.AgentCodex: {
 		Skills: true, SystemPrompt: true, MCP: true,
-	},
-	model.AgentOpenCode: {
-		SlashCommands: true, Skills: true, SystemPrompt: true, MCP: true,
 	},
 }

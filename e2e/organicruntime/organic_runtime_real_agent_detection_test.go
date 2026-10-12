@@ -7,7 +7,7 @@
 // running and depending on ambient machine state, or skipping in a way that
 // reads as passing.
 //
-// Claude Code and OpenCode's routing-guidance cases need gentle-ai's real
+// Claude Code's routing-guidance case needs gentle-ai's real
 // Detect() to find a real installed binary on PATH: install now refuses
 // instead of installing a missing runtime (agentInstallStep in
 // internal/cli/run.go), so without the real binary these cases fail with a
@@ -15,12 +15,10 @@
 // job) never installs agent runtimes, so these cases run only where the
 // runtimes are installed.
 //
-// The organic-runtime-e2e job in .github/workflows/ci.yml installs both
-// Claude Code and OpenCode before running `go test -tags real_agent_e2e
-// ./e2e/organicruntime`, and its "Verify real-agent detection E2E is
-// registered" step fails loudly if this test ever stops compiling into that
-// job — the same shape as the sibling "Verify Windows OpenCode reviewer
-// rejection E2E is registered" step already in that job.
+// The organic-runtime-e2e job in .github/workflows/ci.yml installs Claude
+// Code before running `go test -tags real_agent_e2e ./e2e/organicruntime`,
+// and its "Verify real-agent detection E2E is registered" step fails loudly
+// if this test ever stops compiling into that job.
 package organicruntime_test
 
 import (
@@ -32,22 +30,17 @@ import (
 )
 
 // TestOrganicConfiguredAgentReceivesRoutingGuidanceRealAgents proves the
-// markdown-section and orchestrator-prompt delivery strategies for Claude
-// Code and OpenCode, which need a real installed agent binary. See this
-// file's package comment for why they are gated.
+// markdown-section delivery strategy for Claude Code, which needs a real
+// installed agent binary. See this file's package comment for why it is
+// gated.
 func TestOrganicConfiguredAgentReceivesRoutingGuidanceRealAgents(t *testing.T) {
 	t.Parallel()
-	// The orchestrator prompt lives in the home settings document even under
-	// workspace scope, because that is the only settings document the
-	// OpenCode family ever loads (issue #1825).
 	agents := []struct {
 		name    string
 		agentID string
 		path    string
-		inHome  bool
 	}{
 		{name: "markdown section", agentID: "claude-code", path: ".claude/CLAUDE.md"},
-		{name: "orchestrator prompt", agentID: "opencode", path: ".config/opencode/opencode.json", inHome: true},
 	}
 	for _, agent := range agents {
 		t.Run(agent.name, func(t *testing.T) {
@@ -64,11 +57,7 @@ func TestOrganicConfiguredAgentReceivesRoutingGuidanceRealAgents(t *testing.T) {
 			if err != nil {
 				t.Fatalf("install %s: %v\nstdout:\n%s\nstderr:\n%s", agent.agentID, err, output, stderr)
 			}
-			root := workspace
-			if agent.inHome {
-				root = home
-			}
-			rendered, readErr := os.ReadFile(filepath.Join(root, filepath.FromSlash(agent.path)))
+			rendered, readErr := os.ReadFile(filepath.Join(workspace, filepath.FromSlash(agent.path)))
 			if readErr != nil {
 				t.Fatalf("configured agent %s received no routing guidance at %s: %v", agent.agentID, agent.path, readErr)
 			}
@@ -76,12 +65,6 @@ func TestOrganicConfiguredAgentReceivesRoutingGuidanceRealAgents(t *testing.T) {
 			for _, fragment := range required {
 				if !bytes.Contains(rendered, []byte(fragment)) {
 					t.Fatalf("routing guidance for %s omits %q:\n%s", agent.agentID, fragment, rendered)
-				}
-			}
-			if agent.inHome {
-				stranded := filepath.Join(workspace, filepath.FromSlash(agent.path))
-				if _, statErr := os.Stat(stranded); !os.IsNotExist(statErr) {
-					t.Fatalf("workspace-scoped install stranded a settings document the agent never loads at %s (stat err = %v)", stranded, statErr)
 				}
 			}
 		})

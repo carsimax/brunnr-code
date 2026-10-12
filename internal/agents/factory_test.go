@@ -17,7 +17,6 @@ func TestDefaultRegistrySupportedAgentsMatchesFactoryAgents(t *testing.T) {
 	want := []model.AgentID{
 		model.AgentClaudeCode,
 		model.AgentCodex,
-		model.AgentOpenCode,
 	}
 
 	if got := registry.SupportedAgents(); !reflect.DeepEqual(got, want) {

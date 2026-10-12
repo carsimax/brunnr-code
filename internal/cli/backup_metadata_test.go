@@ -84,7 +84,7 @@ func TestPrepareBackupStep_InstallWritesMetadataToManifest(t *testing.T) {
 func TestPrepareBackupStep_SyncWritesMetadataToManifest(t *testing.T) {
 	home := t.TempDir()
 
-	configPath := filepath.Join(home, "opencode.json")
+	configPath := filepath.Join(home, "settings.json")
 	if err := os.WriteFile(configPath, []byte(`{"model": "claude"}`), 0o644); err != nil {
 		t.Fatalf("WriteFile config: %v", err)
 	}

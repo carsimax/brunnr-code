@@ -1,11 +1,9 @@
 package agentguidance
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -14,10 +12,7 @@ import (
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/catalog"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencodedefault"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	opencoderuntime "github.com/gentleman-programming/gentle-ai/v4/internal/opencode"
 )
 
 func TestCodexODDRoutingInjectionPreservesUserTextAndResync(t *testing.T) {
@@ -81,52 +76,6 @@ func TestRemoteAuthorizationSectionPreservesUserText(t *testing.T) {
 	}
 }
 
-// This compares against the pre-existing merger, NOT native last-match semantics.
-// That merger sorts maps; this slice must not claim to fix custom rule ordering.
-func TestRemoteAuthorizationRetainsExistingPermissionMergeBehavior(t *testing.T) {
-	const seed = `{"permission":{"bash":{"ssh *":"allow","*":"deny"}},"agent":{"gentle-orchestrator":{"prompt":"Personal instructions","permission":{"bash":"deny","task":"deny"}}}}`
-	baseline, err := filemerge.MergeJSONObjects([]byte(seed), []byte(`{}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	permissions := func(raw []byte) string {
-		var root map[string]json.RawMessage
-		if err := json.Unmarshal(raw, &root); err != nil {
-			t.Fatal(err)
-		}
-		var agents map[string]map[string]json.RawMessage
-		if err := json.Unmarshal(root["agent"], &agents); err != nil {
-			t.Fatal(err)
-		}
-		return string(root["permission"]) + string(agents["gentle-orchestrator"]["permission"])
-	}
-	for _, agent := range []model.AgentID{model.AgentOpenCode} {
-		t.Run(string(agent), func(t *testing.T) {
-			home := t.TempDir()
-			paths, err := RoutingPaths(home, agent)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := os.MkdirAll(filepath.Dir(paths[0]), 0o755); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(paths[0], []byte(seed), 0o644); err != nil {
-				t.Fatal(err)
-			}
-			if _, err := InjectRoutingWithOptions(home, agent, RoutingOptions{}); err != nil {
-				t.Fatal(err)
-			}
-			got, err := os.ReadFile(paths[0])
-			if err != nil || permissions(got) != permissions(baseline) {
-				t.Fatalf("permission projection changed relative to existing merger: %v", err)
-			}
-			if !strings.Contains(deliveredGuidance(t, paths[0]), "Personal instructions") {
-				t.Fatal("personal orchestrator instructions lost")
-			}
-		})
-	}
-}
-
 func TestRemoteAuthorizationPrimaryCarriers(t *testing.T) {
 	covered := 0
 	for _, agent := range catalog.AllAgents() {
@@ -156,8 +105,8 @@ func TestRemoteAuthorizationPrimaryCarriers(t *testing.T) {
 			}
 		})
 	}
-	if covered != 3 {
-		t.Fatalf("covered %d clients, want 3", covered)
+	if covered != 2 {
+		t.Fatalf("covered %d clients, want 2", covered)
 	}
 }
 
@@ -235,71 +184,6 @@ func TestInjectRoutingInstallsGuidanceForEverySupportedAgent(t *testing.T) {
 			}
 			if !strings.Contains(written, "First establish whether the requested outcome explicitly authorizes a change.") {
 				t.Fatalf("InjectRouting(%q) did not deliver the outcome-authorization guard:\n%s", agent.ID, written)
-			}
-		})
-	}
-}
-
-// TestInjectRoutingStaysContainedUnderHostileEnvironment pins containment
-// against ambient config-redirection environment. CI runners (and real user
-// shells) export XDG_CONFIG_HOME and APPDATA; an adapter that resolves paths
-// from the environment instead of the passed installation root writes guidance
-// outside the target dir — into the real user config — and the idempotency
-// guarantee silently breaks because state leaks across runs.
-//
-// The OpenCode --version probe is stubbed to "not installed": a real opencode
-// on PATH would be spawned by that probe, inherit the hostile
-// XDG_CONFIG_HOME, and create its own config dir there. That is the external
-// binary's behavior, not adapter path resolution, and it made this test pass
-// or fail depending on whether the machine had opencode installed.
-//
-// No t.Parallel here: t.Setenv is process-wide and forbids it.
-func TestInjectRoutingStaysContainedUnderHostileEnvironment(t *testing.T) {
-	hostile := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(hostile, "xdg"))
-	t.Setenv("APPDATA", filepath.Join(hostile, "AppData", "Roaming"))
-	previousVersionRunner := opencoderuntime.VersionRunnerOverride
-	opencoderuntime.VersionRunnerOverride = func(context.Context, opencoderuntime.Command) (opencoderuntime.CommandOutput, error) {
-		return opencoderuntime.CommandOutput{}, exec.ErrNotFound
-	}
-	t.Cleanup(func() { opencoderuntime.VersionRunnerOverride = previousVersionRunner })
-
-	for _, agent := range catalog.AllAgents() {
-		if agent.ID == model.AgentConductor {
-			continue // Catalog-only: no standalone guidance target.
-		}
-		t.Run(string(agent.ID), func(t *testing.T) {
-			targetDir := t.TempDir()
-
-			declared, err := RoutingPaths(targetDir, agent.ID)
-			if err != nil {
-				t.Fatalf("RoutingPaths(%q) error = %v", agent.ID, err)
-			}
-			for _, path := range declared {
-				if !strings.HasPrefix(path, targetDir) {
-					t.Fatalf("RoutingPaths(%q) declared a path outside the target dir: %q", agent.ID, path)
-				}
-			}
-
-			result, err := InjectRoutingWithOptions(targetDir, agent.ID, RoutingOptions{})
-			if err != nil {
-				t.Fatalf("InjectRouting(%q) error = %v", agent.ID, err)
-			}
-			if !result.Changed {
-				t.Fatalf("InjectRouting(%q) reported no change on a fresh target", agent.ID)
-			}
-			for _, path := range result.Files {
-				if !strings.HasPrefix(path, targetDir) {
-					t.Fatalf("InjectRouting(%q) wrote outside the target dir: %q", agent.ID, path)
-				}
-			}
-
-			entries, err := os.ReadDir(hostile)
-			if err != nil {
-				t.Fatalf("ReadDir(hostile) error = %v", err)
-			}
-			if len(entries) != 0 {
-				t.Fatalf("InjectRouting(%q) created %d entries under the hostile config root", agent.ID, len(entries))
 			}
 		})
 	}
@@ -420,151 +304,6 @@ func TestInjectRoutingRejectsBlankTargetDir(t *testing.T) {
 // Jinja router template from its embedded asset on every install.
 type jinjaBootstrapper interface {
 	BootstrapTemplate(homeDir string) error
-}
-
-func TestInjectRoutingUsesAlwaysLoadedOrchestratorScope(t *testing.T) {
-	t.Parallel()
-
-	for _, agent := range []model.AgentID{model.AgentOpenCode} {
-		t.Run(string(agent), func(t *testing.T) {
-			t.Parallel()
-
-			targetDir := t.TempDir()
-
-			adapter, err := agents.NewAdapter(agent)
-			if err != nil {
-				t.Fatalf("NewAdapter error = %v", err)
-			}
-
-			result, err := InjectRoutingWithOptions(targetDir, agent, RoutingOptions{})
-			if err != nil {
-				t.Fatalf("InjectRouting(%q) error = %v", agent, err)
-			}
-			if !result.Changed {
-				t.Fatalf("InjectRouting(%q) reported no change on a fresh target", agent)
-			}
-
-			settingsPath := adapter.SettingsPath(targetDir)
-			if len(result.Files) != 1 || result.Files[0] != settingsPath {
-				t.Fatalf("InjectRouting(%q) touched %v, want exactly %q", agent, result.Files, settingsPath)
-			}
-
-			rendered, err := RenderRouting(agent)
-			if err != nil {
-				t.Fatalf("RenderRouting(%q) error = %v", agent, err)
-			}
-
-			prompt := orchestratorPrompt(t, settingsPath)
-			if !strings.Contains(prompt, rendered) {
-				t.Fatalf("orchestrator prompt for %q carries no routing guidance:\n%s", agent, prompt)
-			}
-			if !strings.Contains(prompt, "<!-- gentle-ai:"+RoutingSectionID+" -->") ||
-				!strings.Contains(prompt, "<!-- /gentle-ai:"+RoutingSectionID+" -->") {
-				t.Fatalf("orchestrator prompt for %q carries no managed section:\n%s", agent, prompt)
-			}
-
-			// The global prompt file is a different, non-always-loaded scope for
-			// these adapters, so routing must never be delivered there.
-			promptFile := adapter.SystemPromptFile(targetDir)
-			if _, statErr := os.Stat(promptFile); !os.IsNotExist(statErr) {
-				t.Fatalf("InjectRouting(%q) wrote the non-always-loaded scope %q (stat err = %v)", agent, promptFile, statErr)
-			}
-		})
-	}
-}
-
-func TestInjectRoutingPreservesUnmanagedOrchestratorSettings(t *testing.T) {
-	t.Parallel()
-
-	targetDir := t.TempDir()
-
-	adapter, err := agents.NewAdapter(model.AgentOpenCode)
-	if err != nil {
-		t.Fatalf("NewAdapter error = %v", err)
-	}
-	settingsPath := adapter.SettingsPath(targetDir)
-
-	const existingPrompt = "# Existing orchestrator policy\n\nHand-written rules that must survive.\n"
-	existing := map[string]any{
-		"$schema": "https://opencode.ai/config.json",
-		"model":   "anthropic/claude-opus-4",
-		"agent": map[string]any{
-			opencodedefault.ManagedAgent: map[string]any{
-				"prompt":      existingPrompt,
-				"description": "kept",
-			},
-			"some-other-agent": map[string]any{"prompt": "untouched"},
-		},
-	}
-	writeJSON(t, settingsPath, existing)
-
-	if _, err := InjectRoutingWithOptions(targetDir, model.AgentOpenCode, RoutingOptions{}); err != nil {
-		t.Fatalf("InjectRouting error = %v", err)
-	}
-
-	rendered, err := RenderRouting(model.AgentOpenCode)
-	if err != nil {
-		t.Fatalf("RenderRouting error = %v", err)
-	}
-
-	prompt := orchestratorPrompt(t, settingsPath)
-	if !strings.HasPrefix(prompt, existingPrompt) {
-		t.Fatalf("existing orchestrator prompt was altered:\n%s", prompt)
-	}
-	if !strings.Contains(prompt, rendered) {
-		t.Fatalf("routing guidance was not appended to the existing orchestrator prompt:\n%s", prompt)
-	}
-
-	settings := readJSON(t, settingsPath)
-	if settings["model"] != "anthropic/claude-opus-4" {
-		t.Fatalf("unmanaged settings key was dropped: %+v", settings)
-	}
-	if settings["$schema"] != "https://opencode.ai/config.json" {
-		t.Fatalf("unmanaged settings key was dropped: %+v", settings)
-	}
-	agentsMap, ok := settings["agent"].(map[string]any)
-	if !ok {
-		t.Fatalf("agent map was dropped: %+v", settings)
-	}
-	other, ok := agentsMap["some-other-agent"].(map[string]any)
-	if !ok || other["prompt"] != "untouched" {
-		t.Fatalf("sibling agent definition was altered: %+v", agentsMap)
-	}
-	managed, ok := agentsMap[opencodedefault.ManagedAgent].(map[string]any)
-	if !ok || managed["description"] != "kept" {
-		t.Fatalf("sibling orchestrator field was dropped: %+v", agentsMap)
-	}
-}
-
-func TestInjectRoutingRejectsMalformedOrchestratorSettings(t *testing.T) {
-	t.Parallel()
-
-	targetDir := t.TempDir()
-
-	adapter, err := agents.NewAdapter(model.AgentOpenCode)
-	if err != nil {
-		t.Fatalf("NewAdapter error = %v", err)
-	}
-	settingsPath := adapter.SettingsPath(targetDir)
-
-	const corrupt = "this is not json at all"
-	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-		t.Fatalf("MkdirAll error = %v", err)
-	}
-	if err := os.WriteFile(settingsPath, []byte(corrupt), 0o644); err != nil {
-		t.Fatalf("WriteFile error = %v", err)
-	}
-
-	result, err := InjectRoutingWithOptions(targetDir, model.AgentOpenCode, RoutingOptions{})
-	if err == nil {
-		t.Fatalf("InjectRouting accepted unreadable settings: %+v", result)
-	}
-	if result.Changed || len(result.Files) != 0 {
-		t.Fatalf("InjectRouting reported work for unreadable settings: %+v", result)
-	}
-	if got := readFile(t, settingsPath); got != corrupt {
-		t.Fatalf("InjectRouting clobbered unreadable settings:\n%s", got)
-	}
 }
 
 func TestInjectRoutingKeepsMarkdownSectionAgentsOnTheirPromptFile(t *testing.T) {
@@ -787,16 +526,12 @@ func TestInjectRoutingDeliversNoRetiredControlPlaneVocabulary(t *testing.T) {
 }
 
 // markdownSectionAgents lists every supported agent whose guidance is delivered
-// as a marker section inside its own system prompt file — that is, everything
-// except the orchestrator-scoped OpenCode runtime.
+// as a marker section inside its own system prompt file.
 func markdownSectionAgents(t *testing.T) []model.AgentID {
 	t.Helper()
 
 	var selected []model.AgentID
 	for _, agent := range catalog.AllAgents() {
-		if agent.ID == model.AgentOpenCode {
-			continue
-		}
 		adapter, err := agents.NewAdapter(agent.ID)
 		if err != nil {
 			t.Fatalf("NewAdapter(%q) error = %v", agent.ID, err)
@@ -806,36 +541,18 @@ func markdownSectionAgents(t *testing.T) []model.AgentID {
 		}
 		selected = append(selected, agent.ID)
 	}
-	if len(selected) != supportedAgentCount-1 {
-		t.Fatalf("selected %d markdown-section agents, want %d", len(selected), supportedAgentCount-1)
+	if len(selected) != supportedAgentCount {
+		t.Fatalf("selected %d markdown-section agents, want %d", len(selected), supportedAgentCount)
 	}
 	return selected
 }
 
 // deliveredGuidance returns the guidance text an agent actually loads from the
-// written file: a settings document carries it as an encoded prompt string,
-// every other target carries it as raw markdown.
+// written file: every target carries it as raw markdown.
 func deliveredGuidance(t *testing.T, path string) string {
 	t.Helper()
 
-	if strings.HasSuffix(path, ".json") {
-		return orchestratorPrompt(t, path)
-	}
 	return readFile(t, path)
-}
-
-func orchestratorPrompt(t *testing.T, path string) string {
-	t.Helper()
-
-	var settings struct {
-		Agent map[string]struct {
-			Prompt string `json:"prompt"`
-		} `json:"agent"`
-	}
-	if err := json.Unmarshal([]byte(readFile(t, path)), &settings); err != nil {
-		t.Fatalf("Unmarshal(%q) error = %v", path, err)
-	}
-	return settings.Agent[opencodedefault.ManagedAgent].Prompt
 }
 
 // managedRoutingBlock returns only the content Gentle AI owns, so assertions
@@ -885,129 +602,4 @@ func readFile(t *testing.T, path string) string {
 		t.Fatalf("ReadFile(%q) error = %v", path, err)
 	}
 	return string(data)
-}
-
-// ─── JSONC settings documents keep comments and trailing commas ────────────
-//
-// Issue #5035 slice A: routing guidance is delivered into the managed
-// orchestrator agent of the OpenCode family's settings document. When that
-// document is JSONC (opencode.jsonc), the writer must reuse the
-// JSONC-preserving merge instead of normalizing the whole file: everything a
-// user wrote around the touched agent value survives verbatim, and a document
-// whose touched value cannot be safely rewritten fails closed without touching
-// a byte.
-func TestInjectRoutingPreservesJSONCCommentsAndTrailingCommas(t *testing.T) {
-	t.Parallel()
-
-	targetDir := t.TempDir()
-	settingsPath := filepath.Join(targetDir, "opencode.jsonc")
-
-	const before = `{
-  // user provider note
-  "provider": {
-    "local": {"models": {"m": {},},},
-  },
-  "theme": "default",
-  "agent": {
-    "gentle-orchestrator": {
-      "prompt": "# Existing orchestrator policy\n\nHand-written rules that must survive.\n"
-    },
-  },
-}
-`
-	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-		t.Fatalf("MkdirAll error = %v", err)
-	}
-	if err := os.WriteFile(settingsPath, []byte(before), 0o644); err != nil {
-		t.Fatalf("WriteFile error = %v", err)
-	}
-
-	first, err := InjectRoutingWithOptions(targetDir, model.AgentOpenCode, RoutingOptions{SettingsPath: settingsPath})
-	if err != nil {
-		t.Fatalf("InjectRouting error = %v", err)
-	}
-	if !first.Changed || len(first.Files) != 1 || first.Files[0] != settingsPath {
-		t.Fatalf("InjectRouting result = %+v, want a change to %q", first, settingsPath)
-	}
-
-	after := readFile(t, settingsPath)
-	for _, want := range []string{
-		"// user provider note",
-		`"m": {},`,
-		`"theme": "default",`,
-		",\n}", // trailing comma after the rewritten agent member
-	} {
-		if !strings.Contains(after, want) {
-			t.Fatalf("JSONC comment or trailing comma %q was destroyed:\n%s", want, after)
-		}
-	}
-
-	settings, err := filemerge.UnmarshalJSONObject([]byte(after))
-	if err != nil {
-		t.Fatalf("merged JSONC no longer parses: %v\n%s", err, after)
-	}
-	agentsMap, ok := settings["agent"].(map[string]any)
-	if !ok {
-		t.Fatalf("agent member was dropped: %#v", settings)
-	}
-	prompt := agentsMap[opencodedefault.ManagedAgent].(map[string]any)["prompt"].(string)
-	if !strings.Contains(prompt, "<!-- gentle-ai:"+RoutingSectionID+" -->") {
-		t.Fatalf("routing guidance was not injected into the managed prompt:\n%s", prompt)
-	}
-	if provider, ok := settings["provider"].(map[string]any); !ok || provider["local"] == nil {
-		t.Fatalf("untouched provider member was altered: %#v", settings["provider"])
-	}
-
-	second, err := InjectRoutingWithOptions(targetDir, model.AgentOpenCode, RoutingOptions{SettingsPath: settingsPath})
-	if err != nil {
-		t.Fatalf("second InjectRouting error = %v", err)
-	}
-	if second.Changed {
-		t.Fatalf("second identical InjectRouting reported a change: %+v", second)
-	}
-	if got := readFile(t, settingsPath); got != after {
-		t.Fatalf("second InjectRouting rewrote the JSONC document:\n%s", got)
-	}
-}
-
-func TestInjectRoutingFailsClosedOnUnsafeJSONCSettings(t *testing.T) {
-	t.Parallel()
-
-	seeded, err := json.Marshal(map[string]any{"prompt": "# Existing orchestrator policy\n\nRetired WorkRun ceremony\n"})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for _, tc := range []struct {
-		name, content string
-	}{
-		{"malformed document", "// interrupted user edit\n{\n  \"mcp\": {\n"},
-		{"escaped touched key", `{"\u0061gent": {"gentle-orchestrator": ` + string(seeded) + `}}`},
-		{"comment inside touched value", `{"agent": {/* user note */ "gentle-orchestrator": ` + string(seeded) + `}}`},
-		{"duplicate top-level keys", `{"agent": {"gentle-orchestrator": ` + string(seeded) + `}, "theme": 1, "theme": 2}`},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			targetDir := t.TempDir()
-			settingsPath := filepath.Join(targetDir, "opencode.jsonc")
-			if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-				t.Fatalf("MkdirAll error = %v", err)
-			}
-			if err := os.WriteFile(settingsPath, []byte(tc.content), 0o644); err != nil {
-				t.Fatalf("WriteFile error = %v", err)
-			}
-
-			result, err := InjectRoutingWithOptions(targetDir, model.AgentOpenCode, RoutingOptions{SettingsPath: settingsPath})
-			if err == nil {
-				t.Fatalf("InjectRouting accepted unsafe JSONC settings: %+v", result)
-			}
-			if result.Changed || len(result.Files) != 0 {
-				t.Fatalf("InjectRouting reported work for unsafe JSONC settings: %+v", result)
-			}
-			if got := readFile(t, settingsPath); got != tc.content {
-				t.Fatalf("InjectRouting clobbered unsafe JSONC settings:\n got: %s\nwant: %s", got, tc.content)
-			}
-		})
-	}
 }

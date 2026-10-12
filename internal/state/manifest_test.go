@@ -13,8 +13,8 @@ func TestManifestRoundTrip(t *testing.T) {
 		Schema:   ManifestSchema,
 		Producer: Producer{BinaryVersion: "2.2.0", Commit: "abc1234"},
 		Resources: []ManifestResource{{
-			ID: "agents/opencode/AGENTS.md", Adapter: "full-file",
-			Target:      home + "/opencode/AGENTS.md",
+			ID: "agents/example/AGENTS.md", Adapter: "full-file",
+			Target:      home + "/example/AGENTS.md",
 			OwnedExtent: OwnedExtent{Kind: ExtentFull, Ownership: OwnershipManaged},
 			Desired:     "sha256:desired", Observed: "sha256:observed",
 		}},
@@ -71,7 +71,7 @@ func TestJournalAppendAndRead(t *testing.T) {
 	for _, op := range []string{OpIntent, OpComplete, OpComplete} {
 		var resource string
 		if op == OpIntent {
-			resource = "agents/opencode/AGENTS.md"
+			resource = "agents/example/AGENTS.md"
 		}
 		if err := AppendJournal(home, string(op), "run-1", resource); err != nil {
 			t.Fatalf("AppendJournal(%s): %v", op, err)
@@ -91,7 +91,7 @@ func TestJournalAppendAndRead(t *testing.T) {
 			t.Errorf("entries[%d] = %+v, want op=%s run_id=run-1", i, entries[i], want)
 		}
 	}
-	if entries[0].Resource != "agents/opencode/AGENTS.md" {
+	if entries[0].Resource != "agents/example/AGENTS.md" {
 		t.Errorf("entries[0].Resource = %q, want resource id", entries[0].Resource)
 	}
 }

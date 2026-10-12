@@ -8,8 +8,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/gentleman-programming/gentle-ai/v4/internal/versions"
 )
 
 func TestSDDOrchestratorsRequireSafeFormatterOrdering(t *testing.T) {
@@ -89,25 +87,6 @@ func TestRequiredChecksFailClosedWhenFormatFails(t *testing.T) {
 				t.Fatalf("%s can bypass the failed format guard", job.id)
 			}
 		})
-	}
-}
-
-func TestOrganicRuntimeE2EUsesInstalledOpenCodePin(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", "ci.yml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	install := "npm install --global opencode-ai@" + versions.OpenCode
-	if strings.Count(string(data), install) != 1 {
-		t.Fatalf("organic runtime E2E must install exact supported OpenCode pin %q once", install)
-	}
-	for _, required := range []string{
-		"TestOpenCodeRuntimeIsPinnedForTheLiveProviderTransport",
-		`GENTLE_AI_OPENCODE_RUNTIME_E2E: ${{ matrix.os == 'ubuntu-latest' && '1' || '0' }}`,
-	} {
-		if !strings.Contains(string(data), required) {
-			t.Fatalf("organic runtime E2E is missing live OpenCode provider isolation guard %q", required)
-		}
 	}
 }
 
@@ -346,19 +325,5 @@ func TestWindowsFullSuiteShardsCoverEveryTestName(t *testing.T) {
 				t.Fatalf("%s shard %q selector %q matches no test", pkg, s.name, s.selector)
 			}
 		}
-	}
-}
-
-func TestArchOpenCodeProvisioningRunsPublishedRepairBeforeVersionCheck(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("..", "..", "e2e", "Dockerfile.arch"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	required := "RUN npm install --global opencode-ai@" + versions.OpenCode + " && \\\n" +
-		"    (cd \"$(npm root --global)/opencode-ai\" && node postinstall.mjs) && \\\n" +
-		"    opencode_version=\"$(opencode --version)\" && \\\n" +
-		"    test \"$opencode_version\" = \"" + versions.OpenCode + "\" && \\\n"
-	if !strings.Contains(string(data), required) {
-		t.Fatal("Arch must run the package-published postinstall repair in its package directory and fail closed on the pinned version before installing other runtimes")
 	}
 }

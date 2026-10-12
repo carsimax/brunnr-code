@@ -621,8 +621,8 @@ func TestV21ConsentInvocationMustMatchProviderOwnedRequest(t *testing.T) {
 		invocation string
 	}{
 		{name: "unexpected Claude agent", invocation: strings.Replace(question.Choices[0].Invocation, " --consent granted", " --agent claude-code --consent granted", 1)},
-		{name: "unexpected OpenCode agent", invocation: strings.Replace(question.Choices[0].Invocation, " --consent granted", " --agent opencode --consent granted", 1)},
-		{name: "duplicate unexpected agent", invocation: strings.Replace(question.Choices[0].Invocation, " --consent granted", " --agent claude-code --agent opencode --consent granted", 1)},
+		{name: "unexpected Codex agent", invocation: strings.Replace(question.Choices[0].Invocation, " --consent granted", " --agent codex --consent granted", 1)},
+		{name: "duplicate unexpected agent", invocation: strings.Replace(question.Choices[0].Invocation, " --consent granted", " --agent claude-code --agent codex --consent granted", 1)},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			mutated := question

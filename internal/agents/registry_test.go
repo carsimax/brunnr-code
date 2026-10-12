@@ -59,14 +59,14 @@ func (m mockAdapter) SupportsMCP() bool {
 
 func TestRegistrySupportedAgentsSorted(t *testing.T) {
 	r, err := NewRegistry(
-		mockAdapter{agent: model.AgentOpenCode},
+		mockAdapter{agent: model.AgentCodex},
 		mockAdapter{agent: model.AgentClaudeCode},
 	)
 	if err != nil {
 		t.Fatalf("NewRegistry() returned error: %v", err)
 	}
 
-	if !reflect.DeepEqual(r.SupportedAgents(), []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode}) {
+	if !reflect.DeepEqual(r.SupportedAgents(), []model.AgentID{model.AgentClaudeCode, model.AgentCodex}) {
 		t.Fatalf("SupportedAgents() = %v", r.SupportedAgents())
 	}
 }
@@ -85,21 +85,6 @@ func TestRegistryRejectsDuplicateAgent(t *testing.T) {
 	}
 }
 
-func TestFactoryReturnsMVPAdapters(t *testing.T) {
-	registry, err := NewMVPRegistry()
-	if err != nil {
-		t.Fatalf("NewMVPRegistry() returned error: %v", err)
-	}
-
-	if _, ok := registry.Get(model.AgentClaudeCode); !ok {
-		t.Fatalf("registry missing claude adapter")
-	}
-
-	if _, ok := registry.Get(model.AgentOpenCode); !ok {
-		t.Fatalf("registry missing opencode adapter")
-	}
-}
-
 func TestDefaultRegistryIncludesAllAgents(t *testing.T) {
 	registry, err := NewDefaultRegistry()
 	if err != nil {
@@ -108,7 +93,6 @@ func TestDefaultRegistryIncludesAllAgents(t *testing.T) {
 
 	for _, agent := range []model.AgentID{
 		model.AgentClaudeCode,
-		model.AgentOpenCode,
 		model.AgentCodex,
 	} {
 		if _, ok := registry.Get(agent); !ok {

@@ -18,10 +18,10 @@ var orchestratorSectionDriftRatchet = []struct {
 	name        string
 	maxVariants int
 }{
-	{"Delegation Rules", 3},
-	{"Skill Resolution Feedback", 2},
+	{"Delegation Rules", 2},
+	{"Skill Resolution Feedback", 1},
 	{"Agent Teams Orchestrator", 1},
-	{"Lossless Blocking Prompts (MANDATORY)", 4},
+	{"Lossless Blocking Prompts (MANDATORY)", 3},
 	{"Language Domain Contract", 2},
 }
 
@@ -66,13 +66,13 @@ func orchestratorSectionVariants(t *testing.T) map[string]map[string]struct{} {
 	if err != nil {
 		t.Fatalf("walk orchestrator assets: %v", err)
 	}
-	for _, runtime := range []string{"claude", "codex", "generic", "opencode"} {
+	for _, runtime := range []string{"claude", "codex", "generic"} {
 		if !seen[runtime] {
 			t.Errorf("missing ODD orchestrator for %s", runtime)
 		}
 	}
-	if len(seen) != 4 {
-		t.Errorf("ODD orchestrator inventory changed: got %d runtimes, want 4; update the ratchet deliberately", len(seen))
+	if len(seen) != 3 {
+		t.Errorf("ODD orchestrator inventory changed: got %d runtimes, want 3; update the ratchet deliberately", len(seen))
 	}
 	return variants
 }

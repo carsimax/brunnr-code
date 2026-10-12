@@ -1,7 +1,6 @@
 package mcp
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,74 +15,10 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/versions"
 )
 
-func TestContext7SelectedSettingsRefuseNestedCommentsAndLockedMode(t *testing.T) {
-	for _, tc := range []struct {
-		name, content string
-		mode          os.FileMode
-	}{
-		{"nested comments", "{\"mcp\":{\"other\":{/* keep */\"type\":\"remote\"}}}\n", 0o600},
-		{"locked mode", "{\"mcp\":{}}\n", 0},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			if runtime.GOOS == "windows" && tc.mode != 0o600 {
-				t.Skip("file permission bits are not supported on Windows")
-			}
-			path := filepath.Join(t.TempDir(), "opencode.jsonc")
-			if err := os.WriteFile(path, []byte(tc.content), 0o600); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.Chmod(path, tc.mode); err != nil {
-				t.Fatal(err)
-			}
-			_, err := injectOpenCodeMergeIntoSettings(path, model.AgentOpenCode)
-			if err == nil || !strings.Contains(err.Error(), "refuse") {
-				t.Fatalf("want actionable refusal, got %v", err)
-			}
-			info, statErr := os.Stat(path)
-			if statErr != nil {
-				t.Fatal(statErr)
-			}
-			if runtime.GOOS != "windows" && info.Mode().Perm() != tc.mode {
-				t.Fatalf("settings mode changed: %04o", info.Mode().Perm())
-			}
-			if err := os.Chmod(path, 0o600); err != nil {
-				t.Fatal(err)
-			}
-			got, readErr := os.ReadFile(path)
-			if readErr != nil {
-				t.Fatal(readErr)
-			}
-			if string(got) != tc.content {
-				t.Fatalf("settings bytes changed: %q", got)
-			}
-		})
-	}
-}
-
-func TestContext7SelectedSettingsPreservePrivateMode(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "opencode.jsonc")
-	if err := os.WriteFile(path, []byte("{\"mcp\":{}}\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := injectOpenCodeMergeIntoSettings(path, model.AgentOpenCode); err != nil {
-		t.Fatal(err)
-	}
-	if runtime.GOOS == "windows" {
-		return // POSIX permission bits are not preserved on Windows.
-	}
-	info, err := os.Stat(path)
-	if err != nil || info.Mode().Perm() != 0o600 {
-		t.Fatalf("settings mode = %v, error = %v; want 0600", info, err)
-	}
-}
-
-func claudeAdapter() agents.Adapter   { return claude.NewAdapter() }
-func opencodeAdapter() agents.Adapter { return opencode.NewAdapter() }
+func claudeAdapter() agents.Adapter { return claude.NewAdapter() }
 
 func assertOnlyKeys(t *testing.T, path string, object map[string]any, keys ...string) {
 	t.Helper()
@@ -102,58 +37,6 @@ func assertOnlyKeys(t *testing.T, path string, object map[string]any, keys ...st
 	for key := range object {
 		if _, expected := want[key]; !expected {
 			t.Fatalf("%q contains unexpected key %q; want only %v; got %#v", path, key, keys, object)
-		}
-	}
-}
-
-// readOpenCodeContext7Entry reads the mcp.context7 object from an OpenCode/KiloCode
-// opencode.json config file. Navigates parsed["mcp"]["context7"].
-func readOpenCodeContext7Entry(t *testing.T, path string) map[string]any {
-	t.Helper()
-
-	content, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("ReadFile(%q) error = %v", path, err)
-	}
-
-	var parsed map[string]any
-	if err := json.Unmarshal(content, &parsed); err != nil {
-		t.Fatalf("Unmarshal(%q) error = %v", path, err)
-	}
-
-	mcp, ok := parsed["mcp"].(map[string]any)
-	if !ok {
-		t.Fatalf("%q missing object key mcp; got %#v", path, parsed["mcp"])
-	}
-
-	context7, ok := mcp["context7"].(map[string]any)
-	if !ok {
-		t.Fatalf("%q missing object key mcp.context7; got %#v", path, mcp["context7"])
-	}
-
-	return context7
-}
-
-// assertOpenCodeRemoteContext7Schema asserts the mcp.context7 entry in an
-// OpenCode/KiloCode opencode.json is a valid remote entry with no legacy local keys.
-func assertOpenCodeRemoteContext7Schema(t *testing.T, path string) {
-	t.Helper()
-
-	context7 := readOpenCodeContext7Entry(t, path)
-
-	if got := context7["type"]; got != "remote" {
-		t.Fatalf("%q mcp.context7.type = %#v; want %q", path, got, "remote")
-	}
-	if got := context7["url"]; got != "https://mcp.context7.com/mcp" {
-		t.Fatalf("%q mcp.context7.url = %#v; want context7 remote URL", path, got)
-	}
-	if got := context7["enabled"]; got != true {
-		t.Fatalf("%q mcp.context7.enabled = %#v; want true", path, got)
-	}
-
-	for _, key := range []string{"command", "args", "env", "environment"} {
-		if _, exists := context7[key]; exists {
-			t.Fatalf("%q mcp.context7 contains legacy local key %q; got %#v", path, key, context7)
 		}
 	}
 }
@@ -215,136 +98,6 @@ func assertKimiContext7Schema(t *testing.T, path string) {
 	}
 
 	assertOnlyKeys(t, path, context7, "transport", "url")
-}
-
-func TestInjectOpenCodeMergesContext7AndIsIdempotent(t *testing.T) {
-	home := t.TempDir()
-
-	first, err := Inject(home, home, opencodeAdapter())
-	if err != nil {
-		t.Fatalf("Inject() first error = %v", err)
-	}
-	if !first.Changed {
-		t.Fatalf("Inject() first changed = false")
-	}
-
-	second, err := Inject(home, home, opencodeAdapter())
-	if err != nil {
-		t.Fatalf("Inject() second error = %v", err)
-	}
-	if second.Changed {
-		t.Fatalf("Inject() second changed = true")
-	}
-
-	configPath := filepath.Join(home, ".config", "opencode", "opencode.json")
-	config, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("ReadFile(opencode.json) error = %v", err)
-	}
-
-	if len(config) == 0 {
-		t.Fatalf("opencode.json is empty")
-	}
-
-	assertOpenCodeRemoteContext7Schema(t, configPath)
-
-	text := string(config)
-	if !strings.Contains(text, `"mcp"`) {
-		t.Fatal("opencode.json missing mcp key")
-	}
-	if !strings.Contains(text, `"type": "remote"`) {
-		t.Fatal("opencode.json context7 missing type: remote")
-	}
-	if strings.Contains(text, `"mcpServers"`) {
-		t.Fatal("opencode.json should use 'mcp' key, not 'mcpServers'")
-	}
-}
-
-func TestInjectOpenCodeRejectsMalformedJSONCSettingsWithoutReplacingBytes(t *testing.T) {
-	home := t.TempDir()
-	adapter := opencodeAdapter()
-	settingsPath := filepath.Join(home, ".config", "opencode", "opencode.jsonc")
-	original := []byte("// interrupted user edit\n{\n  \"mcp\": {\n")
-	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-		t.Fatalf("MkdirAll(settings dir) error = %v", err)
-	}
-	if err := os.WriteFile(settingsPath, original, 0o644); err != nil {
-		t.Fatalf("WriteFile(opencode.jsonc) error = %v", err)
-	}
-
-	if _, err := Inject(home, home, adapter); err == nil {
-		t.Fatal("Inject() error = nil, want refusal for malformed opencode.jsonc")
-	}
-	after, err := os.ReadFile(settingsPath)
-	if err != nil {
-		t.Fatalf("ReadFile(opencode.jsonc) error = %v", err)
-	}
-	if !bytes.Equal(after, original) {
-		t.Fatalf("malformed opencode.jsonc was replaced:\n got: %q\nwant: %q", after, original)
-	}
-}
-
-func TestInjectOpenCodePreservesOtherMCPEntriesAlongsideContext7(t *testing.T) {
-	home := t.TempDir()
-	adapter := opencodeAdapter()
-	configPath := adapter.SettingsPath(home)
-	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
-		t.Fatalf("MkdirAll error = %v", err)
-	}
-
-	legacy := `{
-	  "mcp": {
-	    "context7": {
-	      "type": "local",
-	      "command": ["npx", "-y", "@upstash/context7-mcp"],
-	      "args": ["legacy"],
-	      "env": {"TOKEN": "x"},
-	      "enabled": false
-	    },
-	    "engram": {
-	      "type": "local",
-	      "command": ["engram-server"],
-	      "args": ["--port", "9000"]
-	    }
-	  }
-	}`
-	if err := os.WriteFile(configPath, []byte(legacy), 0o644); err != nil {
-		t.Fatalf("WriteFile(opencode.json) error = %v", err)
-	}
-
-	_, err := Inject(home, home, adapter)
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-
-	assertContext7FileUnchanged(t, configPath, legacy)
-
-	content, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("ReadFile(opencode.json) error = %v", err)
-	}
-
-	var parsed map[string]any
-	if err := json.Unmarshal(content, &parsed); err != nil {
-		t.Fatalf("Unmarshal(opencode.json) error = %v", err)
-	}
-
-	mcp, ok := parsed["mcp"].(map[string]any)
-	if !ok {
-		t.Fatalf("opencode.json missing object key mcp; got %#v", parsed["mcp"])
-	}
-
-	engram, ok := mcp["engram"].(map[string]any)
-	if !ok {
-		t.Fatalf("opencode.json mcp.engram missing after inject; got %#v", mcp["engram"])
-	}
-	if engram["type"] != "local" {
-		t.Fatalf("mcp.engram.type = %#v; want %q", engram["type"], "local")
-	}
-	cmd, _ := engram["command"].([]any)
-	if len(cmd) == 0 || cmd[0] != "engram-server" {
-		t.Fatalf("mcp.engram.command = %#v; want [engram-server ...]", engram["command"])
-	}
 }
 
 func TestInjectClaudeWritesUserConfigAndIsIdempotent(t *testing.T) {
@@ -1062,7 +815,7 @@ args = ["-y", "context7-mcp"]
 
 // TestMergeJSONFilePreservesExistingModeOnRewrite is the representative
 // end-to-end regression test for gentle-ai#5006(F5): mergeJSONFile is the
-// settings-merge codepath shared by every non-OpenCode/OpenClaw MCP
+// settings-merge codepath shared by every non-OpenClaw MCP
 // injection, and rewriting a pre-seeded private settings file must never
 // widen it.
 func TestMergeJSONFilePreservesExistingModeOnRewrite(t *testing.T) {

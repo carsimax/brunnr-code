@@ -24,13 +24,6 @@ type claudeTheme struct {
 	Overrides map[string]string `json:"overrides"`
 }
 
-type openCodeTheme struct {
-	Schema string            `json:"$schema"`
-	Theme  map[string]string `json:"theme"`
-}
-
-const openCodeThemeSchema = "https://opencode.ai/theme.json"
-
 func palette(pairs ...string) map[string]string {
 	colors := make(map[string]string, len(pairs)/2)
 	for i := 0; i < len(pairs); i += 2 {
@@ -58,50 +51,8 @@ var gentlemanCuteClaudeTheme = claudeTheme{
 	),
 }
 
-var gentlemanOpenCodeTheme = openCodeTheme{
-	Schema: openCodeThemeSchema,
-	Theme: palette(
-		"background", "none", "backgroundPanel", "#06080f", "backgroundElement", "#06080f", "text", "#F3F6F9", "textMuted", "#5C6170",
-		"primary", "#7FB4CA", "secondary", "#A3B5D6", "accent", "#E0C15A", "error", "#CB7C94", "warning", "#DEBA87", "success", "#B7CC85", "info", "#7FB4CA",
-		"border", "#313342", "borderActive", "#7FB4CA", "borderSubtle", "#232A40", "diffAdded", "#B7CC85", "diffRemoved", "#CB7C94", "diffContext", "#5C6170",
-		"diffHunkHeader", "#8394A3", "diffHighlightAdded", "#D1E8A9", "diffHighlightRemoved", "#DE8FA8", "diffAddedBg", "#1a2e1a", "diffRemovedBg", "#2e1a1a", "diffContextBg", "#0d0f14",
-		"diffLineNumber", "#8394A3", "diffAddedLineNumberBg", "#1a2e1a", "diffRemovedLineNumberBg", "#2e1a1a", "markdownText", "#F3F6F9", "markdownHeading", "#B5B2D0",
-		"markdownLink", "#7FB4CA", "markdownLinkText", "#79B8EA", "markdownCode", "#B7CC85", "markdownBlockQuote", "#DEBA87", "markdownEmph", "#7CB9DD", "markdownStrong", "#DEBA87",
-		"markdownHorizontalRule", "#5C6170", "markdownListItem", "#7FB4CA", "markdownListEnumeration", "#A3B5D6", "markdownImage", "#7FB4CA", "markdownImageText", "#79B8EA", "markdownCodeBlock", "#F3F6F9",
-		"syntaxComment", "#8394A3", "syntaxKeyword", "#C99AD6", "syntaxFunction", "#B99BF2", "syntaxVariable", "#F3F6F9", "syntaxString", "#DFBD76", "syntaxNumber", "#A4DAA7", "syntaxType", "#8FB8DD", "syntaxOperator", "#DEBA87", "syntaxPunctuation", "#96A2B0",
-	),
-}
-
-var gentlemanCuteOpenCodeTheme = openCodeTheme{
-	Schema: openCodeThemeSchema,
-	Theme: palette(
-		"background", "none", "backgroundPanel", "#1A1218", "backgroundElement", "#241822", "text", "#F6EFF3", "textMuted", "#A78E9B",
-		"primary", "#F095C8", "secondary", "#D7A0B8", "accent", "#F095C8", "error", "#FF718F", "warning", "#F2B86D", "success", "#B4E7C7", "info", "#D7A0B8",
-		"border", "#342230", "borderActive", "#FFB1DD", "borderSubtle", "#241822", "diffAdded", "#B4E7C7", "diffRemoved", "#FF718F", "diffContext", "#A78E9B",
-		"diffHunkHeader", "#D7A0B8", "diffHighlightAdded", "#B4E7C7", "diffHighlightRemoved", "#FF718F", "diffAddedBg", "#1A2420", "diffRemovedBg", "#261019", "diffContextBg", "#1A1218",
-		"diffLineNumber", "#76616B", "diffAddedLineNumberBg", "#1A2420", "diffRemovedLineNumberBg", "#261019", "markdownText", "#F6EFF3", "markdownHeading", "#E0C27A",
-		"markdownLink", "#F095C8", "markdownLinkText", "#F095C8", "markdownCode", "#E0C27A", "markdownBlockQuote", "#A78E9B", "markdownEmph", "#D7A0B8", "markdownStrong", "#E0C27A",
-		"markdownHorizontalRule", "#A78E9B", "markdownListItem", "#F095C8", "markdownListEnumeration", "#D7A0B8", "markdownImage", "#F095C8", "markdownImageText", "#F095C8", "markdownCodeBlock", "#F6EFF3",
-		"syntaxComment", "#A78E9B", "syntaxKeyword", "#F095C8", "syntaxFunction", "#A9C7EE", "syntaxVariable", "#F6EFF3", "syntaxString", "#B4E7C7", "syntaxNumber", "#F2B86D", "syntaxType", "#E0C27A", "syntaxOperator", "#C4DAF6", "syntaxPunctuation", "#A78E9B",
-	),
-}
-
 func Inject(homeDir string, adapter agents.Adapter) (InjectionResult, error) {
 	return injectSettings(agents.JSONSettingsPath(homeDir, adapter))
-}
-
-// InjectAtPath writes the theme to a caller-selected settings file. OpenCode
-// callers pass the effective JSON/JSONC path and get a refusal for symlinked,
-// non-regular or locked files; other adapters use Inject and keep the shared
-// writer behavior.
-func InjectAtPath(settingsPath string) (InjectionResult, error) {
-	if settingsPath == "" {
-		return InjectionResult{}, nil
-	}
-	if err := filemerge.RefuseLockedSettingsFile(settingsPath); err != nil {
-		return InjectionResult{}, err
-	}
-	return injectSettings(settingsPath)
 }
 
 func injectSettings(settingsPath string) (InjectionResult, error) {
@@ -129,8 +80,6 @@ func InjectVisualThemes(homeDir string, adapter agents.Adapter) (InjectionResult
 	switch adapter.Agent() {
 	case model.AgentClaudeCode:
 		values = []any{gentlemanClaudeTheme, gentlemanCuteClaudeTheme}
-	case model.AgentOpenCode:
-		values = []any{gentlemanOpenCodeTheme, gentlemanCuteOpenCodeTheme}
 	}
 
 	result := InjectionResult{Files: make([]string, 0, len(paths))}
@@ -156,8 +105,6 @@ func VisualThemePaths(homeDir string, adapter agents.Adapter) []string {
 	switch adapter.Agent() {
 	case model.AgentClaudeCode:
 		root = filepath.Join(adapter.GlobalConfigDir(homeDir), "themes")
-	case model.AgentOpenCode:
-		root = filepath.Join(filepath.Dir(adapter.SettingsPath(homeDir)), "themes")
 	default:
 		return nil
 	}

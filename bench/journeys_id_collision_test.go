@@ -47,11 +47,7 @@ func journeySources() []journeySource {
 		{"journeys_issue2879.go", issue2879Journeys()},
 		{"journeys_managed_assets.go", managedAssetJourneys()},
 		{"journeys_issue2906.go", issue2906Journeys()},
-		{"journeys_issue_2138.go", issue2138Journeys()},
-		{"journeys_issue_3500.go", issue3500Journeys()},
-		{"journeys_issue_3043.go", issue3043Journeys()},
 		{"journeys_issue_3557.go", issue3557Journeys()},
-		{"journeys_issue_3561.go", issue3561Journeys()},
 		{"journeys_repository_context.go", repositoryContextJourneys()},
 		{"journeys_provider_capture.go", providerCaptureRetryJourneys()},
 		{"journeys_captured_provider_validator.go", capturedProviderValidatorJourneys()},
@@ -166,8 +162,6 @@ func TestRetiredSDDJourneysAreAbsent(t *testing.T) {
 		"j98-sdd-flat-root-spec-is-discovered":                               true,
 		"j107-sdd-approved-active-change-allows-shared-openspec-scaffolding": true,
 		"j128-historical-verification-does-not-block-apply":                  true,
-		"j3336-opencode-sdd-fresh-default-preflight":                         true,
-		"j2138-opencode-native-fallback-boundary":                            true,
 	}
 	for _, journey := range Journeys() {
 		if retired[journey.ID] {

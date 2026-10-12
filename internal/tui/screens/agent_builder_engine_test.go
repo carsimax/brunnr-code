@@ -8,7 +8,7 @@ import (
 )
 
 func TestRenderABEngine_NonEmpty(t *testing.T) {
-	engines := []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode}
+	engines := []model.AgentID{model.AgentClaudeCode}
 	out := RenderABEngine(engines, 0)
 	if out == "" {
 		t.Fatal("RenderABEngine returned empty string")
@@ -50,7 +50,7 @@ func TestRenderABEngine_EmptyEngines_ShowsWarning(t *testing.T) {
 }
 
 func TestABEngineOptions_IncludesBack(t *testing.T) {
-	engines := []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode}
+	engines := []model.AgentID{model.AgentClaudeCode, model.AgentCodex}
 	opts := ABEngineOptions(engines)
 	if len(opts) != 3 { // 2 engines + Back
 		t.Errorf("len(opts) = %d, want 3", len(opts))

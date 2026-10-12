@@ -117,7 +117,7 @@ func TestReviewCapabilitiesV23ArtifactRemainsReadable(t *testing.T) {
 }
 
 // TestReviewCapabilitiesV26AdvertisementIsCurrent pins the additive v2.6
-// surface that advertises provider-owned OpenCode lens tasks through status/v8.
+// surface advertised through status/v8.
 func TestReviewCapabilitiesV26AdvertisementIsCurrent(t *testing.T) {
 	var output bytes.Buffer
 	if err := RunReview([]string{"capabilities", "--contract", ReviewIntegrationContractV2}, &output); err != nil {

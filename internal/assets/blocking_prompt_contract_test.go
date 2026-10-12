@@ -46,10 +46,9 @@ func providerDefectRouteForPublishedFix(installedBuild, fixChannel string, publi
 const providerDefectHandoffCanonicalPath = "generic/orchestrator.md"
 
 var blockingPromptRoutes = map[string]blockingPromptRoute{
-	"claude/orchestrator.md":   {nativeTool: "`AskUserQuestion`"},
-	"codex/orchestrator.md":    {},
-	"generic/orchestrator.md":  {},
-	"opencode/orchestrator.md": {nativeTool: "`question`"},
+	"claude/orchestrator.md":  {nativeTool: "`AskUserQuestion`"},
+	"codex/orchestrator.md":   {},
+	"generic/orchestrator.md": {},
 }
 
 func TestCoordinatorOrchestratorsCarryLosslessBlockingPromptRule(t *testing.T) {
@@ -163,7 +162,6 @@ func TestNativeBlockingPromptRulesRetainInteractiveUIWithFailClosedFallback(t *t
 		tool string
 	}{
 		{name: "Claude", path: "claude/orchestrator.md", tool: "`AskUserQuestion`"},
-		{name: "OpenCode", path: "opencode/orchestrator.md", tool: "`question`"},
 	}
 
 	for _, tt := range tests {

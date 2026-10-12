@@ -47,9 +47,7 @@ func TestCodeGraphCompatibilityStrategies(t *testing.T) {
 	tests := []struct {
 		strategy codeGraphStrategy
 		agents   []model.AgentID
-	}{
-		{codeGraphReconciled, []model.AgentID{model.AgentOpenCode}},
-	}
+	}{}
 	for _, tt := range tests {
 		for _, id := range tt.agents {
 			if got := codeGraphCompatibilityTable[id].Strategy; got != tt.strategy {
@@ -106,11 +104,11 @@ func TestCodeGraphCommandsUseExplicitMultipleTargets(t *testing.T) {
 			return "/bin/npm", nil
 		}
 		return "", errors.New("missing")
-	}), []string{"claude", "codex", "opencode"})
+	}), []string{"claude", "codex", "cursor"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"codegraph", "install", "--target", "claude,codex,opencode", "--location", "global", "--yes"}
+	want := []string{"codegraph", "install", "--target", "claude,codex,cursor", "--location", "global", "--yes"}
 	if !reflect.DeepEqual(commands[1], want) {
 		t.Fatalf("install command = %v, want %v", commands[1], want)
 	}

@@ -179,28 +179,6 @@ func TestCheckDependenciesStepDoesNotBlockClaudeCodeOnMissingNpm(t *testing.T) {
 	}
 }
 
-func TestCheckDependenciesStepDoesNotBlockOpenCodeOnMissingNpm(t *testing.T) {
-	restore := installcmd.OverrideLookPath(func(file string) (string, error) {
-		if file == "npm" {
-			return "", errNotFound{}
-		}
-		return "/usr/bin/" + file, nil
-	})
-	t.Cleanup(restore)
-
-	step := checkDependenciesStep{
-		id:      "prepare:check-dependencies",
-		profile: windowsProfile,
-		selection: model.Selection{
-			Agents: []model.AgentID{model.AgentOpenCode},
-		},
-	}
-
-	if err := step.Run(); err != nil {
-		t.Fatalf("checkDependenciesStep.Run() unexpected error = %v — OpenCode is not Pi, so a missing npm is not this step's concern anymore", err)
-	}
-}
-
 func TestCheckDependenciesStepPassesWhenNpmPresent(t *testing.T) {
 	restore := installcmd.OverrideLookPath(func(file string) (string, error) {
 		// npm is present, everything else is too
@@ -210,7 +188,6 @@ func TestCheckDependenciesStepPassesWhenNpmPresent(t *testing.T) {
 
 	for _, agent := range []model.AgentID{
 		model.AgentClaudeCode,
-		model.AgentOpenCode,
 	} {
 		agent := agent
 		t.Run(string(agent), func(t *testing.T) {

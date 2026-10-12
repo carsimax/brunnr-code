@@ -17,9 +17,8 @@ const codeGraphUpstreamVersion = "1.4.1"
 type codeGraphStrategy string
 
 const (
-	codeGraphNative     codeGraphStrategy = "native"
-	codeGraphReconciled codeGraphStrategy = "reconciled"
-	codeGraphExcluded   codeGraphStrategy = "excluded"
+	codeGraphNative   codeGraphStrategy = "native"
+	codeGraphExcluded codeGraphStrategy = "excluded"
 )
 
 type codeGraphCompatibility struct {
@@ -34,20 +33,11 @@ type codeGraphCompatibility struct {
 // keys with the registry so a newly added agent cannot silently enter setup.
 var codeGraphCompatibilityTable = map[model.AgentID]codeGraphCompatibility{
 	model.AgentClaudeCode: nativeCompatibility(model.AgentClaudeCode, "claude"),
-	model.AgentOpenCode:   reconciledCompatibility(model.AgentOpenCode, "opencode"),
 	model.AgentCodex:      nativeCompatibility(model.AgentCodex, "codex"),
 }
 
 func nativeCompatibility(id model.AgentID, target string) codeGraphCompatibility {
 	return codeGraphCompatibility{Agent: id, Strategy: codeGraphNative, Target: target, OwnedPaths: codeGraphOwnedPaths, Postcondition: codeGraphPostcondition}
-}
-
-func reconciledCompatibility(id model.AgentID, target string) codeGraphCompatibility {
-	return codeGraphCompatibility{Agent: id, Strategy: codeGraphReconciled, Target: target, OwnedPaths: codeGraphOwnedPaths, Postcondition: codeGraphPostcondition}
-}
-
-func excludedCompatibility(id model.AgentID) codeGraphCompatibility {
-	return codeGraphCompatibility{Agent: id, Strategy: codeGraphExcluded}
 }
 
 func codeGraphCompatibilityFor(id model.AgentID) (codeGraphCompatibility, bool) {

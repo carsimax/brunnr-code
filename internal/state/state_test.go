@@ -18,7 +18,7 @@ import (
 // a persistence error is reconciled against the bytes visible on disk.
 func TestWriteReconciledAcceptsDesiredStateVisibleAfterWriteError(t *testing.T) {
 	home := t.TempDir()
-	desired := InstallState{InstalledAgents: []string{"opencode"}}
+	desired := InstallState{InstalledAgents: []string{"example-agent"}}
 	if err := Write(home, desired); err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func fullyPopulatedInstallState() InstallState {
 	lastUpdateCheck := time.Date(2026, 8, 12, 9, 30, 0, 0, time.UTC)
 	rddModeRecordedAt := time.Date(2026, 8, 12, 9, 0, 0, 0, time.UTC)
 	return InstallState{
-		InstalledAgents:          []string{"claude-code", "opencode"},
+		InstalledAgents:          []string{"claude-code", "example-agent"},
 		InstalledBinaryVersion:   "1.2.3",
 		ManagedAssetDigest:       "sha256:managed-assets",
 		SelectionConfigured:      true,
@@ -79,16 +79,12 @@ func fullyPopulatedInstallState() InstallState {
 		CodexPhaseModelAssignments: map[string]string{
 			"sdd-propose": "gpt-5.6-sol",
 		},
-		ModelAssignments: map[string]ModelAssignmentState{
-			"sdd-init": {ProviderID: "anthropic", ModelID: "claude-sonnet-4", Effort: "medium"},
-		},
 		Persona:           "neutral",
 		PersonaPresent:    true,
 		LastUpdateCheck:   &lastUpdateCheck,
 		PendingSync:       true,
 		RDDMode:           "off",
 		RDDModeRecordedAt: &rddModeRecordedAt,
-		BackgroundIntent:  model.OpenCodeBackgroundOn,
 	}
 }
 
@@ -114,7 +110,7 @@ func TestInstallStatePreservesEveryField(t *testing.T) {
 		{
 			name: "MergeAgents",
 			run: func(_ *testing.T, want InstallState) InstallState {
-				return MergeAgents(want, []string{"opencode", "codex"})
+				return MergeAgents(want, []string{"example-agent", "codex"})
 			},
 		},
 	} {
@@ -123,7 +119,7 @@ func TestInstallStatePreservesEveryField(t *testing.T) {
 			wantAfter := want
 			wantAfter.StrictTDD = false // retired selection is never persisted or propagated
 			if tt.name == "MergeAgents" {
-				wantAfter.InstalledAgents = []string{"claude-code", "opencode", "codex"}
+				wantAfter.InstalledAgents = []string{"claude-code", "example-agent", "codex"}
 			}
 			got := tt.run(t, want)
 			if !reflect.DeepEqual(got, wantAfter) {
@@ -136,9 +132,6 @@ func TestInstallStatePreservesEveryField(t *testing.T) {
 // TestMergeAgents verifies that MergeAgents appends new agents to existing
 // installed_agents with deduplication and preserves all other fields.
 func TestMergeAgents(t *testing.T) {
-	existingAssignments := map[string]ModelAssignmentState{
-		"sdd-init": {ProviderID: "anthropic", ModelID: "claude-sonnet-4"},
-	}
 	existingClaude := map[string]string{"sdd-explore": "sonnet", "sdd-archive": "haiku"}
 	existingKiro := map[string]string{"sdd-design": "opus"}
 	existingCommunityTools := []string{"codegraph"}
@@ -158,34 +151,33 @@ func TestMergeAgents(t *testing.T) {
 		{
 			name:      "existing single agent plus new agent appended",
 			existing:  InstallState{InstalledAgents: []string{"claude-code"}},
-			newAgents: []string{"opencode"},
-			wantIDs:   []string{"claude-code", "opencode"},
+			newAgents: []string{"example-agent"},
+			wantIDs:   []string{"claude-code", "example-agent"},
 		},
 		{
 			name:      "duplicate agent is deduped",
-			existing:  InstallState{InstalledAgents: []string{"opencode", "vscode-copilot", "codex"}},
-			newAgents: []string{"opencode"},
-			wantIDs:   []string{"opencode", "vscode-copilot", "codex"},
+			existing:  InstallState{InstalledAgents: []string{"example-agent", "vscode-copilot", "codex"}},
+			newAgents: []string{"example-agent"},
+			wantIDs:   []string{"example-agent", "vscode-copilot", "codex"},
 		},
 		{
 			name:      "existing multiple agents plus new agent appended",
-			existing:  InstallState{InstalledAgents: []string{"opencode", "vscode-copilot", "codex"}},
+			existing:  InstallState{InstalledAgents: []string{"example-agent", "vscode-copilot", "codex"}},
 			newAgents: []string{"pi"},
-			wantIDs:   []string{"opencode", "vscode-copilot", "codex", "pi"},
+			wantIDs:   []string{"example-agent", "vscode-copilot", "codex", "pi"},
 		},
 		{
 			name: "model_assignments preserved across merge",
 			existing: InstallState{
-				InstalledAgents:          []string{"opencode"},
+				InstalledAgents:          []string{"example-agent"},
 				CommunityTools:           existingCommunityTools,
 				CommunityToolsConfigured: true,
-				ModelAssignments:         existingAssignments,
 				ClaudeModelAssignments:   existingClaude,
 				KiroModelAssignments:     existingKiro,
 				Persona:                  "gentleman",
 			},
 			newAgents: []string{"pi"},
-			wantIDs:   []string{"opencode", "pi"},
+			wantIDs:   []string{"example-agent", "pi"},
 		},
 	}
 
@@ -198,9 +190,6 @@ func TestMergeAgents(t *testing.T) {
 			}
 
 			// Verify all preserved fields are unchanged.
-			if !reflect.DeepEqual(got.ModelAssignments, tt.existing.ModelAssignments) {
-				t.Errorf("ModelAssignments not preserved: got %v, want %v", got.ModelAssignments, tt.existing.ModelAssignments)
-			}
 			if !reflect.DeepEqual(got.ClaudeModelAssignments, tt.existing.ClaudeModelAssignments) {
 				t.Errorf("ClaudeModelAssignments not preserved: got %v, want %v", got.ClaudeModelAssignments, tt.existing.ClaudeModelAssignments)
 			}
@@ -220,7 +209,7 @@ func TestMergeAgents(t *testing.T) {
 func TestCommunityToolsRoundTrip(t *testing.T) {
 	home := t.TempDir()
 	want := InstallState{
-		InstalledAgents:          []string{"opencode"},
+		InstalledAgents:          []string{"example-agent"},
 		CommunityTools:           []string{"codegraph"},
 		CommunityToolsConfigured: true,
 	}
@@ -260,7 +249,7 @@ func TestSelectionRoundTripPreservesPresenceAndExplicitEmpty(t *testing.T) {
 	tests := []InstallState{
 		{SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSDD}, Skills: []model.SkillID{model.SkillSDDInit}, Preset: model.PresetCustom, SDDMode: model.SDDModeMulti, StrictTDD: true},
 		{SelectionConfigured: true, Components: []model.ComponentID{}, Skills: []model.SkillID{}, Preset: model.PresetCustom},
-		{InstalledAgents: []string{"opencode"}},
+		{InstalledAgents: []string{"example-agent"}},
 	}
 	for i, want := range tests {
 		home := t.TempDir()
@@ -301,7 +290,7 @@ func TestLegacyStrictTDDValuesDecodeButNeverWriteOrRestore(t *testing.T) {
 // TestWriteAndRead writes state and reads it back, verifying agents match.
 func TestWriteAndRead(t *testing.T) {
 	home := t.TempDir()
-	agents := []string{"claude-code", "opencode"}
+	agents := []string{"claude-code", "example-agent"}
 
 	if err := Write(home, InstallState{InstalledAgents: agents}); err != nil {
 		t.Fatalf("Write() error = %v", err)
@@ -506,7 +495,7 @@ func TestReadKeepsRejectingNonObjectAndTrailingDocuments(t *testing.T) {
 func TestWriteCreatesStateDir(t *testing.T) {
 	home := t.TempDir()
 
-	if err := Write(home, InstallState{InstalledAgents: []string{"opencode"}}); err != nil {
+	if err := Write(home, InstallState{InstalledAgents: []string{"example-agent"}}); err != nil {
 		t.Fatalf("Write() error = %v", err)
 	}
 
@@ -566,7 +555,7 @@ func TestWriteOverwrite(t *testing.T) {
 		t.Fatalf("Write() first error = %v", err)
 	}
 
-	if err := Write(home, InstallState{InstalledAgents: []string{"opencode", "gemini-cli"}}); err != nil {
+	if err := Write(home, InstallState{InstalledAgents: []string{"example-agent", "gemini-cli"}}); err != nil {
 		t.Fatalf("Write() second error = %v", err)
 	}
 
@@ -575,7 +564,7 @@ func TestWriteOverwrite(t *testing.T) {
 		t.Fatalf("Read() error = %v", err)
 	}
 
-	want := []string{"opencode", "gemini-cli"}
+	want := []string{"example-agent", "gemini-cli"}
 	if !reflect.DeepEqual(s.InstalledAgents, want) {
 		t.Errorf("InstalledAgents after overwrite = %v, want %v", s.InstalledAgents, want)
 	}
@@ -583,7 +572,7 @@ func TestWriteOverwrite(t *testing.T) {
 
 func TestWriteFailurePreservesExistingState(t *testing.T) {
 	home := t.TempDir()
-	original := InstallState{InstalledAgents: []string{"opencode"}, Persona: "neutral", PersonaPresent: true}
+	original := InstallState{InstalledAgents: []string{"example-agent"}, Persona: "neutral", PersonaPresent: true}
 	if err := Write(home, original); err != nil {
 		t.Fatal(err)
 	}
@@ -629,48 +618,6 @@ func TestWriteEmptyAgents(t *testing.T) {
 	}
 }
 
-// TestModelAssignmentsRoundTrip verifies that model assignments survive a write/read cycle.
-func TestModelAssignmentsRoundTrip(t *testing.T) {
-	home := t.TempDir()
-
-	want := InstallState{
-		InstalledAgents: []string{"claude-code"},
-		ClaudeModelAssignments: map[string]string{
-			"orchestrator": "opus",
-			"sdd-explore":  "sonnet",
-			"sdd-propose":  "fable",
-			"sdd-archive":  "haiku",
-		},
-		KiroModelAssignments: map[string]string{
-			"sdd-design":  "opus",
-			"sdd-archive": "haiku",
-			"default":     "sonnet",
-		},
-		ModelAssignments: map[string]ModelAssignmentState{
-			"sdd-init": {ProviderID: "anthropic", ModelID: "claude-sonnet-4"},
-		},
-	}
-
-	if err := Write(home, want); err != nil {
-		t.Fatalf("Write() error = %v", err)
-	}
-
-	got, err := Read(home)
-	if err != nil {
-		t.Fatalf("Read() error = %v", err)
-	}
-
-	if !reflect.DeepEqual(got.ClaudeModelAssignments, want.ClaudeModelAssignments) {
-		t.Errorf("ClaudeModelAssignments = %v, want %v", got.ClaudeModelAssignments, want.ClaudeModelAssignments)
-	}
-	if !reflect.DeepEqual(got.KiroModelAssignments, want.KiroModelAssignments) {
-		t.Errorf("KiroModelAssignments = %v, want %v", got.KiroModelAssignments, want.KiroModelAssignments)
-	}
-	if !reflect.DeepEqual(got.ModelAssignments, want.ModelAssignments) {
-		t.Errorf("ModelAssignments = %v, want %v", got.ModelAssignments, want.ModelAssignments)
-	}
-}
-
 func TestClaudePhaseAssignmentsRoundTrip(t *testing.T) {
 	home := t.TempDir()
 
@@ -693,57 +640,6 @@ func TestClaudePhaseAssignmentsRoundTrip(t *testing.T) {
 
 	if !reflect.DeepEqual(got.ClaudePhaseAssignments, want.ClaudePhaseAssignments) {
 		t.Errorf("ClaudePhaseAssignments = %v, want %v", got.ClaudePhaseAssignments, want.ClaudePhaseAssignments)
-	}
-}
-
-// TestModelAssignmentStateEffortRoundTrip verifies that Effort field survives
-// a JSON serialization round-trip.
-func TestModelAssignmentStateEffortRoundTrip(t *testing.T) {
-	home := t.TempDir()
-
-	want := InstallState{
-		ModelAssignments: map[string]ModelAssignmentState{
-			"sdd-apply": {ProviderID: "anthropic", ModelID: "claude-opus-4", Effort: "high"},
-		},
-	}
-
-	if err := Write(home, want); err != nil {
-		t.Fatalf("Write() error = %v", err)
-	}
-
-	got, err := Read(home)
-	if err != nil {
-		t.Fatalf("Read() error = %v", err)
-	}
-
-	a := got.ModelAssignments["sdd-apply"]
-	if a.Effort != "high" {
-		t.Errorf("Effort after round-trip = %q, want %q", a.Effort, "high")
-	}
-}
-
-// TestModelAssignmentStateEffortLegacyMissing verifies that a state.json file
-// with no "effort" key in a phase assignment deserializes to Effort="" with no error.
-func TestModelAssignmentStateEffortLegacyMissing(t *testing.T) {
-	home := t.TempDir()
-
-	if err := os.MkdirAll(filepath.Join(home, stateDir), 0o755); err != nil {
-		t.Fatalf("MkdirAll() error = %v", err)
-	}
-	// Legacy format: no effort field
-	legacy := `{"installed_agents":["opencode"],"model_assignments":{"sdd-apply":{"provider_id":"anthropic","model_id":"claude-opus-4"}}}` + "\n"
-	if err := os.WriteFile(Path(home), []byte(legacy), 0o644); err != nil {
-		t.Fatalf("WriteFile() error = %v", err)
-	}
-
-	s, err := Read(home)
-	if err != nil {
-		t.Fatalf("Read() error = %v", err)
-	}
-
-	a := s.ModelAssignments["sdd-apply"]
-	if a.Effort != "" {
-		t.Errorf("legacy missing effort field: got %q, want empty string", a.Effort)
 	}
 }
 
@@ -771,9 +667,6 @@ func TestBackwardCompatNoAssignments(t *testing.T) {
 	}
 	if s.ClaudeModelAssignments != nil {
 		t.Errorf("ClaudeModelAssignments = %v, want nil", s.ClaudeModelAssignments)
-	}
-	if s.ModelAssignments != nil {
-		t.Errorf("ModelAssignments = %v, want nil", s.ModelAssignments)
 	}
 }
 
@@ -943,7 +836,7 @@ func TestMergeAgents_PreservesCodexCarrilAssignments(t *testing.T) {
 			"sdd-cheap":  "gpt-5.4-mini",
 		},
 	}
-	merged := MergeAgents(existing, []string{"opencode"})
+	merged := MergeAgents(existing, []string{"example-agent"})
 	if !reflect.DeepEqual(merged.CodexCarrilModelAssignments, existing.CodexCarrilModelAssignments) {
 		t.Errorf("MergeAgents did not preserve CodexCarrilModelAssignments: got %v, want %v",
 			merged.CodexCarrilModelAssignments, existing.CodexCarrilModelAssignments)
@@ -1037,7 +930,7 @@ func TestMergeAgents_PreservesCodexPhaseModelAssignments(t *testing.T) {
 			"sdd-explore": "gpt-5.4-mini",
 		},
 	}
-	merged := MergeAgents(existing, []string{"opencode"})
+	merged := MergeAgents(existing, []string{"example-agent"})
 	if !reflect.DeepEqual(merged.CodexPhaseModelAssignments, existing.CodexPhaseModelAssignments) {
 		t.Errorf("MergeAgents did not preserve CodexPhaseModelAssignments: got %v, want %v",
 			merged.CodexPhaseModelAssignments, existing.CodexPhaseModelAssignments)
@@ -1128,7 +1021,7 @@ func TestMergeAgents_PreservesLastUpdateCheck(t *testing.T) {
 		InstalledAgents: []string{"claude-code"},
 		LastUpdateCheck: &ts,
 	}
-	merged := MergeAgents(existing, []string{"opencode"})
+	merged := MergeAgents(existing, []string{"example-agent"})
 	if merged.LastUpdateCheck == nil || !merged.LastUpdateCheck.Equal(ts) {
 		t.Errorf("MergeAgents did not preserve LastUpdateCheck: got %v, want %v",
 			merged.LastUpdateCheck, ts)
@@ -1217,7 +1110,7 @@ func TestMergeAgents_PreservesPendingSync(t *testing.T) {
 		InstalledAgents: []string{"claude-code"},
 		PendingSync:     true,
 	}
-	merged := MergeAgents(existing, []string{"opencode"})
+	merged := MergeAgents(existing, []string{"example-agent"})
 	if !merged.PendingSync {
 		t.Errorf("MergeAgents did not preserve PendingSync: got false, want true")
 	}
@@ -1291,7 +1184,7 @@ func TestMergeAgents_PreservesRDDMode(t *testing.T) {
 		RDDMode:           "off",
 		RDDModeRecordedAt: &recorded,
 	}
-	merged := MergeAgents(existing, []string{"opencode"})
+	merged := MergeAgents(existing, []string{"example-agent"})
 	if merged.RDDMode != "off" || merged.RDDModeRecordedAt == nil || !merged.RDDModeRecordedAt.Equal(recorded) {
 		t.Errorf("MergeAgents dropped the global mode: %q/%v", merged.RDDMode, merged.RDDModeRecordedAt)
 	}
@@ -1358,7 +1251,7 @@ func TestLastSyncedAt_BackwardCompat(t *testing.T) {
 func TestMergeAgents_PreservesLastSyncedAt(t *testing.T) {
 	ts := time.Date(2026, 8, 30, 10, 0, 0, 0, time.UTC)
 	existing := InstallState{InstalledAgents: []string{"codex"}, LastSyncedAt: &ts}
-	merged := MergeAgents(existing, []string{"opencode"})
+	merged := MergeAgents(existing, []string{"example-agent"})
 	if merged.LastSyncedAt == nil || !merged.LastSyncedAt.Equal(ts) {
 		t.Errorf("MergeAgents did not preserve LastSyncedAt: got %v, want %v",
 			merged.LastSyncedAt, ts)

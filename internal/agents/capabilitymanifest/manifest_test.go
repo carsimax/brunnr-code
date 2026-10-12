@@ -202,14 +202,12 @@ func TestEveryManifestKeepsWorkRoutingDormantAndHashesCanonically(t *testing.T) 
 	t.Parallel()
 
 	const wantRoutingDigest = "sha256:1c343ca2792be730e02b35f1655a19884a2672dc0d2915ef2afb33b6ac01bc1c"
-	// Digests pin the three providers with an enforceable fresh-reviewer
-	// boundary: Claude Code's generated reviewer has no live tools, OpenCode
-	// relays one ordinary task through Go-owned admission, and Codex's
-	// provider subprocess reaches the same contract.
+	// Digests pin the two providers with an enforceable fresh-reviewer
+	// boundary: Claude Code's generated reviewer has no live tools, and
+	// Codex's provider subprocess reaches the same contract.
 	wantManifestDigests := map[model.AgentID]string{
 		model.AgentClaudeCode: "sha256:0644de1b6539cffee24ed3d673b450bf1f460fe5db7e8f05c5a0911aace8b280",
 		model.AgentCodex:      "sha256:b47855dc0acdae65aa2215eba09135087d32a890814dc73baab13595ecb6602b",
-		model.AgentOpenCode:   "sha256:c4889e14ddd1f82160d8d5bb49bcdf29bdac5fe367218adf6458a80bc9d5af9d",
 	}
 
 	for agent, wantDigest := range wantManifestDigests {
@@ -228,7 +226,7 @@ func TestEveryManifestKeepsWorkRoutingDormantAndHashesCanonically(t *testing.T) 
 			if manifest.Advertises(ContractWorkRoutingV1) {
 				t.Fatal("work-routing must remain unadvertised before final activation")
 			}
-			wantImmutableExecutor := agent == model.AgentClaudeCode || agent == model.AgentOpenCode || agent == model.AgentCodex
+			wantImmutableExecutor := agent == model.AgentClaudeCode || agent == model.AgentCodex
 			if got := manifest.Advertises(ContractImmutableReviewExecutorV1); got != wantImmutableExecutor {
 				t.Fatalf("immutable reviewer execution advertised = %t, want %t", got, wantImmutableExecutor)
 			}
@@ -289,7 +287,6 @@ func TestEveryManifestDigestStaysByteStable(t *testing.T) {
 	wantDigests := map[model.AgentID]string{
 		model.AgentClaudeCode: "sha256:0644de1b6539cffee24ed3d673b450bf1f460fe5db7e8f05c5a0911aace8b280",
 		model.AgentCodex:      "sha256:b47855dc0acdae65aa2215eba09135087d32a890814dc73baab13595ecb6602b",
-		model.AgentOpenCode:   "sha256:c4889e14ddd1f82160d8d5bb49bcdf29bdac5fe367218adf6458a80bc9d5af9d",
 	}
 
 	agents := make([]model.AgentID, 0, len(wantDigests))
@@ -297,8 +294,8 @@ func TestEveryManifestDigestStaysByteStable(t *testing.T) {
 		agents = append(agents, agent)
 	}
 
-	if got := len(agents); got != 3 {
-		t.Fatalf("want 3 agents, got %d", got)
+	if got := len(agents); got != 2 {
+		t.Fatalf("want 2 agents, got %d", got)
 	}
 
 	for _, agent := range agents {
@@ -320,14 +317,13 @@ func TestEveryManifestDigestStaysByteStable(t *testing.T) {
 }
 
 func TestReviewTransportAdvertisementIsClosedCatalogSet(t *testing.T) {
-	const wantExposed = 3
+	const wantExposed = 2
 
 	exposed := 0
 	for _, agent := range catalog.AllAgents() {
 		t.Run(string(agent.ID), func(t *testing.T) {
 			manifest := MustForAgent(agent.ID)
 			want := agent.ID == model.AgentClaudeCode ||
-				agent.ID == model.AgentOpenCode ||
 				agent.ID == model.AgentCodex
 			if got := manifest.Advertises(ContractReviewTransportV1); got != want {
 				t.Fatalf("review transport advertised = %t, want %t", got, want)

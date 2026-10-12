@@ -18,14 +18,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
 )
 
-func TestUpdateCatalogOmitsExternalOpenCodePlugins(t *testing.T) {
-	for _, tool := range Tools {
-		if tool.Name == "opencode-subagent-statusline" || tool.Name == "opencode-sdd-engram-manage" {
-			t.Errorf("retired plugin %q remains in update catalog", tool.Name)
-		}
-	}
-}
-
 func TestMain(m *testing.M) {
 	if err := os.Unsetenv("GENTLE_AI_CHANNEL"); err != nil {
 		panic(err)

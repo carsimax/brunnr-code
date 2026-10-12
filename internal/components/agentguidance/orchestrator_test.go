@@ -322,18 +322,6 @@ func TestInjectRoutingDropsLegacyOrchestratorBesideCurrentBlock(t *testing.T) {
 	}
 }
 
-func TestRenderOrchestratorOpenCodeCarriesConsentV3QuestionRoute(t *testing.T) {
-	t.Parallel()
-
-	opencode, err := RenderOrchestrator(model.AgentOpenCode)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(opencode, "For `gentle-ai.review-integration.consent/v3`: Display labels") {
-		t.Fatal("OpenCode orchestrator lost the consent-v3 native question route")
-	}
-}
-
 // Not parallel: it swaps the package-level contract source and restores it
 // before any parallel test resumes.
 func TestRenderOrchestratorFailsClosedWithoutReviewContractSource(t *testing.T) {

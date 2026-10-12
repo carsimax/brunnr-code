@@ -153,7 +153,7 @@ First-time setup — detects your tools, configures agents, injects all componen
 ```bash
 # Full ecosystem for multiple agents
 gentle-ai install \
-  --agent claude-code,opencode,gemini-cli \
+  --agent claude-code,codex \
   --preset full-gentleman
 
 # Minimal setup for Cursor
@@ -175,7 +175,7 @@ gentle-ai install \
 
 # Dry-run first (preview plan without applying changes)
 gentle-ai install --dry-run \
-  --agent claude-code,opencode \
+  --agent claude-code,codex \
   --preset full-gentleman
 ```
 
@@ -191,11 +191,11 @@ gentle-ai skill-registry refresh --force
 gentle-ai skill-registry refresh --cwd /path/to/project --quiet
 ```
 
-The command scans project skills first (`skills/`, `.opencode/skills/`, `.claude/skills/`, `.github/skills/`, and other supported workspace skill roots), then global agent skill directories. Project-local skills win over same-name global skills.
+The command scans project skills first (`skills/`, `.claude/skills/`, `.github/skills/`, and other supported workspace skill roots), then global agent skill directories. Project-local skills win over same-name global skills.
 
 The command writes `.atl/skill-registry.md` and `.atl/.skill-registry.cache.json`. The cache fingerprint includes schema version plus each discovered `SKILL.md` file path, mtime, and size, so normal startup is a cheap cache-hit when skills have not changed.
 
-Codex, Claude Code, and OpenCode installs wire this command into startup/plugin hooks. Keep those hook/plugin scan roots in sync when changing these discovery rules.
+Codex and Claude Code installs wire this command into startup hooks. Keep those hook scan roots in sync when changing these discovery rules.
 
 See [Skill Registry](skill-registry.md) for the full index-first flow and diagrams.
 
@@ -223,7 +223,7 @@ gentle-ai sync --dry-run
 gentle-ai sync
 
 # Sync specific agents only
-gentle-ai sync --agent claude-code --agent opencode
+gentle-ai sync --agent claude-code --agent codex
 
 # Refresh OpenClaw workspace instructions and MCP config
 gentle-ai sync --agent openclaw
@@ -233,13 +233,9 @@ Sync is safe and idempotent — running it twice produces no changes the second 
 
 `sync` refreshes the managed component set for the selected agents. It does not support `--component`; use `--include-permissions` or `--include-theme` for the opt-in components that are excluded from the default sync scope.
 
-After upgrading the binary, `gentle-ai sync --dry-run` previews the selected targets; `gentle-ai sync` refreshes their primary remote-authorization guidance. To select a specific managed client, use e.g. `gentle-ai sync --agent opencode`. This behavioral section is delivered with unconditional routing guidance, without requiring persona or `--include-permissions`. It requires explicit destination, operation, and credential/session authorization before remote work or ambient access discovery/reuse.
+After upgrading the binary, `gentle-ai sync --dry-run` previews the selected targets; `gentle-ai sync` refreshes their primary remote-authorization guidance. To select a specific managed client, use e.g. `gentle-ai sync --agent codex`. This behavioral section is delivered with unconditional routing guidance, without requiring persona or `--include-permissions`. It requires explicit destination, operation, and credential/session authorization before remote work or ambient access discovery/reuse.
 
 This update covers the 15 non-Pi primary instruction carriers only. Executor roles and Pi's package-owned instructions require separate behavioral coverage. Existing automation modes and remembered approvals may suppress runtime prompts. The guidance is not a sandbox or a fresh-human-per-execution guarantee. Shared settings merging and historical profile cleanup (compatibility for existing user configurations) preserve existing permission-rule order.
-
-For OpenCode native remote-command asks, opt in separately: `gentle-ai sync --agent opencode --include-permissions` (or `--agent kilocode` for the shared generated configuration). Defaults ask for direct `ssh`, `scp`, `sftp`, and `rsync`, bare or with arguments; local-only rsync also asks conservatively. Existing restrictions and explicit custom allows remain authoritative, so custom configurations may still allow remote commands. Defaults do not rewrite those personal allows. Agent overrides and remembered approvals may also bypass a prompt.
-
-Matcher fixtures follow OpenCode [v1.2.27 wildcard matching](https://github.com/anomalyco/opencode/blob/v1.2.27/packages/opencode/src/util/wildcard.ts) and its last-matching permission evaluation. They do not prove interception of absolute executable paths, env wrappers, interpreters, or arbitrary compound shell syntax; the runtime extracts command nodes separately. Kilocode runtime equivalence is not verified. Issue #4324 remains open for all-client/all-role completion.
 
 For OpenClaw, sync reads the active workspace from `~/.openclaw/openclaw.json` (`agents.defaults.workspace`). It writes `AGENTS.md` / `SOUL.md` into that workspace, while MCP servers stay in the global OpenClaw config under `mcp.servers`.
 
@@ -255,7 +251,7 @@ Before any change is applied, `gentle-ai` creates a backup snapshot of the affec
 # Partial uninstall for specific agents
 gentle-ai uninstall \
   --agent claude-code \
-  --agent opencode
+  --agent codex
 
 # Partial uninstall for specific components only
 gentle-ai uninstall \
@@ -271,7 +267,7 @@ gentle-ai uninstall --agent cursor --component skills --yes
 
 If no `--component` flag is provided for a partial uninstall, `gentle-ai` removes all managed uninstallable components for the selected agent set.
 
-An uninstall that removes every component of an agent (`--all`, or no `--component` flag) also retires what releases before v4.0.0 installed for the retired SDD workflow, with the same ownership proof as install and sync (see [Components](components.md)): `sdd-*` skills, commands, native agents, Codex profiles, the Kimi module, OpenCode and Kilocode agent entries and prompts, the Claude Code preflight hook, and the `<!-- gentle-ai:sdd-orchestrator -->` block of the agent's prompt files, including its active prompt, since uninstall delivers no routing guidance that would migrate it. Files whose bytes no release wrote are kept and reported: move or delete them yourself. A directory that is a symlink is never entered, Pi files are never touched, and everything uninstall changes is in its backup snapshot.
+An uninstall that removes every component of an agent (`--all`, or no `--component` flag) also retires what releases before v4.0.0 installed for the retired SDD workflow, with the same ownership proof as install and sync (see [Components](components.md)): `sdd-*` skills, commands, native agents, Codex profiles, the Kimi module, the Claude Code preflight hook, and the `<!-- gentle-ai:sdd-orchestrator -->` block of the agent's prompt files, including its active prompt, since uninstall delivers no routing guidance that would migrate it. Files whose bytes no release wrote are kept and reported: move or delete them yourself. A directory that is a symlink is never entered, Pi files are never touched, and everything uninstall changes is in its backup snapshot.
 
 A complete Claude Code uninstall also retires the optional orchestrator modules pilot and keeps module files Gentle AI does not own; see [Claude Code orchestrator modules](rollback.md#claude-code-orchestrator-modules-pilot).
 
@@ -344,10 +340,9 @@ Checks performed:
 
 | Check | What it verifies |
 |-------|-----------------|
-| Tool binaries | Required tools present on `PATH` and successfully run a non-interactive version probe within five seconds (`--version`, or `version` for Engram); probe failures warn instead of reporting a healthy tool. Probe process trees are terminated before the check returns, including on timeout or cancellation. Shadow detection (wrong binary resolves first). The managed OpenCode launcher and the executable it delegates to count as one installation when the launcher comes first on `PATH`; when the target comes first, doctor warns that it bypasses the launcher |
+| Tool binaries | Required tools present on `PATH` and successfully run a non-interactive version probe within five seconds (`--version`, or `version` for Engram); probe failures warn instead of reporting a healthy tool. Probe process trees are terminated before the check returns, including on timeout or cancellation. Shadow detection (wrong binary resolves first). |
 | `state.json` validity | Parses `~/.gentle-ai/state.json`, reports schema/corruption issues, and checks installed agents' managed config directories using the same adapters as install/sync. Missing directories suggest sync; unrecognized agent IDs warn and require state inspection. Detection-only agents such as Conductor do not require their own config directory. |
 | Installed asset version | Compares the recorded installation version with the running binary; on a mismatch, recommends `sync` using that binary's absolute path and flags a different copy resolved through `PATH` |
-| OpenCode activation (`opencode:managed_profile`) | With OpenCode background subagents on (POSIX): a new login shell resolves `opencode` to the managed launcher, not to a copy that a later startup file puts first on `PATH`; warns when this cannot be verified |
 | Engram MCP reachability | Confirms the Engram MCP server responds |
 | Disk space | Warns when available space is critically low |
 
@@ -373,7 +368,6 @@ gentle-ai -v
 | `codegraph init --cwd <project-root>` | Validate a project root, then initialize its CodeGraph index (used by generated agent guidance) | [Components](components.md) |
 | `codegraph [--help\|-h]`, `codegraph init [--help\|-h]` | Show local CodeGraph initialization help and exit successfully without initializing an index; other CodeGraph commands are not forwarded | |
 | `skill-registry list [--json]` | List the resolved, deduplicated skill set | [Skill Registry](skill-registry.md) |
-| `uninstall opencode-plugin <id> [--yes]` | Remove `gentle-logo` or a legacy external plugin registration (`sub-agent-statusline`, `sdd-engram-plugin`) left by older installations | — |
 
 ---
 
@@ -388,7 +382,6 @@ gentle-ai -v
 | `--preset`                    | Preset: `full-gentleman`, `ecosystem-only`, `minimal`, `custom` (`custom` means manual component/skill selection) |
 | `--scope`                     | Install scope for agent-scoped files: `global` (default, writes to each selected agent's global config directory) or `workspace` (writes to the current project root). Also settable via `GENTLE_AI_INSTALL_SCOPE` env var for CI/non-interactive use. |
 | `--channel`                   | Release channel: `stable` (default), `beta`, or `nightly` (alias for `beta`). Also settable via `GENTLE_AI_CHANNEL`. |
-| `--opencode-background-subagents` | OpenCode background subagents: `auto`, `on`, or `off`. Also settable via `GENTLE_AI_OPENCODE_BACKGROUND_SUBAGENTS`. See [below](#background-subagent-flags). |
 | `--claude-orchestrator-modules` | Global Claude Code only: install the orchestrator as an always-loaded core plus on-demand modules in `~/.claude/gentle-ai/orchestrator/`. Off by default; rejected with `--scope workspace` or without `claude-code` in the selection. Sync, uninstall and restore limits: [Claude Code orchestrator modules](rollback.md#claude-code-orchestrator-modules-pilot). |
 | `--dry-run`                   | Preview the install plan without applying changes                                                                 |
 
@@ -412,17 +405,9 @@ Engram's memory data (`~/.engram`) is not moved. Combine these with `GENTLE_AI_N
 | `--include-permissions`  | Include permissions sync (opt-in)                                                                    |
 | `--include-theme`        | Include theme sync (opt-in)                                                                          |
 | `--scope`                | `global` (default) or `workspace`; `workspace` refreshes only workspace-scoped files. Also settable via `GENTLE_AI_INSTALL_SCOPE`. |
-| `--opencode-background-subagents` | Same as install: `auto`, `on`, or `off`                                                     |
-| `--pi-background-subagents` | Same as install: `auto`, `on`, or `off`                                                           |
 | `--dry-run`              | Preview the sync plan without applying changes                                                       |
 
 `--strict-tdd` was retired in v4.0.0: ODD uses applicable test-first development by default, and sync rejects the flag.
-
-### Background-subagent flags
-
-For both flags, the first value set wins: the CLI flag, then a non-empty env var, then the previously saved `on`/`off` choice, then `auto`. `auto` reuses a saved choice and never enables background subagents by itself; when nothing is saved, a non-interactive run resolves `auto` to `off`. Only an explicit `on` or `off` is saved for later runs.
-
-For OpenCode background execution, see [Native OpenCode background subagents](opencode-profiles.md).
 
 ## CLI Flags (uninstall)
 

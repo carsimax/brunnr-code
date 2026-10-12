@@ -25,11 +25,10 @@ func TestImmutableReviewRuntimeMatrix(t *testing.T) {
 		supported bool
 	}{
 		{name: "Claude prompt carried fresh executor", runtime: string(model.AgentClaudeCode), eligible: true, transport: reviewImmutableTransportClaudePromptCarried, supported: true},
-		{name: "OpenCode provider relay", runtime: string(model.AgentOpenCode), eligible: true, transport: reviewImmutableTransportOpenCodeProviderInjected, supported: true},
 		{name: "Codex subprocess boundary", runtime: string(model.AgentCodex), eligible: true, transport: reviewImmutableTransportCodexAdvisoryScratchProcess, supported: true},
 		{name: "unknown", runtime: "unknown-runtime", transport: reviewImmutableTransportUnsupported},
-		{name: "alias", runtime: "open-code", transport: reviewImmutableTransportUnsupported},
-		{name: "casing", runtime: "OpenCode", transport: reviewImmutableTransportUnsupported},
+		{name: "alias", runtime: "claude", transport: reviewImmutableTransportUnsupported},
+		{name: "casing", runtime: "Codex", transport: reviewImmutableTransportUnsupported},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			capability := reviewImmutableRuntimeCapability(model.AgentID(test.runtime))
@@ -52,13 +51,12 @@ func TestImmutableReviewRuntimeMatrix(t *testing.T) {
 
 func TestImmutableReviewRuntimeCapabilityIsClosedCatalogSet(t *testing.T) {
 
-	const wantExposed = 3
+	const wantExposed = 2
 	exposed := 0
 	for _, agent := range catalog.AllAgents() {
 		t.Run(string(agent.ID), func(t *testing.T) {
 			capability := reviewImmutableRuntimeCapability(agent.ID)
 			want := agent.ID == model.AgentClaudeCode ||
-				agent.ID == model.AgentOpenCode ||
 				agent.ID == model.AgentCodex
 			if capability.Eligible != want || capability.supportsImmutableReceiptReview() != want {
 				t.Fatalf("runtime capability = %#v, supported = %t, want exposed = %t", capability, capability.supportsImmutableReceiptReview(), want)
@@ -85,9 +83,8 @@ func TestUnsupportedImmutableReviewTransportStopsBeforeRepositoryOrAuthority(t *
 		runtime string
 		// startCode is the failure code a "start"-operation invocation
 		// expects. The review-transport-capability admission gate runs
-		// before the immutable-transport check on `review start`, so a
-		// known runtime that remains dormant (Kilo) and an unrecognized
-		// identity both fail there. `review status` remains typed
+		// before the immutable-transport check on `review start`, so an
+		// unrecognized identity fails there. `review status` remains typed
 		// immutable-transport unavailable.
 		startCode string
 	}{
@@ -173,7 +170,6 @@ func TestSupportedImmutableReviewTransportReachesRepositoryValidation(t *testing
 		runtime string
 	}{
 		{name: "Claude", runtime: string(model.AgentClaudeCode)},
-		{name: "OpenCode", runtime: string(model.AgentOpenCode)},
 		{name: "Codex", runtime: string(model.AgentCodex)},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -194,7 +190,7 @@ func TestSupportedImmutableReviewTransportReachesRepositoryValidation(t *testing
 }
 
 func TestImmutableReviewTransportRefusalNamesWorkingExits(t *testing.T) {
-	for _, runtime := range []model.AgentID{model.AgentKilocode} {
+	for _, runtime := range []model.AgentID{"retired-runtime"} {
 		t.Run(string(runtime), func(t *testing.T) {
 			_, err := reviewRuntimeWithImmutableTransport(string(runtime))
 			if err == nil {
@@ -204,7 +200,7 @@ func TestImmutableReviewTransportRefusalNamesWorkingExits(t *testing.T) {
 			if !strings.Contains(err.Error(), exit) {
 				t.Fatalf("refusal does not name the clone-scoped kill switch: %v", err)
 			}
-			if !strings.Contains(err.Error(), string(model.AgentClaudeCode)) || !strings.Contains(err.Error(), string(model.AgentOpenCode)) || !strings.Contains(err.Error(), string(model.AgentCodex)) {
+			if !strings.Contains(err.Error(), string(model.AgentClaudeCode)) || !strings.Contains(err.Error(), string(model.AgentCodex)) {
 				t.Fatalf("refusal does not name every supported runtime: %v", err)
 			}
 			if strings.Contains(err.Error(), "supported immutable review runtimes: "+string(runtime)) {
@@ -241,18 +237,4 @@ func TestRegisteredRuntimeIdentitiesMatchCompiledTransportBoundary(t *testing.T)
 	if !slices.Equal(registered, supported) {
 		t.Fatalf("RegisteredRuntimeIdentities() = %q, want the compiled supported runtimes %q", registered, supported)
 	}
-}
-
-// freshOpenCodeRuntimeProbe forgets the process-wide OpenCode runtime answer
-// before and after a test that installs its own `opencode --version` stub, so
-// one test's memoized answer never decides another's.
-func freshOpenCodeRuntimeProbe(t *testing.T) {
-	t.Helper()
-	forget := func() {
-		reviewOpenCodeRuntimeProbe.Lock()
-		defer reviewOpenCodeRuntimeProbe.Unlock()
-		reviewOpenCodeRuntimeProbe.answers = nil
-	}
-	forget()
-	t.Cleanup(forget)
 }

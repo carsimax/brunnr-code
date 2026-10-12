@@ -20,10 +20,9 @@ go run ./cmd/gentle-ai install [flags]
 - `--preset`: explicit preset id.
 - `--scope`: `global` (default, writes to each selected agent's global config directory) or `workspace` (writes agent-scoped files to the current project root `./`).
 - `--channel`: `stable` (default), `beta`, or `nightly` (alias for `beta`).
-- `--opencode-background-subagents`, `--pi-background-subagents`: `auto`, `on`, or `off`. Without a flag, env var, or saved choice, `auto` resolves to `off` in non-interactive runs.
 - `--dry-run`: render plan without executing.
 
-`gentle-ai sync` accepts the same `--scope` and background-subagent flags and env vars. See [Usage](usage.md#cli-flags-sync).
+`gentle-ai sync` accepts the same `--scope` flag and env var. See [Usage](usage.md#cli-flags-sync).
 
 ## Environment variables
 
@@ -31,8 +30,6 @@ go run ./cmd/gentle-ai install [flags]
 |----------|--------|-------------|
 | `GENTLE_AI_INSTALL_SCOPE` | `global` \| `workspace` | Sets the install scope without a flag. Useful in CI. Equivalent to `--scope`. Default: `global`. |
 | `GENTLE_AI_CHANNEL` | `stable` \| `beta` \| `nightly` | Equivalent to `--channel`. Default: `stable`. |
-| `GENTLE_AI_OPENCODE_BACKGROUND_SUBAGENTS` | `auto` \| `on` \| `off` | Equivalent to `--opencode-background-subagents`; the flag wins when both are set. |
-| `GENTLE_AI_PI_BACKGROUND_SUBAGENTS` | `auto` \| `on` \| `off` | Equivalent to `--pi-background-subagents`; the flag wins when both are set. |
 
 `workspace` scope is not Claude-only: it applies to the selected agents' agent-scoped files such as system prompts, skills, agent guidance, and persona files. Global-only integrations, like package installs or agent settings that must live in the tool's global config, remain global.
 
@@ -40,12 +37,12 @@ go run ./cmd/gentle-ai install [flags]
 
 The installer detects the platform automatically at runtime — there is no flag to override platform selection. The detected platform profile determines which package manager is used for install commands:
 
-| Platform | Package manager | Example install command |
-|---|---|---|
-| macOS | `brew` | `brew install anomalyco/tap/opencode` |
-| Ubuntu/Debian | `apt` | `sudo npm install -g opencode-ai` |
-| Arch | `pacman` | `sudo npm install -g opencode-ai` |
-| Fedora/RHEL family | `dnf` | `sudo npm install -g opencode-ai` |
+| Platform | Package manager |
+|---|---|
+| macOS | `brew` |
+| Ubuntu/Debian | `apt` |
+| Arch | `pacman` |
+| Fedora/RHEL family | `dnf` |
 
 The `--dry-run` output includes a `Platform decision` line showing `os`, `distro`, `package-manager`, and `status`.
 
@@ -55,7 +52,7 @@ macOS (or any supported platform — same flags, platform is auto-detected):
 
 ```bash
 go run ./cmd/gentle-ai install \
-  --agent claude-code,opencode \
+  --agent claude-code,codex \
   --component engram,skills \
   --skill go-testing \
   --persona gentleman \

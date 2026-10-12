@@ -13,7 +13,7 @@ import (
 )
 
 // hostCommandTimeout bounds every command a --with-host lane runs: real
-// reviewer model processes (codex exec, an OpenCode session)
+// reviewer model processes (codex exec)
 // are spawned underneath these commands, so a stalled provider must surface
 // as a bounded lane failure instead of hanging the battery.
 const hostCommandTimeout = 12 * time.Minute
@@ -309,9 +309,22 @@ func (b *battery) noteHostCost(lane, note string) {
 func (b *battery) runHostLanes() {
 	if !b.withHost {
 		b.skip(hostCodexLane, "real codex host tier", "pass --with-host to spawn real host applications (dev subscription)")
-		b.skip(hostOpenCodeLane, "real opencode host tier", "pass --with-host to spawn real host applications (dev subscription)")
 		return
 	}
 	b.runHostCodexLane()
-	b.runHostOpenCodeLane()
+}
+
+// grantedInvocation extracts the provider-owned granted choice invocation.
+func grantedInvocation(consent map[string]any) string {
+	for _, raw := range getSlice(consent, "choices") {
+		choice, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		if choice["answer"] == "granted" {
+			invocation, _ := choice["invocation"].(string)
+			return invocation
+		}
+	}
+	return ""
 }

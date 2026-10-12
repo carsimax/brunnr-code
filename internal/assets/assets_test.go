@@ -43,7 +43,7 @@ func TestODDOnlyEmbeddedInventory(t *testing.T) {
 	if len(orchestrators) == 0 {
 		t.Fatal("embedded inventory has no retained orchestrator assets")
 	}
-	for _, runtime := range []string{"claude", "opencode", "codex", "generic"} {
+	for _, runtime := range []string{"claude", "codex", "generic"} {
 		if !orchestrators[runtime] {
 			t.Errorf("%s lost its ODD/RDD orchestrator asset", runtime)
 		}
@@ -139,7 +139,7 @@ func TestCodexEmbeddedOrchestratorDoesNotPromiseUninstalledAssignments(t *testin
 }
 
 func TestPrimaryODDOnlyOrchestrator(t *testing.T) {
-	for _, runtime := range []string{"codex", "opencode", "generic"} {
+	for _, runtime := range []string{"codex", "generic"} {
 		t.Run(runtime, func(t *testing.T) {
 			content := MustRead(runtime + "/orchestrator.md")
 			for _, required := range []string{
@@ -162,13 +162,6 @@ func TestPrimaryODDOnlyOrchestrator(t *testing.T) {
 					t.Errorf("retains %q", forbidden)
 				}
 			}
-			if runtime == "opencode" {
-				for _, required := range []string{"Delegation Visibility (OpenCode Desktop)", "`gentle-ai-explore`", "`gentle-ai-worker`", "`gentle-ai-verify`", "Sub-Agent Launch Deduplication", "Sub-Agent Context Protocol"} {
-					if !strings.Contains(content, required) {
-						t.Errorf("missing OpenCode contract %q", required)
-					}
-				}
-			}
 			if runtime == "codex" {
 				for _, required := range []string{"Capability Check", "Blocking Delegation Contract", "Skill Loading for Delegation", "Graceful Degradation Path"} {
 					if !strings.Contains(content, required) {
@@ -177,88 +170,6 @@ func TestPrimaryODDOnlyOrchestrator(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-// TestOpenCodeTelemetryRuntimePlugin uses a hermetic Node subprocess and a fake
-// native boundary. Fixture is published V1 (not V2):
-// https://unpkg.com/@opencode-ai/plugin@1.18.30/dist/index.d.ts
-// https://unpkg.com/@opencode-ai/sdk@1.18.30/dist/gen/types.gen.d.ts
-func TestOpenCodeTelemetryRuntimePlugin(t *testing.T) {
-	source, err := Read("opencode/plugins/telemetry-runtime.ts")
-	if err != nil {
-		t.Fatal(err)
-	}
-	// No filesystem, retry timer, identity cache or native self-spawn may be
-	// introduced by the host adapter. Native no-disk behavior has HTTP tests.
-	for _, forbidden := range []string{"node:fs", "node:crypto", "sessionID", "info.id", "batch_id", "setTimeout(", "setInterval(", "MAX_ATTEMPTS", "new Map", `"flush"`, `"ingest"`} {
-		if strings.Contains(string(source), forbidden) {
-			t.Fatalf("runtime plugin contains %s", forbidden)
-		}
-	}
-	const harness = `import { strict as assert } from "node:assert"
-import childProcess from "node:child_process"
-import { syncBuiltinESMExports } from "node:module"
-const calls = []
-const held = []
-childProcess.execFile = (file, args, options, callback) => {
-  assert.equal(file,"gentle-ai")
-  assert.deepEqual(args,["telemetry","runtime","opencode","--json"])
-  assert.equal(options.timeout,4000); assert.equal(options.maxBuffer,1024)
-  const call = { args, body: "", killed:false }; calls.push(call)
-  held.push(callback)
-  return { stdin: { on() {}, end(body) { call.body = body || "" } }, kill() {call.killed=true} }
-}
-syncBuiltinESMExports()
-const { default: plugin } = await import("./plugin.mts")
-for (const key of ["DO_NOT_TRACK","GENTLE_AI_TELEMETRY","CI","GITHUB_ACTIONS"]) delete process.env[key]
-const hooks = await plugin({})
-const tick = async () => { await new Promise(resolve => setImmediate(resolve)) }
-const info = { role:"assistant", time:{created:1,completed:2}, providerID:"anthropic", modelID:"claude-opus-5", mode:"sdd-apply", path:{cwd:"PRIVATE_PATH"}, parts:["PRIVATE_PROMPT"], error:{name:"APIError",data:{statusCode:429,message:"PRIVATE_ERROR"}} }
-// No source identifiers are necessary or read, even locally.
-Object.defineProperty(info,"id",{get(){throw new Error("source id read")}})
-Object.defineProperty(info,"sessionID",{get(){throw new Error("session id read")}})
-const event = value => hooks.event({event:{type:"message.updated",properties:{info:value}}})
-await event({...info,role:"user"}); await event({...info,time:{created:1}}); await event({...info,summary:true})
-assert.equal(calls.length,0)
-for(const [key,value] of [["DO_NOT_TRACK"," yes "],["CI","true"],["GITHUB_ACTIONS","yes"],["GENTLE_AI_TELEMETRY","0"]]) {
- process.env[key]=value;await event(info);delete process.env[key]
-}
-assert.equal(calls.length,0)
-// The native callback is deliberately held: it represents blocked HTTP. The
-// hook must resolve now, without waiting for the process or its network result.
-let returned=false
-void event(info).then(()=>{returned=true})
-await tick();assert.equal(returned,true);assert.equal(calls.length,1)
-assert(!calls[0].body.includes("PRIVATE"))
-const envelope=JSON.parse(calls[0].body)
-assert.deepEqual(Object.keys(envelope).sort(),["info","schema"])
-assert.equal(envelope.schema,"gentle-ai.telemetry-opencode/v1")
-assert.equal(envelope.info.agent,"sdd-apply")
-assert.equal(envelope.info.tokens,undefined)
-held.shift()(new Error("PRIVATE_NATIVE_ERROR"),"")
-await tick();await tick();assert.equal(calls.length,1) // failure never retries
-await event(info);assert.equal(calls.length,2) // a new event is a new attempt
-held.shift()(null,JSON.stringify({schema:"gentle-ai.telemetry-runtime-send/v1",decision:"discarded"}))
-await tick();assert.equal(calls.length,2) // discarded metrics stay discarded
-await event({...info,mode:"x".repeat(65)});assert.equal(calls.length,3)
-assert.equal(JSON.parse(calls[2].body).info.agent,undefined);held.shift()(null,"")
-await event({...info,mode:"bad\nagent"});assert.equal(calls.length,4)
-assert.equal(JSON.parse(calls[3].body).info.agent,undefined);held.shift()(null,"")
-// No backlog: saturation discards new events rather than scheduling work.
-for(let i=0;i<100;i++) await event(info)
-assert.equal(held.length,32);assert.equal(calls.length,36)
-for(const cb of held.splice(0))cb(new Error("timeout"),"")
-await tick();assert.equal(calls.length,36)
-await event({...info,modelID:"x".repeat(16385)});assert.equal(calls.length,36)
-await event(info);assert.equal(calls.length,37)
-await hooks.dispose();assert.equal(calls[36].killed,true)
-await event(info);await tick();assert.equal(calls.length,37)
-console.log("ok")
-`
-	output, log, _ := runOpenCodeTransportPluginHarness(t, map[string]string{"plugin.mts": string(source)}, harness, "#!/bin/sh\nexit 99\n")
-	if output != "ok\n" || log != "" {
-		t.Fatal("unexpected plugin output or native process")
 	}
 }
 
@@ -451,7 +362,7 @@ func allODDOrchestratorAssetPaths(t *testing.T) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, runtime := range []string{"claude", "codex", "generic", "opencode"} {
+	for _, runtime := range []string{"claude", "codex", "generic"} {
 		path := runtime + "/orchestrator.md"
 		if !slices.Contains(paths, path) {
 			t.Errorf("missing retained ODD orchestrator %s", path)
@@ -488,7 +399,6 @@ func TestAllEmbeddedAssetsAreReadable(t *testing.T) {
 	for _, path := range append(allODDOrchestratorAssetPaths(t),
 		"skills/_shared/odd-orchestrator-sections.md",
 		"skills/_shared/review-ledger-contract.md",
-		"opencode/plugins/opencode-review-transport.ts",
 		"claude/agents/review-risk.md",
 		"skills/go-testing/SKILL.md",
 	) {
@@ -521,260 +431,6 @@ func TestAllEmbeddedAssetsAreReadable(t *testing.T) {
 	}
 	if count == 0 {
 		t.Fatal("embedded asset inventory is empty")
-	}
-}
-
-func TestOpenCodeEmbeddedAssetLayout(t *testing.T) {
-	entries, err := FS.ReadDir("opencode")
-	if err != nil {
-		t.Fatalf("ReadDir(opencode) error = %v", err)
-	}
-
-	seen := map[string]bool{}
-	for _, entry := range entries {
-		seen[entry.Name()] = true
-	}
-
-	for _, name := range []string{"commands", "plugins", "agents", "persona-gentleman.md", "background-subagents.md", "orchestrator.md"} {
-		if !seen[name] {
-			t.Fatalf("opencode embedded assets missing %q", name)
-		}
-	}
-
-	// #4471: the ODD parity agent prompts. Missing one here means a fresh install drops that agent.
-	agentEntries, err := FS.ReadDir("opencode/agents")
-	if err != nil {
-		t.Fatalf("ReadDir(opencode/agents) error = %v", err)
-	}
-	wantAgents := map[string]bool{
-		"gentle-ai-explore.md": true, "gentle-ai-verify.md": true, "gentle-ai-worker.md": true,
-		"jd-judge-a.md": true, "jd-judge-b.md": true, "jd-fix-agent.md": true,
-		"review-risk.md": true, "review-readability.md": true, "review-reliability.md": true, "review-resilience.md": true,
-	}
-	if len(agentEntries) != len(wantAgents) {
-		t.Fatalf("opencode agents count = %d, want %d parity agents", len(agentEntries), len(wantAgents))
-	}
-	for _, entry := range agentEntries {
-		delete(wantAgents, entry.Name())
-	}
-	for name := range wantAgents {
-		t.Fatalf("opencode embedded agents missing %q", name)
-	}
-
-	commandEntries, err := FS.ReadDir("opencode/commands")
-	if err != nil {
-		t.Fatalf("ReadDir(opencode/commands) error = %v", err)
-	}
-	if len(commandEntries) != 2 {
-		t.Fatalf("opencode commands count = %d, want 2 retained commands", len(commandEntries))
-	}
-	wantCommands := map[string]bool{"skill-creator.md": true, "skill-registry.md": true}
-	for _, entry := range commandEntries {
-		delete(wantCommands, entry.Name())
-	}
-	for name := range wantCommands {
-		t.Fatalf("opencode embedded commands missing %q", name)
-	}
-
-	pluginEntries, err := FS.ReadDir("opencode/plugins")
-	if err != nil {
-		t.Fatalf("ReadDir(opencode/plugins) error = %v", err)
-	}
-	if len(pluginEntries) != 4 {
-		t.Fatalf("opencode plugins count = %d, want 4 retained plugins", len(pluginEntries))
-	}
-	wantPlugins := map[string]bool{"telemetry-runtime.ts": true, "model-variants.ts": true, "opencode-review-transport.ts": true, "skill-registry.ts": true}
-	for _, entry := range pluginEntries {
-		if !wantPlugins[entry.Name()] {
-			t.Fatalf("unexpected plugin entry = %q", entry.Name())
-		}
-	}
-}
-
-func TestOpenCodeBackgroundPolicyMarkersAreBalanced(t *testing.T) {
-	content := MustRead("opencode/background-subagents.md")
-	const (
-		start = "<!-- gentle-ai:opencode-background-subagents -->"
-		end   = "<!-- /gentle-ai:opencode-background-subagents -->"
-	)
-	trimmed := strings.TrimSpace(content)
-	if strings.Count(trimmed, start) != 1 || strings.Count(trimmed, end) != 1 {
-		t.Fatalf("background policy marker cardinality = (%d, %d), want (1, 1)", strings.Count(trimmed, start), strings.Count(trimmed, end))
-	}
-	if !strings.HasPrefix(trimmed, start+"\n") || !strings.HasSuffix(trimmed, "\n"+end) {
-		t.Fatalf("background policy markers are not balanced around the complete asset")
-	}
-}
-
-// TestOpenCodeReviewTransportPluginContract pins the adapter-minimality
-// boundary: the plugin correlates one host Task with one Go process, while Go
-// owns all prompt, schema, admission, and capture semantics.
-func TestOpenCodeReviewTransportPluginContract(t *testing.T) {
-	source, err := Read("opencode/plugins/opencode-review-transport.ts")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, want := range []string{`gentle-ai.provider-transport/v1`, `"review", "opencode-transport"`, `RELAY_REGISTRY_KEY`, `reviewRelayRegistry()`, `output.args.prompt = (await relay.prompt).prompt`, `output.output = await registration.relay.complete(output.output)`, `"tool.execute.before"`, `"tool.execute.after"`,
-		// A refused relay start must fail the Task loudly and never launch an
-		// unbound child: the before hook poisons the Task prompt and the after
-		// hook replaces child output with the typed refusal, so a host runtime
-		// that swallows hook errors still cannot deliver an unbound child's
-		// prose as a reviewer completion.
-		`opencode_review_transport_relay_refused`, `refused.set(key, reason)`, `output.args.prompt = relayRefusedPrompt(reason)`, `output.output = relayRefusedOutput(refusal)`,
-		// Issue #3049 binary handshake: the plugin probes PATH for gentle-ai
-		// before spawning the relay child and refuses with two typed codes
-		// that route through the same refused-prompt / refused-output
-		// machinery so a refused handshake still fails the Task loudly.
-		`opencode_review_transport_binary_skew`, `opencode_review_transport_binary_unavailable`, `MIN_GENTLE_AI_VERSION`} {
-		if !strings.Contains(source, want) {
-			t.Fatalf("transport plugin missing %q", want)
-		}
-	}
-	for _, forbidden := range []string{"GENTLE_AI_REVIEW_BINDING", "repository_context", "review lens-context", "capture-result", "preserve-result", "opencode_runtime_provenance", "JSON.parse(output.output)", "writeFile", "link(", "chmod("} {
-		if strings.Contains(source, forbidden) {
-			t.Fatalf("transport plugin retains Go-owned behavior %q", forbidden)
-		}
-	}
-}
-
-// TestModelVariantsPluginContract verifies the embedded model-variants.ts
-// plugin keeps the contract enforced by PR #440 review: atomic write via
-// tmp+rename, always-write semantics (no early return on empty variants),
-// and visible error logging instead of silent failure.
-func TestModelVariantsPluginContract(t *testing.T) {
-	source, err := Read("opencode/plugins/model-variants.ts")
-	if err != nil {
-		t.Fatalf("Read(model-variants.ts) error = %v", err)
-	}
-	src := string(source)
-
-	// Atomic write: must import rename and write to a .tmp file before renaming.
-	if !strings.Contains(src, "rename") {
-		t.Errorf("model-variants.ts must use rename() for atomic write")
-	}
-	if !strings.Contains(src, ".tmp") {
-		t.Errorf("model-variants.ts must write to a .tmp file before rename()")
-	}
-
-	// Always-write semantics: the cache must be written unconditionally so an
-	// empty variants object overwrites a stale cache from a previous run.
-	// Reject any guard on `Object.keys(variants).length` that could short-circuit
-	// the write path.
-	if strings.Contains(src, "Object.keys(variants).length") {
-		t.Errorf("model-variants.ts must not gate the write on variants length (allows stale cache to survive)")
-	}
-	if !strings.Contains(src, "JSON.stringify(variants") {
-		t.Errorf("model-variants.ts must serialize the variants object — even when empty — to overwrite stale cache")
-	}
-
-	// Errors must be logged, not swallowed silently.
-	if strings.Contains(src, "} catch {") {
-		t.Errorf("model-variants.ts must not have a parameterless `catch {}` block (silences ENOSPC/EACCES)")
-	}
-	if !strings.Contains(src, "console.error") {
-		t.Errorf("model-variants.ts must log errors via console.error so users see failures")
-	}
-
-	// Per-invocation tmp path: OpenCode loads the plugin twice within the
-	// same process when started with `--port`. Both loads share the same
-	// PID, so a fixed `.tmp` name races with itself and the second rename()
-	// fails with ENOENT. The tmp name must include a per-invocation random
-	// suffix (randomBytes) to be unique across both loads, and it must be
-	// constructed from cacheDir plus the cache basename so this invocation can
-	// track and clean only its own temp file if the write path fails.
-	for _, want := range []string{
-		`const MODEL_VARIANTS_CACHE_FILE = "model-variants.json"`,
-		"const finalPath = path.join(cacheDir, MODEL_VARIANTS_CACHE_FILE)",
-	} {
-		if !strings.Contains(src, want) {
-			t.Errorf("model-variants.ts missing constant-based cache path contract %q", want)
-		}
-	}
-	tmpPathPattern := regexp.MustCompile("tmpPath\\s*=\\s*path\\.join\\(\\s*cacheDir\\s*,\\s*`\\$\\{\\s*MODEL_VARIANTS_CACHE_FILE\\s*\\}\\.\\$\\{\\s*randomBytes\\([^)]*\\)\\s*\\.\\s*toString\\(\\s*[\"']hex[\"']\\s*\\)\\s*\\}\\.tmp`\\s*\\)")
-	if !tmpPathPattern.MatchString(src) {
-		t.Errorf("model-variants.ts tmp path must use path.join(cacheDir, randomized basename) to be unique across plugin double-loads within the same process")
-	}
-
-	// Own-temp cleanup: this randomized temp path has not shipped yet, so there
-	// are no previous randomized orphan files to scan at startup. The plugin
-	// should only best-effort remove the temp file created by this invocation
-	// when it still exists after failure; after rename, the temp file is consumed.
-	for _, want := range []string{
-		"finally",
-		"removeOwnTempFile(tmpPath)",
-		"await rm(tmpPath, { force: true })",
-		"tmpPath = undefined",
-	} {
-		if !strings.Contains(src, want) {
-			t.Errorf("model-variants.ts missing own-temp cleanup contract %q", want)
-		}
-	}
-	for _, forbidden := range []string{
-		"removeStaleModelVariantsTempFiles",
-		"STALE_TEMP_FILE_AGE_MS",
-		"mtimeMs",
-		"Date.now()",
-	} {
-		if strings.Contains(src, forbidden) {
-			t.Errorf("model-variants.ts must not use stale temp cleanup by age; found %q", forbidden)
-		}
-	}
-	if strings.Contains(src, "setTimeout") {
-		t.Errorf("model-variants.ts must not use setTimeout for temp cleanup")
-	}
-}
-
-func TestSkillRegistryPluginContract(t *testing.T) {
-	source, err := Read("opencode/plugins/skill-registry.ts")
-	if err != nil {
-		t.Fatalf("Read(skill-registry.ts) error = %v", err)
-	}
-	src := string(source)
-
-	for _, want := range []string{
-		"execFile",
-		"skill-registry",
-		"refresh",
-		"--quiet",
-		"--no-gitignore",
-		"--cwd",
-		"input.directory",
-		"input.worktree",
-		"timeout: 30_000",
-		"console.error",
-		// Non-project guard: a fresh OpenCode directory can resolve to "/" or
-		// another non-project location; the plugin must skip silently instead
-		// of spawning a refresh that pollutes or fails at startup (#skill-registry-root-guard).
-		"isProjectRoot",
-		"homedir()",
-		".git",
-		".atl",
-		"console.error",
-	} {
-		if !strings.Contains(src, want) {
-			t.Fatalf("skill-registry.ts missing %q", want)
-		}
-	}
-	// stdout belongs to OpenCode commands whose output gentle-ai parses
-	// (`opencode models --verbose`); plugin logging must stay on stderr.
-	for _, forbidden := range []string{"console.info", "console.log"} {
-		if strings.Contains(src, forbidden) {
-			t.Fatalf("skill-registry.ts must not log to stdout via %q", forbidden)
-		}
-	}
-	if strings.Contains(src, "exec(") {
-		t.Fatal("skill-registry.ts must use execFile, not shell exec")
-	}
-	if guardIdx, spawnIdx := strings.Index(src, "isProjectRoot"), strings.Index(src, "execFileAsync("); guardIdx == -1 || spawnIdx == -1 || guardIdx >= spawnIdx {
-		t.Fatalf("skill-registry.ts must guard before spawning; isProjectRoot@%d execFileAsync(@%d", guardIdx, spawnIdx)
-	}
-	worktreeIdx := strings.Index(src, "input.worktree")
-	directoryIdx := strings.Index(src, "input.directory")
-	if worktreeIdx == -1 || directoryIdx == -1 {
-		t.Fatal("skill-registry.ts must contain both input.worktree and input.directory")
-	}
-	if worktreeIdx >= directoryIdx {
-		t.Errorf("skill-registry.ts must use input.worktree before input.directory; got worktree@%d >= directory@%d", worktreeIdx, directoryIdx)
 	}
 }
 
@@ -876,9 +532,6 @@ func TestFourRReviewAgentAssets(t *testing.T) {
 			}
 		}
 	}
-
-	// OpenCode reviews use the retained transport plugin rather than an SDD
-	// overlay. TestOpenCodeReviewTransportPluginContract pins that route.
 }
 
 func TestRetiredSDDLedgerGuidanceAbsentFromDistributedAssets(t *testing.T) {
@@ -899,94 +552,6 @@ func TestRetiredSDDLedgerGuidanceAbsentFromDistributedAssets(t *testing.T) {
 	}
 }
 
-func TestOpenCodeODDOrchestratorDoesNotOwnSessionPreflight(t *testing.T) {
-	content := MustRead("opencode/orchestrator.md")
-	for _, retired := range []string{
-		"### SDD Session Preflight (HARD GATE)", "Before executing ANY SDD command or natural-language SDD request",
-		"Use the `question` tool for SDD Session Preflight", "all four preflight groups in one single `question` tool call",
-		"four localized groups in this order", "Review: 400 lines, 800 lines, Other",
-		"Interactive -> `interactive`", "OpenSpec -> `openspec`", "Ask me -> `ask-on-risk`",
-		"User-facing preflight question format:", "Map answers to canonical values", "A1", "A2", "B1", "C1", "D1",
-	} {
-		if strings.Contains(content, retired) {
-			t.Fatalf("raw opencode/sdd-orchestrator.md still owns retired preflight content %q", retired)
-		}
-	}
-}
-
-func TestOpenCodeODDOrchestratorDelegationVisibility(t *testing.T) {
-	content := MustRead("opencode/orchestrator.md")
-
-	for _, required := range []string{
-		"<!-- gentle-ai:opencode-desktop-delegation-progress -->",
-		"#### Delegation Visibility (OpenCode Desktop)",
-		"For every native subagent launch",
-		"assistant-visible status line immediately before the call",
-		"When the call returns",
-		"⏳ Delegating {phase} to {agent}...",
-		"✅ {agent} completed — {status}",
-		"⚠️ {agent} returned {status} — {short reason}",
-		"15 tokens or fewer",
-		"25 tokens or fewer",
-		"executor prompts",
-		"<!-- /gentle-ai:opencode-desktop-delegation-progress -->",
-	} {
-		if !strings.Contains(content, required) {
-			t.Fatalf("opencode/sdd-orchestrator.md missing delegation visibility wording %q", required)
-		}
-	}
-
-	if !strings.Contains(content, "#### Delegation Visibility (OpenCode Desktop)") {
-		t.Fatal("OpenCode delegation visibility is missing")
-	}
-}
-
-func TestOpenCodeODDOrchestratorPreflightDoesNotUseVisibleCodesOrCanonicalUIValues(t *testing.T) {
-	content := MustRead("opencode/orchestrator.md")
-	if start := strings.Index(content, "User-facing preflight question format:"); start >= 0 {
-		t.Fatalf("raw opencode/sdd-orchestrator.md still owns preflight UI at %d", start)
-	}
-	if end := strings.Index(content, "Map answers to canonical values"); end >= 0 {
-		t.Fatalf("raw opencode/sdd-orchestrator.md still owns preflight mappings at %d", end)
-	}
-	for _, forbidden := range []string{"A1", "A2", "B1", "C1", "D1", "Interactive -> `interactive`", "OpenSpec -> `openspec`", "Ask me -> `ask-on-risk`"} {
-		if strings.Contains(content, forbidden) {
-			t.Fatalf("raw opencode/sdd-orchestrator.md still owns preflight content %q", forbidden)
-		}
-	}
-}
-
-func TestPlatformNativeODDOrchestratorsAvoidOpenCodePersistenceClaims(t *testing.T) {
-	tests := []struct {
-		path     string
-		required []string
-	}{}
-
-	for _, tc := range tests {
-		t.Run(tc.path, func(t *testing.T) {
-			content := MustRead(tc.path)
-
-			for _, required := range tc.required {
-				if !strings.Contains(content, required) {
-					t.Fatalf("%s missing platform-native wording %q", tc.path, required)
-				}
-			}
-
-			for _, forbidden := range []string{
-				"OpenCode's background-agent plugin",
-				"OpenCode plugin-backed persistence",
-				"plugin-backed persisted background delegation",
-				"background task storage",
-				"delegate to `sdd-init` sub-agent",
-			} {
-				if strings.Contains(content, forbidden) {
-					t.Fatalf("%s must not imply inaccurate OpenCode/subagent semantics via %q", tc.path, forbidden)
-				}
-			}
-		})
-	}
-}
-
 func TestGentlemanLanguageInstructionsDoNotBiasEnglishSessions(t *testing.T) {
 	// Claude and Kimi have an active output-style channel — their persona
 	// section is a residual and no longer carries language content on its
@@ -1004,7 +569,6 @@ func TestGentlemanLanguageInstructionsDoNotBiasEnglishSessions(t *testing.T) {
 		// Rules opener instead (JD-019).
 		{path: "claude/persona-gentleman.md", combineWith: "claude/output-style-gentleman.md", languagePhrase: "Always match the user's current language in your reply."},
 		{path: "generic/persona-gentleman.md", languagePhrase: "Match the user's current language in your REPLY ONLY"},
-		{path: "opencode/persona-gentleman.md", languagePhrase: "Match the user's current language in your REPLY ONLY"},
 	}
 
 	for _, tc := range personaPaths {
@@ -1214,7 +778,6 @@ func TestPersonasContainContextualSkillLoadingDirective(t *testing.T) {
 		invokeMsg string // wording specific to the agent family
 	}{
 		{path: "claude/persona-gentleman.md", isClaude: true, invokeMsg: "invoke it via the built-in `Skill` tool"},
-		{path: "opencode/persona-gentleman.md", isClaude: false, invokeMsg: "read the matching SKILL.md"},
 		{path: "generic/persona-gentleman.md", isClaude: false, invokeMsg: "read the matching SKILL.md"},
 		{path: "generic/persona-neutral.md", isClaude: false, invokeMsg: "read the matching SKILL.md"},
 	}
@@ -1319,65 +882,6 @@ func TestEmbeddedAssetCount(t *testing.T) {
 	}
 }
 
-// TestCommandsDoNotUseEchoNPwd guards against the nested-subshell pattern
-// `echo -n "$(pwd)"` (and the basename variant) in retained command assets.
-// The Claude SDD command directory was removed; OpenCode commands remain.
-func TestCommandsDoNotUseEchoNPwd(t *testing.T) {
-	forbidden := `echo -n "$(pwd)"`
-
-	for _, dir := range []string{"opencode/commands"} {
-		entries, err := FS.ReadDir(dir)
-		if err != nil {
-			t.Fatalf("ReadDir(%s) error = %v", dir, err)
-		}
-		for _, entry := range entries {
-			if entry.IsDir() {
-				continue
-			}
-			path := dir + "/" + entry.Name()
-			content := MustRead(path)
-			if strings.Contains(content, forbidden) {
-				t.Errorf("%s contains banned pattern %q — use a safer detection mechanism instead", path, forbidden)
-			}
-		}
-	}
-}
-
-// TestOpenCodeCommandsDetectWorkspaceAgentSide guards against parse-time shell
-// interpolation for the working directory in OpenCode command files. In
-// OpenCode Desktop (Electron), patterns like !pwd and !basename $(pwd) evaluate
-// against the Electron app data directory rather than the project workspace
-// (issue #74). Command files must instruct the agent to detect the workspace
-// via its bash tool (e.g. git rev-parse --show-toplevel) and treat that
-// returned path as authoritative.
-func TestOpenCodeCommandsDetectWorkspaceAgentSide(t *testing.T) {
-	forbiddenPatterns := []string{
-		"!`pwd`",
-		"!`basename \"$(pwd)\"`",
-	}
-	const requiredHint = "git rev-parse --show-toplevel"
-
-	entries, err := FS.ReadDir("opencode/commands")
-	if err != nil {
-		t.Fatalf("ReadDir(opencode/commands) error = %v", err)
-	}
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
-			continue
-		}
-		path := "opencode/commands/" + entry.Name()
-		content := MustRead(path)
-		for _, pat := range forbiddenPatterns {
-			if strings.Contains(content, pat) {
-				t.Errorf("%s contains banned shell interpolation %q — detect the workspace via the agent's bash tool instead (see #74)", path, pat)
-			}
-		}
-		if strings.Contains(content, "Working directory:") && !strings.Contains(content, requiredHint) {
-			t.Errorf("%s mentions \"Working directory:\" without the agent-side detection hint %q (see #74)", path, requiredHint)
-		}
-	}
-}
-
 func TestODDOrchestratorsDoNotRequireRetiredRuntimeAttempts(t *testing.T) {
 	for _, path := range allODDOrchestratorAssetPaths(t) {
 		content := MustRead(path)
@@ -1453,106 +957,6 @@ func TestODDOrchestratorAssetsScopedToParent(t *testing.T) {
 				t.Fatalf("%s must scope its orchestrator instructions away from workers", assetPath)
 			}
 		})
-	}
-}
-
-// The worker tests each requested
-// rule plus only the touched existing behavior, the verifier probes the spec
-// itself in a scratch copy with a fixed severity bar, and both bound
-// corrections instead of looping.
-func TestOpenCodeGenericAgentsCarryDelegateForReasonDiscipline(t *testing.T) {
-	t.Parallel()
-
-	want := map[string][]string{
-		"opencode/agents/gentle-ai-worker.md": {
-			// S6: RED per requested rule, PRESERVE for touched behavior, no padding, docs.
-			"add behavior-level tests for each requested rule",
-			"covers the cases the rule itself names",
-			"through the public interface",
-			"update the help text and docs that describe it",
-			"3. PRESERVE",
-			"add one test proving its previous behavior still holds; add no other cases",
-			"counts as touched when it shares the code you changed",
-			"they need no RED run",
-			"PRESERVE/REFACTOR",
-			// S8: bounded self-correction.
-			"one correction attempt per failing check, and a second only if the same check still fails",
-			"return `status: partial` with the failing command and its output",
-		},
-		"opencode/agents/gentle-ai-verify.md": {
-			// S7: read-only scope, spec-derived probes, first-launch scratch copy.
-			"Read-only means no edits to the repository or its git state",
-			"## Spec-derived probes",
-			"Verify the request, not the writer's work",
-			"**Own probes.**", "**Invariants.**", "**Interactions.**", "**Build and scope.**", "**Every item.**", "**Durable probes.**",
-			"Probe on your first launch",
-			"`mktemp -d` under the system temp directory, never inside the workspace",
-			"leave no new file in the workspace (check `git status` before and after)",
-			"No network, no installs",
-			// S7: severity bar.
-			"## Severity",
-			"reproduce it at the baseline",
-			"pre-existing advisory, never a blocker",
-			"outside the realistic domain",
-			"Silently ignoring an option or value the user passed explicitly, with a success exit, is always a blocker",
-			"An unrequested change to the output, error text, or line numbering of a command that existed at the baseline is change-caused and a blocker",
-			// S8: one correction batch, one bounded recheck.
-			"one correction batch and one recheck limited to the reported blockers",
-			"a second correction only when the recheck shows the same blocker still failing, never for a new finding",
-			"never start a new full sweep",
-		},
-	}
-	for path, clauses := range want {
-		body, err := FS.ReadFile(path)
-		if err != nil {
-			t.Fatalf("ReadFile(%s) error = %v", path, err)
-		}
-		for _, clause := range clauses {
-			if !strings.Contains(string(body), clause) {
-				t.Errorf("%s is missing %q", path, clause)
-			}
-		}
-	}
-
-	// S9: Pi/Node-only scratch details and the retired TRIANGULATE step stay out.
-	retired := map[string][]string{
-		"opencode/agents/gentle-ai-worker.md": {"TRIANGULATE"},
-		"opencode/agents/gentle-ai-verify.md": {"NODE_COMPILE_CACHE", "NO_UPDATE_NOTIFIER", "--reflink"},
-	}
-	for path, phrases := range retired {
-		body, err := FS.ReadFile(path)
-		if err != nil {
-			t.Fatalf("ReadFile(%s) error = %v", path, err)
-		}
-		for _, phrase := range phrases {
-			if strings.Contains(string(body), phrase) {
-				t.Errorf("%s still contains %q", path, phrase)
-			}
-		}
-	}
-}
-
-// The generic workers read the ODD
-// feature document as the specification, by reference, instead of a
-// paraphrase of the user's request; verify grounds its verdict in each spec.
-func TestOpenCodeGenericAgentsReadTheFeatureSpecByReference(t *testing.T) {
-	t.Parallel()
-
-	want := map[string][]string{
-		"opencode/agents/gentle-ai-worker.md":  {"until `## Log`", "`## Specs` are authoritative over any summary in the handoff", "which `S#` the change covers"},
-		"opencode/agents/gentle-ai-verify.md":  {"execute only exact test, build, lint, or spec example commands explicitly authorized by the parent", "verbatim user entries in `## Log`", "verdict per `S#`", "compare the exact output and error text", "isolated state"},
-		"opencode/agents/gentle-ai-explore.md": {"until `## Log`"},
-	}
-	for path, clauses := range want {
-		body, err := FS.ReadFile(path)
-		if err != nil {
-			t.Fatalf("ReadFile(%s) error = %v", path, err)
-		}
-		for _, clause := range clauses {
-			if !strings.Contains(string(body), clause) {
-				t.Errorf("%s is missing %q", path, clause)
-			}
-		}
 	}
 }
 

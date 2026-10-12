@@ -38,7 +38,7 @@ func TestTelemetryRuntimeStdinDeadline(t *testing.T) {
 		runtimeStdinTimeout = old
 		runtimeHookStdinTimeout = oldHook
 	})
-	for _, route := range []string{"send", "opencode", "codex"} {
+	for _, route := range []string{"send", "codex"} {
 		t.Run(route, func(t *testing.T) {
 			home := runtimeCLIHome(t)
 			before := runtimeCLIDisk(t, home)
@@ -80,7 +80,6 @@ func TestRuntimeStdinBudgetsByVerb(t *testing.T) {
 		wantJSON bool
 	}{
 		{"send", 500 * time.Millisecond, false},
-		{"opencode", 500 * time.Millisecond, false},
 		{"claude", 3 * time.Second, true},
 		{"codex", 3 * time.Second, true},
 	} {
@@ -185,7 +184,7 @@ func TestRuntimeHookStdinTimeoutAndBounds(t *testing.T) {
 }
 
 func TestRuntimeDirectStdinStillRequiresEOF(t *testing.T) {
-	for _, verb := range []string{"send", "opencode"} {
+	for _, verb := range []string{"send"} {
 		t.Run(verb, func(t *testing.T) {
 			r, w := io.Pipe()
 			defer r.Close()
@@ -216,7 +215,7 @@ func (r runtimeSignalInput) Read(p []byte) (int, error) {
 }
 
 func TestTelemetryRuntimePolicyRevokedDuringStdin(t *testing.T) {
-	for _, route := range []string{"send", "opencode", "codex"} {
+	for _, route := range []string{"send", "codex"} {
 		t.Run(route, func(t *testing.T) {
 			home := runtimeCLIHome(t)
 			runtimeCLINoRequest(t, "revoked input sent HTTP")
@@ -236,9 +235,6 @@ func TestTelemetryRuntimePolicyRevokedDuringStdin(t *testing.T) {
 			}
 			revoked := runtimeCLIDisk(t, home)
 			body := string(runtimeCLIFixture())
-			if route == "opencode" {
-				body = completedOpenCodeEnvelope
-			}
 			if _, err := io.WriteString(w, body); err != nil {
 				t.Fatal(err)
 			}
@@ -260,7 +256,7 @@ func TestTelemetryRuntimeDirectSendDisabled(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", home)
 	t.Setenv("DO_NOT_TRACK", "1")
 	var out bytes.Buffer
-	if err := runTelemetryRuntimeInput([]string{"send", "--json"}, &out, noOpenCodeRead{t}); err != nil {
+	if err := runTelemetryRuntimeInput([]string{"send", "--json"}, &out, noStdinRead{t}); err != nil {
 		t.Fatalf("direct send command unavailable: %v", err)
 	}
 	if !strings.Contains(out.String(), `"disabled"`) {
@@ -387,7 +383,7 @@ func TestTelemetryRuntimeRemovedRoutes(t *testing.T) {
 	t.Setenv("DO_NOT_TRACK", "1")
 	for _, args := range [][]string{{"ingest", "--json"}, {"flush", "--json"}, {"capabilities", "--json"}, {"send"}, {"send", "--json", "PRIVATE_PATH"}, {"PRIVATE_COMMAND", "--json"}} {
 		var out bytes.Buffer
-		err := runTelemetryRuntimeInput(args, &out, noOpenCodeRead{t})
+		err := runTelemetryRuntimeInput(args, &out, noStdinRead{t})
 		if err == nil || strings.Contains(err.Error(), "PRIVATE") || out.Len() != 0 {
 			t.Fatal("invalid route exposed or admitted")
 		}
@@ -395,4 +391,12 @@ func TestTelemetryRuntimeRemovedRoutes(t *testing.T) {
 	if entries, err := os.ReadDir(home); err != nil || len(entries) != 0 {
 		t.Fatal("removed route wrote artifacts")
 	}
+}
+
+// noStdinRead fails the test when a disabled runtime route reads stdin.
+type noStdinRead struct{ t *testing.T }
+
+func (r noStdinRead) Read([]byte) (int, error) {
+	r.t.Fatal("read event without permission")
+	return 0, io.EOF
 }

@@ -91,47 +91,6 @@ func AddToUserPathWithResult(dir string) (UserPathAddition, error) {
 	return addition, nil
 }
 
-// RemoveFromUserPath removes one matching directory from the Windows user PATH
-// and the current process PATH. Matching trims whitespace and quotes and is
-// case-insensitive, while all unrelated entries retain their original order.
-func RemoveFromUserPath(dir string) error {
-	if userPathGOOS == "windows" && !userPathRunningInGoTest() {
-		if err := removeFromPersistentUserPath(dir); err != nil {
-			return err
-		}
-	}
-
-	return removeFromProcessPath(dir)
-}
-
-// RollbackUserPathAddition restores only PATH entries created by
-// AddToUserPathWithResult.
-func RollbackUserPathAddition(dir string, addition UserPathAddition) error {
-	if addition.PersistentAdded && userPathGOOS == "windows" && !userPathRunningInGoTest() {
-		if err := removeFromPersistentUserPath(dir); err != nil {
-			return err
-		}
-	}
-	if addition.ProcessAdded {
-		return removeFromProcessPath(dir)
-	}
-	return nil
-}
-
-func removeFromPersistentUserPath(dir string) error {
-	safeDir := escapePowerShellString(strings.Trim(strings.TrimSpace(dir), `"`))
-	script := fmt.Sprintf(
-		`$dir = '%s'; `+
-			`$current = [Environment]::GetEnvironmentVariable('PATH', 'User'); `+
-			`$entries = @(); $removed = $false; `+
-			`if ($current) { foreach ($entry in $current.Split(';')) { if (-not $removed -and ([string]::Compare($entry.Trim().Trim('"'), $dir, $true) -eq 0)) { $removed = $true; continue }; $entries += $entry } }; `+
-			`[Environment]::SetEnvironmentVariable('PATH', ($entries -join ';'), 'User')`,
-		safeDir,
-	)
-	_, err := newUserPathPowerShellRunner().Run(context.Background(), "-NoProfile", "-NonInteractive", "-Command", script)
-	return err
-}
-
 // PrioritizeUserPath moves dir to the front of PATH for the current process and,
 // on Windows, the user-scoped persistent PATH. Existing entries are preserved;
 // only exact matches for dir are removed before the refreshed dir is prepended.
@@ -174,22 +133,6 @@ func UserPathEntries(goos string) ([]string, error) {
 		return nil, err
 	}
 	return splitWindowsPath(strings.TrimSpace(string(output))), nil
-}
-
-// NewShellPath returns the PATH a newly started shell inherits. On Windows it
-// reads the persistent machine PATH followed by the persistent user PATH, the
-// order new processes receive; elsewhere, and under go test, it returns the
-// current process PATH.
-func NewShellPath() (string, error) {
-	if userPathGOOS != "windows" || userPathRunningInGoTest() {
-		return os.Getenv("PATH"), nil
-	}
-	output, err := newUserPathPowerShellRunner().Run(context.Background(), "-NoProfile", "-NonInteractive", "-Command",
-		`[Environment]::GetEnvironmentVariable('PATH', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('PATH', 'User')`)
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(output)), nil
 }
 
 func splitWindowsPath(value string) []string {
@@ -235,17 +178,6 @@ func processPathContains(dir string) bool {
 		}
 	}
 	return false
-}
-
-func removeFromProcessPath(dir string) error {
-	currentPath := os.Getenv("PATH")
-	entries := filepath.SplitList(currentPath)
-	for index, entry := range entries {
-		if strings.EqualFold(filepath.Clean(strings.Trim(strings.TrimSpace(entry), `"`)), filepath.Clean(strings.Trim(strings.TrimSpace(dir), `"`))) {
-			return os.Setenv("PATH", strings.Join(append(entries[:index], entries[index+1:]...), string(os.PathListSeparator)))
-		}
-	}
-	return nil
 }
 
 func prioritizeProcessPath(dir string) error {

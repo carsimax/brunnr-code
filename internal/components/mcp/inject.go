@@ -32,12 +32,6 @@ type InjectionResult struct {
 // mcpServers block the legacy workspace path wrote into .claude/settings.json
 // (issue #2213).
 func Inject(homeDir, targetDir string, adapter agents.Adapter) (InjectionResult, error) {
-	return InjectAtSettingsPath(homeDir, targetDir, adapter, "")
-}
-
-// InjectAtSettingsPath keeps MCP assets in targetDir while merging OpenCode
-// settings into the selected file when provided by the caller.
-func InjectAtSettingsPath(homeDir, targetDir string, adapter agents.Adapter, selectedSettingsPath string) (InjectionResult, error) {
 	if !adapter.SupportsMCP() {
 		return InjectionResult{}, nil
 	}
@@ -52,7 +46,7 @@ func InjectAtSettingsPath(homeDir, targetDir string, adapter agents.Adapter, sel
 		}
 		return injectSeparateFile(targetDir, adapter)
 	case model.StrategyMergeIntoSettings:
-		return injectMergeIntoSettings(targetDir, adapter, selectedSettingsPath)
+		return injectMergeIntoSettings(targetDir, adapter)
 	case model.StrategyMCPConfigFile:
 		return injectMCPConfigFile(targetDir, adapter)
 	case model.StrategyTOMLFile:
@@ -152,52 +146,19 @@ func injectSeparateFile(homeDir string, adapter agents.Adapter) (InjectionResult
 	return InjectionResult{Changed: writeResult.Changed, Files: []string{path}}, nil
 }
 
-// injectMergeIntoSettings merges MCP servers into a config file (OpenCode opencode.json, Gemini settings.json).
-func injectMergeIntoSettings(homeDir string, adapter agents.Adapter, selectedSettingsPath string) (InjectionResult, error) {
+// injectMergeIntoSettings merges MCP servers into a JSON settings file.
+func injectMergeIntoSettings(homeDir string, adapter agents.Adapter) (InjectionResult, error) {
 	settingsPath := adapter.SettingsPath(homeDir)
-	if adapter.Agent() == model.AgentOpenCode && selectedSettingsPath != "" {
-		settingsPath = selectedSettingsPath
-	}
 	if settingsPath == "" {
 		return InjectionResult{}, nil
 	}
 
 	overlay := DefaultContext7OverlayJSON()
-	if adapter.Agent() == model.AgentOpenCode || adapter.Agent() == model.AgentKilocode {
-		return injectOpenCodeMergeIntoSettings(settingsPath, adapter.Agent())
-	}
 	if adapter.Agent() == model.AgentOpenClaw {
 		return injectOpenClawMergeIntoSettings(settingsPath)
 	}
 
 	settingsWrite, err := mergeJSONFile(settingsPath, overlay)
-	if err != nil {
-		return InjectionResult{}, err
-	}
-
-	return InjectionResult{Changed: settingsWrite.Changed, Files: []string{settingsPath}}, nil
-}
-
-// injectOpenCodeMergeIntoSettings serves OpenCode and its Kilocode fork. Only
-// OpenCode settings refuse symlinked, non-regular or locked files; Kilocode
-// keeps the shared writer behavior.
-func injectOpenCodeMergeIntoSettings(settingsPath string, agent model.AgentID) (InjectionResult, error) {
-	if agent == model.AgentOpenCode {
-		if err := filemerge.RefuseLockedSettingsFile(settingsPath); err != nil {
-			return InjectionResult{}, err
-		}
-	}
-	baseJSON, err := osReadFile(settingsPath)
-	if err != nil {
-		return InjectionResult{}, err
-	}
-
-	merged, err := mergeContext7JSON(settingsPath, baseJSON, OpenCodeContext7OverlayJSON())
-	if err != nil {
-		return InjectionResult{}, err
-	}
-
-	settingsWrite, err := filemerge.WriteFileAtomic(settingsPath, merged, filemerge.ExistingFileMode(settingsPath, 0o644))
 	if err != nil {
 		return InjectionResult{}, err
 	}
@@ -335,7 +296,6 @@ func injectClaudeWorkspaceMCPJSON(workspaceDir string, adapter agents.Adapter) (
 var releasedContext7ManagedDefaults = []string{
 	`{"args":["-y","@upstash/context7-mcp"],"command":"npx"}`,                                     // v1.0.0: mcp/context7.go
 	`{"args":["-y","--package=@upstash/context7-mcp@2.2.5","--","context7-mcp"],"command":"npx"}`, // v1.30.0: mcp/context7.go + versions.Context7MCP; Codex v1.36.0, Hermes v3.7.0
-	`{"enabled":true,"type":"remote","url":"https://mcp.context7.com/mcp"}`,                       // v1.6.0: mcp/context7.go (OpenCode)
 	`{"type":"http","url":"https://mcp.context7.com/mcp"}`,                                        // v1.6.0: mcp/context7.go (VS Code)
 	`{"serverUrl":"https://mcp.context7.com/mcp"}`,                                                // v1.10.0: mcp/context7.go (Antigravity)
 	`{"transport":"http","url":"https://mcp.context7.com/mcp"}`,                                   // v1.30.0: mcp/context7.go (Kimi)

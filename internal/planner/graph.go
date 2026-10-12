@@ -41,14 +41,13 @@ func MVPGraph() Graph {
 		// go-testing, judgment-day) install fine without it. The SDD-authored
 		// skills (sdd-*) are written by the SDD component itself — see
 		// internal/components/skills.IsSDDSkill and internal/components/sdd.
-		model.ComponentSkills:             nil,
-		model.ComponentContext7:           nil,
-		model.ComponentPersona:            nil,
-		model.ComponentPermission:         nil,
-		model.ComponentGGA:                nil,
-		model.ComponentTheme:              nil,
-		model.ComponentClaudeTheme:        nil,
-		model.ComponentOpenCodeGentleLogo: nil,
+		model.ComponentSkills:      nil,
+		model.ComponentContext7:    nil,
+		model.ComponentPersona:     nil,
+		model.ComponentPermission:  nil,
+		model.ComponentGGA:         nil,
+		model.ComponentTheme:       nil,
+		model.ComponentClaudeTheme: nil,
 	})
 }
 
@@ -56,7 +55,7 @@ func MVPGraph() Graph {
 // the second when BOTH are present in the resolved plan. These are NOT hard
 // dependencies — selecting one does not force-install the other.
 //
-// This exists because StrategyFileReplace agents (OpenCode, Cursor, Gemini,
+// This exists because StrategyFileReplace agents (e.g.
 // Codex) have Persona write the base file and SDD/Engram append to it. If
 // SDD ran before Persona, Persona would overwrite the SDD sections.
 //

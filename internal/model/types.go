@@ -1,36 +1,9 @@
 package model
 
-import "fmt"
-
 type AgentID string
-
-// OpenCodeBackgroundIntent is OpenCode's unresolved auto/on/off preference.
-type OpenCodeBackgroundIntent string
-
-const (
-	OpenCodeBackgroundAuto OpenCodeBackgroundIntent = "auto"
-	OpenCodeBackgroundOn   OpenCodeBackgroundIntent = "on"
-	OpenCodeBackgroundOff  OpenCodeBackgroundIntent = "off"
-)
-
-func (i OpenCodeBackgroundIntent) Valid() bool {
-	return i == OpenCodeBackgroundAuto || i == OpenCodeBackgroundOn || i == OpenCodeBackgroundOff
-}
-
-// ParseOpenCodeBackgroundIntent validates the persisted and user-supplied
-// control vocabulary without selecting a runtime behavior.
-func ParseOpenCodeBackgroundIntent(raw string) (OpenCodeBackgroundIntent, error) {
-	intent := OpenCodeBackgroundIntent(raw)
-	if intent.Valid() {
-		return intent, nil
-	}
-	return "", fmt.Errorf("invalid OpenCode background-subagent intent %q (valid values: auto, on, off)", raw)
-}
 
 const (
 	AgentClaudeCode    AgentID = "claude-code"
-	AgentOpenCode      AgentID = "opencode"
-	AgentKilocode      AgentID = "kilocode"
 	AgentGeminiCLI     AgentID = "gemini-cli"
 	AgentCursor        AgentID = "cursor"
 	AgentVSCodeCopilot AgentID = "vscode-copilot"
@@ -60,16 +33,15 @@ const (
 type ComponentID string
 
 const (
-	ComponentEngram             ComponentID = "engram"
-	ComponentSDD                ComponentID = "sdd"
-	ComponentSkills             ComponentID = "skills"
-	ComponentContext7           ComponentID = "context7"
-	ComponentPersona            ComponentID = "persona"
-	ComponentPermission         ComponentID = "permissions"
-	ComponentGGA                ComponentID = "gga"
-	ComponentTheme              ComponentID = "theme"
-	ComponentClaudeTheme        ComponentID = "claude-theme"
-	ComponentOpenCodeGentleLogo ComponentID = "opencode-gentle-logo"
+	ComponentEngram      ComponentID = "engram"
+	ComponentSDD         ComponentID = "sdd"
+	ComponentSkills      ComponentID = "skills"
+	ComponentContext7    ComponentID = "context7"
+	ComponentPersona     ComponentID = "persona"
+	ComponentPermission  ComponentID = "permissions"
+	ComponentGGA         ComponentID = "gga"
+	ComponentTheme       ComponentID = "theme"
+	ComponentClaudeTheme ComponentID = "claude-theme"
 )
 
 type UninstallMode string
@@ -137,7 +109,7 @@ const (
 	// StrategyMarkdownSections uses <!-- gentle-ai:ID --> markers to inject sections
 	// into an existing file without clobbering user content (Claude Code CLAUDE.md).
 	StrategyMarkdownSections SystemPromptStrategy = iota
-	// StrategyFileReplace replaces the entire system prompt file (OpenCode AGENTS.md).
+	// StrategyFileReplace replaces the entire system prompt file (e.g. Codex AGENTS.md).
 	StrategyFileReplace
 	// StrategyAppendToFile appends content to an existing system prompt file.
 	StrategyAppendToFile
@@ -158,7 +130,7 @@ const (
 	// (e.g., ~/.claude/mcp/context7.json).
 	StrategySeparateMCPFiles MCPStrategy = iota
 	// StrategyMergeIntoSettings merges mcpServers into a settings.json file
-	// (e.g., OpenCode, Gemini CLI).
+	// (e.g., a JSON settings file).
 	StrategyMergeIntoSettings
 	// StrategyMCPConfigFile writes to a dedicated mcp.json config file (e.g., Cursor ~/.cursor/mcp.json).
 	StrategyMCPConfigFile
@@ -183,14 +155,6 @@ type SDDModeID string
 const (
 	SDDModeSingle SDDModeID = "single"
 	SDDModeMulti  SDDModeID = "multi"
-)
-
-type OpenCodeCommunityPluginID string
-
-const (
-	OpenCodePluginSubAgentStatusline OpenCodeCommunityPluginID = "sub-agent-statusline"
-	OpenCodePluginSDDEngramManage    OpenCodeCommunityPluginID = "sdd-engram-plugin"
-	OpenCodePluginGentleLogo         OpenCodeCommunityPluginID = "gentle-logo"
 )
 
 type CommunityToolID string

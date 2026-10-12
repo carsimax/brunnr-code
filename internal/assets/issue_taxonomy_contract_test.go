@@ -15,7 +15,7 @@ func TestIssueTaxonomyForms(t *testing.T) {
 		name, kind, ids, controlsHash string
 		required                      int
 	}{
-		{"bug_report", "bug", "preflight description steps expected actual version os agent area logs context", "4aa09d0f80cf563290e049132e4f82021685e4470d287fcd883e4c5363d888f8", 10},
+		{"bug_report", "bug", "preflight description steps expected actual version os agent area logs context", "cb4003bf2eea02db916658750c814e04ec8584679aa4b8b46b9f0755d271a193", 10},
 		{"feature_request", "feature", "preflight area problem solution alternatives context", "20a1357018c6013dcff2487f3f27dc7034af8273193df928eb601e6502587e37", 5},
 	} {
 		t.Run(form.name, func(t *testing.T) {
@@ -44,7 +44,7 @@ func TestIssueTaxonomyForms(t *testing.T) {
 			}
 			taxonomyTerms(t, text, "- CLI (commands, flags)\n        - TUI (terminal UI)\n        - Installation Pipeline\n        - Agent Detection\n        - System Detection\n        - Catalog/Steps\n        - Documentation\n        - Other", "I have searched [existing issues]", "I understand that PRs will be rejected")
 			if form.kind == "bug" {
-				taxonomyTerms(t, text, "render: shell", "- macOS\n        - Linux (Ubuntu/Debian)\n        - Linux (Arch/Manjaro)\n        - Linux (Fedora/RHEL)\n        - Linux (Other)\n        - Windows\n        - Windows (WSL)", "- Claude Code\n        - OpenCode\n        - Gemini CLI\n        - Cursor\n        - Windsurf\n        - Other")
+				taxonomyTerms(t, text, "render: shell", "- macOS\n        - Linux (Ubuntu/Debian)\n        - Linux (Arch/Manjaro)\n        - Linux (Fedora/RHEL)\n        - Linux (Other)\n        - Windows\n        - Windows (WSL)", "- Claude Code\n        - Codex\n        - Other")
 			}
 		})
 	}

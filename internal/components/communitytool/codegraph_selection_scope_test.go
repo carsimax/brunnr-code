@@ -15,48 +15,44 @@ import (
 // the filesystem, so Codex and Claude Code merely existing on the machine was
 // enough to have their prompt files rewritten on every sync.
 
-// selectOnlyOpenCodeWithCodexAndClaudePresent builds the reported environment:
-// three agents installed on disk, only OpenCode selected in Gentle AI.
-func selectOnlyOpenCodeWithCodexAndClaudePresent(t *testing.T) (home, opencodeDir, codexPrompt, claudePrompt string) {
+// selectOnlyCodexWithClaudePresent builds the reported environment: two
+// agents installed on disk, only Codex selected in Gentle AI.
+func selectOnlyCodexWithClaudePresent(t *testing.T) (home, codexDir, claudePrompt string) {
 	t.Helper()
 	home = t.TempDir()
 
-	opencodeDir = filepath.Join(home, ".config", "opencode")
-	codexPrompt = filepath.Join(home, ".codex", "AGENTS.md")
+	codexDir = filepath.Join(home, ".codex")
 	claudePrompt = filepath.Join(home, ".claude", "CLAUDE.md")
 
-	mustWrite(t, filepath.Join(opencodeDir, "opencode.json"), "{}\n")
-	mustWrite(t, codexPrompt, "user codex instructions\n")
+	mustWrite(t, filepath.Join(codexDir, "AGENTS.md"), "user codex instructions\n")
 	mustWrite(t, claudePrompt, "user claude instructions\n")
 	if err := state.Write(home, state.InstallState{
-		InstalledAgents: []string{string(model.AgentOpenCode)},
+		InstalledAgents: []string{string(model.AgentCodex)},
 	}); err != nil {
 		t.Fatalf("state.Write: %v", err)
 	}
-	return home, opencodeDir, codexPrompt, claudePrompt
+	return home, codexDir, claudePrompt
 }
 
 func TestInjectCodeGraphGuidanceSkipsUnselectedAgents(t *testing.T) {
-	home, opencodeDir, codexPrompt, claudePrompt := selectOnlyOpenCodeWithCodexAndClaudePresent(t)
+	home, codexDir, claudePrompt := selectOnlyCodexWithClaudePresent(t)
 
 	result, err := InjectCodeGraphGuidance(home)
 	if err != nil {
 		t.Fatalf("InjectCodeGraphGuidance() error = %v", err)
 	}
 	for _, path := range result.Files {
-		if !strings.HasPrefix(path, opencodeDir+string(filepath.Separator)) {
+		if !strings.HasPrefix(path, codexDir+string(filepath.Separator)) {
 			t.Errorf("InjectCodeGraphGuidance() touched unselected agent file %q", path)
 		}
 	}
 
-	for _, path := range []string{codexPrompt, claudePrompt} {
-		content, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatalf("ReadFile(%q): %v", path, err)
-		}
-		if strings.Contains(string(content), "## CodeGraph") {
-			t.Errorf("guidance was injected into unselected agent %q:\n%s", path, content)
-		}
+	content, err := os.ReadFile(claudePrompt)
+	if err != nil {
+		t.Fatalf("ReadFile(%q): %v", claudePrompt, err)
+	}
+	if strings.Contains(string(content), "## CodeGraph") {
+		t.Errorf("guidance was injected into unselected agent %q:\n%s", claudePrompt, content)
 	}
 }
 
@@ -65,18 +61,14 @@ func TestInjectCodeGraphGuidanceSkipsUnselectedAgents(t *testing.T) {
 // third-party installer can reach files we never meant to write and rollback
 // must still restore them.
 func TestCodeGraphPathSetsSplitWriteScopeFromBackupScope(t *testing.T) {
-	home, _, codexPrompt, claudePrompt := selectOnlyOpenCodeWithCodexAndClaudePresent(t)
+	home, _, claudePrompt := selectOnlyCodexWithClaudePresent(t)
 
-	for _, unwanted := range []string{codexPrompt, claudePrompt} {
-		if slices.Contains(CodeGraphGuidancePaths(home), unwanted) {
-			t.Errorf("CodeGraphGuidancePaths() must not write unselected %q", unwanted)
-		}
+	if slices.Contains(CodeGraphGuidancePaths(home), claudePrompt) {
+		t.Errorf("CodeGraphGuidancePaths() must not write unselected %q", claudePrompt)
 	}
 
 	managed := CodeGraphManagedPaths(home)
-	for _, wanted := range []string{codexPrompt, claudePrompt} {
-		if !slices.Contains(managed, wanted) {
-			t.Errorf("CodeGraphManagedPaths() = %v, must still back up detected %q", managed, wanted)
-		}
+	if !slices.Contains(managed, claudePrompt) {
+		t.Errorf("CodeGraphManagedPaths() = %v, must still back up detected %q", managed, claudePrompt)
 	}
 }

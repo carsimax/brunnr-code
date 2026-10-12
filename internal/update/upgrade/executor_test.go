@@ -17,7 +17,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/agentguidance"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/gga"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencoderuntimeplugins"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/reviewassets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
@@ -472,8 +471,8 @@ func TestExecute_ConfigNotMutatedDuringUpgrade(t *testing.T) {
 
 	// Create realistic config files with known contents.
 	configFiles := map[string]string{
-		".claude/CLAUDE.md":            "# Claude config\nThis is my config.\n",
-		".config/opencode/config.json": `{"theme":"kanagawa"}`,
+		".claude/CLAUDE.md":  "# Claude config\nThis is my config.\n",
+		".codex/config.toml": "model = \"gpt\"\n",
 	}
 
 	for relPath, content := range configFiles {
@@ -547,14 +546,10 @@ func TestConfigPathsForBackup_CoversManagedAgentPaths(t *testing.T) {
 	homeDir := t.TempDir()
 
 	managedFiles := map[string]string{
-		".claude.json":                                `{"oauthAccount":{"emailAddress":"user@example.com"},"mcpServers":{"engram":{"command":"engram"}}}`,
-		".claude/CLAUDE.md":                           "# Claude",
-		".claude/themes/gentleman.json":               `{"name":"gentleman"}`,
-		".claude/themes/gentleman-cute.json":          `{"name":"Gentleman Cute"}`,
-		".config/opencode/AGENTS.md":                  "# OpenCode",
-		".config/opencode/themes/gentleman.json":      `{"theme":{}}`,
-		".config/opencode/themes/gentleman-cute.json": `{"theme":{}}`,
-		".config/opencode/opencode.json":              `{"model":"claude"}`,
+		".claude.json":                       `{"oauthAccount":{"emailAddress":"user@example.com"},"mcpServers":{"engram":{"command":"engram"}}}`,
+		".claude/CLAUDE.md":                  "# Claude",
+		".claude/themes/gentleman.json":      `{"name":"gentleman"}`,
+		".claude/themes/gentleman-cute.json": `{"name":"Gentleman Cute"}`,
 	}
 	unmanagedFile := filepath.Join(homeDir, ".claude", "conversation-transcript.md")
 
@@ -808,8 +803,8 @@ func TestExecute_SuccessfulSnapshotHasNoWarning(t *testing.T) {
 
 // TestConfigPathsForBackup_CoversRegistryAgentsNotInOldList verifies that
 // configPathsForBackup covers managed paths for agents from the full registry,
-// not just the previous hardcoded 4-agent list (claude, opencode, gemini,
-// cursor). codex (~/.codex) was NOT in the old hardcoded list.
+// not just the previous hardcoded 4-agent list (claude, gemini, cursor,
+// and one more). codex (~/.codex) was NOT in the old hardcoded list.
 func TestConfigPathsForBackup_CoversRegistryAgentsNotInOldList(t *testing.T) {
 	homeDir := t.TempDir()
 
@@ -1067,16 +1062,16 @@ func TestConfigPathsForBackup_ExcludesRuntimeDirs(t *testing.T) {
 
 	claudeExcludes := []string{"projects", "sessions", "plugins", "cache", "backups"}
 
-	// --- OpenCode: managed config file (keep) + node_modules (exclude) ---
-	openCodeConfig := filepath.Join(homeDir, ".config", "opencode", "opencode.json")
-	if err := os.MkdirAll(filepath.Dir(openCodeConfig), 0o755); err != nil {
+	// --- Codex: managed config file (keep) + sessions (exclude) ---
+	codexConfig := filepath.Join(homeDir, ".codex", "config.toml")
+	if err := os.MkdirAll(filepath.Dir(codexConfig), 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
-	if err := os.WriteFile(openCodeConfig, []byte(`{"model":"free"}`), 0o644); err != nil {
+	if err := os.WriteFile(codexConfig, []byte("model = \"gpt\"\n"), 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	openCodeExcludes := []string{"node_modules"}
+	codexExcludes := []string{"sessions"}
 
 	// Create excluded dirs with files for all agents.
 	type agentExclude struct {
@@ -1085,7 +1080,7 @@ func TestConfigPathsForBackup_ExcludesRuntimeDirs(t *testing.T) {
 	}
 	agents := []agentExclude{
 		{filepath.Join(homeDir, ".claude"), claudeExcludes},
-		{filepath.Join(homeDir, ".config", "opencode"), openCodeExcludes},
+		{filepath.Join(homeDir, ".codex"), codexExcludes},
 	}
 
 	var excludedFiles []string
@@ -1109,7 +1104,7 @@ func TestConfigPathsForBackup_ExcludesRuntimeDirs(t *testing.T) {
 	}
 
 	// Config files must be present.
-	for _, cfg := range []string{claudeConfig, openCodeConfig} {
+	for _, cfg := range []string{claudeConfig, codexConfig} {
 		if _, ok := pathSet[cfg]; !ok {
 			t.Errorf("configPathsForBackup missing config file %q", cfg)
 		}
@@ -1417,73 +1412,6 @@ func mockCmd(name string, args ...string) *exec.Cmd {
 	return exec.Command(name, args...)
 }
 
-// TestManagedAgentBackupPathsOpenCodePluginsFollowXDGConfigHome pins #3219 for
-// the pre-upgrade snapshot: the managed OpenCode plugins live wherever the
-// adapter resolves the config directory, so the backup must snapshot them
-// there, and it must cover the current managed plugin set.
-func TestManagedAgentBackupPathsOpenCodePluginsFollowXDGConfigHome(t *testing.T) {
-	homeDir := t.TempDir()
-	xdg := filepath.Join(homeDir, ".xdg")
-	t.Setenv("HOME", homeDir)
-	t.Setenv("USERPROFILE", homeDir)
-	t.Setenv("XDG_CONFIG_HOME", xdg)
-
-	reg, err := agents.NewDefaultRegistry()
-	if err != nil {
-		t.Fatal(err)
-	}
-	adapter, ok := reg.Get(model.AgentOpenCode)
-	if !ok {
-		t.Fatal("opencode adapter not found in registry")
-	}
-
-	paths := managedAgentBackupPaths(homeDir, adapter, log.Writer())
-	pathSet := make(map[string]struct{}, len(paths))
-	for _, p := range paths {
-		pathSet[p] = struct{}{}
-		if strings.HasPrefix(p, filepath.Join(homeDir, ".config", "opencode", "plugins")) {
-			t.Fatalf("backup path %q ignores XDG_CONFIG_HOME", p)
-		}
-	}
-	for _, name := range opencoderuntimeplugins.OpenCodePluginLifecycleNames(model.AgentOpenCode) {
-		want := filepath.Join(xdg, "opencode", "plugins", name)
-		if _, ok := pathSet[want]; !ok {
-			t.Fatalf("backup paths miss managed plugin %q; got %v", want, paths)
-		}
-	}
-}
-
-// TestManagedAgentBackupPathsOpenCodeDefaultAgentOwnershipFollowsConfigDir
-// pins that the snapshot targets the default-agent ownership record beside the
-// effective OpenCode settings path, which honors an absolute
-// OPENCODE_CONFIG_DIR, because that is where the routing step writes it.
-func TestManagedAgentBackupPathsOpenCodeDefaultAgentOwnershipFollowsConfigDir(t *testing.T) {
-	homeDir := t.TempDir()
-	configDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
-	t.Setenv("USERPROFILE", homeDir)
-	t.Setenv("XDG_CONFIG_HOME", "")
-	t.Setenv("OPENCODE_CONFIG_DIR", configDir)
-
-	reg, err := agents.NewDefaultRegistry()
-	if err != nil {
-		t.Fatal(err)
-	}
-	adapter, ok := reg.Get(model.AgentOpenCode)
-	if !ok {
-		t.Fatal("opencode adapter not found in registry")
-	}
-
-	want := filepath.Join(configDir, ".gentle-ai-default-agent.json")
-	paths := managedAgentBackupPaths(homeDir, adapter, log.Writer())
-	for _, p := range paths {
-		if p == want {
-			return
-		}
-	}
-	t.Fatalf("backup paths miss default-agent ownership record %q; got %v", want, paths)
-}
-
 // The upgrade snapshot declares the same retired SDD agent inventory the
 // upgraded binary's sync removes (#5157, #5253).
 func TestManagedAgentBackupPathsIncludeRetiredSDDAgents(t *testing.T) {
@@ -1502,36 +1430,6 @@ func TestManagedAgentBackupPathsIncludeRetiredSDDAgents(t *testing.T) {
 		paths := managedAgentBackupPaths(homeDir, adapter, &bytes.Buffer{})
 		if !slices.Contains(paths, want) {
 			t.Errorf("%s upgrade snapshot omits %s", agent, want)
-		}
-	}
-}
-
-// The upgraded binary's sync retires the OpenCode family's SDD settings
-// entries and shared prompts (#5157, #5182), so the snapshot holds them.
-func TestManagedAgentBackupPathsIncludeRetiredOpenCodeSDDSettings(t *testing.T) {
-	homeDir := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", "")
-	reg, err := agents.NewDefaultRegistry()
-	if err != nil {
-		t.Fatal(err)
-	}
-	prompt := filepath.Join(homeDir, ".config", "opencode", "prompts", "sdd", "sdd-apply.md")
-	writeRetiredFixture(t, prompt)
-	for agent, want := range map[model.AgentID][]string{
-		model.AgentOpenCode: {
-			filepath.Join(homeDir, ".config", "opencode", "opencode.json"),
-			prompt,
-		},
-	} {
-		adapter, ok := reg.Get(agent)
-		if !ok {
-			t.Fatalf("default registry does not contain %s", agent)
-		}
-		paths := managedAgentBackupPaths(homeDir, adapter, &bytes.Buffer{})
-		for _, path := range want {
-			if !slices.Contains(paths, path) {
-				t.Errorf("%s upgrade snapshot omits %s", agent, path)
-			}
 		}
 	}
 }
@@ -1663,7 +1561,6 @@ func TestManagedAgentBackupPathsOmitAbsentRetiredRuntimeFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	absent := map[model.AgentID][]string{
-		model.AgentOpenCode: {filepath.Join(homeDir, ".config", "opencode", "prompts", "sdd", "sdd-apply.md")},
 		model.AgentCodex: {
 			filepath.Join(homeDir, ".codex", "sdd-strong.config.toml"),
 			filepath.Join(homeDir, ".codex", "agents.md"),
@@ -1682,19 +1579,6 @@ func TestManagedAgentBackupPathsOmitAbsentRetiredRuntimeFiles(t *testing.T) {
 		}
 	}
 
-	dotfiles := filepath.Join(homeDir, "dotfiles")
-	writeRetiredFixture(t, filepath.Join(dotfiles, "sdd-apply.md"))
-	prompts := filepath.Join(homeDir, ".config", "opencode", "prompts", "sdd")
-	if err := os.MkdirAll(filepath.Dir(prompts), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(dotfiles, prompts); err != nil {
-		t.Skipf("symlinks unavailable: %v", err)
-	}
-	adapter, _ := reg.Get(model.AgentOpenCode)
-	if got := managedAgentBackupPaths(homeDir, adapter, &bytes.Buffer{}); slices.Contains(got, filepath.Join(prompts, "sdd-apply.md")) {
-		t.Error("snapshot declares a prompt through a symlinked prompts directory")
-	}
 }
 
 // Retirement never enters a symlinked ~/.codex, so the snapshot

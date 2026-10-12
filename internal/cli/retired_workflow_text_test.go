@@ -48,26 +48,19 @@ func TestCLIHelpShowsNoRetiredWorkflowText(t *testing.T) {
 // entry must still match, so the list can only shrink.
 var retiredWorkflowLiteralAllowlist = map[string]map[string]string{
 	"internal/cli/run.go": {
-		"agent:retire-sdd-assets:":             "retirement step ID",
-		"agent:retire-sdd:":                    "retirement step ID",
-		"agent:retire-sdd-settings:":           "retirement step ID",
-		"retire SDD agents for %q: %w":         "retirement failure naming legacy agents",
-		"retire SDD agents in %q settings: %w": "retirement failure naming legacy settings",
-		"retire SDD prompts for %q: %w":        "retirement failure naming legacy prompts",
-		"gentle-ai/sdd":                        "legacy OpenCode ownership marker",
-		"sdd-":                                 "legacy OpenCode agent prefix",
+		"agent:retire-sdd-assets:":     "retirement step ID",
+		"agent:retire-sdd:":            "retirement step ID",
+		"retire SDD agents for %q: %w": "retirement failure naming legacy agents",
 	},
 	"internal/cli/sync.go": {
-		"sync:agent:retire-sdd-assets:":   "retirement step ID",
-		"sync:agent:retire-sdd:":          "retirement step ID",
-		"sync:agent:retire-sdd-settings:": "retirement step ID",
+		"sync:agent:retire-sdd-assets:": "retirement step ID",
+		"sync:agent:retire-sdd:":        "retirement step ID",
 	},
 	"internal/cli/validate.go": {
 		"unsupported sdd-mode %q (valid: single, multi)": "unreachable validation of an install flag field nothing assigns",
 	},
 	"internal/tui/model.go": {
-		"sdd-orchestrator": "legacy OpenCode coordinator key",
-		"sdd-":             "legacy model-assignment key prefix",
+		"sdd-": "legacy model-assignment key prefix",
 	},
 	"internal/tui/screens/claude_model_picker.go": {
 		"sdd-": "legacy Claude model-assignment key prefix",

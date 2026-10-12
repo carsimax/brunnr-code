@@ -1,11 +1,8 @@
 package cli
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
@@ -100,7 +97,6 @@ type ReviewTransitionInput struct {
 	Schema              string                                        `json:"schema"`
 	CaptureOperation    string                                        `json:"capture_operation"`
 	Arguments           []ReviewTransitionArgument                    `json:"arguments"`
-	ProviderTask        *ReviewProviderTask                           `json:"provider_task,omitempty"`
 	Submission          *ReviewTransitionSubmission                   `json:"submission,omitempty"`
 	ArtifactSubject     *reviewtransaction.ArtifactSubject            `json:"artifact_subject,omitempty"`
 	CandidateDiff       *reviewtransaction.FrozenCandidateDiff        `json:"candidate_diff,omitempty"`
@@ -108,14 +104,6 @@ type ReviewTransitionInput struct {
 	CandidateTree       string                                        `json:"candidate_tree,omitempty"`
 	ChangedPathManifest *[]reviewtransaction.ChangedPathManifestEntry `json:"changed_path_manifest,omitempty"`
 	ValidationRequest   *reviewtransaction.TargetedValidationRequest  `json:"validation_request,omitempty"`
-}
-
-// ReviewProviderTask is a Go-issued host task. OpenCode relays its opaque
-// prompt and final bytes through one live child process; Go owns admission.
-type ReviewProviderTask struct {
-	Agent  string `json:"agent"`
-	Role   string `json:"role"`
-	Prompt string `json:"prompt"`
 }
 
 // ReviewTransitionSubmission is the provider-owned argv template. Consumers
@@ -202,7 +190,7 @@ func newReviewNextTransition(status ReviewTargetStatusResult, selectedLenses []s
 	// stops retain their routing. Freshness never changes the bound authority.
 	if status.Applicability == reviewtransaction.TargetApplicabilityCurrent && status.Authority != nil && transition.Collect != nil {
 		for _, capture := range transition.Collect.Inputs {
-			if _, native := reviewNativeCaptureVerb(capture.CaptureOperation); native || capture.ProviderTask != nil {
+			if _, native := reviewNativeCaptureVerb(capture.CaptureOperation); native {
 				if provenance := checkManagedReviewerAssets(); provenance.stale() {
 					return reviewManagedAssetsStopTransition(input.RuntimeAgent, provenance.staleAssetIdentities())
 				}
@@ -349,15 +337,11 @@ func resolveReviewNextTransition(status ReviewTargetStatusResult, selectedLenses
 		if artifactErr != nil {
 			return reviewStopTransition("captured_artifacts_unverifiable")
 		}
-		openCodeBinding, err := reviewOpenCodeTransitionBinding(status.repositoryRoot, captureBinding, input.RuntimeAgent)
-		if err != nil {
-			return reviewStopTransition("captured_artifacts_unverifiable")
-		}
 		if len(artifacts) != len(selectedLenses) {
-			return reviewMissingCaptureTransition(openCodeBinding, selectedLenses, artifacts, input.CaptureContext, input.UnachievableLensAttempts, input.RuntimeAgent)
+			return reviewMissingCaptureTransition(captureBinding, selectedLenses, artifacts, input.CaptureContext, input.UnachievableLensAttempts, input.RuntimeAgent)
 		}
 		if input.ProviderRole == reviewerprovider.RoleRefuter {
-			return reviewProviderRoleTransition("provider_refuter_required", openCodeBinding, input.ProviderRole, input.RuntimeAgent, nil)
+			return reviewProviderRoleTransition("provider_refuter_required", captureBinding, input.ProviderRole, input.RuntimeAgent, nil)
 		}
 		return reviewStopTransition("manual_intervention_required")
 	case reviewtransaction.StateCorrectionRequired:
@@ -379,11 +363,7 @@ func resolveReviewNextTransition(status ReviewTargetStatusResult, selectedLenses
 				if input.CapturedProviderTargetedValidatorInconclusive {
 					reason = reviewInconclusiveTargetedValidationReason
 				}
-				openCodeBinding, err := reviewOpenCodeTransitionBinding(status.repositoryRoot, validationBinding, input.RuntimeAgent)
-				if err != nil {
-					return reviewStopTransition("captured_artifacts_unverifiable")
-				}
-				return reviewProviderRoleTransition(reason, openCodeBinding, input.ProviderRole, input.RuntimeAgent, input.ValidationRequest)
+				return reviewProviderRoleTransition(reason, validationBinding, input.ProviderRole, input.RuntimeAgent, input.ValidationRequest)
 			}
 			if input.CapturedProviderTargetedValidatorInconclusive || input.CapturedProviderTargetedValidator {
 				return reviewStopTransition("manual_intervention_required")
@@ -464,18 +444,7 @@ func reviewProviderRoleTransition(reason string, binding ReviewTransitionBinding
 		}
 		return reviewCollectTransition(reason, input)
 	}
-	task, err := newReviewProviderTask(role, binding)
-	if err != nil {
-		return reviewStopTransition("captured_artifacts_unverifiable")
-	}
-	return reviewCollectTransition(reason, ReviewTransitionInput{
-		Name: reviewProviderRoleInputName(role), Schema: reviewProviderRoleTaskSchema(role), CaptureOperation: "external.run_provider_role",
-		Arguments: append(reviewBindingArguments(binding),
-			reviewRepositoryContextArguments(binding)[0],
-			ReviewTransitionArgument{Name: "agent", Value: string(model.AgentOpenCode)},
-			ReviewTransitionArgument{Name: "role", Value: string(role)}),
-		ProviderTask: &task,
-	})
+	return reviewStopTransition("manual_intervention_required")
 }
 
 // reviewCaptureRefuterCaptureOperation and its validation twin name the two
@@ -559,7 +528,7 @@ func reviewRootActionForTransition(action reviewtransaction.TargetStatusAction, 
 
 func reviewMissingCaptureTransition(binding ReviewTransitionBinding, selectedLenses []string, artifacts []ReviewTransitionArtifact, context *reviewCaptureContext, unachievable []reviewtransaction.CompactUnachievableLensAttempt, runtime ...model.AgentID) ReviewNextTransition {
 	providerRuntime := model.AgentID("")
-	if len(runtime) > 0 && (runtime[0] == model.AgentOpenCode || reviewProviderCaptureRuntime(runtime[0])) {
+	if len(runtime) > 0 && reviewProviderCaptureRuntime(runtime[0]) {
 		providerRuntime = runtime[0]
 	}
 	captured := make(map[int]bool, len(artifacts))
@@ -590,13 +559,6 @@ func reviewMissingCaptureTransition(binding ReviewTransitionBinding, selectedLen
 	for order, lens := range selectedLenses {
 		if !captured[order] {
 			capture := reviewCaptureInput(binding, lens, order, context, providerRuntime)
-			if providerRuntime == model.AgentOpenCode {
-				task, err := newReviewLensProviderTask(capture.Arguments, capture.ArtifactSubject)
-				if err != nil {
-					return reviewStopTransition("captured_artifacts_unverifiable")
-				}
-				capture.ProviderTask = &task
-			}
 			inputs = append(inputs, capture)
 		}
 	}
@@ -712,35 +674,6 @@ func reviewCaptureInput(binding ReviewTransitionBinding, lens string, order int,
 		input.Arguments = append(input.Arguments, ReviewTransitionArgument{Name: "agent", Value: string(runtime[0])})
 	}
 	return input
-}
-
-// newReviewLensProviderTask produces the exact opaque Task input OpenCode V1
-// relays. The prompt is the same strict binding line the native transport
-// already admits, but Go now owns its JSON bytes instead of asking the model
-// to rename and serialize STATUS argument rows.
-func newReviewLensProviderTask(arguments []ReviewTransitionArgument, subject *reviewtransaction.ArtifactSubject) (ReviewProviderTask, error) {
-	values, err := reviewTransitionArgumentMap(arguments)
-	if err != nil || subject == nil || len(values) != 7 ||
-		values["lineage"] != subject.LineageID || values["expected-revision"] != subject.AuthorityRevision ||
-		values["target"] != subject.TargetIdentity || values["lens"] != subject.Lens || values["subject-hash"] != subject.SubjectHash ||
-		reviewtransaction.ValidateReviewRepositoryContextHandle(values["repository-context"]) != nil {
-		return ReviewProviderTask{}, errors.New("lens provider task binding is incomplete") // refusal:by-design world-action: only a complete native capture input may issue an OpenCode lens task
-	}
-	order, err := strconv.Atoi(values["order"])
-	if err != nil || order != subject.SelectedOrder {
-		return ReviewProviderTask{}, errors.New("lens provider task selected order is invalid") // refusal:by-design world-action: the opaque task must bind the exact selected slot
-	}
-	payload, err := json.Marshal(reviewLensContextBinding{
-		Lineage: values["lineage"], Target: values["target"], Lens: values["lens"], Order: order,
-		Revision: values["expected-revision"], RepositoryContext: values["repository-context"], SubjectHash: subject.SubjectHash,
-	})
-	if err != nil {
-		return ReviewProviderTask{}, err
-	}
-	return ReviewProviderTask{
-		Agent: values["lens"], Role: string(reviewerprovider.RoleLens),
-		Prompt: reviewLensContextBindingHeader + " " + string(payload),
-	}, nil
 }
 
 type reviewNextTransitionInput struct {
@@ -1188,38 +1121,6 @@ func reviewBindingArguments(binding ReviewTransitionBinding) []ReviewTransitionA
 // before running it again". Both collect the same input through the same
 // capture operation and submission descriptor.
 const reviewInconclusiveTargetedValidationReason = "targeted_validation_inconclusive_recapture_required"
-
-// reviewRepositoryContextKeyUnsafeReason classifies an OpenCode-driven STATUS
-// that cannot seal its reviewer Task because this user's private sealing key
-// is unusable. It is an environment fault that wrote nothing, and its exit is
-// repairing the key file, which the cause names.
-var reviewRepositoryContextKeyUnsafeReason = reviewPreflightReason{
-	Code:       "repository_context_key_unsafe",
-	Message:    "This user's private review context key cannot be used, so the OpenCode reviewer Task cannot be sealed; the cause names the key file and its repair.",
-	NextAction: "stop",
-}
-
-// reviewOpenCodeTransitionBinding gives the inputs an OpenCode host collects
-// the sealed rctx3 handle its relay resolves. The relay runs in the host
-// session directory, which names nothing about the review (#5136, #4516), so
-// the handle has to carry its own root. The runtime is the one this STATUS
-// renders for (reviewEffectiveRuntime: the declared --agent, else Pi under its
-// relay handshake, else the lineage's frozen runtime), so
-// a lineage driven by another runtime is reissued in that runtime's format.
-// Every other runtime keeps the unchanged rctx2 digest.
-func reviewOpenCodeTransitionBinding(root string, binding ReviewTransitionBinding, runtime model.AgentID) (ReviewTransitionBinding, error) {
-	if runtime != model.AgentOpenCode || binding.RepositoryContext == "" {
-		return binding, nil
-	}
-	handle, err := reviewtransaction.DeriveOpenCodeReviewRepositoryContextHandle(context.Background(), root, reviewtransaction.ReviewRepositoryContextBinding{
-		LineageID: binding.LineageID, TargetIdentity: binding.TargetIdentity, Revision: binding.Revision,
-	})
-	if err != nil {
-		return ReviewTransitionBinding{}, err
-	}
-	binding.RepositoryContext = handle
-	return binding, nil
-}
 
 func reviewTransitionBinding(authority *ReviewTargetStatusAuthority, target, repositoryRoot string, repositoryContext ...string) ReviewTransitionBinding {
 	contextHandle := ""

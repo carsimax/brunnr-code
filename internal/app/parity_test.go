@@ -19,7 +19,7 @@ func TestInstallDefaultsMatchTUIModelDefaults(t *testing.T) {
 	detection := system.DetectionResult{
 		Configs: []system.ConfigState{
 			{Agent: "claude-code", Exists: true, IsDirectory: true},
-			{Agent: "opencode", Exists: false},
+			{Agent: "codex", Exists: false},
 		},
 	}
 
@@ -201,7 +201,7 @@ func TestRunArgsUnknownCommandReturnsError(t *testing.T) {
 // and produces output about the sync plan — not a "unknown command" error.
 func TestRunArgsSyncDryRunIsDispatchedAndPrintsReport(t *testing.T) {
 	var buf bytes.Buffer
-	err := RunArgs([]string{"sync", "--agents", "opencode", "--dry-run"}, &buf)
+	err := RunArgs([]string{"sync", "--agents", "codex", "--dry-run"}, &buf)
 	if err != nil {
 		t.Fatalf("RunArgs(sync --dry-run) error = %v", err)
 	}
@@ -232,16 +232,6 @@ func TestRunArgsSyncUnknownFlagReturnsError(t *testing.T) {
 	}
 }
 
-func TestRunArgsSyncHelpIncludesBackgroundFlag(t *testing.T) {
-	var buf bytes.Buffer
-	if err := RunArgs([]string{"sync", "--help"}, &buf); err != nil {
-		t.Fatalf("RunArgs(sync --help) error = %v", err)
-	}
-	if !strings.Contains(buf.String(), "--opencode-background-subagents=auto|on|off") || !strings.Contains(buf.String(), cli.OpenCodeBackgroundSubagentsEnv) {
-		t.Fatalf("sync help omits background contract: %s", buf.String())
-	}
-}
-
 // TestRunArgsSyncNoAgentsIsNoOp verifies that `gentle-ai sync` with no
 // agents flag and an empty home dir (no config dirs) completes as a no-op
 // and does NOT return an error.
@@ -251,7 +241,7 @@ func TestRunArgsSyncNoAgentsIsNoOp(t *testing.T) {
 	// something meaningful (the no-op message).
 	// Use --dry-run to avoid any file creation and allow running in CI.
 	var buf bytes.Buffer
-	err := RunArgs([]string{"sync", "--agents", "opencode", "--dry-run"}, &buf)
+	err := RunArgs([]string{"sync", "--agents", "codex", "--dry-run"}, &buf)
 	if err != nil {
 		t.Fatalf("RunArgs(sync --dry-run): %v", err)
 	}
@@ -366,7 +356,7 @@ func TestInstallPlannerParityLinuxPreservesComponentOrder(t *testing.T) {
 		},
 	}
 
-	result, err := runInstallForParity([]string{"--dry-run", "--agent", "opencode", "--component", "persona,engram,skills"}, linuxDetection)
+	result, err := runInstallForParity([]string{"--dry-run", "--agent", "codex", "--component", "persona,engram,skills"}, linuxDetection)
 	if err != nil {
 		t.Fatalf("RunInstall() error = %v", err)
 	}

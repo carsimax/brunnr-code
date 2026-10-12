@@ -19,7 +19,7 @@ import (
 // commit their state removal.
 func TestExecutePlanReportsPerAgentOutcomesInsteadOfAbortingOnTheFirstFailure(t *testing.T) {
 	home := t.TempDir()
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code", "codex", "opencode"}}); err != nil {
+	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code", "codex"}}); err != nil {
 		t.Fatal(err)
 	}
 	svc, err := NewService(home, t.TempDir(), "dev")
@@ -31,7 +31,7 @@ func TestExecutePlanReportsPerAgentOutcomesInsteadOfAbortingOnTheFirstFailure(t 
 	failure := errors.New("clean json file: invalid character 'p'")
 	ranAfterFailure := false
 	plan := plan{operations: []operation{
-		{typeID: opRewriteFile, path: filepath.Join(home, "a-fails"), agents: []model.AgentID{model.AgentOpenCode}, apply: func(string) (bool, bool, error) {
+		{typeID: opRewriteFile, path: filepath.Join(home, "a-fails"), agents: []model.AgentID{model.AgentCodex}, apply: func(string) (bool, bool, error) {
 			return false, false, failure
 		}},
 		{typeID: opRewriteFile, path: filepath.Join(home, "b-succeeds"), agents: []model.AgentID{model.AgentClaudeCode}, apply: func(string) (bool, bool, error) {
@@ -50,11 +50,11 @@ func TestExecutePlanReportsPerAgentOutcomesInsteadOfAbortingOnTheFirstFailure(t 
 	if !ranAfterFailure {
 		t.Fatal("operations after the failing one did not run: the batch still aborts on first failure")
 	}
-	if !slices.Equal(result.FailedAgents, []model.AgentID{model.AgentOpenCode}) {
-		t.Fatalf("FailedAgents = %v, want [opencode]", result.FailedAgents)
+	if !slices.Equal(result.FailedAgents, []model.AgentID{model.AgentCodex}) {
+		t.Fatalf("FailedAgents = %v, want [codex]", result.FailedAgents)
 	}
-	if !slices.Equal(result.AgentsRemovedFromState, []model.AgentID{model.AgentClaudeCode, model.AgentCodex}) {
-		t.Fatalf("AgentsRemovedFromState = %v, want the two agents with no failed operation", result.AgentsRemovedFromState)
+	if !slices.Equal(result.AgentsRemovedFromState, []model.AgentID{model.AgentClaudeCode}) {
+		t.Fatalf("AgentsRemovedFromState = %v, want the agent with no failed operation", result.AgentsRemovedFromState)
 	}
 	if !slices.Contains(result.ChangedFiles, filepath.Join(home, "b-succeeds")) {
 		t.Fatalf("ChangedFiles = %v, want the operation that ran after the failure", result.ChangedFiles)
@@ -64,7 +64,7 @@ func TestExecutePlanReportsPerAgentOutcomesInsteadOfAbortingOnTheFirstFailure(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(current.InstalledAgents, []string{"opencode"}) {
+	if !slices.Equal(current.InstalledAgents, []string{"codex"}) {
 		t.Fatalf("state.json installed_agents = %v, want only the failed agent retained", current.InstalledAgents)
 	}
 }

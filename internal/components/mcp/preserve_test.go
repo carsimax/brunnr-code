@@ -68,7 +68,7 @@ func TestInjectContext7PreservesConfiguredServers(t *testing.T) {
 				}
 				want := "@upstash/context7-mcp@" + versions.Context7MCP
 				switch id {
-				case model.AgentCodex, model.AgentOpenCode, model.AgentKilocode, model.AgentVSCodeCopilot, model.AgentAntigravity, model.AgentKimi:
+				case model.AgentCodex, model.AgentVSCodeCopilot, model.AgentAntigravity, model.AgentKimi:
 					want = "https://mcp.context7.com/mcp"
 				}
 				if !bytes.Contains(installed, []byte(want)) {

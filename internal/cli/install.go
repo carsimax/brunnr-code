@@ -18,9 +18,6 @@ type InstallFlags struct {
 	Channel    string
 	DryRun     bool
 
-	OpenCodeBackgroundSubagents    string
-	OpenCodeBackgroundSubagentsSet bool
-
 	ClaudeOrchestratorModules bool
 }
 
@@ -38,9 +35,6 @@ FLAGS
   --preset <name>                    Preset to apply
   --scope global|workspace           Install scope (env: GENTLE_AI_INSTALL_SCOPE)
   --channel stable|beta|nightly      Release channel; nightly is an alias for beta (env: GENTLE_AI_CHANNEL)
-  --opencode-background-subagents=auto|on|off
-                                     Resolve OpenCode capability and manage a launcher when eligible; env: GENTLE_AI_OPENCODE_BACKGROUND_SUBAGENTS
-                                     auto inherits managed on/off, unsupported/unknown stays foreground, off removes only owned launchers
   --claude-orchestrator-modules      Global Claude only: install the orchestrator as a core plus on-demand modules
                                      under ~/.claude/gentle-ai/orchestrator/ (default off; see docs/rollback.md)
   --dry-run                          Preview plan without executing
@@ -72,7 +66,6 @@ func ParseInstallFlags(args []string) (InstallFlags, error) {
 	fs.StringVar(&opts.Preset, "preset", "", "preset to apply")
 	fs.StringVar(&opts.Scope, "scope", "", "install scope: global (default) or workspace — env: GENTLE_AI_INSTALL_SCOPE")
 	fs.StringVar(&opts.Channel, "channel", "", installChannelHelp)
-	fs.StringVar(&opts.OpenCodeBackgroundSubagents, "opencode-background-subagents", "", "--opencode-background-subagents=auto|on|off; env: GENTLE_AI_OPENCODE_BACKGROUND_SUBAGENTS; eligible versions use a managed launcher")
 	fs.BoolVar(&opts.ClaudeOrchestratorModules, "claude-orchestrator-modules", false, "global Claude only: install the orchestrator as a core plus on-demand modules")
 	fs.BoolVar(&opts.DryRun, "dry-run", false, "preview plan without executing")
 
@@ -83,13 +76,6 @@ func ParseInstallFlags(args []string) (InstallFlags, error) {
 	if fs.NArg() > 0 {
 		return InstallFlags{}, fmt.Errorf("unexpected install argument %q", fs.Arg(0))
 	}
-	fs.Visit(func(f *flag.Flag) {
-		switch f.Name {
-		case "opencode-background-subagents":
-			opts.OpenCodeBackgroundSubagentsSet = true
-		}
-	})
-
 	return opts, nil
 }
 

@@ -309,14 +309,7 @@ func reviewLensContextBudgetProbe(
 	}
 	defer deps.close(inspector)
 	frozen := inspector.FrozenCandidateContext()
-	// Measure with the handle the lens block will really carry: the runtime
-	// driving this call -- by the same rule STATUS emission follows -- decides
-	// whether that is the sealed rctx3 handle or the shorter rctx2 digest.
-	deriveContext := reviewtransaction.DeriveReviewRepositoryContextHandle
-	if reviewEffectiveRuntime(runtime, state.RuntimeAgent) == model.AgentOpenCode {
-		deriveContext = reviewtransaction.DeriveOpenCodeReviewRepositoryContextHandle
-	}
-	repositoryContext, err := deriveContext(assemblyContext, repo, reviewtransaction.ReviewRepositoryContextBinding{
+	repositoryContext, err := reviewtransaction.DeriveReviewRepositoryContextHandle(assemblyContext, repo, reviewtransaction.ReviewRepositoryContextBinding{
 		LineageID: state.LineageID, TargetIdentity: state.InitialSnapshot.Identity, Revision: revision,
 	})
 	if err != nil {

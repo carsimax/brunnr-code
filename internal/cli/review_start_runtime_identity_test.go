@@ -106,7 +106,7 @@ func TestDirectReviewStartRefusalInventsNoRuntimeIdentity(t *testing.T) {
 func TestDirectRouteStillRefusesADeclaredRuntime(t *testing.T) {
 	repo, baseRef := initLensSelectingReviewCLIRepo(t)
 
-	for _, agent := range []model.AgentID{model.AgentCodex, model.AgentOpenCode} {
+	for _, agent := range []model.AgentID{model.AgentCodex} {
 		t.Run(string(agent), func(t *testing.T) {
 			var stdout bytes.Buffer
 			err := RunReviewFacadeStart([]string{
@@ -137,7 +137,7 @@ func TestNegotiatedStartCommandEchoesTheCallersOwnRuntime(t *testing.T) {
 		Identity:   "sha256:0000000000000000000000000000000000000000000000000000000000000000",
 		Projection: reviewtransaction.ProjectionWorkspace,
 	}
-	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode, model.AgentCodex} {
+	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex} {
 		t.Run(string(agent), func(t *testing.T) {
 			command := reviewNegotiatedStartCommand(snapshot, string(agent))
 			if strings.Count(command, "--agent ") != 1 || !strings.Contains(command, "--agent "+string(agent)+" ") {
@@ -168,7 +168,7 @@ func TestTierCRecoveryStatementsCarryOnlyTheIdentitySlot(t *testing.T) {
 		if !strings.Contains(emission.Statement, "--agent "+reviewUndeclaredRuntimeIdentitySlot) {
 			t.Fatalf("Tier C statement lost the neutral runtime-identity slot: %s", emission.Statement)
 		}
-		for _, identity := range []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode, model.AgentCodex} {
+		for _, identity := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex} {
 			if strings.Contains(emission.Statement, "--agent "+string(identity)) {
 				t.Fatalf("Tier C statement baked in compiled identity %q: %s", identity, emission.Statement)
 			}

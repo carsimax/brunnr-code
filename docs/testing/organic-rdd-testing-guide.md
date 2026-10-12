@@ -220,7 +220,7 @@ The bug @decode2 and @fisidj found. You need the remote from Flow 6.
 
 ### Flow 19: First-run hygiene
 
-1. [ ] `install --agents opencode` (OpenCode only) → **Expected**: the last line names only OpenCode, not "run claude".
+1. [ ] `install --agents codex` (Codex only) → **Expected**: the last line names no agent command, not "run claude".
 2. [ ] `doctor` running the binary **by absolute path** → **Expected**: it reports the binary you ran with its version, and warns if it differs from the one on the PATH.
 3. [ ] `review start --committed-only true` (with a space) → **Expected**: the error explains that a boolean flag is passed as `--flag` or `--flag=true`, never with a separate value.
 

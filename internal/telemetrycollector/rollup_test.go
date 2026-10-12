@@ -69,7 +69,7 @@ func TestComputeDayStats_UsesLatestEventPerInstallForAttributes(t *testing.T) {
 
 	events := []storedEvent{
 		{ReceivedAt: morning, InstallID: installA, Version: "1.0.0", Agents: []string{"claude-code"}, Components: []string{"sdd"}, RDDEnabled: false},
-		{ReceivedAt: evening, InstallID: installA, Version: "1.1.0", Agents: []string{"claude-code", "opencode"}, Components: []string{"sdd", "engram"}, RDDEnabled: true},
+		{ReceivedAt: evening, InstallID: installA, Version: "1.1.0", Agents: []string{"claude-code", "codex"}, Components: []string{"sdd", "engram"}, RDDEnabled: true},
 	}
 
 	stats := computeDayStats(events)
@@ -83,8 +83,8 @@ func TestComputeDayStats_UsesLatestEventPerInstallForAttributes(t *testing.T) {
 	if stats.versionCounts["1.1.0"] != 1 || stats.versionCounts["1.0.0"] != 0 {
 		t.Errorf("versionCounts should reflect the latest event only: %+v", stats.versionCounts)
 	}
-	if stats.agentCounts["opencode"] != 1 {
-		t.Errorf("agentCounts[opencode] = %d, want 1 from the latest event", stats.agentCounts["opencode"])
+	if stats.agentCounts["codex"] != 1 {
+		t.Errorf("agentCounts[codex] = %d, want 1 from the latest event", stats.agentCounts["codex"])
 	}
 	if stats.rddTrue != 1 || stats.rddFalse != 0 {
 		t.Errorf("rdd counts should reflect the latest event: true=%d false=%d", stats.rddTrue, stats.rddFalse)

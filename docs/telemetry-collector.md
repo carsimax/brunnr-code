@@ -28,7 +28,7 @@ kit under `deploy/telemetry/`, and how to read `/v1/summary`.
   "version": "semver, e.g. 2.3.0 or 2.3.0-rc.1",
   "os": "darwin | linux | windows",
   "arch": "one of Go's GOARCH values, e.g. arm64 | amd64 | ...",
-  "agents": ["claude-code", "opencode", "... (enum of known agent ids)"],
+  "agents": ["claude-code", "codex", "... (enum of known agent ids)"],
   "components": ["sdd", "engram", "... (enum of known component ids)"],
   "rdd_enabled": true,
   "counters": {
@@ -307,7 +307,7 @@ once, under its newest version/agents/RDD state); *any* event makes it
   "generated_at": "2026-06-15T00:00:00Z",
   "installs_per_month": [{"month": "2026-06", "unique_installs": 42}, "... 12 entries"],
   "weekly_active_installs": [{"week": "2026-W24", "active_installs": 17}, "... 12 entries"],
-  "agent_distribution": {"claude-code": 30, "opencode": 12},
+  "agent_distribution": {"claude-code": 30, "codex": 12},
   "component_distribution": {"sdd": 28, "engram": 19},
   "version_distribution": {"2.3.0": 25, "2.2.1": 5},
   "rdd_enabled_ratio": 0.63,

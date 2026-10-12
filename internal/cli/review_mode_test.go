@@ -52,7 +52,7 @@ func TestReviewModeStatusReportsBothSourcesWithoutMutating(t *testing.T) {
 	// This test pins that status leaves global user state alone, so it needs
 	// state on disk to compare against. It writes its own rather than relying
 	// on a shared fixture: nothing else in this flow creates one.
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"opencode"}}); err != nil {
+	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code"}}); err != nil {
 		t.Fatal(err)
 	}
 	before, err := os.ReadFile(state.Path(home))
@@ -210,7 +210,7 @@ func TestWriteGlobalRDDModeSerializesWithInstallStateAndPreservesFreshFields(t *
 		}
 	})
 
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"opencode"}}); err != nil {
+	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code"}}); err != nil {
 		t.Fatalf("write concurrent install state: %v", err)
 	}
 	if err := writeGlobalRDDMode("enable"); !errors.Is(err, reviewtransaction.ErrStoreLockContended) {
@@ -236,7 +236,7 @@ func TestWriteGlobalRDDModeSerializesWithInstallStateAndPreservesFreshFields(t *
 	if err != nil {
 		t.Fatalf("read state after global mode write: %v", err)
 	}
-	if len(persisted.InstalledAgents) != 1 || persisted.InstalledAgents[0] != "opencode" {
+	if len(persisted.InstalledAgents) != 1 || persisted.InstalledAgents[0] != "claude-code" {
 		t.Fatalf("global mode write lost fresh install state: %#v", persisted.InstalledAgents)
 	}
 	if persisted.RDDMode != string(reviewtransaction.RDDModeOn) || persisted.RDDModeRecordedAt == nil {

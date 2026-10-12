@@ -2,7 +2,7 @@ package main
 
 import "testing"
 
-// Retiring the OpenCode SDD transport axis must not remove the generic axis seam.
+// Retiring a host-specific transport axis must not remove the generic axis seam.
 func TestRetiredSDDTaskResultAxisIsNotRegistered(t *testing.T) {
 	for _, axis := range Axes() {
 		if axis.Name == "sdd-task-result" {

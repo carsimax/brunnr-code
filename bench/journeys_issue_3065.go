@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -211,9 +209,16 @@ func captureIssue3065FailedValidationFor(r *journeyRun, lineage string, selector
 		}
 		return fmt.Errorf("failed validator status for %s = action=%q reason=%q authority=%v target=%q", lineage, status.Action, reasonCode, status.Authority, status.TargetIdentity)
 	}
-	input := status.NextTransition.Collect.Inputs[0]
-	if input.Name != "provider_targeted_validator" || input.ProviderTask == nil || input.ProviderTask.Prompt == "" {
-		return fmt.Errorf("failed validator task = %+v", input)
+	exact, err := readStatusForContract(r, reviewContractV2, append([]string{"--agent", "claude-code", "--lineage", lineage}, selectors...)...)
+	if err != nil {
+		return err
+	}
+	if len(exact.NextTransition.Collect.Inputs) != 1 {
+		return fmt.Errorf("failed validator binding = %+v", exact.NextTransition)
+	}
+	input := exact.NextTransition.Collect.Inputs[0]
+	if input.Name != "provider_targeted_validator" || input.CaptureOperation != "review.capture-validation" {
+		return fmt.Errorf("failed validator input = %+v", input)
 	}
 	payload, err := json.Marshal(map[string]any{
 		"targeted_validation_request_hash": status.ValidationRequest.RequestHash,
@@ -225,52 +230,27 @@ func captureIssue3065FailedValidationFor(r *journeyRun, lineage string, selector
 	if err != nil {
 		return err
 	}
-	start, err := json.Marshal(map[string]string{"schema": "gentle-ai.provider-transport/v1", "operation": "start", "prompt": input.ProviderTask.Prompt})
+	tokens := make([]string, 0, len(input.Arguments))
+	for _, argument := range input.Arguments {
+		tokens = append(tokens, argument.Token)
+	}
+	observation, err := runOfferedProviderCapture(r, input.CaptureOperation, tokens, payload)
 	if err != nil {
 		return err
 	}
-	observation, err := r.runInteractive([]string{"review", "opencode-transport"}, true, func(reader *bufio.Reader, writer io.WriteCloser) error {
-		if _, err := writer.Write(append(start, '\n')); err != nil {
-			return err
-		}
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			return err
-		}
-		var prompt struct {
-			Schema string `json:"schema"`
-			Nonce  string `json:"nonce"`
-			Prompt string `json:"prompt"`
-		}
-		if err := json.Unmarshal([]byte(line), &prompt); err != nil || prompt.Schema != "gentle-ai.provider-transport/v1" || prompt.Nonce == "" || prompt.Prompt == "" {
-			return fmt.Errorf("relay prompt = %q", line)
-		}
-		completion, err := json.Marshal(map[string]string{"schema": "gentle-ai.provider-transport/v1", "operation": "complete", "nonce": prompt.Nonce, "output": string(payload)})
-		if err != nil {
-			return err
-		}
-		_, err = writer.Write(append(completion, '\n'))
-		return err
-	})
-	if err != nil || observation.ExitCode != 0 {
-		return fmt.Errorf("failed validator relay = exit %d err=%v stderr=%s stdout=%s", observation.ExitCode, err, firstLine(observation.Stderr), firstLine(observation.Stdout))
+	if observation.ExitCode != 0 {
+		return fmt.Errorf("failed validator capture = exit %d stderr=%s stdout=%s", observation.ExitCode, firstLine(observation.Stderr), firstLine(observation.Stdout))
 	}
-	for _, line := range strings.Split(strings.TrimSpace(observation.Stdout), "\n") {
-		var frame struct {
-			Operation string `json:"operation"`
-			Output    string `json:"output"`
-		}
-		var closure struct {
-			Schema    string `json:"schema"`
-			Operation string `json:"operation"`
-			State     string `json:"state"`
-		}
-		if json.Unmarshal([]byte(line), &frame) == nil && frame.Operation == "result" && json.Unmarshal([]byte(frame.Output), &closure) == nil &&
-			closure.Schema == "gentle-ai.review-last-event-closure/v1" && closure.Operation == "review/capture-validation" && closure.State == "escalated" {
-			return nil
-		}
+	var closure struct {
+		Schema    string `json:"schema"`
+		Operation string `json:"operation"`
+		State     string `json:"state"`
 	}
-	return fmt.Errorf("failed validator relay did not escalate: %s", observation.Stdout)
+	if json.Unmarshal([]byte(strings.TrimSpace(observation.Stdout)), &closure) == nil &&
+		closure.Schema == "gentle-ai.review-last-event-closure/v1" && closure.Operation == "review/capture-validation" && closure.State == "escalated" {
+		return nil
+	}
+	return fmt.Errorf("failed validator capture did not escalate: %s", observation.Stdout)
 }
 
 func proveIssue3065RecoveryCollection(r *journeyRun) error {

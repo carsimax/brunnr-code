@@ -24,7 +24,7 @@ var frozenLineageStatusCapability = &Capability{Verb: []string{"review", "status
 }}
 
 func frozenLineageStatus(r *journeyRun, lineage string, selectors ...string) (statusEnvelope, map[string]json.RawMessage, error) {
-	args := []string{"review", "status", "--cwd", r.sandbox.Repo, "--contract", reviewContractV2, "--agent", "opencode", "--next-transition"}
+	args := []string{"review", "status", "--cwd", r.sandbox.Repo, "--contract", reviewContractV2, "--agent", "claude-code", "--next-transition"}
 	if lineage != "" {
 		args = append(args, "--lineage", lineage)
 	}
@@ -193,7 +193,7 @@ func exerciseFrozenLineageResume(r *journeyRun) error {
 	}
 	start, _, err := frozenLineageSelectedStatus(r, "", frozenLineageUntracked)
 	if err != nil || start.NextTransition.Kind != "execute" || start.NextTransition.Execute.Operation != "review.start" {
-		return fmt.Errorf("selected v2 OpenCode START = %+v, %v", start.NextTransition, err)
+		return fmt.Errorf("selected v2 Claude Code START = %+v, %v", start.NextTransition, err)
 	}
 	if err := startFrozenLineageWithConsent(r, start); err != nil {
 		return err
@@ -326,7 +326,7 @@ func frozenLineageResumeJourneys() []Journey {
 		Steps: []Step{
 			{Name: "fixture: repository", Fixture: baseRepo},
 			{Name: "clear any clone-local review override (a clone may only ever assert off)", Requires: modeCapability, Args: productArgs("review", "mode", "enable", "--scope", "clone", "--json")},
-			{Name: "v2 OpenCode frozen review resumes after tracked and intended-untracked drift", Requires: frozenLineageStatusCapability, Composite: exerciseFrozenLineageResume},
+			{Name: "v2 Claude Code frozen review resumes after tracked and intended-untracked drift", Requires: frozenLineageStatusCapability, Composite: exerciseFrozenLineageResume},
 		},
 	}}
 }

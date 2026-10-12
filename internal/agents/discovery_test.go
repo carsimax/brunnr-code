@@ -92,11 +92,11 @@ func TestDiscoverInstalled_ReturnsOnlyInstalledAgents(t *testing.T) {
 	if err := os.MkdirAll(claudeDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
-	// opencode dir intentionally NOT created.
+	// The codex dir is intentionally NOT created.
 
 	reg := newStubRegistry(t,
 		stubAdapter{agent: model.AgentClaudeCode, configDir: claudeDir},
-		stubAdapter{agent: model.AgentOpenCode, configDir: filepath.Join(home, ".config", "opencode")},
+		stubAdapter{agent: model.AgentCodex, configDir: filepath.Join(home, ".codex")},
 	)
 
 	got := DiscoverInstalled(reg, home)
@@ -135,7 +135,7 @@ func TestDiscoverInstalled_MissingDirIsSkipped(t *testing.T) {
 	// Config dir not created on disk.
 
 	reg := newStubRegistry(t,
-		stubAdapter{agent: model.AgentOpenCode, configDir: filepath.Join(home, ".config", "opencode")},
+		stubAdapter{agent: model.AgentCodex, configDir: filepath.Join(home, ".codex")},
 	)
 
 	got := DiscoverInstalled(reg, home)
@@ -151,9 +151,9 @@ func TestDiscoverInstalled_MultipleInstalled(t *testing.T) {
 	home := t.TempDir()
 
 	claudeDir := filepath.Join(home, ".claude")
-	opencodeDir := filepath.Join(home, ".config", "opencode")
+	codexDir := filepath.Join(home, ".codex")
 
-	for _, dir := range []string{claudeDir, opencodeDir} {
+	for _, dir := range []string{claudeDir, codexDir} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatalf("MkdirAll(%q): %v", dir, err)
 		}
@@ -161,8 +161,7 @@ func TestDiscoverInstalled_MultipleInstalled(t *testing.T) {
 
 	reg := newStubRegistry(t,
 		stubAdapter{agent: model.AgentClaudeCode, configDir: claudeDir},
-		stubAdapter{agent: model.AgentOpenCode, configDir: opencodeDir},
-		stubAdapter{agent: model.AgentCodex, configDir: filepath.Join(home, ".codex")}, // not created
+		stubAdapter{agent: model.AgentCodex, configDir: codexDir},
 	)
 
 	got := DiscoverInstalled(reg, home)
@@ -200,7 +199,7 @@ func TestConfigRootsForBackup_ReturnsInstalledDirs(t *testing.T) {
 
 	reg := newStubRegistry(t,
 		stubAdapter{agent: model.AgentClaudeCode, configDir: claudeDir},
-		stubAdapter{agent: model.AgentOpenCode, configDir: filepath.Join(home, ".config", "opencode")}, // missing
+		stubAdapter{agent: model.AgentCodex, configDir: filepath.Join(home, ".codex")}, // missing
 	)
 
 	roots := ConfigRootsForBackup(reg, home)
@@ -225,7 +224,7 @@ func TestConfigRootsForBackup_DeduplicatesSharedDirs(t *testing.T) {
 
 	reg := newStubRegistry(t,
 		stubAdapter{agent: model.AgentClaudeCode, configDir: sharedDir},
-		stubAdapter{agent: model.AgentOpenCode, configDir: sharedDir},
+		stubAdapter{agent: model.AgentCodex, configDir: sharedDir},
 	)
 
 	roots := ConfigRootsForBackup(reg, home)
@@ -310,7 +309,7 @@ func TestConfigRootsForBackup_WithDefaultRegistryCoversCreatedDirs(t *testing.T)
 	// Create two agent config dirs.
 	dirs := []string{
 		filepath.Join(home, ".claude"),
-		filepath.Join(home, ".config", "opencode"),
+		filepath.Join(home, ".codex"),
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0o755); err != nil {
@@ -361,29 +360,48 @@ func writeInstalledAgentsState(t *testing.T, home string, ids ...model.AgentID) 
 // rewritten on every sync), and an agent selected but not installed is excluded too, so
 // selection never conjures a config directory that is not there.
 func TestDiscoverSelected_HonoursSelectionInBothDirections(t *testing.T) {
-	home := t.TempDir()
-
-	opencodeDir := filepath.Join(home, ".config", "opencode")
-	codexDir := filepath.Join(home, ".codex")
-	for _, dir := range []string{opencodeDir, codexDir} {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			t.Fatalf("MkdirAll(%q): %v", dir, err)
+	t.Run("installed but not selected is excluded", func(t *testing.T) {
+		home := t.TempDir()
+		claudeDir := filepath.Join(home, ".claude")
+		codexDir := filepath.Join(home, ".codex")
+		for _, dir := range []string{claudeDir, codexDir} {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				t.Fatalf("MkdirAll(%q): %v", dir, err)
+			}
 		}
-	}
-	// .claude is selected below but deliberately never created on disk.
-	writeInstalledAgentsState(t, home, model.AgentOpenCode, model.AgentClaudeCode)
+		writeInstalledAgentsState(t, home, model.AgentCodex)
 
-	reg := newStubRegistry(t,
-		stubAdapter{agent: model.AgentOpenCode, configDir: opencodeDir},
-		stubAdapter{agent: model.AgentCodex, configDir: codexDir},
-		stubAdapter{agent: model.AgentClaudeCode, configDir: filepath.Join(home, ".claude")},
-	)
+		reg := newStubRegistry(t,
+			stubAdapter{agent: model.AgentCodex, configDir: codexDir},
+			stubAdapter{agent: model.AgentClaudeCode, configDir: claudeDir},
+		)
 
-	got := DiscoverSelected(reg, home)
+		got := DiscoverSelected(reg, home)
 
-	if len(got) != 1 || got[0].ID != model.AgentOpenCode {
-		t.Fatalf("DiscoverSelected() = %v, want only %q", got, model.AgentOpenCode)
-	}
+		if len(got) != 1 || got[0].ID != model.AgentCodex {
+			t.Fatalf("DiscoverSelected() = %v, want only %q", got, model.AgentCodex)
+		}
+	})
+	t.Run("selected but not installed is excluded", func(t *testing.T) {
+		home := t.TempDir()
+		codexDir := filepath.Join(home, ".codex")
+		if err := os.MkdirAll(codexDir, 0o755); err != nil {
+			t.Fatalf("MkdirAll(%q): %v", codexDir, err)
+		}
+		// .claude is selected but deliberately never created on disk.
+		writeInstalledAgentsState(t, home, model.AgentCodex, model.AgentClaudeCode)
+
+		reg := newStubRegistry(t,
+			stubAdapter{agent: model.AgentCodex, configDir: codexDir},
+			stubAdapter{agent: model.AgentClaudeCode, configDir: filepath.Join(home, ".claude")},
+		)
+
+		got := DiscoverSelected(reg, home)
+
+		if len(got) != 1 || got[0].ID != model.AgentCodex {
+			t.Fatalf("DiscoverSelected() = %v, want only %q", got, model.AgentCodex)
+		}
+	})
 }
 
 // TestReadSelectionScope is the semantic matrix shared by every selection
@@ -403,7 +421,6 @@ func TestReadSelectionScope(t *testing.T) {
 		{name: "unreadable state fails closed", malformed: true, wantMode: SelectionScopeUnavailable},
 		{name: "configured empty selection is authoritative", state: &state.InstallState{SelectionConfigured: true}, wantMode: SelectionScopeConfigured},
 		{name: "cooldown state falls back to filesystem", state: &state.InstallState{LastUpdateCheck: &now}, wantMode: SelectionScopeFilesystemFallback},
-		{name: "non-empty selection is authoritative", state: &state.InstallState{InstalledAgents: []string{"opencode", "codex"}}, wantMode: SelectionScopeConfigured, wantIDs: []model.AgentID{model.AgentOpenCode, model.AgentCodex}},
 	}
 
 	for _, tt := range tests {

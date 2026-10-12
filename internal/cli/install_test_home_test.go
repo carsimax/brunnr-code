@@ -29,3 +29,20 @@ func TestInstallTestHomeIsolatesGGA(t *testing.T) {
 		t.Errorf("APPDATA after cleanup = %q, want %q", got, inherited)
 	}
 }
+
+// installTestHome isolates an install under a temporary home with no runnable
+// external tools.
+func installTestHome(t *testing.T) string {
+	t.Helper()
+	home := t.TempDir()
+	// GGA resolves its Windows config from APPDATA, not osUserHomeDir.
+	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	oldHome, oldRun, oldLookPath := osUserHomeDir, runCommand, cmdLookPath
+	osUserHomeDir = func() (string, error) { return home, nil }
+	runCommand = func(string, ...string) error { return nil }
+	cmdLookPath = missingBinaryLookPath
+	t.Cleanup(func() {
+		osUserHomeDir, runCommand, cmdLookPath = oldHome, oldRun, oldLookPath
+	})
+	return home
+}

@@ -95,9 +95,6 @@ func TestBetaEngramPreflightPublicInstallConsumers(t *testing.T) {
 	for _, entry := range []string{"beta", "nightly", "beta-go-present", "tui-stable"} {
 		t.Run(entry, func(t *testing.T) {
 			home := t.TempDir()
-			if entry != "tui-stable" {
-				home, _ = freshV2SDKConfig(t)
-			}
 			osUserHomeDir = func() (string, error) { return home, nil }
 			goLookups, backupCalls, applyCalls := 0, 0, 0
 			cmdLookPath = func(name string) (string, error) {
@@ -138,12 +135,12 @@ func TestBetaEngramPreflightPublicInstallConsumers(t *testing.T) {
 			}
 			installStagePlan, tuiInstallStagePlan = seam, seam
 			if entry == "tui-stable" {
-				selection := model.Selection{Agents: []model.AgentID{model.AgentOpenCode}, Components: []model.ComponentID{model.ComponentEngram}}
+				selection := model.Selection{Agents: []model.AgentID{model.AgentCodex}, Components: []model.ComponentID{model.ComponentEngram}}
 				resolved, err := planner.NewResolver(planner.MVPGraph()).Resolve(selection)
 				if err != nil {
 					t.Fatal(err)
 				}
-				result, orchestrator, _ := ExecuteTUIInstallRecordingCodexServiceTier(home, selection, resolved, windowsProfile, model.OpenCodeBackgroundAuto, nil)
+				result, orchestrator, _ := ExecuteTUIInstallRecordingCodexServiceTier(home, selection, resolved, windowsProfile, nil)
 				if orchestrator != nil {
 					defer orchestrator.Finish()
 				}
@@ -152,11 +149,17 @@ func TestBetaEngramPreflightPublicInstallConsumers(t *testing.T) {
 				}
 				return
 			}
-			channel, wantError := entry, "beta Engram requires Go"
 			if entry == "beta-go-present" {
-				channel, wantError = "beta", "@opencode/plugin@2.0.4"
+				// Go on PATH admits the beta channel: the dependency check passes
+				// and the pipeline reaches its snapshot and apply steps.
+				_, err := RunInstall([]string{"--agent", "claude-code", "--component", "engram", "--channel", "beta"}, system.DetectionResult{})
+				if (err != nil && strings.Contains(err.Error(), "beta Engram requires Go")) || goLookups != 1 || backupCalls != 1 || applyCalls != 1 {
+					t.Fatalf("public CLI with Go: err=%v go=%d backup=%d apply=%d", err, goLookups, backupCalls, applyCalls)
+				}
+				return
 			}
-			_, err := RunInstall([]string{"--agent", "opencode", "--component", "engram", "--channel", channel}, system.DetectionResult{})
+			channel, wantError := entry, "beta Engram requires Go"
+			_, err := RunInstall([]string{"--agent", "claude-code", "--component", "engram", "--channel", channel}, system.DetectionResult{})
 			if err == nil || !strings.Contains(err.Error(), wantError) || goLookups != 1 || backupCalls != 0 || applyCalls != 0 {
 				t.Fatalf("public CLI: err=%v go=%d backup=%d apply=%d", err, goLookups, backupCalls, applyCalls)
 			}

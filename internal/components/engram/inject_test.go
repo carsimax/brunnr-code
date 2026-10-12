@@ -16,7 +16,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
@@ -271,70 +270,8 @@ func seedAntigravitySoleEntry(t *testing.T, home string) (string, string, string
 
 // ─── #1635 A: concurrency drift guards on classify and rollback ─────────────
 
-func TestEngramSelectedSettingsRefuseNestedCommentsAndLockedMode(t *testing.T) {
-
-	for _, tc := range []struct {
-		name, content string
-		mode          os.FileMode
-	}{
-		{"nested comments", "{\"mcp\":{\"other\":{/* keep */\"type\":\"remote\"}}}\n", 0o600},
-		{"locked mode", "{\"mcp\":{}}\n", 0},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			if runtime.GOOS == "windows" && tc.mode != 0o600 {
-				t.Skip("file permission bits are not supported on Windows")
-			}
-			path := filepath.Join(t.TempDir(), "opencode.jsonc")
-			if err := os.WriteFile(path, []byte(tc.content), 0o600); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.Chmod(path, tc.mode); err != nil {
-				t.Fatal(err)
-			}
-			_, err := InjectWithOptions(t.TempDir(), opencodeAdapter(), InjectOptions{OpenCodeSettingsPath: path})
-			if err == nil || !strings.Contains(err.Error(), "refuse") {
-				t.Fatalf("want actionable refusal, got %v", err)
-			}
-			info, statErr := os.Stat(path)
-			if statErr != nil {
-				t.Fatal(statErr)
-			}
-			if runtime.GOOS != "windows" && info.Mode().Perm() != tc.mode {
-				t.Fatalf("settings mode changed: %04o", info.Mode().Perm())
-			}
-			if err := os.Chmod(path, 0o600); err != nil {
-				t.Fatal(err)
-			}
-			got, readErr := os.ReadFile(path)
-			if readErr != nil {
-				t.Fatal(readErr)
-			}
-			if string(got) != tc.content {
-				t.Fatalf("settings bytes changed: %q", got)
-			}
-		})
-	}
-}
-
-func TestEngramSelectedSettingsPreservePrivateMode(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "opencode.jsonc")
-	if err := os.WriteFile(path, []byte("{\"mcp\":{}}\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := mergeJSONFile(path, []byte(`{"mcp":{"engram":{"type":"local"}}}`)); err != nil {
-		t.Fatal(err)
-	}
-	if runtime.GOOS == "windows" {
-		return // POSIX permission bits are not preserved on Windows.
-	}
-	info, err := os.Stat(path)
-	if err != nil || info.Mode().Perm() != 0o600 {
-		t.Fatalf("settings mode = %v, error = %v; want 0600", info, err)
-	}
-}
-
-// The selected-settings refusal is OpenCode-only; the shared merge helper keeps
-// the base writer behavior for other agents' dotfiles-managed (symlinked) files.
+// The shared merge helper keeps the base writer behavior for dotfiles-managed
+// (symlinked) settings files.
 func TestSharedMergeKeepsBaseWriterBehaviorForSymlinkedSettings(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "dotfiles.json")
@@ -348,7 +285,7 @@ func TestSharedMergeKeepsBaseWriterBehaviorForSymlinkedSettings(t *testing.T) {
 	}
 	_, err := mergeJSONFile(settings, []byte(`{"mcpServers":{"engram":{"command":"engram"}}}`))
 	if err == nil || !strings.Contains(err.Error(), "refusing to read symlink") || strings.Contains(err.Error(), "select a regular settings file") {
-		t.Fatalf("mergeJSONFile() error = %v; want base writer symlink error, not the OpenCode refusal", err)
+		t.Fatalf("mergeJSONFile() error = %v; want base writer symlink error, not a selected-settings refusal", err)
 	}
 	if link, err := os.Readlink(settings); err != nil || link != target {
 		t.Fatalf("settings symlink changed: %q, %v", link, err)
@@ -358,25 +295,8 @@ func TestSharedMergeKeepsBaseWriterBehaviorForSymlinkedSettings(t *testing.T) {
 	}
 }
 
-func TestEngramSelectedSettingsRefuseSymlink(t *testing.T) {
-	dir := t.TempDir()
-	target := filepath.Join(dir, "user.jsonc")
-	selected := filepath.Join(dir, "opencode.jsonc")
-	if err := os.WriteFile(target, []byte("{\"mcp\":{}}\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(target, selected); err != nil {
-		t.Skipf("symlinks unavailable: %v", err)
-	}
-	_, err := InjectWithOptions(t.TempDir(), opencodeAdapter(), InjectOptions{OpenCodeSettingsPath: selected})
-	if err == nil || !strings.Contains(err.Error(), "select a regular settings file") {
-		t.Fatalf("InjectWithOptions() error = %v; want OpenCode symlink refusal", err)
-	}
-}
-
-func claudeAdapter() agents.Adapter   { return claude.NewAdapter() }
-func opencodeAdapter() agents.Adapter { return opencode.NewAdapter() }
-func codexAdapter() agents.Adapter    { return codex.NewAdapter() }
+func claudeAdapter() agents.Adapter { return claude.NewAdapter() }
+func codexAdapter() agents.Adapter  { return codex.NewAdapter() }
 
 func validCodexRuntime(t *testing.T) {
 	t.Helper()
@@ -509,214 +429,6 @@ func TestInjectClaudeIsIdempotent(t *testing.T) {
 	}
 	if !bytes.Equal(afterFirst, afterSecond) {
 		t.Fatal("second injection must leave the user registry byte-identical")
-	}
-}
-
-func TestInjectOpenCodeMergesEngramToSettings(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := Inject(home, opencodeAdapter())
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("Inject() changed = false")
-	}
-
-	// Should include opencode.json and AGENTS.md (fallback protocol injection).
-	if len(result.Files) != 2 {
-		t.Fatalf("Inject() files = %v, want exactly 2 (opencode.json + AGENTS.md)", result.Files)
-	}
-
-	configPath := filepath.Join(home, ".config", "opencode", "opencode.json")
-	config, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("ReadFile(opencode.json) error = %v", err)
-	}
-
-	text := string(config)
-	if !strings.Contains(text, `"engram"`) {
-		t.Fatal("opencode.json missing engram server entry")
-	}
-	if !strings.Contains(text, `"mcp"`) {
-		t.Fatal("opencode.json missing mcp key")
-	}
-	if strings.Contains(text, `"mcpServers"`) {
-		t.Fatal("opencode.json should use 'mcp' key, not 'mcpServers'")
-	}
-	if !strings.Contains(text, `"type": "local"`) {
-		t.Fatal("opencode.json engram missing type: local")
-	}
-	// OpenCode 1.3.3+: command must be an array, no separate "args" field.
-	if !strings.Contains(text, `"--tools=agent"`) {
-		t.Fatal("opencode.json missing --tools=agent in command array")
-	}
-	if strings.Contains(text, `"args"`) {
-		t.Fatal("opencode.json must NOT have a separate args field — command must be an array")
-	}
-
-	// Verify NO plugin files or plugin arrays exist.
-	pluginPath := filepath.Join(home, ".config", "opencode", "plugins", "engram.ts")
-	if _, err := os.Stat(pluginPath); err == nil {
-		t.Fatal("plugin file should NOT exist — old approach removed")
-	}
-	if strings.Contains(text, `"plugins"`) {
-		t.Fatal("opencode.json should NOT contain plugins key")
-	}
-
-	agentsPath := filepath.Join(home, ".config", "opencode", "AGENTS.md")
-	agentsContent, err := os.ReadFile(agentsPath)
-	if err != nil {
-		t.Fatalf("ReadFile(AGENTS.md) error = %v", err)
-	}
-	agentsText := string(agentsContent)
-	if !strings.Contains(agentsText, "<!-- gentle-ai:engram-protocol -->") {
-		t.Fatal("AGENTS.md missing engram protocol section marker")
-	}
-	if !strings.Contains(agentsText, "mem_save") {
-		t.Fatal("AGENTS.md missing engram protocol content (expected 'mem_save')")
-	}
-}
-
-func TestInjectOpenCodeIsIdempotent(t *testing.T) {
-	home := t.TempDir()
-
-	first, err := Inject(home, opencodeAdapter())
-	if err != nil {
-		t.Fatalf("Inject() first error = %v", err)
-	}
-	if !first.Changed {
-		t.Fatalf("Inject() first changed = false")
-	}
-
-	second, err := Inject(home, opencodeAdapter())
-	if err != nil {
-		t.Fatalf("Inject() second error = %v", err)
-	}
-	if second.Changed {
-		t.Fatalf("Inject() second changed = true")
-	}
-}
-
-// TestInjectOpenCodeMigratesFromOldFormat verifies that when a user's
-// opencode.json contains the old v1.11.3 format (separate "args" key),
-// Inject() replaces mcp.engram atomically so that "args" is absent and
-// "command" is an array — the format required by OpenCode 1.3.3+.
-func TestInjectOpenCodeMigratesFromOldFormat(t *testing.T) {
-	home := t.TempDir()
-
-	mockEngramLookPath(t, "/opt/homebrew/bin/engram", "")
-
-	adapter := opencodeAdapter()
-	configPath := adapter.SettingsPath(home)
-	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
-		t.Fatalf("MkdirAll error = %v", err)
-	}
-
-	// Pre-seed with the old v1.11.3 format.
-	oldFormat := `{"mcp": {"engram": {"command": "/opt/homebrew/bin/engram", "args": ["mcp","--tools=agent"], "type": "local"}}}`
-	if err := os.WriteFile(configPath, []byte(oldFormat), 0o644); err != nil {
-		t.Fatalf("WriteFile(opencode.json) error = %v", err)
-	}
-
-	result, err := Inject(home, adapter)
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("Inject() changed = false; expected migration to produce a change")
-	}
-
-	content, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("ReadFile(opencode.json) error = %v", err)
-	}
-
-	// (1) "args" key must be absent from mcp.engram.
-	if strings.Contains(string(content), `"args"`) {
-		t.Fatalf("mcp.engram still contains 'args' key after migration; got:\n%s", content)
-	}
-
-	// (2) command must be a []any containing the engram binary.
-	var parsed map[string]any
-	if err := json.Unmarshal(content, &parsed); err != nil {
-		t.Fatalf("Unmarshal(opencode.json) error = %v", err)
-	}
-	mcpMap, _ := parsed["mcp"].(map[string]any)
-	engramMap, _ := mcpMap["engram"].(map[string]any)
-	cmdRaw, ok := engramMap["command"]
-	if !ok {
-		t.Fatalf("mcp.engram missing command key; got:\n%s", content)
-	}
-	cmdArr, ok := cmdRaw.([]any)
-	if !ok {
-		t.Fatalf("mcp.engram.command must be []any after migration, got %T; got:\n%s", cmdRaw, content)
-	}
-	if len(cmdArr) == 0 {
-		t.Fatalf("mcp.engram.command array is empty; got:\n%s", content)
-	}
-	firstElem, _ := cmdArr[0].(string)
-	if firstElem == "" {
-		t.Fatalf("mcp.engram.command[0] is empty or not a string; got:\n%s", content)
-	}
-	// Must end with "engram".
-	if filepath.Base(firstElem) != "engram" {
-		t.Fatalf("mcp.engram.command[0] = %q does not end with 'engram'; got:\n%s", firstElem, content)
-	}
-
-	// (3) Second Inject() call must be idempotent (changed=false).
-	second, err := Inject(home, adapter)
-	if err != nil {
-		t.Fatalf("Inject() second error = %v", err)
-	}
-	if second.Changed {
-		t.Fatalf("Inject() second changed = true; expected idempotent (no change)")
-	}
-}
-
-func TestInjectOpenCodeMigratesCellarEngramCommandToStablePath(t *testing.T) {
-	home := t.TempDir()
-
-	mockEngramLookPath(t, "/opt/homebrew/bin/engram", "")
-
-	adapter := opencodeAdapter()
-	configPath := adapter.SettingsPath(home)
-	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
-		t.Fatalf("MkdirAll error = %v", err)
-	}
-
-	oldFormat := `{"mcp": {"engram": {"command": ["/opt/homebrew/Cellar/engram/1.14.1/bin/engram", "mcp", "--tools=agent"], "type": "local"}}}`
-	if err := os.WriteFile(configPath, []byte(oldFormat), 0o644); err != nil {
-		t.Fatalf("WriteFile(opencode.json) error = %v", err)
-	}
-
-	result, err := Inject(home, adapter)
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("Inject() changed = false; expected Cellar command migration")
-	}
-
-	content, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("ReadFile(opencode.json) error = %v", err)
-	}
-
-	text := string(content)
-	if strings.Contains(text, "/Cellar/") {
-		t.Fatalf("opencode.json still contains versioned Homebrew Cellar path; got:\n%s", text)
-	}
-	if !strings.Contains(text, "/opt/homebrew/bin/engram") {
-		t.Fatalf("opencode.json did not migrate to stable Homebrew symlink; got:\n%s", text)
-	}
-
-	second, err := Inject(home, adapter)
-	if err != nil {
-		t.Fatalf("Inject() second error = %v", err)
-	}
-	if second.Changed {
-		t.Fatalf("Inject() second changed = true; expected idempotent Cellar migration")
 	}
 }
 
@@ -1773,79 +1485,6 @@ func assertNestedMissing(t *testing.T, root map[string]any, path ...string) {
 	}
 }
 
-// TestEngramInjectAbsolutePathForOpenCodeMergeStrategy verifies that the
-// absolute path is used when the StrategyMergeIntoSettings strategy is
-// applied for OpenCode.
-func TestEngramInjectAbsolutePathForOpenCodeMergeStrategy(t *testing.T) {
-	home := t.TempDir()
-
-	absPath := "/usr/local/bin/engram"
-	mockEngramLookPath(t, absPath, "")
-
-	adapter := opencodeAdapter()
-	settingsDir := filepath.Dir(adapter.SettingsPath(home))
-	os.MkdirAll(settingsDir, 0o755)
-	os.WriteFile(adapter.SettingsPath(home), []byte("{}"), 0o644)
-
-	_, err := Inject(home, adapter)
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-
-	content, err := os.ReadFile(adapter.SettingsPath(home))
-	if err != nil {
-		t.Fatalf("ReadFile() error = %v", err)
-	}
-
-	text := string(content)
-	// For standard agents (OpenCode), prefer the stable Homebrew symlink when
-	// available instead of a versioned Cellar path.
-	if !strings.Contains(text, `"engram"`) {
-		t.Fatalf("OpenCode settings missing stable engram command, got: %s", text)
-	}
-	// OpenCode 1.3.3+: command must be an array, no separate "args" field.
-	if strings.Contains(text, `"args"`) {
-		t.Fatalf("OpenCode settings must NOT have a separate args field; got: %s", text)
-	}
-
-	// Structurally verify command is a []any containing the stable path "engram".
-	var parsed map[string]any
-	if err := json.Unmarshal(content, &parsed); err != nil {
-		t.Fatalf("Unmarshal(opencode.json) error = %v", err)
-	}
-	mcpRaw, ok := parsed["mcp"]
-	if !ok {
-		t.Fatalf("opencode.json missing mcp key; got:\n%s", text)
-	}
-	mcpMap, ok := mcpRaw.(map[string]any)
-	if !ok {
-		t.Fatalf("mcp key has unexpected type %T; got:\n%s", mcpRaw, text)
-	}
-	engramRaw, ok := mcpMap["engram"]
-	if !ok {
-		t.Fatalf("mcp missing engram key; got:\n%s", text)
-	}
-	engramMap, ok := engramRaw.(map[string]any)
-	if !ok {
-		t.Fatalf("mcp.engram has unexpected type %T; got:\n%s", engramRaw, text)
-	}
-	cmdRaw, ok := engramMap["command"]
-	if !ok {
-		t.Fatalf("mcp.engram missing command key; got:\n%s", text)
-	}
-	cmdArr, ok := cmdRaw.([]any)
-	if !ok {
-		t.Fatalf("mcp.engram.command must be an array, got %T; value:\n%s", cmdRaw, text)
-	}
-	if len(cmdArr) == 0 {
-		t.Fatalf("mcp.engram.command array is empty; got:\n%s", text)
-	}
-	firstElem, ok := cmdArr[0].(string)
-	if !ok || firstElem != absPath {
-		t.Fatalf("mcp.engram.command[0] = %v, want stable Homebrew symlink %q; got:\n%s", cmdArr[0], absPath, text)
-	}
-}
-
 func unmarshalObjectForTest(t *testing.T, content []byte) map[string]any {
 	t.Helper()
 	var root map[string]any
@@ -1888,11 +1527,10 @@ func TestProtocolForSelectsSlimOrFullPerDecision1Matrix(t *testing.T) {
 	}{
 		{model.AgentClaudeCode, true},
 		{model.AgentCodex, false},
-		{model.AgentOpenCode, false},
 	}
 
-	if len(tests) != 3 {
-		t.Fatalf("expected 3 non-Pi adapters in the Decision 1 matrix, got %d", len(tests))
+	if len(tests) != 2 {
+		t.Fatalf("expected 2 adapters in the Decision 1 matrix, got %d", len(tests))
 	}
 
 	slim := protocolSlim()

@@ -105,7 +105,6 @@ func TestStartupProjectResolution_RenderedAndInjectedSurfaces(t *testing.T) {
 		{"codex-instructions", codexInstructions(), fullStartupResolutionContract},
 		{"injected claude slim", injectedPrompt(t, ".claude/CLAUDE.md", injectClaude("1.18.0")), slimStartupResolutionContract},
 		{"injected claude below floor", injectedPrompt(t, ".claude/CLAUDE.md", injectClaude("")), fullStartupResolutionContract},
-		{"injected opencode", injectedPrompt(t, ".config/opencode/AGENTS.md", injectDefault(opencodeAdapter)), fullStartupResolutionContract},
 		{"injected codex", injectedPrompt(t, ".codex/engram-instructions.md", injectDefault(codexAdapter)), fullStartupResolutionContract},
 	}
 

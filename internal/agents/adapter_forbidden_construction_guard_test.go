@@ -11,7 +11,7 @@ import (
 // This file is the Wave 4 Wave-0 CON-09/10/11 forbidden-construction guard
 // (design.md "Wave-0 Prerequisite: Adapter Behavioral-Depth Trace"). The
 // design's own trace concluded the Go adapter packages
-// (internal/agents/opencode, internal/agents/pi, internal/agents/claude) are
+// (internal/agents/claude, internal/agents/codex) are
 // already clean — this test encodes the exact grep set the trace used as a
 // guard so a future adapter change cannot silently reintroduce one of the
 // four forbidden constructions the ReviewAdapter boundary names:
@@ -27,10 +27,9 @@ import (
 //     (ReviewBinding, binding.json, gentle-ai.sdd-review-binding).
 //
 // Scope: this guard covers only the in-repo Go adapter dispatch surfaces
-// (CON-09/10/11). The retired bundled OpenCode plugin asset and the
-// Claude/OpenCode sdd-apply.md contract-pin text are tracked separately by
-// slices S3/S4/S7 — they are asset text, not Go adapter dispatch code, and
-// are intentionally out of this guard's file set.
+// (CON-09/10/11). The Claude sdd-apply.md contract-pin text is tracked
+// separately by slices S3/S4/S7 — it is asset text, not Go adapter dispatch
+// code, and is intentionally out of this guard's file set.
 
 // adapterForbiddenConstructionPatterns are the exact substrings the CON-09/
 // 10/11 trace grepped for. Each carries the forbidden-construction category
@@ -59,7 +58,6 @@ var adapterForbiddenConstructionPatterns = []struct {
 // adapterForbiddenConstructionPackageDirs are the CON-09/10/11 in-repo Go
 // adapter dispatch surfaces this guard covers.
 var adapterForbiddenConstructionPackageDirs = []string{
-	filepath.Join("opencode"),
 	filepath.Join("claude"),
 }
 
@@ -74,7 +72,7 @@ func TestAdapterForbiddenConstructionGuardCatchesKnownShapes(t *testing.T) {
 	}{
 		{
 			name: "clean adapter source",
-			src: `package opencode
+			src: `package claude
 
 func (a *Adapter) Detect() (bool, error) { return true, nil }
 `,
@@ -82,7 +80,7 @@ func (a *Adapter) Detect() (bool, error) { return true, nil }
 		},
 		{
 			name: "constructs a review CLI flag literal",
-			src: `package opencode
+			src: `package claude
 
 func dispatch() []string { return []string{"review", "--expected-revision", "abc"} }
 `,

@@ -19,7 +19,7 @@ func TestResolverSkillsAloneResolvesWithoutSDDOrEngram(t *testing.T) {
 	resolver := NewResolver(MVPGraph())
 
 	selection := model.Selection{
-		Agents:     []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode},
+		Agents:     []model.AgentID{model.AgentClaudeCode},
 		Components: []model.ComponentID{model.ComponentSkills},
 	}
 
@@ -28,7 +28,7 @@ func TestResolverSkillsAloneResolvesWithoutSDDOrEngram(t *testing.T) {
 		t.Fatalf("Resolve() returned error: %v", err)
 	}
 
-	if !reflect.DeepEqual(plan.Agents, []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode}) {
+	if !reflect.DeepEqual(plan.Agents, []model.AgentID{model.AgentClaudeCode}) {
 		t.Fatalf("Resolve() agents = %v", plan.Agents)
 	}
 

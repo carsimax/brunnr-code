@@ -4,13 +4,13 @@ package model
 // Cleanup flows use this inventory, which intentionally includes the generic theme
 // even though presets do not install it.
 func VisualPolishComponents() []ComponentID {
-	return []ComponentID{ComponentTheme, ComponentClaudeTheme, ComponentOpenCodeGentleLogo}
+	return []ComponentID{ComponentTheme, ComponentClaudeTheme}
 }
 
 // installSafePresetVisualComponents returns only the agent-specific visual
 // components that presets can install without overwriting a generic theme.
 func installSafePresetVisualComponents() []ComponentID {
-	return []ComponentID{ComponentClaudeTheme, ComponentOpenCodeGentleLogo}
+	return []ComponentID{ComponentClaudeTheme}
 }
 
 // ComponentsForPreset returns the managed components implied by a preset/persona

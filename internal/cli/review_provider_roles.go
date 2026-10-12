@@ -29,76 +29,6 @@ const maxInconclusiveTargetedValidations = 3
 
 type reviewProviderRole = reviewerprovider.Role
 
-const reviewProviderTaskBindingHeader = "GENTLE_AI_REVIEW_PROVIDER_TASK"
-
-type reviewProviderTaskBinding struct {
-	LineageID         string `json:"lineage_id"`
-	Revision          string `json:"revision"`
-	TargetIdentity    string `json:"target_identity"`
-	RepositoryContext string `json:"repository_context"`
-	Role              string `json:"role"`
-}
-
-// newReviewProviderTask produces an opaque host task that only Go may
-// materialize and admit through the live OpenCode relay.
-func newReviewProviderTask(role reviewProviderRole, binding ReviewTransitionBinding) (ReviewProviderTask, error) {
-	agent := reviewProviderRoleOpenCodeAgent(role)
-	if agent == "" || binding.LineageID == "" || !providerSHA256(binding.Revision) || !providerSHA256(binding.TargetIdentity) ||
-		reviewtransaction.ValidateReviewRepositoryContextHandle(binding.RepositoryContext) != nil {
-		return ReviewProviderTask{}, errors.New("provider role task binding is incomplete") // refusal:by-design world-action: only a Go-issued STATUS transition may bind a managed provider role task
-	}
-	payload, err := json.Marshal(reviewProviderTaskBinding{
-		LineageID: binding.LineageID, Revision: binding.Revision, TargetIdentity: binding.TargetIdentity,
-		RepositoryContext: binding.RepositoryContext, Role: string(role),
-	})
-	if err != nil {
-		return ReviewProviderTask{}, err
-	}
-	return ReviewProviderTask{Agent: agent, Role: string(role), Prompt: reviewProviderTaskBindingHeader + " " + string(payload)}, nil
-}
-
-func reviewProviderRoleOpenCodeAgent(role reviewProviderRole) string {
-	switch role {
-	case reviewerprovider.RoleRefuter:
-		return "review-refuter"
-	case reviewerprovider.RoleTargetedValidator:
-		return "review-validator"
-	default:
-		return ""
-	}
-}
-
-func reviewProviderRoleTaskSchema(role reviewProviderRole) string {
-	contract, err := reviewerprovider.ContractFor(role)
-	if err != nil {
-		return ""
-	}
-	return string(contract.ResultSchema)
-}
-
-func reviewProviderRoleTaskRequest(ctx context.Context, repo, storeDir string, state reviewtransaction.CompactState, revision string, role reviewProviderRole) (reviewerprovider.Invocation, error) {
-	switch role {
-	case reviewerprovider.RoleRefuter:
-		request, err := reviewProviderNewRefuterRequest(ctx, repo, storeDir, state, revision)
-		if err != nil {
-			return reviewerprovider.Invocation{}, err
-		}
-		return request.Invocation, nil
-	case reviewerprovider.RoleTargetedValidator:
-		correction, err := reviewProviderTargetedValidatorCorrection(ctx, repo, state)
-		if err != nil {
-			return reviewerprovider.Invocation{}, err
-		}
-		request, err := reviewProviderNewTargetedValidatorRequest(ctx, repo, state, revision, correction)
-		if err != nil {
-			return reviewerprovider.Invocation{}, err
-		}
-		return request.Invocation, nil
-	default:
-		return reviewerprovider.Invocation{}, fmt.Errorf("unsupported provider role task %q", role) // refusal:by-design world-action: OpenCode may invoke only compiled provider roles
-	}
-}
-
 type reviewProviderRefuterRequest struct {
 	Schema           string                           `json:"schema"`
 	RequestHash      string                           `json:"request_hash"`
@@ -198,7 +128,7 @@ func reviewProviderNewRefuterRequest(ctx context.Context, repo, storeDir string,
 // manual_intervention_required.
 func reviewProviderRefutesDeterministic(runtime string) bool {
 	agent := model.AgentID(runtime)
-	return agent == model.AgentOpenCode || reviewProviderCaptureRuntime(agent)
+	return reviewProviderCaptureRuntime(agent)
 }
 
 func reviewProviderRefuterClaims(snapshot string, input reviewtransaction.CompactReviewInput, runtime string) ([]reviewtransaction.RefuterClaim, error) {
@@ -684,42 +614,6 @@ func reviewProviderAdmitTargetedValidatorRaw(request reviewProviderTargetedValid
 		return facadeValidationResult{}, reviewtransaction.ScopedValidationResult{}, err
 	}
 	return result, native, nil
-}
-
-// reviewProviderAdmissionError marks an error raised while admitting provider
-// role bytes against the native result contract. It is transparent: Error()
-// returns the wrapped text unchanged and Unwrap preserves errors.Is/As, so
-// existing callers and tests see identical behavior. Transport boundaries use
-// the marker to classify refusals into bounded cause codes without ever
-// re-rendering raw admission text or reviewer payload bytes (#4599).
-type reviewProviderAdmissionError struct{ err error }
-
-func (e *reviewProviderAdmissionError) Error() string { return e.err.Error() }
-func (e *reviewProviderAdmissionError) Unwrap() error { return e.err }
-
-func reviewProviderCloseTargetedValidatorRaw(ctx context.Context, repo string, store reviewtransaction.CompactStore, state reviewtransaction.CompactState, revision string, raw []byte) (facadeValidationResult, reviewtransaction.ScopedValidationResult, *reviewLastEventClosureResult, error) {
-	correction, err := reviewProviderTargetedValidatorCorrection(ctx, repo, state)
-	if err != nil {
-		return facadeValidationResult{}, reviewtransaction.ScopedValidationResult{}, nil, err
-	}
-	request, err := reviewProviderNewTargetedValidatorRequest(ctx, repo, state, revision, correction)
-	if err != nil {
-		return facadeValidationResult{}, reviewtransaction.ScopedValidationResult{}, nil, err
-	}
-	result, native, err := reviewProviderAdmitTargetedValidatorRaw(request, raw)
-	if err != nil {
-		// An incomplete inspection remains a retryable non-verdict. Persist only a
-		// hash-only attempt descriptor; rejected bytes, paths, and evidence bodies
-		// never enter durable authority.
-		if errors.Is(err, errReviewTargetedValidationInconclusive) {
-			if _, ledgerErr := store.RecordInconclusiveTargetedValidatorAttempt(ctx, request.ValidationRequest, facadePayloadHash(raw)); ledgerErr != nil {
-				return facadeValidationResult{}, reviewtransaction.ScopedValidationResult{}, nil, ledgerErr
-			}
-		}
-		return facadeValidationResult{}, reviewtransaction.ScopedValidationResult{}, nil, &reviewProviderAdmissionError{err}
-	}
-	closure, err := reviewProviderCaptureAdmittedTargetedValidatorResult(ctx, repo, store, state, correction, request, result, native)
-	return result, native, closure, err
 }
 
 // reviewProviderCaptureAdmittedTargetedValidatorResult durably captures a

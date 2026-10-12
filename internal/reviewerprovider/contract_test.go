@@ -152,7 +152,7 @@ func TestRefuterProbeInstructionIsRuntimeConditional(t *testing.T) {
 	if !RefuterProbeIsolated("codex") {
 		t.Fatal("Codex must isolate the refuter probe")
 	}
-	for _, runtime := range []string{"claude-code", "pi", "opencode", ""} {
+	for _, runtime := range []string{"claude-code", ""} {
 		if RefuterProbeIsolated(model.AgentID(runtime)) {
 			t.Fatalf("runtime %q must stay no-probe", runtime)
 		}

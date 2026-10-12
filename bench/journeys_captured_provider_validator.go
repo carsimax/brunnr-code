@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
-	"io"
 	"path/filepath"
 	"strings"
 )
@@ -17,8 +15,8 @@ var capturedProviderValidatorStatusCapability = &Capability{Verb: []string{"revi
 }}
 
 // capturedProviderValidatorJourneys proves the STATUS-to-terminal-validator
-// continuation with the native relay protocol. It deliberately drives relay
-// frames directly; this is not evidence about OpenCode Task-hook affinity.
+// continuation through the compiled provider capture. A deterministic fake
+// provider answers; this is not evidence about a live host runtime.
 func capturedProviderValidatorJourneys() []Journey {
 	return []Journey{
 		{
@@ -37,7 +35,7 @@ func capturedProviderValidatorJourneys() []Journey {
 					return captureCorrectionPlanFor(r, capturedProviderValidatorLineage, 2)
 				}},
 				{Name: "fixture: correct the reviewed candidate", Fixture: writeCorrectedCandidate},
-				{Name: "capture the Go-issued validator Task through the native relay protocol", Requires: capturedProviderValidatorStatusCapability, Composite: captureProviderValidatorSlot},
+				{Name: "capture the Go-issued validator through the compiled provider capture", Requires: capturedProviderValidatorStatusCapability, Composite: captureProviderValidatorSlot},
 				{Name: "the terminal validator capture exposes acknowledgement before the exact lineage burns", Requires: statusCapability, Composite: func(r *journeyRun) error {
 					return requireAtomicLineageAcknowledged(r, capturedProviderValidatorLineage)
 				}},
@@ -139,9 +137,9 @@ func captureProviderValidatorSlot(r *journeyRun) error {
 	return captureProviderValidatorSlotFor(r, capturedProviderValidatorLineage)
 }
 
-// captureProviderValidatorSlotFor relays the provider-owned validator request
-// that STATUS binds to one correction. The relay's successful completion is
-// the final event: it captures validation, approves, and exposes acknowledgement before the lineage burns.
+// captureProviderValidatorSlotFor executes the compiled provider-owned
+// validator capture STATUS binds to one correction. Its successful completion
+// is the final event: it captures validation, approves, and exposes acknowledgement before the lineage burns.
 func captureProviderValidatorSlotFor(r *journeyRun, lineage string) error {
 	return captureProviderValidatorSlotWithResult(r, lineage, true)
 }
@@ -160,13 +158,16 @@ func captureProviderValidatorSlotWithResult(r *journeyRun, lineage string, passe
 		len(status.NextTransition.Collect.Inputs) != 1 {
 		return fmt.Errorf("provider slot capture status = %+v", status)
 	}
-	input := status.NextTransition.Collect.Inputs[0]
-	if input.Name != "provider_targeted_validator" || input.CaptureOperation != "external.run_provider_role" ||
-		input.ProviderTask == nil || input.ProviderTask.Role != "targeted-validator" || input.ProviderTask.Prompt == "" {
-		return fmt.Errorf("provider slot task = %+v", input)
-	}
-	if err := assertSealedOpenCodeRepositoryContext(input.ProviderTask.Prompt, r.sandbox.Repo, r.sandbox.Home); err != nil {
+	exact, err := readStatusForContract(r, reviewContractV2, "--agent", "claude-code", "--lineage", lineage)
+	if err != nil {
 		return err
+	}
+	if len(exact.NextTransition.Collect.Inputs) != 1 {
+		return fmt.Errorf("provider slot capture binding = %+v", exact.NextTransition)
+	}
+	input := exact.NextTransition.Collect.Inputs[0]
+	if input.Name != "provider_targeted_validator" || input.CaptureOperation != "review.capture-validation" || input.ProviderTask != nil {
+		return fmt.Errorf("provider slot input = %+v", input)
 	}
 	originalEvidence := "original acceptance check passed"
 	if !passed {
@@ -183,46 +184,19 @@ func captureProviderValidatorSlotWithResult(r *journeyRun, lineage string, passe
 	if err != nil {
 		return err
 	}
-	start, err := json.Marshal(map[string]string{
-		"schema": "gentle-ai.provider-transport/v1", "operation": "start", "prompt": input.ProviderTask.Prompt,
-	})
+	tokens := make([]string, 0, len(input.Arguments))
+	for _, argument := range input.Arguments {
+		tokens = append(tokens, argument.Token)
+	}
+	observation, err := runOfferedProviderCapture(r, input.CaptureOperation, tokens, payload)
 	if err != nil {
 		return err
 	}
-	observation, err := r.runInteractive([]string{"review", "opencode-transport"}, true, func(reader *bufio.Reader, writer io.WriteCloser) error {
-		if _, err := writer.Write(append(start, '\n')); err != nil {
-			return fmt.Errorf("write relay start: %w", err)
-		}
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("read relay prompt: %w", err)
-		}
-		var prompt struct {
-			Schema    string `json:"schema"`
-			Operation string `json:"operation"`
-			Nonce     string `json:"nonce"`
-			Prompt    string `json:"prompt"`
-		}
-		if err := json.Unmarshal([]byte(line), &prompt); err != nil || prompt.Schema != "gentle-ai.provider-transport/v1" ||
-			prompt.Operation != "prompt" || prompt.Nonce == "" || prompt.Prompt == "" {
-			return fmt.Errorf("relay prompt = %q: %w", line, err)
-		}
-		completion, err := json.Marshal(map[string]string{
-			"schema": "gentle-ai.provider-transport/v1", "operation": "complete", "nonce": prompt.Nonce, "output": string(payload),
-		})
-		if err != nil {
-			return err
-		}
-		if _, err := writer.Write(append(completion, '\n')); err != nil {
-			return fmt.Errorf("write relay completion: %w", err)
-		}
-		return nil
-	})
-	if err != nil || observation.ExitCode != 0 {
-		return fmt.Errorf("native provider-slot relay = exit %d err=%v stderr=%s", observation.ExitCode, err, firstLine(observation.Stderr))
+	if observation.ExitCode != 0 {
+		return fmt.Errorf("compiled provider validator capture exit %d: %s", observation.ExitCode, firstLine(observation.Stderr))
 	}
 	if !capturedProviderSlotReported(observation.Stdout, passed) {
-		return fmt.Errorf("native provider-slot relay did not report capture: %s", observation.Stdout)
+		return fmt.Errorf("compiled provider validator capture did not report its closure: %s", observation.Stdout)
 	}
 	return nil
 }
@@ -262,15 +236,18 @@ func finalizeCapturedProviderValidatorSlot(r *journeyRun) error {
 	return requireAtomicLineageAcknowledged(r, capturedProviderValidatorLineage)
 }
 
-func readCapturedProviderValidatorStatus(r *journeyRun, withOpenCodeTask bool) (waveCorrectionStatus, error) {
-	return readProviderValidatorStatus(r, capturedProviderValidatorLineage, withOpenCodeTask)
+func readCapturedProviderValidatorStatus(r *journeyRun, withProviderRuntime bool) (waveCorrectionStatus, error) {
+	return readProviderValidatorStatus(r, capturedProviderValidatorLineage, withProviderRuntime)
 }
 
-func readProviderValidatorStatus(r *journeyRun, lineage string, withOpenCodeTask bool, selectors ...string) (waveCorrectionStatus, error) {
+// readProviderValidatorStatus reads lineage STATUS; withProviderRuntime binds
+// it to the compiled Claude Code provider so the validator slot is a compiled
+// capture.
+func readProviderValidatorStatus(r *journeyRun, lineage string, withProviderRuntime bool, selectors ...string) (waveCorrectionStatus, error) {
 	arguments := []string{"review", "status", "--contract", reviewContractV2, "--next-transition", "--lineage", lineage}
 	arguments = append(arguments, selectors...)
-	if withOpenCodeTask {
-		arguments = append(arguments, "--agent", "opencode")
+	if withProviderRuntime {
+		arguments = append(arguments, "--agent", "claude-code")
 	}
 	observation := r.run(productArgsFor(r, arguments...), false)
 	var status waveCorrectionStatus
@@ -300,28 +277,18 @@ func startFreshRejectedValidatorReview(r *journeyRun) error {
 }
 
 func capturedProviderSlotReported(stdout string, passed bool) bool {
-	for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
-		var frame struct {
+	var closure struct {
+		Schema          string `json:"schema"`
+		Operation       string `json:"operation"`
+		State           string `json:"state"`
+		Acknowledgement struct {
 			Operation string `json:"operation"`
-			Output    string `json:"output"`
-		}
-		if json.Unmarshal([]byte(line), &frame) != nil || frame.Operation != "result" {
-			continue
-		}
-		var closure struct {
-			Schema          string `json:"schema"`
-			Operation       string `json:"operation"`
-			State           string `json:"state"`
-			Acknowledgement struct {
-				Operation string `json:"operation"`
-			} `json:"acknowledgement"`
-		}
-		if json.Unmarshal([]byte(frame.Output), &closure) == nil &&
-			closure.Schema == "gentle-ai.review-last-event-closure/v1" && closure.Operation == "review/capture-validation" &&
-			(closure.State == "escalated" && !passed || closure.State == "approved" && passed &&
-				closure.Acknowledgement.Operation == "review.acknowledge-approved") {
-			return true
-		}
+		} `json:"acknowledgement"`
 	}
-	return false
+	if json.Unmarshal([]byte(strings.TrimSpace(stdout)), &closure) != nil {
+		return false
+	}
+	return closure.Schema == "gentle-ai.review-last-event-closure/v1" && closure.Operation == "review/capture-validation" &&
+		(closure.State == "escalated" && !passed || closure.State == "approved" && passed &&
+			closure.Acknowledgement.Operation == "review.acknowledge-approved")
 }

@@ -16,14 +16,14 @@ import (
 // the install path is `gentle-ai install --agent <agent>`.
 func TestWithPostInstallNotesNamesARunnableRetryCommandOnFailure(t *testing.T) {
 	report := verify.Report{Ready: false, FinalNote: verify.VerificationIssuesMessage}
-	resolved := planner.ResolvedPlan{Agents: []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode}}
+	resolved := planner.ResolvedPlan{Agents: []model.AgentID{model.AgentClaudeCode, model.AgentCodex}}
 
 	updated := withPostInstallNotes(report, resolved)
 
 	if strings.Contains(updated.FinalNote, "repair") {
 		t.Fatalf("FinalNote still names the nonexistent repair command: %q", updated.FinalNote)
 	}
-	want := "gentle-ai install --agent claude-code,opencode"
+	want := "gentle-ai install --agent claude-code,codex"
 	if !strings.Contains(updated.FinalNote, want) {
 		t.Fatalf("FinalNote = %q, want it to contain %q", updated.FinalNote, want)
 	}
@@ -48,7 +48,7 @@ func TestWithPostInstallNotesFailureFallsBackWithoutAgents(t *testing.T) {
 // by hand with different text.
 func TestWithPostInstallNotesDoesNotOverrideACustomizedFailureNote(t *testing.T) {
 	report := verify.Report{Ready: false, FinalNote: "custom failure text"}
-	resolved := planner.ResolvedPlan{Agents: []model.AgentID{model.AgentClaudeCode}}
+	resolved := planner.ResolvedPlan{Agents: []model.AgentID{model.AgentClaudeCode, model.AgentCodex}}
 
 	updated := withPostInstallNotes(report, resolved)
 	if updated.FinalNote != "custom failure text" {

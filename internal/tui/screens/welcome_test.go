@@ -7,14 +7,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/tui/screens"
 )
 
-func TestWelcomeOmitsExternalPluginActions(t *testing.T) {
-	for _, label := range []string{"OpenCode Community Plugins", "Uninstall OpenCode Plugin"} {
-		if containsOption(screens.WelcomeOptions(nil, true, true), label) {
-			t.Errorf("retired action %q remains", label)
-		}
-	}
-}
-
 // ─── WelcomeOptions ──────────────────────────────────────────────────────────
 
 func TestWelcomeOptions_NoLegacyProfilesEntry(t *testing.T) {
@@ -85,19 +77,5 @@ func TestWelcomeOptions_IncludesManagedUninstall(t *testing.T) {
 
 	if !found {
 		t.Fatalf("expected 'Managed uninstall' option; got: %v", opts)
-	}
-}
-
-// ─── RenderWelcome ────────────────────────────────────────────────────────────
-
-// TestRenderWelcome_NoLegacyProfilesEntry verifies no "OpenCode SDD Profiles" in output.
-func TestRenderWelcome_NoLegacyProfilesEntry(t *testing.T) {
-	output := screens.RenderWelcome(0, "1.0.0", "", nil, true, true)
-	if strings.Contains(output, "OpenCode SDD Profiles") {
-		snippet := output
-		if len(snippet) > 200 {
-			snippet = snippet[:200]
-		}
-		t.Errorf("RenderWelcome() should not contain 'OpenCode SDD Profiles'; output snippet: %q", snippet)
 	}
 }

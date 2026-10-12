@@ -109,7 +109,7 @@ func ParseClaudeHook(input io.Reader) (ClaudeHook, error) {
 	}
 	d := json.NewDecoder(bytes.NewReader(data))
 	d.UseNumber()
-	if openCodeBounded(d, 0) != nil {
+	if boundedJSON(d, 0) != nil {
 		return result, errClaude
 	}
 	if _, err = d.Token(); err != io.EOF {
@@ -347,4 +347,44 @@ func claudeFrontmatter(data []byte) (string, string) {
 		return "", ""
 	}
 	return strings.TrimSpace(front.Model), strings.TrimSpace(front.Effort)
+}
+
+var errBoundedJSON = errors.New("invalid bounded runtime JSON")
+
+// boundedJSON validates even discarded fields; exact map keys avoid struct
+// case aliases.
+func boundedJSON(d *json.Decoder, depth int) error {
+	if depth > 32 {
+		return errBoundedJSON
+	}
+	token, err := d.Token()
+	if err != nil {
+		return err
+	}
+	if s, ok := token.(string); ok && len(s) > 4096 {
+		return errBoundedJSON
+	}
+	delim, ok := token.(json.Delim)
+	if !ok {
+		return nil
+	}
+	seen := map[string]bool{}
+	for d.More() {
+		if delim == '{' {
+			key, err := d.Token()
+			if err != nil {
+				return err
+			}
+			s, ok := key.(string)
+			if !ok || len(s) > 4096 || seen[s] {
+				return errBoundedJSON
+			}
+			seen[s] = true
+		}
+		if err := boundedJSON(d, depth+1); err != nil {
+			return err
+		}
+	}
+	_, err = d.Token()
+	return err
 }

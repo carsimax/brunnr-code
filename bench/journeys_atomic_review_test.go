@@ -22,7 +22,7 @@ func TestNativeRecoveryJourneyIsRegisteredAndNamesItsControls(t *testing.T) {
 		for _, step := range journey.Steps {
 			declaration += " " + step.Name
 		}
-		for _, phrase := range []string{"CLI boundary only", "not OpenCode runtime proof", "wrong/empty/partial", "four-argument recovery", "existing successor", "unchanged failed-criteria"} {
+		for _, phrase := range []string{"CLI boundary only", "not host runtime proof", "wrong/empty/partial", "four-argument recovery", "existing successor", "unchanged failed-criteria"} {
 			if !strings.Contains(declaration, phrase) {
 				t.Errorf("native recovery journey omits %q", phrase)
 			}
@@ -30,34 +30,6 @@ func TestNativeRecoveryJourneyIsRegisteredAndNamesItsControls(t *testing.T) {
 	}
 	if found != 1 {
 		t.Fatalf("native recovery journey registered %d times", found)
-	}
-}
-
-func TestAdjacentOpenCodeJourneysUseRetainedCLI(t *testing.T) {
-	for _, journey := range Journeys() {
-		if !strings.HasPrefix(journey.ID, "j2138-") && !strings.HasPrefix(journey.ID, "j3043-") && !strings.HasPrefix(journey.ID, "j3500-") && !strings.HasPrefix(journey.ID, "j3336-") {
-			continue
-		}
-		for _, step := range journey.Steps {
-			if step.Requires != nil {
-				for _, flag := range step.Requires.Flags {
-					if flag == "--agents" || strings.HasPrefix(flag, "--sdd-") {
-						t.Errorf("%s requires retired flag %s", journey.ID, flag)
-					}
-				}
-			}
-			if step.Args != nil {
-				args, err := step.Args(nil)
-				if err != nil {
-					t.Fatalf("%s args: %v", journey.ID, err)
-				}
-				for _, arg := range args {
-					if arg == "sdd" || arg == "--agents" || strings.HasPrefix(arg, "--sdd-") {
-						t.Errorf("%s invokes retired component or flag %s", journey.ID, arg)
-					}
-				}
-			}
-		}
 	}
 }
 

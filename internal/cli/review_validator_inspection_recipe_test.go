@@ -27,9 +27,8 @@ import (
 // to submit and stranded its lineage at targeted_validation_required.
 //
 // These tests pin both halves against the exact bytes every runtime's
-// validator receives: the materialized provider invocation. OpenCode delivers
-// those bytes behind the materialization header, and the Claude, Codex, and Pi
-// adapters deliver them verbatim on stdin.
+// validator receives: the materialized provider invocation. The Claude and
+// Codex adapters deliver them verbatim on stdin.
 
 // reviewValidatorRecipeFlags is the complete closed argument set a targeted
 // validation inspection needs. Naming them individually keeps a partial recipe
@@ -213,9 +212,8 @@ func correctionPathIndex(t *testing.T, request targetedValidatorPromptRequest, p
 }
 
 // targetedValidatorProviderPrompt returns the exact opaque bytes the validator
-// receives on every runtime: OpenCode's transport materializes them behind its
-// header, and the Claude, Codex, and Pi adapters write them straight to a
-// locked-down subprocess's stdin.
+// receives on every runtime: the Claude and Codex adapters write them straight
+// to a locked-down subprocess's stdin.
 func targetedValidatorProviderPrompt(t *testing.T, repo string, state reviewtransaction.CompactState, revision string) []byte {
 	t.Helper()
 	ctx := context.Background()

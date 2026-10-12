@@ -243,10 +243,6 @@ func defaultAgentsFromDetection(detection system.DetectionResult) []model.AgentI
 		switch strings.TrimSpace(state.Agent) {
 		case string(model.AgentClaudeCode):
 			agents = append(agents, model.AgentClaudeCode)
-		case string(model.AgentOpenCode):
-			agents = append(agents, model.AgentOpenCode)
-		case string(model.AgentKilocode):
-			agents = append(agents, model.AgentKilocode)
 		case string(model.AgentGeminiCLI):
 			agents = append(agents, model.AgentGeminiCLI)
 		case string(model.AgentCursor):

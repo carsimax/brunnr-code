@@ -308,8 +308,7 @@ invents a metric is worse than one that admits a gap.
 7. **The corpus is honest, not exhaustive.** Mandatory portable black-box
    journeys run end to end, weighted toward failure paths because that is where
    friction lives. Most installation inspection and artifact cleanup are not
-   review-lifecycle friction; the OpenCode install/sync journeys pin only
-   specific user-visible boundaries.
+   review-lifecycle friction.
 
 8. **Some edge cases are unreachable from a temp directory and are guide flows
    instead.** A network mount where advisory locks fail in ways that are
@@ -399,9 +398,7 @@ invents a metric is worse than one that admits a gap.
     nothing stronger.
 
 13. **A boundary-specific fix is omitted when this harness cannot cross its real
-    boundary.** Issue #2028 is an OpenCode plugin session-local retry and remains
-    plugin-covered; a CLI journey would never exercise that session boundary.
-    Issue #2074 is a Claude install/registry migration and remains E2E-covered;
+    boundary.** Issue #2074 is a Claude install/registry migration and remains E2E-covered;
     this isolated review-lifecycle harness does not install or migrate Claude.
     Issue #910 requires genuine Windows PowerShell host resolution; a Linux
     fixture pretending to be Windows would be a proxy, not benchmark coverage.
@@ -465,19 +462,9 @@ Lifecycle journeys still explicitly enable it rather than depending on that defa
 - `reviewUntouched` — the runner runs no mode command at all. This is for a
   journey whose subject IS the switch (`j03-kill-switch` drives it itself,
   `j31-nonsense-mode-value` authors the record under test) and for one that has
-  nothing to do with reviews (`j2138`, `j3043`, `j3500` install or sync OpenCode).
+  nothing to do with reviews.
   Untouched means ON/default on a fresh install; journeys requiring OFF must
   explicitly disable it.
-
-OpenCode-specific core journeys: `j3336` is retired because its SDD session
-preflight no longer exists. `j3500` uses `sync --agent opencode` twice and
-checks contiguous external prompt bytes, unchanged unrelated configuration,
-and second-sync convergence. `j3043` uses persona-only install and checks the
-owned background launcher, restart signal, and explicit environment off.
-`j2138` checks the currently installed hidden review-refuter and
-review-validator permissions, replacing the obsolete SDD general/explore
-fallback claim. `go test ./...` validates these declarations, not driven
-execution against a product binary.
 
 The declaration is mandatory because the alternative already cost us once: the
 corpus measured the review lifecycle only because the product's default happened

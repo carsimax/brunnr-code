@@ -69,7 +69,7 @@ The command returns exactly:
 | `stored`, `duplicate` | Exact HTTP 200 collector acknowledgement observed |
 | `disabled` | Existing policy disallows sending; no HTTP |
 | `discarded` | Invalid input, unavailable endpoint, timeout, or failed/invalid acknowledgement; nothing retained |
-| `ignored` | OpenCode only: partial, summary, or non-assistant event |
+| `ignored` | Non-assistant or out-of-scope event |
 
 These decisions exit successfully and never contain raw input or errors. Invalid
 command syntax returns a fixed usage error, without echoing arguments. Stdout
@@ -83,7 +83,7 @@ cumulative snapshots. No parent-child links or source IDs exist.
 
 | Field | Source rule |
 |---|---|
-| `host` | `pi`, `opencode`, `claude-code`, or `codex`; never a hostname |
+| `host` | `claude-code` or `codex`; never a hostname |
 | `model` | Provider/id pair filtered by a generic public model family pattern, otherwise the `unknown` or `custom` pair (see below) |
 | `model_evidence` | `selected`, `response`, or `unknown`; selected model is not proof of response model |
 | `agent_kind`, `agent_class` | Closed broad category and known package class, otherwise `unknown`; no private agent names. See the canonical vocabulary below. |
@@ -97,7 +97,7 @@ cumulative snapshots. No parent-child links or source IDs exist.
 
 `model.id` is public only when it starts with a recognized public model family
 name (for example `claude`, `gpt`, `gemini`, `deepseek`, `glm`, `qwen`, `llama`,
-`mistral`, `grok`); every host adapter (Claude Code, OpenCode, Codex) and the
+`mistral`, `grok`); every host adapter (Claude Code, Codex) and the
 collector apply the same generic family pattern. `model.provider` is a routing
 label, not itself filtered. An id whose family prefix is public is emitted
 whole, including its version and variant suffixes (`deepseek-v4-flash`,
@@ -106,8 +106,7 @@ redaction, so a suffix carried behind a public family does leave the machine.
 Generic English words that are also model brands (`command`, `nova`, `seed`,
 `sonar`, `yi`) are deliberately not in the family list so a private deployment
 named with one of them cannot pass. An id outside the recognized families is
-replaced with `custom` (or `opencode/custom` for OpenCode when the id is
-private), and empty input becomes `unknown/unknown`.
+replaced with `custom`, and empty input becomes `unknown/unknown`.
 
 ### Agent class vocabulary
 
@@ -161,13 +160,12 @@ and a 16 KiB limit (plus one oversize-detection byte), then passes an in-memory
 reader to either native path. Timeout returns the fixed `discarded` decision with
 zero HTTP. Input and network budgets total **3.5 seconds**, plus bounded parsing
 and policy work; blocking policy filesystem reads or stdout writes are not covered.
-OpenCode's existing 4-second process timeout remains an outer safety bound.
 
 The CLI does not close caller-owned readers or shared `os.Stdin`. A timed-out read
 can leave **one process-scoped reader goroutine** until stdin completes or the
 standalone process exits. A buffered result prevents late completion from blocking;
 the deadline timer is canceled on return. This is not a daemon or retry mechanism.
-The library `SendRuntime`/`SendOpenCode`/`SendClaude`/`SendCodex` APIs still accept caller-owned readers:
+The library `SendRuntime` APIs still accept caller-owned readers:
 their context bounds HTTP, not arbitrary blocking `Read` implementations. Embedded
 callers must supply bounded input; only the CLI owns this pre-read deadline.
 
@@ -184,91 +182,6 @@ Fresh environment and existing enrolled policy checks run before stdin, after
 reading, and immediately before HTTP. Missing/malformed policy, opt-out, or notice
 not shown fail closed. A policy change after the final check can race a request;
 no checkpoint can unsend HTTP already in flight. No policy lock is introduced.
-
-## Automatic OpenCode collection
-
-The managed plugin invokes `gentle-ai telemetry runtime opencode --json` directly
-and asynchronously. Native code checks policy, normalizes one bounded source
-observation, then uses the same one-attempt sender. Example stdin:
-
-```json
-{"schema":"gentle-ai.telemetry-opencode/v1","info":{"role":"assistant","time":{"created":1,"completed":3},"providerID":"anthropic","modelID":"claude-opus-5","agent":"sdd-apply"}}
-```
-
-Only completed non-summary assistant `message.updated` events qualify. Source
-compatibility is pinned to [plugin 1.18.30](https://unpkg.com/@opencode-ai/plugin@1.18.30/dist/index.d.ts)
-and its [V1 SDK](https://unpkg.com/@opencode-ai/sdk@1.18.30/dist/gen/types.gen.d.ts),
-not V2; this is not an installed-runtime smoke test. Source timestamps become
-message elapsed time and do not leave native code. The source `mode` is forwarded
-as `agent` only when it is 1-64 printable ASCII characters. Unknown provider/model
-names become `custom`; error names/status become closed categories. Prompts, parts,
-paths, raw error text, tools, and source/session/task IDs never enter the envelope.
-
-The hook does not read message/session IDs, reconstruct sessions, dedupe across
-events, or retain failed payloads. Each event gets at most one native process.
-Bounds are 32 in-flight processes, 16 KiB stdin, 1 KiB output, and a 4-second process
-safety timeout around native's 3-second HTTP budget. Saturation discards new events,
-not queues them. Callbacks only release process bookkeeping; they never retry.
-Disposal terminates active children. Repeated source events can be counted again:
-this intentionally makes no exactly-once coverage claim.
-
-### OpenCode V2 adapter (assets only; installation wiring pending)
-
-The separate V2 adapter targets the released `@opencode/plugin` 2.0.4 contract.
-V1 remains unchanged. V2 splits attribution (`session.step.started`) from usage
-(`session.step.ended` / `session.step.failed`). The user-authorized V2-only privacy
-exception correlates session/message IDs **in RAM only** within the exact loaded
-location (directory and workspace). IDs, locations and raw error messages never
-enter stdin, logs, files or network payloads. No transcript/SDK retrieval is used.
-
-Correlation stores at most 256 bounded keys, expires entries after 10 minutes
-(on each event and a 30-second idle sweep), and clears on disposal, stream failure
-or observed telemetry veto. Completion consumes its entry before IO. Unmatched,
-expired, malformed and saturated observations are dropped; there is no persistent
-queue or retry. Duplicate completions without a new start are ignored, but this
-is not an exactly-once guarantee across plugin instances or replayed start/end
-pairs. The existing 32-child, 16-KiB-input, 1-KiB-output and 4-second process
-limits remain. Disposal aborts the subscription and terminates owned children.
-
-The `gentle-ai.telemetry-opencode/v2` envelope carries the bounded selected variant
-as `selectedEffort`; V1 rejects that field. Native code maps it to its closed effort
-allowlist and never consults ambient configuration for V2 attribution. The start
-model is a runtime selection, not proof of provider-response identity, so its
-`model_evidence` is `selected` (or `unknown` when absent). Effective effort remains
-unavailable. Duration spans the step through tool settlement, **not provider
-latency**. Runtime installation and end-to-end certification remain separate gates.
-
-Missing/default-zero source tokens remain unavailable; available reasoning is
-preserved, and total tokens are not inferred. Native `build` and `plan`, plus
-`gentle-orchestrator`, map to the orchestrator class. OpenCode's managed fallback
-agents map `explore` to the built-in `explore` class and `general` to the built-in
-`worker` class. Agent names in the runtime contract's named Gentle AI allowlist
-map to their built-in class. Other non-empty names map to `custom`/`unknown`;
-their raw names never leave native code. Missing names remain `unknown`/`unknown`.
-
-For V1 only, native code reads up to 1 MiB from the local `opencode.json`
-`agent.<name>.model` and `agent.<name>.variant` assignment. When no variant is
-assigned, it falls back to `agent.<name>.reasoningEffort` and then to the
-model's `provider.<p>.models.<m>.options.reasoningEffort`, using the response
-provider/model or, when the response omits it, the assigned model. Only the
-contract values `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max` are
-accepted for these `reasoningEffort` fallbacks. A valid contract effort becomes `selected_effort`; `effective_effort` remains `unavailable` because OpenCode
-does not report it. A response provider/model remains authoritative with
-`model_evidence: response`; the assigned model is used with
-`model_evidence: selected` only when the response omits provider/model. Missing,
-oversized, or invalid configuration falls back to unavailable/unknown attribution
-and never blocks the send.
-
-Install/sync still reconcile the dedicated `plugins/telemetry-runtime.ts` and
-`.gentle-ai-telemetry-runtime.json` ownership manifest for selected OpenCode,
-independently of any workflow and using the existing scope/XDG resolution. These are static
-installation assets, **not metric state**. Managed byte/hash/mode checks, guarded
-rollback, unowned/edited-file preservation, and validated-pair uninstall remain
-unchanged. Each managed plugin asset change must append the immediately previous
-embedded asset digest to the explicit provenance allowlist so owned installs can
-upgrade without treating arbitrary self-consistent content as package provenance.
-Disable leaves the plugin inert under existing policy; installation never reenrolls
-or changes exporter settings.
 
 ## Automatic Claude Code collection
 
@@ -401,7 +314,7 @@ notes that transcript format is not a stable hook interface, so this parser is a
 bounded best-effort compatibility layer and may lose coverage after Codex format
 changes.
 
-**Automatic sources:** Pi, OpenCode, Claude Code, and Codex integrations provide
+**Automatic sources:** Claude Code and Codex integrations provide
 one-shot runtime telemetry. Schema host values remain for compatibility, not as
 evidence of installed support. No installation, deployment, or external-network
 validation is implied here.
@@ -517,7 +430,7 @@ installation, gentle-ai does exactly one thing: it prints this line to
 stderr, synchronously, in that same command —
 
 ```text
-Gentle AI sends anonymous usage metrics (version, OS, agents, counters) and may send anonymous runtime usage from supported Pi/OpenCode/Codex integrations (public model, effort, agent class, available token usage, timing, error categories); runtime usage is never stored locally; run gentle-ai telemetry disable to opt out.
+Gentle AI sends anonymous usage metrics (version, OS, agents, counters) and may send anonymous runtime usage from supported Claude Code/Codex integrations (public model, effort, agent class, available token usage, timing, error categories); runtime usage is never stored locally; run gentle-ai telemetry disable to opt out.
 ```
 
 — and stores a locally generated `install_id`. **Nothing is sent on that

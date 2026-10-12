@@ -150,29 +150,6 @@ func TestNegotiatedStatusOffersCurrentValidationCaptureForOtherRuntimes(t *testi
 	if compiledInput.CaptureOperation != reviewCaptureValidationCaptureOperation || compiledInput.ValidationRequest == nil {
 		t.Fatalf("compiled validation rendering changed: %#v", compiledInput)
 	}
-
-	// OpenCode keeps its Go-issued provider validator task.
-	var opencode bytes.Buffer
-	if err := RunReview([]string{
-		"status", "--cwd", repo, "--lineage", lineage, "--contract", ReviewIntegrationContractV2,
-		"--agent", string(model.AgentOpenCode), "--next-transition",
-	}, &opencode); err != nil {
-		t.Fatal(err)
-	}
-	var opencodeStatus ReviewTargetStatusResult
-	decodeStrictReviewJSON(t, opencode.Bytes(), &opencodeStatus)
-	if opencodeStatus.NextTransition == nil || opencodeStatus.NextTransition.ReasonCode != "targeted_validation_required" ||
-		opencodeStatus.NextTransition.Collect == nil || len(opencodeStatus.NextTransition.Collect.Inputs) != 1 {
-		t.Fatalf("OpenCode validation transition changed: %#v", opencodeStatus.NextTransition)
-	}
-	opencodeInput := opencodeStatus.NextTransition.Collect.Inputs[0]
-	task := opencodeInput.ProviderTask
-	if opencodeInput.CaptureOperation != "external.run_provider_role" || opencodeInput.Submission != nil ||
-		task == nil || task.Agent != "review-validator" || task.Role != string(reviewerprovider.RoleTargetedValidator) ||
-		!strings.HasPrefix(task.Prompt, reviewProviderTaskBindingHeader+" ") {
-		t.Fatalf("OpenCode validation rendering changed: %#v", opencodeInput)
-	}
-
 }
 
 func TestReviewCaptureValidationBindsFrozenRequestHash(t *testing.T) {

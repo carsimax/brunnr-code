@@ -3,16 +3,11 @@
 // It drives one real gentle-ai binary (--binary) end to end across the
 // integration boundaries where host runtimes meet the Go facade:
 //
-//   - opencode lane: the REAL OpenCode transport plugin bytes
-//     (internal/assets/opencode/plugins/opencode-review-transport.ts) driven
-//     through a fresh Node Task-hook process with exact provider-owned tasks,
-//     against an immutable base tree and committed candidate. Covers the lens
-//     frame, correction closure re-entry, and validator role frame.
 //   - claude lane: one low-risk lifecycle ending in exact acknowledgement then authority burn and five
 //     ordinary-policy gates, plus a committed medium candidate exercised by a
 //     local provider-shaped fixture through the real Claude process transport.
 //     This is deterministic process proof, not live model proof.
-//   - advisory lane: the middle path neither of the two lanes above reaches —
+//   - advisory lane: the middle path the claude lane does not reach —
 //     a review that arrives at an approved receipt WHILE carrying findings
 //     that do not block. Fully deterministic (the reviewer result is supplied
 //     through capture-result --input), so it costs no model or host spend.
@@ -45,7 +40,7 @@ var semverVersionLine = regexp.MustCompile(`(?m)^gentle-ai\s+\d+\.\d+\.\d+(?:-[0
 func run() int {
 	binary := flag.String("binary", "", "path to the gentle-ai binary under test (required)")
 	withModel := flag.Bool("with-model", false, "reserved; live Claude model proof remains intentionally disabled")
-	withHost := flag.Bool("with-host", false, "spawn REAL host applications (codex exec, an opencode session) end to end (uses the dev subscription)")
+	withHost := flag.Bool("with-host", false, "spawn REAL host applications (codex exec) end to end (uses the dev subscription)")
 	keepWork := flag.Bool("keep-work", false, "keep the scratch working directory for inspection")
 	flag.Parse()
 
@@ -61,9 +56,9 @@ func run() int {
 		fmt.Fprintf(os.Stderr, "crosslane: binary %q is not usable: %v\n", *binary, err)
 		return 2
 	}
-	// The OpenCode transport plugin refuses a gentle-ai whose --version is not
-	// a semver (a plain `go build` reports "gentle-ai dev"), which would surface
-	// as a misleading "binary unavailable" lane failure.
+	// Lanes compare the reported --version against a semver (a plain
+	// `go build` reports "gentle-ai dev"), which would otherwise surface as a
+	// misleading "binary unavailable" lane failure.
 	if output, versionErr := exec.Command(resolved, "--version").Output(); versionErr != nil || !semverVersionLine.Match(output) {
 		fmt.Fprintf(os.Stderr, "crosslane: binary %q must report a semver version (got %q); build it with -ldflags \"-X main.version=$(git describe --tags --abbrev=0 | sed s/^v//)-dev\" (see CONTRIBUTING.md)\n", *binary, strings.TrimSpace(string(output)))
 		return 2
@@ -106,7 +101,6 @@ func run() int {
 	}
 
 	b.captureCapabilities()
-	b.runOpenCodeLane()
 	b.runClaudeLane()
 	b.runAdvisoryLane()
 	b.runCodexLane()

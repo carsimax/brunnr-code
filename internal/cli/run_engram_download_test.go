@@ -43,7 +43,7 @@ func TestRunInstallLinuxEngramUsesDownloadNotGoInstall(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	result, err := RunInstall(
-		[]string{"--agent", "opencode", "--component", "engram"},
+		[]string{"--agent", "claude-code", "--component", "engram"},
 		detection,
 	)
 	if err != nil {
@@ -95,7 +95,7 @@ func TestRunInstallEngramDownloadAddsBinDirToPath(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	_, err := RunInstall(
-		[]string{"--agent", "opencode", "--component", "engram"},
+		[]string{"--agent", "claude-code", "--component", "engram"},
 		detection,
 	)
 	if err != nil {
@@ -157,7 +157,7 @@ func TestRunInstallFreshEngramDownloadUsesDownloadedBinaryForVersionProbeAndSetu
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	_, err := RunInstall(
-		[]string{"--agent", "opencode", "--component", "engram"},
+		[]string{"--agent", "claude-code", "--component", "engram"},
 		detection,
 	)
 	if err != nil {
@@ -231,7 +231,7 @@ func TestRunInstallWindowsEngramUsesDownloadNotGoInstall(t *testing.T) {
 	}
 
 	result, err := RunInstall(
-		[]string{"--agent", "opencode", "--component", "engram"},
+		[]string{"--agent", "claude-code", "--component", "engram"},
 		detection,
 	)
 	if err != nil {
@@ -335,7 +335,7 @@ func TestRunInstallWindowsRefreshesEngramWhenDuplicatePathEntriesShadowManagedBi
 	step := componentApplyStep{
 		component: model.ComponentEngram,
 		homeDir:   home,
-		agents:    []model.AgentID{model.AgentOpenCode},
+		agents:    []model.AgentID{model.AgentCodex},
 		profile: system.PlatformProfile{
 			OS:             "windows",
 			PackageManager: "winget",
@@ -439,7 +439,7 @@ func TestRunInstallWindowsFailsWhenShadowedEngramPathCannotBePersistentlyRepaire
 	step := componentApplyStep{
 		component: model.ComponentEngram,
 		homeDir:   home,
-		agents:    []model.AgentID{model.AgentOpenCode},
+		agents:    []model.AgentID{model.AgentCodex},
 		profile: system.PlatformProfile{
 			OS:             "windows",
 			PackageManager: "winget",
@@ -525,7 +525,7 @@ func TestRunInstallWindowsFailsWhenShadowedEngramPathIsNotInUserPath(t *testing.
 	step := componentApplyStep{
 		component: model.ComponentEngram,
 		homeDir:   home,
-		agents:    []model.AgentID{model.AgentOpenCode},
+		agents:    []model.AgentID{model.AgentCodex},
 		profile: system.PlatformProfile{
 			OS:             "windows",
 			PackageManager: "winget",
@@ -581,7 +581,7 @@ func TestRunInstallMacOSEngramStillUsesBrew(t *testing.T) {
 
 	detection := macOSDetectionResult()
 	result, err := RunInstall(
-		[]string{"--agent", "opencode", "--component", "engram"},
+		[]string{"--agent", "claude-code", "--component", "engram"},
 		detection,
 	)
 	if err != nil {
@@ -655,7 +655,7 @@ func TestRunInstallBetaEngramUsesMainGoInstallAndInstalledBinary(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	_, err := RunInstall(
-		[]string{"--agent", "opencode", "--component", "engram", "--channel", "beta"},
+		[]string{"--agent", "claude-code", "--component", "engram", "--channel", "beta"},
 		detection,
 	)
 	if err != nil {
@@ -715,32 +715,6 @@ func TestRunInstallClaudeGuidanceDoesNotAutoInstallEngram(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(home, ".claude.json")); !os.IsNotExist(err) {
 		t.Fatalf("implicit Engram MCP config: %v", err)
-	}
-}
-
-func TestRunInstallOpenCodeGuidanceDoesNotAutoInstallEngram(t *testing.T) {
-	home := t.TempDir()
-	restoreHome, restoreCommand, restoreLookPath, restoreDownload := osUserHomeDir, runCommand, cmdLookPath, engramDownloadFn
-	t.Cleanup(func() {
-		osUserHomeDir, runCommand, cmdLookPath, engramDownloadFn = restoreHome, restoreCommand, restoreLookPath, restoreDownload
-	})
-	osUserHomeDir = func() (string, error) { return home, nil }
-	runCommand = func(string, ...string) error { return nil }
-	cmdLookPath = missingBinaryLookPath
-	engramDownloadFn = func(system.PlatformProfile) (string, error) {
-		t.Fatal("OpenCode guidance must not download Engram")
-		return "", nil
-	}
-	result, err := RunInstall([]string{"--agent", "opencode", "--components", "persona"}, linuxDetectionResult(system.LinuxDistroUbuntu, "apt"))
-	if err != nil || !result.Verify.Ready {
-		t.Fatalf("install: %v, report: %#v", err, result.Verify)
-	}
-	path := filepath.Join(home, ".config", "opencode", "AGENTS.md")
-	if _, err := os.Stat(path); err != nil {
-		t.Fatalf("OpenCode guidance missing: %v", err)
-	}
-	if !verifyReportRequiresFile(result.Verify, path) {
-		t.Fatalf("guidance not verified at %q: %#v", path, result.Verify)
 	}
 }
 

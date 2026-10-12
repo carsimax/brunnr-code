@@ -119,7 +119,7 @@ func TestReviewProviderRefuterPromptIsRuntimeConditional(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, runtime := range []model.AgentID{model.AgentCodex, model.AgentClaudeCode, model.AgentOpenCode} {
+	for _, runtime := range []model.AgentID{model.AgentCodex, model.AgentClaudeCode} {
 		prompt, err := reviewProviderRolePrompt(refuter, runtimeBudgetRolePromptRequest(""), string(runtime))
 		if err != nil {
 			t.Fatal(err)
@@ -151,7 +151,7 @@ func TestReviewProviderRefuterAdmissionNotesProbeUnavailable(t *testing.T) {
 	request.RequestHash = "sha256:" + strings.Repeat("a", 64)
 	request.Claims = []reviewtransaction.RefuterClaim{{FindingID: "R3-001", SnapshotIdentity: request.SnapshotIdentity, Proof: "tracked.txt:1 lens proof", Claim: "candidate failure"}}
 	raw := []byte(`{"refuter_request_hash":"` + request.RequestHash + `","results":[{"finding_id":"R3-001","outcome":"refuted","proof_refs":["tracked.txt:1 baseline already fails"]}]}`)
-	for _, runtime := range []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode, model.AgentCodex} {
+	for _, runtime := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex} {
 		request.Runtime = string(runtime)
 		result, err := reviewProviderAdmitRefuterRaw(request, raw)
 		if err != nil {
@@ -214,7 +214,7 @@ func TestReviewProviderCodexRefuterInvocationMaterializesTheCandidateTree(t *tes
 		t.Fatal("Codex refuter prompt does not offer the probe its invocation carries")
 	}
 
-	for _, runtime := range []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode} {
+	for _, runtime := range []model.AgentID{model.AgentClaudeCode} {
 		state.RuntimeAgent = string(runtime)
 		other, err := reviewProviderNewRefuterRequest(t.Context(), repo, store.Dir, state, state.CapturePhaseRevision)
 		if err != nil {
@@ -295,7 +295,6 @@ func TestReviewProviderRefuterClaimsKeepDeterministicOnlyWhereARefuterRuns(t *te
 		runtime string
 		want    string
 	}{
-		{runtime: string(model.AgentOpenCode), want: "D-introduced,I-worsened"},
 		{runtime: string(model.AgentClaudeCode), want: "D-introduced,I-worsened"},
 		{runtime: string(model.AgentCodex), want: "D-introduced,I-worsened"},
 		{runtime: "", want: "I-worsened"},

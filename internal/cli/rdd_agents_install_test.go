@@ -1,14 +1,12 @@
 package cli
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
 )
 
 func rddAgentFileNames(t *testing.T, dir string) []string {
@@ -61,28 +59,5 @@ func TestFreshInstallShipsReviewAgentsOnlyToRDDRuntimes(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-// TestFreshInstallShipsOpenCodeReviewAgents keeps the OpenCode RDD agents.
-func TestFreshInstallShipsOpenCodeReviewAgents(t *testing.T) {
-	home := installTestHome(t)
-	if _, err := RunInstall([]string{"--agent", "opencode", "--preset", "full-gentleman"}, system.DetectionResult{}); err != nil {
-		t.Fatal(err)
-	}
-	raw, err := os.ReadFile(filepath.Join(home, ".config", "opencode", "opencode.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var settings struct {
-		Agent map[string]json.RawMessage `json:"agent"`
-	}
-	if err := json.Unmarshal(raw, &settings); err != nil {
-		t.Fatal(err)
-	}
-	for _, name := range []string{"review-risk", "review-readability", "review-reliability", "review-resilience", "review-refuter", "review-validator", "jd-judge-a", "jd-judge-b", "jd-fix-agent"} {
-		if _, ok := settings.Agent[name]; !ok {
-			t.Errorf("OpenCode install is missing %q", name)
-		}
 	}
 }

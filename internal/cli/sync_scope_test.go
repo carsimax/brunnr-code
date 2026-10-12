@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -12,10 +11,7 @@ import (
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencoderuntimeplugins"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/opencode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/verify"
 )
 
@@ -49,7 +45,7 @@ func TestParseSyncFlagsScope(t *testing.T) {
 }
 
 func TestRunSyncRejectsUnsupportedScope(t *testing.T) {
-	_, err := RunSync([]string{"--scope", "repo", "--agents", "opencode"})
+	_, err := RunSync([]string{"--scope", "repo", "--agents", "claude-code"})
 	if err == nil {
 		t.Fatal("RunSync(--scope repo) error = nil, want unsupported scope refusal")
 	}
@@ -216,202 +212,6 @@ func TestSyncWorkspaceScopeDeclaresAndVerifiesPersonaWorkspaceTarget(t *testing.
 	}
 }
 
-// TestRunSyncWorkspaceScopeUpdatesWorkspaceWithoutGlobalMutation is the
-// isolated CLI regression for issue #1074: `gentle-ai sync --scope=workspace`
-// must refresh workspace-scoped managed files while every global file —
-// including persisted state, telemetry counters, backups, and plugins —
-// stays byte-identical with identical permissions.
-func TestRunSyncWorkspaceScopeUpdatesWorkspaceWithoutGlobalMutation(t *testing.T) {
-	// The global baseline must stay global even if the environment selects a
-	// different install scope.
-	t.Setenv(scopeEnvVar, "")
-	home := t.TempDir()
-	globalWorkspace := t.TempDir()
-	workspace := t.TempDir()
-
-	restoreHome := osUserHomeDir
-	restoreBackupHome := backup.UserHomeDirFn
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	restoreVersionRunner := opencode.VersionRunnerOverride
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		backup.UserHomeDirFn = restoreBackupHome
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-		opencode.VersionRunnerOverride = restoreVersionRunner
-	})
-
-	osUserHomeDir = func() (string, error) { return home, nil }
-	backup.UserHomeDirFn = func() (string, error) { return home, nil }
-	runCommand = func(string, ...string) error { return nil }
-	cmdLookPath = func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
-	opencode.VersionRunnerOverride = func(context.Context, opencode.Command) (opencode.CommandOutput, error) {
-		return opencode.CommandOutput{Stdout: []byte("1.2.3")}, nil
-	}
-
-	// Phase 1: establish the global baseline with a default (global) sync.
-	t.Chdir(globalWorkspace)
-	globalResult, err := RunSync([]string{"--agents", "opencode"})
-	if err != nil {
-		t.Fatalf("global sync error = %v", err)
-	}
-	if !globalResult.Verify.Ready {
-		t.Fatalf("global sync verification not ready: %#v", globalResult.Verify)
-	}
-	statePath := state.Path(home)
-	if _, err := os.Stat(statePath); err != nil {
-		t.Fatalf("global sync did not persist state: %v", err)
-	}
-
-	before := snapshotTree(t, home)
-
-	// Phase 2: workspace-scoped refresh in a different project.
-	t.Chdir(workspace)
-	result, err := RunSync([]string{"--agents", "opencode", "--scope", "workspace"})
-	if err != nil {
-		t.Fatalf("workspace sync error = %v", err)
-	}
-	if result.FilesChanged == 0 {
-		t.Fatalf("workspace sync changed nothing: filesChanged = 0, changedFiles = %v", result.ChangedFiles)
-	}
-	for _, path := range result.ChangedFiles {
-		if !pathUnder(path, workspace) {
-			t.Errorf("workspace sync reported a change outside the workspace: %q", path)
-		}
-	}
-	if _, err := os.Stat(filepath.Join(workspace, "opencode.json")); err != nil {
-		t.Errorf("workspace sync did not materialize the project OpenCode settings OpenCode actually loads: %v", err)
-	}
-	foundSkip := false
-	for _, action := range result.ManualActions {
-		if strings.Contains(action, "gga") {
-			foundSkip = true
-		}
-	}
-	if !foundSkip {
-		t.Errorf("workspace sync did not report skipping the global-only gga component; manual actions = %v", result.ManualActions)
-	}
-
-	// The global tree — state, telemetry, backups, plugins, prompts — must be
-	// byte-identical with identical permissions.
-	after := snapshotTree(t, home)
-	for rel, beforeHash := range before {
-		if after[rel] != beforeHash {
-			t.Errorf("global file mutated by workspace sync: %q", rel)
-		}
-	}
-	for rel := range after {
-		if _, ok := before[rel]; !ok {
-			t.Errorf("global tree gained a file during workspace sync: %q", rel)
-		}
-	}
-}
-
-// TestRunSyncWorkspaceScopeUpdatesOpenCodeManagedComponentsWithoutGlobalMutation
-// is the bounded component-matrix regression for issue #1074: an OpenCode
-// workspace sync selecting Engram, Context7, Skills, and Permission (the
-// components that resolve a workspace-managed OpenCode settings authority)
-// must write and verify their workspace targets while the global tree — files
-// and directories — stays byte-identical. GGA, ClaudeTheme, and the OpenCode
-// Gentle Logo are deliberately absent: they are global-only and skipped by
-// design, not silently expected to work.
-func TestRunSyncWorkspaceScopeUpdatesOpenCodeManagedComponentsWithoutGlobalMutation(t *testing.T) {
-	// The global baseline must stay global even if the environment selects a
-	// different install scope.
-	t.Setenv(scopeEnvVar, "")
-	home := t.TempDir()
-	globalWorkspace := t.TempDir()
-	workspace := t.TempDir()
-
-	restoreHome := osUserHomeDir
-	restoreBackupHome := backup.UserHomeDirFn
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	restoreVersionRunner := opencode.VersionRunnerOverride
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		backup.UserHomeDirFn = restoreBackupHome
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-		opencode.VersionRunnerOverride = restoreVersionRunner
-	})
-
-	osUserHomeDir = func() (string, error) { return home, nil }
-	backup.UserHomeDirFn = func() (string, error) { return home, nil }
-	runCommand = func(string, ...string) error { return nil }
-	cmdLookPath = func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
-	opencode.VersionRunnerOverride = func(context.Context, opencode.Command) (opencode.CommandOutput, error) {
-		return opencode.CommandOutput{Stdout: []byte("1.2.3")}, nil
-	}
-
-	// Phase 1: establish the global baseline with a default (global) sync.
-	t.Chdir(globalWorkspace)
-	if _, err := RunSync([]string{"--agents", "opencode"}); err != nil {
-		t.Fatalf("global sync error = %v", err)
-	}
-	before := snapshotTree(t, home)
-
-	// Phase 2: workspace sync of the OpenCode-supported component matrix.
-	selection := model.Selection{
-		Agents:     []model.AgentID{model.AgentOpenCode},
-		Components: []model.ComponentID{model.ComponentEngram, model.ComponentContext7, model.ComponentSkills, model.ComponentPermission},
-		Skills:     []model.SkillID{model.SkillGoTesting},
-		Persona:    model.PersonaNeutral,
-	}
-	t.Chdir(workspace)
-	result, err := RunSyncWithSelectionScope(home, selection, ScopeWorkspace)
-	if err != nil {
-		t.Fatalf("workspace component sync error = %v", err)
-	}
-	if result.FilesChanged == 0 {
-		t.Fatalf("workspace component sync changed nothing: changedFiles = %v", result.ChangedFiles)
-	}
-	for _, path := range result.ChangedFiles {
-		if !pathUnder(path, workspace) {
-			t.Errorf("workspace component sync reported a change outside the workspace: %q", path)
-		}
-	}
-
-	workspaceSettings := filepath.Join(workspace, "opencode.json")
-	if _, err := os.Stat(workspaceSettings); err != nil {
-		t.Errorf("workspace sync did not materialize workspace OpenCode settings: %v", err)
-	}
-	var settingsVerified, skillsVerified bool
-	// Check IDs embed native paths, so match the skills segment with the OS separator.
-	skillsSegment := filepath.FromSlash("/skills/")
-	for _, check := range result.Verify.Checks {
-		if check.ID == "verify:sync:file:"+workspaceSettings {
-			settingsVerified = true
-		}
-		if strings.Contains(check.ID, skillsSegment) && strings.Contains(check.ID, workspace) && check.Status == verify.CheckStatusPassed {
-			skillsVerified = true
-		}
-	}
-	if !settingsVerified {
-		t.Errorf("workspace OpenCode settings %q missing from verification targets; checks = %v", workspaceSettings, result.Verify.Checks)
-	}
-	if !skillsVerified {
-		t.Errorf("workspace skills target missing from passing verification checks; checks = %v", result.Verify.Checks)
-	}
-	if !result.Verify.Ready {
-		t.Errorf("workspace component sync verification not ready: %s", verify.RenderReport(result.Verify))
-	}
-
-	// The global tree — files and directories — must stay byte-identical.
-	after := snapshotTree(t, home)
-	for rel, beforeHash := range before {
-		if after[rel] != beforeHash {
-			t.Errorf("global tree entry mutated by workspace component sync: %q", rel)
-		}
-	}
-	for rel := range after {
-		if _, ok := before[rel]; !ok {
-			t.Errorf("global tree gained an entry during workspace component sync: %q", rel)
-		}
-	}
-}
-
 // TestRunSyncWorkspaceScopeUpdatesClaudeEngramWithoutGlobalMutation closes the
 // Claude Code half of the #1074 ownership contract. Install's scoped engram
 // delivery is InjectWorkspaceWithOptions (userScope=false): it writes the
@@ -526,7 +326,7 @@ func TestRunSyncWorkspaceScopeUpdatesClaudeEngramWithoutGlobalMutation(t *testin
 
 func TestRunSyncWithSelectionScopeRejectsInvalidScope(t *testing.T) {
 	home := t.TempDir()
-	_, err := RunSyncWithSelectionScope(home, model.Selection{Agents: []model.AgentID{model.AgentOpenCode}}, "repo")
+	_, err := RunSyncWithSelectionScope(home, model.Selection{Agents: []model.AgentID{model.AgentCodex}}, "repo")
 	if err == nil {
 		t.Fatal("RunSyncWithSelectionScope(scope \"repo\") error = nil, want unsupported scope refusal")
 	}
@@ -538,16 +338,11 @@ func TestRunSyncWithSelectionScopeRejectsInvalidScope(t *testing.T) {
 // TestSyncWorkspaceBackupTargetsExcludeHomeOnlyPaths pins the rollback
 // contract for issue #1074: a workspace sync must never declare a home-only
 // path — not from component declarations, not from cleanup declarations — so
-// a failed workspace sync can never roll back (restore) global files. The
-// settings authority declared for OpenCode is the project file OpenCode
-// actually loads, never the global one.
+// a failed workspace sync can never roll back (restore) global files.
 func TestSyncWorkspaceBackupTargetsExcludeHomeOnlyPaths(t *testing.T) {
 	home, workspace := t.TempDir(), t.TempDir()
-	// Pre-existing global OpenCode settings make the global authority real.
-	mustWriteFile(t, filepath.Join(home, ".config", "opencode", "opencode.json"), []byte(`{}`))
-
 	selection := model.Selection{
-		Agents:     []model.AgentID{model.AgentOpenCode, model.AgentClaudeCode},
+		Agents:     []model.AgentID{model.AgentClaudeCode},
 		Components: []model.ComponentID{model.ComponentEngram, model.ComponentContext7, model.ComponentPermission, model.ComponentPersona},
 		Persona:    model.PersonaNeutral,
 	}
@@ -559,153 +354,5 @@ func TestSyncWorkspaceBackupTargetsExcludeHomeOnlyPaths(t *testing.T) {
 		if pathUnderHomeOnly(path, home, workspace) {
 			t.Errorf("workspace rollback contract declares a home-only path: %q", path)
 		}
-	}
-	if containsString(declared, filepath.Join(home, ".config", "opencode", "opencode.json")) {
-		t.Errorf("global OpenCode settings declared under workspace scope")
-	}
-	if !containsString(declared, filepath.Join(workspace, "opencode.json")) {
-		t.Errorf("workspace project settings %q missing from rollback contract; declared = %v", filepath.Join(workspace, "opencode.json"), declared)
-	}
-}
-
-// TestRunSyncWorkspaceScopeSucceedsWithGlobalLegacyPlugin pins the
-// verification contract for issue #1074: the global legacy-plugin check is a
-// global-scope concern only. A pre-existing global legacy plugin must not fail
-// (or be touched by) a workspace refresh.
-func TestRunSyncWorkspaceScopeSucceedsWithGlobalLegacyPlugin(t *testing.T) {
-	home, workspace := t.TempDir(), t.TempDir()
-
-	restoreHome := osUserHomeDir
-	restoreBackupHome := backup.UserHomeDirFn
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	restoreVersionRunner := opencode.VersionRunnerOverride
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		backup.UserHomeDirFn = restoreBackupHome
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-		opencode.VersionRunnerOverride = restoreVersionRunner
-	})
-	osUserHomeDir = func() (string, error) { return home, nil }
-	backup.UserHomeDirFn = func() (string, error) { return home, nil }
-	runCommand = func(string, ...string) error { return nil }
-	cmdLookPath = func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
-	opencode.VersionRunnerOverride = func(context.Context, opencode.Command) (opencode.CommandOutput, error) {
-		return opencode.CommandOutput{Stdout: []byte("1.2.3")}, nil
-	}
-
-	legacy := filepath.Join(home, ".config", "opencode", "plugins", opencoderuntimeplugins.LegacyOpenCodeReviewPluginName)
-	mustWriteFile(t, legacy, []byte("legacy plugin"))
-
-	t.Chdir(workspace)
-	result, err := RunSyncWithSelectionScope(home, model.Selection{
-		Agents:     []model.AgentID{model.AgentOpenCode},
-		Components: []model.ComponentID{model.ComponentEngram, model.ComponentContext7},
-		Persona:    model.PersonaNeutral,
-	}, ScopeWorkspace)
-	if err != nil {
-		t.Fatalf("workspace sync with global legacy plugin error = %v", err)
-	}
-	if !result.Verify.Ready {
-		t.Errorf("workspace sync verification not ready with a pre-existing global legacy plugin: %s", verify.RenderReport(result.Verify))
-	}
-	if _, err := os.Lstat(legacy); err != nil {
-		t.Errorf("workspace sync must not touch the global legacy plugin: %v", err)
-	}
-}
-
-// TestRunSyncWorkspaceScopeWritesProjectOpenCodeSettings pins the settings
-// authority for issue #1074: OpenCode never reads
-// <workspace>/.config/opencode/opencode.json, so a workspace sync must write
-// and verify the project file OpenCode actually loads — <workspace>/opencode.json,
-// or an existing opencode.jsonc — and never the global authority.
-func TestRunSyncWorkspaceScopeWritesProjectOpenCodeSettings(t *testing.T) {
-	for _, tc := range []struct {
-		name, seed, want string
-	}{
-		{name: "project opencode.json", seed: "opencode.json", want: "opencode.json"},
-		{name: "existing opencode.jsonc", seed: "opencode.jsonc", want: "opencode.jsonc"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			home, globalWorkspace, workspace := t.TempDir(), t.TempDir(), t.TempDir()
-
-			restoreHome := osUserHomeDir
-			restoreCommand := runCommand
-			restoreLookPath := cmdLookPath
-			restoreVersionRunner := opencode.VersionRunnerOverride
-			t.Cleanup(func() {
-				osUserHomeDir = restoreHome
-				runCommand = restoreCommand
-				cmdLookPath = restoreLookPath
-				opencode.VersionRunnerOverride = restoreVersionRunner
-			})
-			osUserHomeDir = func() (string, error) { return home, nil }
-			runCommand = func(string, ...string) error { return nil }
-			cmdLookPath = func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
-			opencode.VersionRunnerOverride = func(context.Context, opencode.Command) (opencode.CommandOutput, error) {
-				return opencode.CommandOutput{Stdout: []byte("1.2.3")}, nil
-			}
-
-			// Global baseline.
-			t.Chdir(globalWorkspace)
-			if _, err := RunSync([]string{"--agents", "opencode"}); err != nil {
-				t.Fatalf("global sync error = %v", err)
-			}
-			before := snapshotTree(t, home)
-
-			projectSettings := filepath.Join(workspace, tc.seed)
-			mustWriteFile(t, projectSettings, []byte(`{"theme":"user-theme"}`))
-
-			selection := model.Selection{
-				Agents:     []model.AgentID{model.AgentOpenCode},
-				Components: []model.ComponentID{model.ComponentEngram, model.ComponentContext7, model.ComponentPermission},
-				Persona:    model.PersonaNeutral,
-			}
-			t.Chdir(workspace)
-			result, err := RunSyncWithSelectionScope(home, selection, ScopeWorkspace)
-			if err != nil {
-				t.Fatalf("workspace project-settings sync error = %v", err)
-			}
-
-			// The project file gained the managed overlays (engram/context7).
-			data, err := os.ReadFile(projectSettings)
-			if err != nil {
-				t.Fatalf("ReadFile(%q) error = %v", projectSettings, err)
-			}
-			if !strings.Contains(string(data), "context7") {
-				t.Errorf("project settings %q did not gain the context7 overlay: %s", projectSettings, data)
-			}
-			// The unreadable workspace config-dir settings file is never created.
-			if _, err := os.Stat(filepath.Join(workspace, ".config", "opencode", "opencode.json")); !os.IsNotExist(err) {
-				t.Errorf("workspace sync wrote the unreadable config-dir settings file: stat err = %v", err)
-			}
-			// Verification targets the project file.
-			settingsVerified := false
-			for _, check := range result.Verify.Checks {
-				if check.ID == "verify:sync:file:"+projectSettings {
-					settingsVerified = true
-				}
-			}
-			if !settingsVerified {
-				t.Errorf("project settings %q missing from verification targets; checks = %v", projectSettings, result.Verify.Checks)
-			}
-			if !result.Verify.Ready {
-				t.Errorf("workspace project-settings sync verification not ready: %s", verify.RenderReport(result.Verify))
-			}
-
-			// The global tree — files and directories — must stay byte-identical.
-			after := snapshotTree(t, home)
-			for rel, beforeHash := range before {
-				if after[rel] != beforeHash {
-					t.Errorf("global tree entry mutated by workspace project-settings sync: %q", rel)
-				}
-			}
-			for rel := range after {
-				if _, ok := before[rel]; !ok {
-					t.Errorf("global tree gained an entry during workspace project-settings sync: %q", rel)
-				}
-			}
-		})
 	}
 }

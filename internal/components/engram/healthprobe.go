@@ -61,7 +61,7 @@ func stdioProbeDeadline(configured time.Duration) time.Duration {
 }
 
 // stdioTimeoutFromConfig reads an MCP server's timeout. A bare number is
-// seconds, which is how the OpenCode MCP configuration expresses it and what
+// seconds, which is how JSON MCP configurations commonly express it and what
 // #3068's reporter set; a string is a Go duration.
 //
 // Anything unparseable, zero, or negative yields 0 and falls back to the
@@ -471,8 +471,6 @@ func engramServerFromJSON(root map[string]any, agentID model.AgentID) (map[strin
 
 	var server any
 	switch agentID {
-	case model.AgentOpenCode, model.AgentKilocode:
-		server = nestedJSONObject(root["mcp"])["engram"]
 	case model.AgentOpenClaw:
 		server = nestedJSONObject(nestedJSONObject(root["mcp"])["servers"])["engram"]
 	case model.AgentVSCodeCopilot:

@@ -135,7 +135,7 @@ var placeholderRegexp = regexp.MustCompile(`<[a-zA-Z][a-zA-Z0-9_ .-]*>`)
 var optionalWordRegexp = regexp.MustCompile(`^\[[a-z-]+\]$`)
 
 const documentedRuntimeAgentIDPlaceholder = "{{GENTLE_AI_RUNTIME_AGENT_ID}}"
-const documentedRuntimeAgentID = "opencode"
+const documentedRuntimeAgentID = "claude-code"
 
 func wordNeedsShell(word string) bool {
 	switch word {
@@ -213,9 +213,9 @@ func classifyWords(words []string, safeVerbs map[string]bool, repo string) ([]st
 			rewritten = append(rewritten, "--cwd="+repo)
 			continue
 		case strings.Contains(word, documentedRuntimeAgentIDPlaceholder):
-			// The placeholder appears only in the shared review contract. Its
-			// OpenCode renders this runtime identity; execute the documented
-			// command with that concrete value.
+			// The placeholder appears only in the shared review contract. Each
+			// runtime renders its own identity there; execute the documented
+			// command with one concrete value.
 			word = strings.ReplaceAll(word, documentedRuntimeAgentIDPlaceholder, documentedRuntimeAgentID)
 		}
 		if wordNeedsShell(placeholderRegexp.ReplaceAllString(word, "")) {
@@ -380,7 +380,7 @@ var documentedInvocationKnownFailures = map[string]string{}
 
 func TestDocumentedInvocationsRunAsDocumented(t *testing.T) {
 	// Retired workflow documents must not remain in the current documentation tree.
-	for _, name := range []string{"openspec-config.md", "antigravity-sdd-workaround.md", "prd-opencode-profiles.md"} {
+	for _, name := range []string{"openspec-config.md", "antigravity-sdd-workaround.md"} {
 		path := filepath.Join("..", "..", "docs", name)
 		if _, err := os.Stat(path); err == nil {
 			t.Errorf("retired workflow document remains: %s", path)
@@ -391,7 +391,7 @@ func TestDocumentedInvocationsRunAsDocumented(t *testing.T) {
 	// Secondary live guides must not promise the removed SDD workflow.
 	for name, retiredClaims := range map[string][]string{
 		"CONTRIBUTING.md":                      {"Delivery Strategy for SDD Changes", "Before `sdd-apply` starts"},
-		"docs/codebase/sync-and-cloud.md":      {"Default sync scope includes SDD", "OpenCode SDD profile flags"},
+		"docs/codebase/sync-and-cloud.md":      {"Default sync scope includes SDD"},
 		"docs/codebase/integrations.md":        {"| SDD assets |"},
 		"docs/codebase/maintainer-playbook.md": {"| SDD workflow |"},
 	} {

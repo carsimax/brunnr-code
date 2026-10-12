@@ -106,15 +106,7 @@ func RunArgs(args []string, stdout io.Writer) error {
 		case "help", "--help", "-h":
 			printHelp(stdout, Version)
 			return nil
-		case "bench-model-picker":
-			if handled, err := runBenchModelPickerCommand(args[1:], stdout); handled {
-				return err
-			}
 		case "uninstall":
-			if len(args) >= 2 && args[1] == "opencode-plugin" {
-				_, err := cli.RunUninstallOpenCodePlugin(args[2:], stdout)
-				return err
-			}
 			return runUninstall(args[1:], stdout)
 		case "skill-registry":
 			return runSkillRegistry(args[1:], stdout)
@@ -269,8 +261,7 @@ func RunArgs(args []string, stdout io.Writer) error {
 		}
 
 		m := tui.NewModel(result, Version, installedState)
-		m.ExecuteFn = tuiExecuteWithBackground
-		m.ExecuteSDKFn = tuiExecuteWithSDK
+		m.ExecuteFn = tuiExecute
 		m.RestoreFn = tuiRestore
 		m.DeleteBackupFn = func(manifest backup.Manifest) error {
 			return backup.DeleteBackup(manifest)
@@ -625,25 +616,11 @@ func updateCheckError(results []update.UpdateResult) error {
 var appUserHomeDir = os.UserHomeDir
 var appStateWriteReconciled = state.WriteReconciled
 
-func tuiExecuteWithBackground(
+func tuiExecute(
 	selection model.Selection,
 	resolved planner.ResolvedPlan,
 	detection system.DetectionResult,
-	background model.OpenCodeBackgroundIntent,
-	backgroundPersist model.OpenCodeBackgroundIntent,
 	onProgress pipeline.ProgressFunc,
-) pipeline.ExecutionResult {
-	return tuiExecuteWithSDK(selection, resolved, detection, background, backgroundPersist, onProgress, nil)
-}
-
-func tuiExecuteWithSDK(
-	selection model.Selection,
-	resolved planner.ResolvedPlan,
-	detection system.DetectionResult,
-	background model.OpenCodeBackgroundIntent,
-	backgroundPersist model.OpenCodeBackgroundIntent,
-	onProgress pipeline.ProgressFunc,
-	consent *cli.OpenCodeSDKConsent,
 ) pipeline.ExecutionResult {
 	restoreCommandOutput := cli.SetCommandOutputStreaming(false)
 	defer restoreCommandOutput()
@@ -656,7 +633,7 @@ func tuiExecuteWithSDK(
 	profile := cli.ResolveInstallProfile(detection)
 	resolved.PlatformDecision = planner.PlatformDecisionFromProfile(profile)
 
-	execResult, orchestrator, codexServiceTier := cli.ExecuteTUIInstallRecordingCodexServiceTier(homeDir, selection, resolved, profile, background, onProgress, consent)
+	execResult, orchestrator, codexServiceTier := cli.ExecuteTUIInstallRecordingCodexServiceTier(homeDir, selection, resolved, profile, onProgress)
 	// The TUI settles asynchronously: keep its deduplicated rollback snapshot
 	// until state persistence succeeds or the failure has been compensated.
 	if orchestrator != nil {
@@ -690,12 +667,8 @@ func tuiExecuteWithSDK(
 			}
 			installState.CodexCarrilModelAssignments = selection.CodexCarrilModelAssignments
 			installState.CodexPhaseModelAssignments = selection.CodexPhaseModelAssignments
-			installState.ModelAssignments = modelAssignmentsToState(selection.ModelAssignments)
 			installState.Persona = string(selection.Persona)
 			installState.SetSelection(selection)
-			if backgroundPersist != "" {
-				installState.BackgroundIntent = backgroundPersist
-			}
 			if writeErr := appStateWriteReconciled(homeDir, installState); writeErr != nil {
 				return fmt.Errorf("persist install state: %w", writeErr)
 			}
@@ -867,9 +840,6 @@ func applyOverrides(selection *model.Selection, overrides *model.SyncOverrides) 
 	if overrides == nil {
 		return
 	}
-	if overrides.ModelAssignments != nil {
-		selection.ModelAssignments = overrides.ModelAssignments
-	}
 	if overrides.ClaudeModelAssignments != nil {
 		selection.ClaudeModelAssignments = overrides.ClaudeModelAssignments
 	}
@@ -904,13 +874,6 @@ func applyOverrides(selection *model.Selection, overrides *model.SyncOverrides) 
 	}
 	if overrides.StrictTDD != nil {
 		selection.StrictTDD = *overrides.StrictTDD
-	}
-	// A persisted component selection loaded earlier via loadPersistedAssignments
-	// may omit the SDD component. When the caller explicitly asked for model
-	// assignment work through this override, that request must not be silently
-	// dropped — see issue #3430.
-	if model.CarriesSDDWork(overrides.ModelAssignments) {
-		selection.EnsureComponent(model.ComponentSDD)
 	}
 }
 
@@ -971,13 +934,6 @@ func loadPersistedAssignments(homeDir string, selection *model.Selection) {
 	if model.ValidCodexServiceTier(s.CodexServiceTier) {
 		selection.CodexServiceTier, selection.CodexManagedServiceTier = s.CodexServiceTier, s.CodexServiceTier
 	}
-	if len(selection.ModelAssignments) == 0 && len(s.ModelAssignments) > 0 {
-		m := make(map[string]model.ModelAssignment, len(s.ModelAssignments))
-		for k, v := range s.ModelAssignments {
-			m[k] = model.ModelAssignment{ProviderID: v.ProviderID, ModelID: v.ModelID, Effort: v.Effort}
-		}
-		selection.ModelAssignments = m
-	}
 }
 
 // persistAssignments writes the model assignments from selection back to
@@ -992,13 +948,12 @@ func persistAssignments(homeDir string, selection model.Selection) error {
 	hasAssignmentSignal := selection.ClaudeModelAssignments != nil ||
 		selection.ClaudePhaseAssignments != nil ||
 		selection.KiroModelAssignments != nil ||
-		selection.ModelAssignments != nil ||
 		selection.CodexModelAssignments != nil ||
 		selection.CodexOrchestratorAssignment != nil ||
 		selection.ClearCodexOrchestratorAssignment ||
 		selection.CodexCarrilModelAssignments != nil ||
 		selection.CodexPhaseModelAssignments != nil
-	if len(selection.ClaudeModelAssignments) == 0 && len(selection.ClaudePhaseAssignments) == 0 && len(selection.KiroModelAssignments) == 0 && len(selection.ModelAssignments) == 0 && len(selection.CodexModelAssignments) == 0 && len(selection.CodexCarrilModelAssignments) == 0 && len(selection.CodexPhaseModelAssignments) == 0 && !hasAssignmentSignal {
+	if len(selection.ClaudeModelAssignments) == 0 && len(selection.ClaudePhaseAssignments) == 0 && len(selection.KiroModelAssignments) == 0 && len(selection.CodexModelAssignments) == 0 && len(selection.CodexCarrilModelAssignments) == 0 && len(selection.CodexPhaseModelAssignments) == 0 && !hasAssignmentSignal {
 		return nil
 	}
 	// The whole read-modify-write runs under the canonical install-state lock:
@@ -1061,13 +1016,6 @@ func persistAssignments(homeDir string, selection model.Selection) error {
 				current.CodexPhaseModelAssignments = selection.CodexPhaseModelAssignments
 			} else {
 				current.CodexPhaseModelAssignments = nil
-			}
-		}
-		if selection.ModelAssignments != nil {
-			if len(selection.ModelAssignments) > 0 {
-				current.ModelAssignments = modelAssignmentsToState(selection.ModelAssignments)
-			} else {
-				current.ModelAssignments = nil
 			}
 		}
 		return state.Write(homeDir, current)
@@ -1133,19 +1081,6 @@ func codexEffortsToStrings(m map[string]model.CodexEffort) map[string]string {
 	out := make(map[string]string, len(m))
 	for k, v := range m {
 		out[k] = string(v)
-	}
-	return out
-}
-
-// modelAssignmentsToState converts model.ModelAssignment maps to the
-// state-serialisable form.
-func modelAssignmentsToState(m map[string]model.ModelAssignment) map[string]state.ModelAssignmentState {
-	if len(m) == 0 {
-		return nil
-	}
-	out := make(map[string]state.ModelAssignmentState, len(m))
-	for k, v := range m {
-		out[k] = state.ModelAssignmentState{ProviderID: v.ProviderID, ModelID: v.ModelID, Effort: v.Effort}
 	}
 	return out
 }

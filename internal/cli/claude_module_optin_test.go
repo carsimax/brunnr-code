@@ -87,7 +87,7 @@ func TestClaudeModuleOptInRejectsWorkspaceAndNonClaudeBeforeWriting(t *testing.T
 		agents string
 	}{
 		{name: "workspace scope", args: claudeInstallArgs("--scope", "workspace", claudeModulesFlag), want: "--scope global", agents: "claude-code"},
-		{name: "selection without Claude", args: []string{"--agent", "opencode", "--components", "persona", claudeModulesFlag}, want: string(model.AgentClaudeCode), agents: "opencode,claude-code"},
+		{name: "selection without Claude", args: []string{"--agent", "codex", "--components", "persona", claudeModulesFlag}, want: string(model.AgentClaudeCode), agents: "codex,claude-code"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			home := installTestHome(t)
@@ -114,7 +114,7 @@ func TestClaudeModuleOptInRejectsWorkspaceAndNonClaudeBeforeWriting(t *testing.T
 
 	t.Run("explicit false keeps the default", func(t *testing.T) {
 		home := installTestHome(t)
-		args := []string{"--dry-run", "--scope", "workspace", "--agent", "opencode", claudeModulesFlag + "=false"}
+		args := []string{"--dry-run", "--scope", "workspace", "--agent", "claude-code", claudeModulesFlag + "=false"}
 		if _, err := RunInstall(args, system.DetectionResult{}); err != nil {
 			t.Fatalf("RunInstall(%q) error = %v", args, err)
 		}

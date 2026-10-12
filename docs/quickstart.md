@@ -46,7 +46,7 @@ when Homebrew is outside PATH.
 
 - Git.
 - Go 1.25.10+ (for building from source).
-- Node.js 18+ and npm: `gentle-ai install` checks these as required prerequisites on every platform and prints a warning with an install hint if either is missing (the Node.js hints for the distros above are listed there; npm's hint asks you to install Node.js first) — regardless of which agents/components you select. It does not install them for you, and it does not install agent runtimes either: most selected agents are configured even when their runtime isn't detected, so install those yourself. Pi and OpenCode are the exceptions: `gentle-ai install` stops until `pi` is on `PATH` (for Pi) or `opencode --version` succeeds (for OpenCode). Node.js/npm are strictly required if you select the CodeGraph community tool, which gentle-ai does install via `npm install -g`.
+- Node.js 18+ and npm: `gentle-ai install` checks these as required prerequisites on every platform and prints a warning with an install hint if either is missing (the Node.js hints for the distros above are listed there; npm's hint asks you to install Node.js first) — regardless of which agents/components you select. It does not install them for you, and it does not install agent runtimes either: most selected agents are configured even when their runtime isn't detected, so install those yourself. Node.js/npm are strictly required if you select the CodeGraph community tool, which gentle-ai does install via `npm install -g`.
 - Pi installed and available as `pi` on `PATH` if you select the Pi agent.
 
 ### Windows
@@ -162,14 +162,14 @@ gentle-ai sync --dry-run
 To update a different set explicitly, pass every target agent:
 
 ```bash
-gentle-ai sync --agent claude-code --agent opencode
+gentle-ai sync --agent claude-code --agent codex
 ```
 
 ## Verification outcome
 
 When checks pass, the installer prints a ready message that names the agent commands you installed, for example:
 
-``You're ready. Run `claude` or `opencode` and start building.``
+``You're ready. Run `claude` and start building.``
 
 If something looks wrong after install, run `gentle-ai doctor` for a read-only health check. It verifies tool binaries, `state.json` validity, Engram™ MCP reachability, and disk space — each check reports pass/warn/fail with a remedy hint.
 
@@ -182,7 +182,7 @@ Open your agent in the project and describe an outcome, for example: "Add CSV ex
 
 ## Hardening recommendations for users
 
-Gentle AI pins versions and disables postinstall scripts on every npm install it generates. When you install the `permissions` component, a sensitive-paths deny list is applied to Claude Code and OpenCode blocking access to `~/.ssh/*`, `**/*.pem`, `**/*.key`, `**/.env*`, `~/.aws/credentials`, and other credential paths. See [Components](../docs/components.md) for the full list.
+Gentle AI pins versions and disables postinstall scripts on every npm install it generates. When you install the `permissions` component, a sensitive-paths deny list is applied to Claude Code blocking access to `~/.ssh/*`, `**/*.pem`, `**/*.key`, `**/.env*`, `~/.aws/credentials`, and other credential paths. See [Components](../docs/components.md) for the full list.
 
 For broader protection across npm packages you install yourself, set these once on your machine:
 

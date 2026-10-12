@@ -47,15 +47,6 @@ func TestResultScreensDoNotExposePhantomCursorRows(t *testing.T) {
 }
 
 func TestConditionalPickerNavigationResetsState(t *testing.T) {
-	t.Run("empty model picker back returns to configuration", func(t *testing.T) {
-		m := NewModel(system.DetectionResult{}, "dev")
-		m.Screen, m.ModelConfigMode, m.Cursor = ScreenModelPicker, true, 1
-		updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-		if got := updated.(Model).Screen; got != ScreenModelConfig {
-			t.Fatalf("screen = %v, want %v", got, ScreenModelConfig)
-		}
-	})
-
 	for _, tc := range []struct {
 		name   string
 		screen Screen

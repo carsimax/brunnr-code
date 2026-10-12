@@ -48,24 +48,3 @@ func TestStrictTDDLegacyCarrierRetiredByInstallAndSync(t *testing.T) {
 		})
 	}
 }
-
-func TestStrictTDDLegacyOpenCodePromptRetired(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentOpenCode} {
-		t.Run(string(agent), func(t *testing.T) {
-			home := t.TempDir()
-			adapter := resolveAdapters([]model.AgentID{agent})[0]
-			path := effectiveOpenCodeSettingsPath(home, "", ScopeGlobal, adapter)
-			if _, err := agentguidance.InjectStrictTDDWithOptions(home, agent, true, agentguidance.RoutingOptions{SettingsPath: path}); err != nil {
-				t.Fatal(err)
-			}
-			step := agentRoutingGuidanceStep{agent: agent, homeDir: home, scope: ScopeGlobal}
-			if err := step.Run(); err != nil {
-				t.Fatal(err)
-			}
-			raw, err := os.ReadFile(path)
-			if err != nil || strings.Contains(string(raw), "gentle-ai:strict-tdd-mode") || !strings.Contains(string(raw), "gentle-ai:agent-routing") || !strings.Contains(string(raw), "relevant runnable deterministic test") {
-				t.Fatalf("legacy marker or missing routing: %s %v", raw, err)
-			}
-		})
-	}
-}

@@ -23,8 +23,7 @@ import (
 // repository, and (when the journey needs one) a local bare remote. Nothing
 // here ever touches the user's real config or repositories.
 type Sandbox struct {
-	policyRuntimeBin string
-	Binary           string
+	Binary string
 	// PathOverride is prepended to PATH for journeys that need a deterministic
 	// local runtime probe without depending on the host installation.
 	PathOverride string
@@ -75,11 +74,6 @@ func newSandbox(binary, root string) (*Sandbox, error) {
 		TracePath: filepath.Join(root, "git-trace.log"),
 		Scratch:   map[string]string{},
 	}
-	var err error
-	sandbox.policyRuntimeBin, err = installPolicyRuntimeFixture(root)
-	if err != nil {
-		return nil, err
-	}
 	return sandbox, nil
 }
 
@@ -87,9 +81,6 @@ func newSandbox(binary, root string) (*Sandbox, error) {
 // PATH is inherited because the product shells out to git.
 func (s *Sandbox) env() []string {
 	path := os.Getenv("PATH")
-	if s.policyRuntimeBin != "" {
-		path = s.policyRuntimeBin + string(os.PathListSeparator) + path
-	}
 	if s.PathOverride != "" {
 		path = s.PathOverride + string(os.PathListSeparator) + path
 	}
@@ -138,6 +129,15 @@ func unavailableProcessTemp(sandbox *Sandbox) error {
 		return fmt.Errorf("unavailable process temp path already exists: %s", path)
 	}
 	sandbox.UnavailableProcessTemp = path
+	return nil
+}
+
+// restoreProcessTemp returns the product to the sandbox's writable temp
+// directory. The compiled Claude provider creates its reviewer scratch
+// directory under process temp, so a journey that proves STATUS survives an
+// unavailable temp restores it before running a compiled provider capture.
+func restoreProcessTemp(sandbox *Sandbox) error {
+	sandbox.UnavailableProcessTemp = ""
 	return nil
 }
 

@@ -42,12 +42,12 @@ A session in repository A may review an explicitly selected nested target in unr
 - Opaque `repository_context` can capture or materialize from any process cwd, but the host still retains B for lifecycle continuity. Go owns repository binding; adapters never parse authorization or roots.
 - The same lineage text in A and B is independent. Approval awaits acknowledgement in B; exact acknowledgement burns B only, and A remains untouched.
 
-This lifecycle is rendered for exactly Claude Code, Codex, and OpenCode. Unsupported runtimes remain unavailable before repository or authority mutation.
+This lifecycle is rendered for exactly Claude Code and Codex. Unsupported runtimes remain unavailable before repository or authority mutation.
 
 ## Capture and correction
 
 <!-- reviewer-capture-transport:start -->
-For each returned `review.capture-result` input, invoke one OpenCode Task: copy `provider_task.agent` exactly as `subagent_type`, and copy `provider_task.prompt` exactly as `prompt`. Do not parse, reconstruct, fence, or append text to either value. The provider task already contains the exact Go-owned binding and reviewer input; never assemble `GENTLE_AI_REVIEW_BINDING` from `arguments` or `artifact_subject`. The Task result must remain the reviewer's raw JSON object, and the live transport hook submits that output to the bound capture. `inspection.status`/`inspection.reason` are the only admission-completeness signal; free text in evidence is never read for it, so an access failure reported only in evidence while `inspection.status` stays `completed` is a false completion.
+For each returned `review.capture-result` input, run its exact capture operation once with its argument tokens exactly as returned. `inspection.status`/`inspection.reason` are the only admission-completeness signal; free text in evidence is never read for it, so an access failure reported only in evidence while `inspection.status` stays `completed` is a false completion.
 <!-- reviewer-capture-transport:end -->
 
 After an empty, malformed, schema-invalid, access/provider-failed, or incomplete capture, query the same exact-lineage STATUS. Relaunch only if its fresh `next_transition` reoffers the same bound slot. Never infer a retry from transcript text. A relayed capture passes its result through `--input <path|->`, one per lens in lens order; BOM-less UTF-8 is required on Windows PowerShell 5.1. Tokens carrying `--agent` capture in process with no `--input`.
@@ -60,7 +60,7 @@ A correction is native-scoped. When the final reviewer or refuter capture opens 
 
 If exact provider-returned START returns the typed `gentle-ai.review-integration.consent/v3` envelope, relay it as a Lossless Blocking Prompt. Global RDD enabled permits review; it never grants consent for this candidate. For medium/high candidates, faithfully translate the headline, reason, `value`, risk evidence, choice labels, every choice `effect`, and the off-path note while preserving original groups/order, selection mode, allowed-answer domain, answer tokens, commands, target IDs, and invocations. Project `value` as benefits and every `effect` as consequences. Do not translate machine answer tokens (`granted`, `declined`). Run exactly the invocation selected by the human; a decline is candidate-scoped and is not the kill switch.
 
-Claude Code, OpenCode, and Codex use the shared Go provider contract. Go owns frozen evidence, binding, schema, byte bounds, validation, admission, and capture; runtime adapters transport opaque provider output. Claude uses a tool-free fresh reviewer; OpenCode relays one host Task through its live Go transport; Codex uses its provider-bound subprocess. Compiled capability is authoritative before repository, target, authority, collection, or process work.
+Claude Code and Codex use the shared Go provider contract. Go owns frozen evidence, binding, schema, byte bounds, validation, admission, and capture; runtime adapters transport opaque provider output. Claude uses a tool-free fresh reviewer; Codex uses its provider-bound subprocess. Compiled capability is authoritative before repository, target, authority, collection, or process work.
 
 Reviewers inspect only the provider-bound immutable trees. Never hand candidate bytes through `/tmp`, an external file, a repository scratch file, or `GENTLE_AI_FROZEN_CANDIDATE_CONTEXT`. Use the provider-issued inspection path, never the live worktree, index, `HEAD`, or an unbound revision. Never pass `--binary`, change checkout, or substitute live files.
 

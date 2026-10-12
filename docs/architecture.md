@@ -30,10 +30,6 @@ internal/
     telemetryruntime/      Native runtime telemetry event adapters and managed hooks
     reviewassets/          Runtime review contract rendering for each agent
     communitytool/         Community tool install/guidance/config orchestration
-    opencodeagents/        OpenCode-compatible agents owned by gentle-ai
-    opencodedefault/       OpenCode default_agent ownership and custom agent discovery
-    opencodeplugin/        OpenCode TUI plugin registration/local plugin helpers
-    opencoderuntimeplugins/  Names and eligibility of managed OpenCode runtime plugins
     uninstall/             Managed uninstall cleanup service
     legacyassets/          Retired managed paths for snapshots and rollback
     mutationjournal/       Before-images of mutated files for atomic rollback
@@ -41,7 +37,6 @@ internal/
   skillregistry/           .atl skill registry refresh/list support
   agents/                  Agent adapters (config strategy per agent)
     <agent>/               One adapter per supported agent; see agents.md
-  opencode/                OpenCode model/config parsing utilities
   state/                   Installation state tracking
   update/                  Self-update + upgrade logic
     upgrade/               Tool upgrade execution and reporting

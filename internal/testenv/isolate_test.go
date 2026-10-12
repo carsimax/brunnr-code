@@ -10,13 +10,13 @@ import (
 // Isolate removes inherited overrides entirely, rather than setting empty
 // values. Behavioral path/write coverage lives in the subprocess regressions.
 func TestIsolateUnsetsKnownAgentRuntimeDirOverrides(t *testing.T) {
-	for _, key := range []string{"OPENCODE_CONFIG_DIR", "XDG_CONFIG_HOME", "GENTLE_AI_HOME", "GENTLE_AI_ENGRAM_BIN"} {
+	for _, key := range []string{"XDG_CONFIG_HOME", "GENTLE_AI_HOME", "GENTLE_AI_ENGRAM_BIN"} {
 		t.Setenv(key, t.TempDir())
 	}
 
 	testenv.Isolate()
 
-	for _, key := range []string{"OPENCODE_CONFIG_DIR", "XDG_CONFIG_HOME", "GENTLE_AI_HOME", "GENTLE_AI_ENGRAM_BIN"} {
+	for _, key := range []string{"XDG_CONFIG_HOME", "GENTLE_AI_HOME", "GENTLE_AI_ENGRAM_BIN"} {
 		if got, ok := os.LookupEnv(key); ok {
 			t.Fatalf("Isolate() left %s = %q, want unset", key, got)
 		}

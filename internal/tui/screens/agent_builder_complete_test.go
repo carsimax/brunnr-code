@@ -70,10 +70,10 @@ func TestRenderABComplete_FailedInstallResult(t *testing.T) {
 		Title: "My Agent",
 	}
 	results := []agentbuilder.InstallResult{
-		{AgentID: model.AgentOpenCode, Path: "/path/SKILL.md", Success: false},
+		{AgentID: model.AgentCodex, Path: "/path/SKILL.md", Success: false},
 	}
 	out := RenderABComplete(agent, results)
-	if !strings.Contains(out, string(model.AgentOpenCode)) {
+	if !strings.Contains(out, string(model.AgentCodex)) {
 		t.Errorf("failed agent ID not found; output:\n%s", out)
 	}
 }

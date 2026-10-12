@@ -67,8 +67,6 @@ func UserSkillDirs(home string) []string {
 		filepath.Join(home, ".kimi", "skills"),
 
 		// Agent-specific global skill locations supported by Gentle AI adapters.
-		filepath.Join(home, ".config", "opencode", "skills"),
-		filepath.Join(home, ".config", "kilo", "skills"),
 		filepath.Join(home, ".claude", "skills"),
 		filepath.Join(home, ".gemini", "skills"),
 		filepath.Join(home, ".gemini", "antigravity", "skills"),
@@ -92,7 +90,6 @@ func ProjectSkillDirs(cwd string) []string {
 		filepath.Join(cwd, "skills"),
 
 		// Agent-native workspace skill locations.
-		filepath.Join(cwd, ".opencode", "skills"),
 		filepath.Join(cwd, ".claude", "skills"),
 		filepath.Join(cwd, ".gemini", "skills"),
 		filepath.Join(cwd, ".cursor", "skills"),
@@ -214,7 +211,7 @@ func EnsureATLIgnored(cwd string) error {
 	if !strings.Contains(existing, "# Local AI runtime state") && !strings.Contains(existing, "# Local Pi runtime state") {
 		header = "# Local AI runtime state\n"
 	}
-	// Atomic write guards against concurrent startup hooks (Codex + OpenCode +
+	// Atomic write guards against concurrent startup hooks (Codex +
 	// Claude) racing on .gitignore, matching how the registry file is written.
 	if _, err := filemerge.WriteFileAtomic(gitignorePath, []byte(existing+prefix+header+atlIgnoreEntry+"\n"), 0o644); err != nil {
 		return fmt.Errorf("write .gitignore: %w", err)

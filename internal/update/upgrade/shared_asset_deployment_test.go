@@ -1,13 +1,10 @@
 package upgrade
 
 import (
-	"io"
 	"io/fs"
-	"path/filepath"
 	"sort"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 )
 
@@ -34,26 +31,4 @@ func embeddedSharedFileNames(t *testing.T) []string {
 	}
 	sort.Strings(names)
 	return names
-}
-
-// TestManagedSkillBackupPathsCoverEveryEmbeddedSharedFile pins the upgrade
-// property: every embedded shared file is a managed backup path, so upgrading
-// preserves and restores it instead of dropping it.
-func TestManagedSkillBackupPathsCoverEveryEmbeddedSharedFile(t *testing.T) {
-	home := t.TempDir()
-	adapter := opencode.NewAdapter()
-
-	paths := managedSkillBackupPaths(home, adapter, io.Discard)
-	got := make(map[string]struct{}, len(paths))
-	for _, path := range paths {
-		got[path] = struct{}{}
-	}
-
-	skillDir := adapter.SkillsDir(home)
-	for _, name := range embeddedSharedFileNames(t) {
-		want := filepath.Join(skillDir, "_shared", name)
-		if _, ok := got[want]; !ok {
-			t.Errorf("managedSkillBackupPaths missing embedded shared file %q (%s)", name, want)
-		}
-	}
 }

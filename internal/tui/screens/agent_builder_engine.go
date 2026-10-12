@@ -29,7 +29,7 @@ func RenderABEngine(availableEngines []model.AgentID, cursor int) string {
 	if len(availableEngines) == 0 {
 		b.WriteString(styles.WarningStyle.Render("No supported AI agent binaries found on PATH."))
 		b.WriteString("\n")
-		b.WriteString(styles.SubtextStyle.Render("Install claude, opencode, gemini, or codex and try again."))
+		b.WriteString(styles.SubtextStyle.Render("Install claude or codex and try again."))
 		b.WriteString("\n\n")
 		b.WriteString(renderOptions([]string{"Back"}, cursor))
 	} else {

@@ -49,8 +49,6 @@ func (profileResolver) ResolveAgentInstall(profile system.PlatformProfile, agent
 	switch agent {
 	case model.AgentClaudeCode:
 		return resolveClaudeCodeInstall(profile), nil
-	case model.AgentOpenCode:
-		return resolveOpenCodeInstall(profile)
 	default:
 		return nil, fmt.Errorf("install command is not supported for agent %q", agent)
 	}
@@ -81,40 +79,7 @@ func resolveClaudeCodeInstall(profile system.PlatformProfile) CommandSequence {
 // present before the pipeline reaches the agent install step.
 var npmBasedAgents = map[model.AgentID]struct{}{
 	model.AgentClaudeCode: {},
-	model.AgentOpenCode:   {},
 	model.AgentCodex:      {},
-}
-
-// ValidateAgentInstallPreflight validates agent-specific prerequisites that must
-// exist before running installation commands.
-func ValidateAgentInstallPreflight(profile system.PlatformProfile, agent model.AgentID) error {
-	if _, ok := npmBasedAgents[agent]; ok {
-		if err := validateNpmInstallPreflight(profile); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// validateNpmInstallPreflight ensures npm (and therefore Node.js) is available
-// before attempting any npm-based agent install. Called for all agents in
-// npmBasedAgents so the user gets a clear, actionable error instead of a
-// cryptic "exec: npm: executable file not found in PATH" mid-pipeline.
-func validateNpmInstallPreflight(profile system.PlatformProfile) error {
-	if _, err := cmdLookPath("npm"); err != nil {
-		hint := system.InstallHintForDep("node", profile)
-		msg := fmt.Sprintf(
-			"Node.js / npm is required but `npm` was not found in PATH.\n"+
-				"Install Node.js (npm is included) and retry:\n"+
-				"  %s",
-			hint,
-		)
-		if profile.PackageManager == "rpm-ostree" {
-			msg += "\nIf a pending deployment prevents --apply-live, stage without it and reboot:\n  rpm-ostree install -y nodejs npm && systemctl reboot"
-		}
-		return fmt.Errorf("%s", msg)
-	}
-	return nil
 }
 
 func (profileResolver) ResolveComponentInstall(profile system.PlatformProfile, component model.ComponentID) (CommandSequence, error) {
@@ -152,39 +117,6 @@ func (profileResolver) ResolveDependencyInstall(profile system.PlatformProfile, 
 			profile.PackageManager,
 			profile.OS,
 			profile.LinuxDistro,
-		)
-	}
-}
-
-// resolveOpenCodeInstall is display-only advice for new V2 installations.
-// Released @opencode/cli needs its postinstall binary setup: never add
-// --ignore-scripts. Existing V1 installations are not upgraded by this advice.
-// Source: https://opencode.ai/v2/docs/migrate-v1/
-func resolveOpenCodeInstall(profile system.PlatformProfile) (CommandSequence, error) {
-	const pkg = "@opencode/cli@latest"
-	switch profile.PackageManager {
-	case "brew":
-		return CommandSequence{
-			{"npm", "install", "-g", pkg},
-		}, nil
-	case "winget":
-		// On Windows, npm global installs do not require sudo.
-		return CommandSequence{{"npm", "install", "-g", pkg}}, nil
-	default:
-		// Any package manager the system probe accepted is enough here: the
-		// install runs through npm, never through the manager itself, so
-		// re-enumerating managers would silently narrow the probe's list
-		// (issue #2499). The gate keeps a probe-rejected Linux profile
-		// (empty PackageManager) on the unsupported arm.
-		if profile.OS == "linux" && profile.PackageManager != "" {
-			if profile.NpmWritable {
-				return CommandSequence{{"npm", "install", "-g", pkg}}, nil
-			}
-			return CommandSequence{{"sudo", "npm", "install", "-g", pkg}}, nil
-		}
-		return nil, fmt.Errorf(
-			"unsupported platform for opencode: os=%q distro=%q pm=%q",
-			profile.OS, profile.LinuxDistro, profile.PackageManager,
 		)
 	}
 }

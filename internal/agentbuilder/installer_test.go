@@ -24,7 +24,7 @@ func TestInstall_HappyPath_WritesFilesToBothDirs(t *testing.T) {
 
 	adapters := []AdapterInfo{
 		{AgentID: model.AgentClaudeCode, SkillsDir: dir1},
-		{AgentID: model.AgentOpenCode, SkillsDir: dir2},
+		{AgentID: model.AgentCodex, SkillsDir: dir2},
 	}
 
 	results, err := Install(agent, adapters, "")
@@ -112,7 +112,7 @@ func TestInstall_RollbackOnSecondWriteFailure(t *testing.T) {
 	agent := makeAgent("my-agent", "# Agent\n")
 	adapters := []AdapterInfo{
 		{AgentID: model.AgentClaudeCode, SkillsDir: dir1},
-		{AgentID: model.AgentOpenCode, SkillsDir: dir2},
+		{AgentID: model.AgentCodex, SkillsDir: dir2},
 	}
 
 	_, err := Install(agent, adapters, "")

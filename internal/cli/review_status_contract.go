@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"path"
@@ -11,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewerprovider"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
 )
 
@@ -396,10 +393,6 @@ func (result ReviewTargetStatusResult) validateWithCompactAuthority(authority *r
 			return err
 		}
 		transitionRequest := reviewTransitionValidationRequest(result.NextTransition)
-		providerTargetedValidation := transitionRequest == nil && result.ValidationRequest != nil &&
-			(result.NextTransition.ReasonCode == "targeted_validation_required" ||
-				result.NextTransition.ReasonCode == reviewInconclusiveTargetedValidationReason) && result.NextTransition.Collect != nil &&
-			len(result.NextTransition.Collect.Inputs) == 1 && result.NextTransition.Collect.Inputs[0].ProviderTask != nil
 		// A transition that collects something else first legitimately carries no
 		// validation request while the status still reports the one the review
 		// is waiting on. An untracked file appearing mid-correction is the
@@ -409,7 +402,7 @@ func (result ReviewTargetStatusResult) validateWithCompactAuthority(authority *r
 		// exact-lineage STATUS is its only re-entry (#3647).
 		collectsUntrackedSelection := result.NextTransition.Kind == reviewNextTransitionCollect &&
 			result.NextTransition.ReasonCode == "intended_untracked_selection_required"
-		if !providerTargetedValidation && !reviewValidationRequestCopiesAgree(transitionRequest, result.ValidationRequest, collectsUntrackedSelection) {
+		if !reviewValidationRequestCopiesAgree(transitionRequest, result.ValidationRequest, collectsUntrackedSelection) {
 			return errors.New("negotiated status validation request copies differ")
 		}
 		if request := result.NextTransition.CorrectionRequest; request != nil {
@@ -570,9 +563,7 @@ func (result ReviewTargetStatusResult) validateSubmissionDescriptors() error {
 			if input.Submission != nil {
 				return errors.New("v3 negotiated status contains a v4 submission descriptor") // refusal:by-design world-action: only a provider code fix can preserve the v3 wire contract
 			}
-			if input.ProviderTask != nil {
-				return errors.New("v3 negotiated status contains a provider role task") // refusal:by-design world-action: only the v5 provider can emit a Go-issued provider task
-			} else if input.CaptureOperation == "external.run_provider_role" {
+			if input.CaptureOperation == "external.run_provider_role" {
 				return errors.New("provider role collection lacks its Go-issued task") // refusal:by-design world-action: provider role collection must be materialized by Go
 			}
 		}
@@ -582,30 +573,8 @@ func (result ReviewTargetStatusResult) validateSubmissionDescriptors() error {
 		return errors.New("submission descriptor status schema is unsupported") // refusal:by-design world-action: only a provider code fix can select a supported descriptor schema
 	}
 	for _, input := range transition.Collect.Inputs {
-		if input.ProviderTask == nil {
-			if input.CaptureOperation == "external.run_provider_role" {
-				return errors.New("provider role collection lacks its Go-issued task") // refusal:by-design world-action: provider role collection must be materialized by Go
-			}
-			continue
-		}
-		arguments, err := reviewTransitionArgumentMap(input.Arguments)
-		if err != nil {
-			return err
-		}
-		if input.CaptureOperation == reviewCaptureResultCaptureOperation {
-			if result.Schema != ReviewIntegrationStatusSchemaV8 && result.Schema != ReviewIntegrationStatusSchemaV9 {
-				return errors.New("pre-v8 negotiated status contains a lens provider task") // refusal:by-design world-action: only status/v8 may publish provider-owned lens tasks
-			}
-			if err := validateReviewLensProviderTaskInput(input, arguments); err != nil {
-				return err
-			}
-			continue
-		}
-		if result.Schema != ReviewIntegrationStatusSchemaV5 && result.Schema != ReviewIntegrationStatusSchemaV6 && result.Schema != ReviewIntegrationStatusSchemaV7 && result.Schema != ReviewIntegrationStatusSchemaV8 && result.Schema != ReviewIntegrationStatusSchemaV9 {
-			return errors.New("v4 negotiated status contains a provider role task") // refusal:by-design world-action: only the v5 provider can emit a Go-issued provider task
-		}
-		if err := validateReviewProviderTaskInput(input, arguments); err != nil {
-			return err
+		if input.CaptureOperation == "external.run_provider_role" {
+			return errors.New("provider role collection lacks its Go-issued task") // refusal:by-design world-action: provider role collection must be materialized by Go
 		}
 	}
 	switch transition.ReasonCode {
@@ -642,12 +611,6 @@ func (result ReviewTargetStatusResult) validateSubmissionDescriptors() error {
 			return errors.New("submission descriptor transition must contain exactly one input") // refusal:by-design world-action: only a provider code fix can produce the required single input
 		}
 		input := transition.Collect.Inputs[0]
-		if input.ProviderTask != nil {
-			// The OpenCode host-mediated form: a Go-issued provider validator
-			// task bound to the current correction authority. It carries no
-			// submission descriptor.
-			return result.validateTargetedValidatorProviderTaskInput(input)
-		}
 		if input.CaptureOperation == "external.run_provider_role" {
 			// A provider role collection input without its Go-issued task is
 			// never a valid targeted validation form.
@@ -679,71 +642,6 @@ func (result ReviewTargetStatusResult) validateSubmissionDescriptors() error {
 				return errors.New("submission descriptor is attached to an unrelated collection input") // refusal:by-design world-action: only a provider code fix can remove the unrelated descriptor
 			}
 		}
-	}
-	return nil
-}
-
-func validateReviewProviderTaskInput(input ReviewTransitionInput, arguments map[string]string) error {
-	task := input.ProviderTask
-	role := reviewerprovider.Role(task.Role)
-	contract, err := reviewerprovider.ContractFor(role)
-	if err != nil || input.CaptureOperation != "external.run_provider_role" || input.Schema != string(contract.ResultSchema) ||
-		task.Agent != reviewProviderRoleOpenCodeAgent(role) || len(arguments) != 6 || arguments["agent"] != string(model.AgentOpenCode) ||
-		arguments["role"] != task.Role || arguments["repository-context"] == "" {
-		return errors.New("provider role collection is not an exact Go-owned binding") // refusal:by-design world-action: provider role collection must remain an exact Go-issued binding
-	}
-	encoded, found := strings.CutPrefix(task.Prompt, reviewProviderTaskBindingHeader+" ")
-	if !found {
-		return errors.New("provider role task prompt has no Go-issued binding") // refusal:by-design world-action: provider role task prompts must carry their Go-issued binding
-	}
-	decoder := json.NewDecoder(bytes.NewBufferString(encoded))
-	decoder.DisallowUnknownFields()
-	var binding reviewProviderTaskBinding
-	if err := decoder.Decode(&binding); err != nil {
-		return errors.New("provider role task binding is malformed") // refusal:by-design world-action: provider role task bindings are Go-issued strict JSON
-	}
-	var extra any
-	if err := decoder.Decode(&extra); err == nil || binding.LineageID != arguments["lineage"] || binding.Revision != arguments["expected-revision"] ||
-		binding.TargetIdentity != arguments["target"] || binding.RepositoryContext != arguments["repository-context"] || binding.Role != task.Role ||
-		reviewtransaction.ValidateReviewRepositoryContextHandle(binding.RepositoryContext) != nil || !validReviewCapabilitySHA256(binding.Revision) || !validReviewCapabilitySHA256(binding.TargetIdentity) {
-		return errors.New("provider role task binding is incomplete") // refusal:by-design world-action: provider role task bindings must match the current authority exactly
-	}
-	return nil
-}
-
-func validateReviewLensProviderTaskInput(input ReviewTransitionInput, arguments map[string]string) error {
-	if input.ProviderTask == nil || input.ArtifactSubject == nil || input.CaptureOperation != reviewCaptureResultCaptureOperation ||
-		input.Name != "reviewer_result" || input.Schema != reviewReviewerSchemaID || input.Submission != nil {
-		return errors.New("lens provider task is not bound to a reviewer result input") // refusal:by-design world-action: only Go may bind a lens task to one frozen capture slot
-	}
-	want, err := newReviewLensProviderTask(input.Arguments, input.ArtifactSubject)
-	if err != nil || !reflect.DeepEqual(*input.ProviderTask, want) {
-		return errors.New("lens provider task is not an exact Go-owned binding") // refusal:by-design world-action: provider-owned lens task bytes must match the frozen native arguments and artifact subject
-	}
-	if arguments["lineage"] != input.ArtifactSubject.LineageID || arguments["expected-revision"] != input.ArtifactSubject.AuthorityRevision ||
-		arguments["target"] != input.ArtifactSubject.TargetIdentity || arguments["lens"] != input.ArtifactSubject.Lens ||
-		arguments["subject-hash"] != input.ArtifactSubject.SubjectHash {
-		return errors.New("lens provider task is not bound to its artifact subject") // refusal:by-design world-action: only Go may bind a lens task to one frozen artifact subject
-	}
-	return nil
-}
-
-func (result ReviewTargetStatusResult) validateTargetedValidatorProviderTaskInput(input ReviewTransitionInput) error {
-	if (result.Schema != ReviewIntegrationStatusSchemaV5 && result.Schema != ReviewIntegrationStatusSchemaV6 && result.Schema != ReviewIntegrationStatusSchemaV7 && result.Schema != ReviewIntegrationStatusSchemaV8 && result.Schema != ReviewIntegrationStatusSchemaV9) || result.Authority == nil || result.ValidationRequest == nil ||
-		input.Name != reviewProviderRoleInputName(reviewerprovider.RoleTargetedValidator) || input.ProviderTask == nil ||
-		input.ProviderTask.Role != string(reviewerprovider.RoleTargetedValidator) || input.Submission != nil {
-		return errors.New("targeted validator provider task is not bound to the correction authority") // refusal:by-design world-action: only Go may issue a targeted validator task for the current correction authority
-	}
-	arguments, err := reviewTransitionArgumentMap(input.Arguments)
-	if err != nil {
-		return err
-	}
-	if err := validateReviewProviderTaskInput(input, arguments); err != nil {
-		return err
-	}
-	if arguments["lineage"] != result.Authority.LineageID || arguments["expected-revision"] != result.ValidationRequest.ExpectedRevision ||
-		arguments["target"] != result.ValidationRequest.CorrectionTargetIdentity {
-		return errors.New("targeted validator provider task is not bound to the correction authority") // refusal:by-design world-action: only Go may issue a targeted validator task for the current correction authority
 	}
 	return nil
 }

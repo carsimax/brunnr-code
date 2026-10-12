@@ -57,7 +57,7 @@ func TestRenderABPreview_InstallTargetsShown(t *testing.T) {
 		Title:   "My Agent",
 		Content: "# My Agent\n",
 	}
-	targets := []string{"/home/user/.config/Claude/skills", "/home/user/.config/opencode/skills"}
+	targets := []string{"/home/user/.config/Claude/skills", "/home/user/.codex/skills"}
 	out := RenderABPreview(agent, targets, 0, 40, 0, nil, "")
 	if !strings.Contains(out, "Will be installed to") {
 		t.Errorf("install targets section not found; output:\n%s", out)

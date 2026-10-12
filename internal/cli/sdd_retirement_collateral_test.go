@@ -13,8 +13,6 @@ import (
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencodedefault"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
 )
@@ -26,7 +24,7 @@ var sharedReferencePattern = regexp.MustCompile(`_shared/([A-Za-z0-9_.-]+\.md)`)
 // skillRuntimes are the runtimes that installed skills/_shared references in
 // v3.7.0. Pi has no adapter skills directory and is intentionally excluded.
 var skillRuntimes = []model.AgentID{
-	model.AgentClaudeCode, model.AgentOpenCode, model.AgentCodex,
+	model.AgentClaudeCode, model.AgentCodex,
 }
 
 // v370SharedReferences is the exact non-SDD skills/_shared set v3.7.0
@@ -118,30 +116,6 @@ func TestInstallLeavesNoDanglingSharedReferences(t *testing.T) {
 	}
 }
 
-// TestInstallRestoresSkillSlashCommands pins the OpenCode-compatible slash
-// commands that the SDD component used to own for skill-creator and
-// skill-registry.
-func TestInstallRestoresSkillSlashCommands(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentOpenCode} {
-		t.Run(string(agent), func(t *testing.T) {
-			home := installFullGentleman(t, agent)
-			adapter, err := agents.NewAdapter(agent)
-			if err != nil {
-				t.Fatal(err)
-			}
-			for _, name := range []string{"skill-creator.md", "skill-registry.md"} {
-				got, err := os.ReadFile(filepath.Join(adapter.CommandsDir(home), name))
-				if err != nil {
-					t.Fatalf("command %s missing: %v", name, err)
-				}
-				if string(got) != assets.MustRead("opencode/commands/"+name) {
-					t.Fatalf("command %s differs from embedded asset", name)
-				}
-			}
-		})
-	}
-}
-
 func readJSONObject(t *testing.T, path string) map[string]any {
 	t.Helper()
 	raw, err := os.ReadFile(path)
@@ -155,108 +129,20 @@ func readJSONObject(t *testing.T, path string) map[string]any {
 	return root
 }
 
-// TestOpenCodeInstallOwnsDefaultAgentAndShare mirrors v3.7.0: install sets
-// default_agent to gentle-orchestrator and records the previous value for
-// uninstall, and disables session sharing only when the user never chose it.
-func TestOpenCodeInstallOwnsDefaultAgentAndShare(t *testing.T) {
-	for _, tt := range []struct {
-		name                  string
-		existing              string
-		wantShare             string
-		wantPrevState, wantPD string
-	}{
-		{name: "fresh", wantShare: "disabled", wantPrevState: "absent"},
-		{name: "user values", existing: `{"default_agent":"build","share":"manual"}`, wantShare: "manual", wantPrevState: "value", wantPD: "build"},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			home := installTestHome(t)
-			settingsPath := filepath.Join(home, ".config", "opencode", "opencode.json")
-			if tt.existing != "" {
-				if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.WriteFile(settingsPath, []byte(tt.existing), 0o644); err != nil {
-					t.Fatal(err)
-				}
-			}
-			args := []string{"--agent", "opencode", "--preset", "full-gentleman"}
-			if _, err := RunInstall(args, system.DetectionResult{}); err != nil {
-				t.Fatal(err)
-			}
-			root := readJSONObject(t, settingsPath)
-			if root["default_agent"] != opencodedefault.ManagedAgent {
-				t.Fatalf("default_agent = %v, want %s", root["default_agent"], opencodedefault.ManagedAgent)
-			}
-			if root["share"] != tt.wantShare {
-				t.Fatalf("share = %v, want %s", root["share"], tt.wantShare)
-			}
-			ownerPath := opencodedefault.OwnershipPath(settingsPath)
-			owner := readJSONObject(t, ownerPath)
-			if owner["schema"] != "gentle-ai.opencode-default-agent" || owner["state"] != "managed" || owner["previous_state"] != tt.wantPrevState {
-				t.Fatalf("ownership record = %v", owner)
-			}
-			if pd, _ := owner["previous_default"].(string); pd != tt.wantPD {
-				t.Fatalf("previous_default = %q, want %q", pd, tt.wantPD)
-			}
-
-			settingsBefore, _ := os.ReadFile(settingsPath)
-			ownerBefore, _ := os.ReadFile(ownerPath)
-			if _, err := RunInstall(args, system.DetectionResult{}); err != nil {
-				t.Fatal(err)
-			}
-			settingsAfter, _ := os.ReadFile(settingsPath)
-			ownerAfter, _ := os.ReadFile(ownerPath)
-			if !bytes.Equal(settingsBefore, settingsAfter) || !bytes.Equal(ownerBefore, ownerAfter) {
-				t.Fatalf("second install is not idempotent")
-			}
-			if _, err := RunSync([]string{"--agent", "opencode"}); err != nil {
-				t.Fatalf("sync: %v", err)
-			}
-			settingsSynced, _ := os.ReadFile(settingsPath)
-			ownerSynced, _ := os.ReadFile(ownerPath)
-			if !bytes.Equal(settingsBefore, settingsSynced) || !bytes.Equal(ownerBefore, ownerSynced) {
-				t.Fatalf("sync changed owned default_agent/share state")
-			}
-
-			if _, err := RunUninstallWithSelection(home, "", []model.AgentID{model.AgentOpenCode}, nil); err != nil {
-				t.Fatalf("uninstall: %v", err)
-			}
-			if _, err := os.Stat(ownerPath); !os.IsNotExist(err) {
-				t.Fatalf("ownership record not released on uninstall: %v", err)
-			}
-			if raw, err := os.ReadFile(settingsPath); err == nil {
-				root := map[string]any{}
-				if err := json.Unmarshal(raw, &root); err != nil {
-					t.Fatal(err)
-				}
-				value, present := root["default_agent"]
-				if tt.wantPrevState == "absent" && present || tt.wantPrevState == "value" && value != tt.wantPD {
-					t.Fatalf("default_agent after uninstall = %v (present=%v)", value, present)
-				}
-			} else if tt.wantPrevState == "value" {
-				t.Fatalf("settings removed although the user had a default: %v", err)
-			}
-		})
-	}
-}
-
-// TestUninstallRemovesRestoredSharedAndCommandFiles proves uninstall removes
-// only the restored files gentle-ai owns and keeps user-authored neighbors.
-func TestUninstallRemovesRestoredSharedAndCommandFiles(t *testing.T) {
-	home := installFullGentleman(t, model.AgentOpenCode)
-	adapter, err := agents.NewAdapter(model.AgentOpenCode)
+// TestUninstallRemovesRestoredSharedFiles proves uninstall removes only the
+// restored shared files gentle-ai owns and keeps user-authored neighbors.
+func TestUninstallRemovesRestoredSharedFiles(t *testing.T) {
+	home := installFullGentleman(t, model.AgentClaudeCode)
+	adapter, err := agents.NewAdapter(model.AgentClaudeCode)
 	if err != nil {
 		t.Fatal(err)
 	}
 	sharedDir := filepath.Join(adapter.SkillsDir(home), "_shared")
 	userShared := filepath.Join(sharedDir, "my-notes.md")
-	userCommand := filepath.Join(adapter.CommandsDir(home), "my-command.md")
-	for _, path := range []string{userShared, userCommand} {
-		if err := os.WriteFile(path, []byte("user"), 0o644); err != nil {
-			t.Fatal(err)
-		}
+	if err := os.WriteFile(userShared, []byte("user"), 0o644); err != nil {
+		t.Fatal(err)
 	}
-	if _, err := RunUninstallWithSelection(home, "", []model.AgentID{model.AgentOpenCode}, nil); err != nil {
+	if _, err := RunUninstallWithSelection(home, "", []model.AgentID{model.AgentClaudeCode}, nil); err != nil {
 		t.Fatalf("uninstall: %v", err)
 	}
 	for _, name := range v370SharedReferences {
@@ -264,15 +150,8 @@ func TestUninstallRemovesRestoredSharedAndCommandFiles(t *testing.T) {
 			t.Errorf("owned _shared/%s survived uninstall: %v", name, err)
 		}
 	}
-	for _, name := range []string{"skill-creator.md", "skill-registry.md"} {
-		if _, err := os.Stat(filepath.Join(adapter.CommandsDir(home), name)); !os.IsNotExist(err) {
-			t.Errorf("owned command %s survived uninstall: %v", name, err)
-		}
-	}
-	for _, path := range []string{userShared, userCommand} {
-		if _, err := os.Stat(path); err != nil {
-			t.Errorf("user file %s removed: %v", path, err)
-		}
+	if _, err := os.Stat(userShared); err != nil {
+		t.Errorf("user file %s removed: %v", userShared, err)
 	}
 }
 
@@ -292,7 +171,7 @@ func TestInstallRefreshesSharedReferencesInCompatibilityRoot(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := RunInstall([]string{"--agent", "opencode", "--preset", "full-gentleman"}, system.DetectionResult{}); err != nil {
+	if _, err := RunInstall([]string{"--agent", "claude-code", "--preset", "full-gentleman"}, system.DetectionResult{}); err != nil {
 		t.Fatal(err)
 	}
 	for _, name := range v370SharedReferences {
@@ -324,8 +203,8 @@ func TestInstallRefreshesSharedReferencesInCompatibilityRoot(t *testing.T) {
 func TestUninstallRemovesEmptiedSkillsDirectory(t *testing.T) {
 	for _, keepUserFile := range []bool{false, true} {
 		t.Run(fmt.Sprintf("user file %v", keepUserFile), func(t *testing.T) {
-			home := installFullGentleman(t, model.AgentOpenCode)
-			adapter, err := agents.NewAdapter(model.AgentOpenCode)
+			home := installFullGentleman(t, model.AgentClaudeCode)
+			adapter, err := agents.NewAdapter(model.AgentClaudeCode)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -335,7 +214,7 @@ func TestUninstallRemovesEmptiedSkillsDirectory(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if _, err := RunUninstallWithSelection(home, "", []model.AgentID{model.AgentOpenCode}, nil); err != nil {
+			if _, err := RunUninstallWithSelection(home, "", []model.AgentID{model.AgentClaudeCode}, nil); err != nil {
 				t.Fatalf("uninstall: %v", err)
 			}
 			_, statErr := os.Stat(skillDir)
@@ -346,7 +225,7 @@ func TestUninstallRemovesEmptiedSkillsDirectory(t *testing.T) {
 				entries, _ := os.ReadDir(skillDir)
 				t.Fatalf("emptied skills directory survived uninstall: %v (entries %v)", statErr, entries)
 			}
-			for _, dir := range []string{filepath.Join(skillDir, "_shared"), adapter.CommandsDir(home)} {
+			for _, dir := range []string{filepath.Join(skillDir, "_shared")} {
 				if _, err := os.Stat(dir); !os.IsNotExist(err) {
 					t.Errorf("emptied directory %s survived uninstall: %v", dir, err)
 				}

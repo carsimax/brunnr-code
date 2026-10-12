@@ -24,7 +24,7 @@ func TestInstallFlagsRetiredModeRejectedAndHelpOmitted(t *testing.T) {
 }
 
 func TestExplicitRetiredSDDComponentIsRejected(t *testing.T) {
-	_, err := RunInstall([]string{"--agent", "opencode", "--component", "sdd"}, system.DetectionResult{})
+	_, err := RunInstall([]string{"--agent", "claude-code", "--component", "sdd"}, system.DetectionResult{})
 	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "sdd") {
 		t.Fatalf("explicit retired SDD selection must be rejected before installation, got %v", err)
 	}
@@ -32,7 +32,7 @@ func TestExplicitRetiredSDDComponentIsRejected(t *testing.T) {
 
 func TestParseInstallFlagsSupportsCSVAndRepeated(t *testing.T) {
 	flags, err := ParseInstallFlags([]string{
-		"--agent", "claude-code,opencode",
+		"--agent", "claude-code,codex",
 		"--agent", "cursor",
 		"--component", "engram,sdd",
 		"--component", "skills",
@@ -46,7 +46,7 @@ func TestParseInstallFlagsSupportsCSVAndRepeated(t *testing.T) {
 		t.Fatalf("ParseInstallFlags() error = %v", err)
 	}
 
-	if !reflect.DeepEqual(flags.Agents, []string{"claude-code", "opencode", "cursor"}) {
+	if !reflect.DeepEqual(flags.Agents, []string{"claude-code", "codex", "cursor"}) {
 		t.Fatalf("agents = %v", flags.Agents)
 	}
 
@@ -68,21 +68,6 @@ func TestInstallChannelHelpMentionsNightly(t *testing.T) {
 	}
 }
 
-func TestModelAssignmentsToStatePreservesEffort(t *testing.T) {
-	assignments := map[string]model.ModelAssignment{
-		"sdd-apply": {
-			ProviderID: "anthropic",
-			ModelID:    "claude-opus-4",
-			Effort:     "high",
-		},
-	}
-
-	got := modelAssignmentsToState(assignments)
-	if got["sdd-apply"].Effort != "high" {
-		t.Fatalf("Effort = %q, want high", got["sdd-apply"].Effort)
-	}
-}
-
 func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 	input, err := NormalizeInstallFlags(InstallFlags{}, system.DetectionResult{})
 	if err != nil {
@@ -90,7 +75,7 @@ func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 	}
 
 	want := model.Selection{
-		Agents:  []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode, model.AgentCodex},
+		Agents:  []model.AgentID{model.AgentClaudeCode, model.AgentCodex},
 		Persona: model.PersonaGentleman,
 		Preset:  model.PresetFullGentleman,
 		Components: []model.ComponentID{
@@ -100,7 +85,6 @@ func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 			model.ComponentPermission,
 			model.ComponentGGA,
 			model.ComponentClaudeTheme,
-			model.ComponentOpenCodeGentleLogo,
 			model.ComponentPersona,
 		},
 	}
@@ -171,7 +155,7 @@ func TestNormalizeInstallFlagsFullPresetCustomPersonaKeepsPresetPolish(t *testin
 		}
 	}
 
-	for _, want := range []model.ComponentID{model.ComponentClaudeTheme, model.ComponentOpenCodeGentleLogo} {
+	for _, want := range []model.ComponentID{model.ComponentClaudeTheme} {
 		found := false
 		for _, got := range input.Selection.Components {
 			if got == want {
@@ -188,13 +172,13 @@ func TestNormalizeInstallFlagsFullPresetCustomPersonaKeepsPresetPolish(t *testin
 func TestNormalizeInstallFlagsCustomAcceptsOptionalGentlemanInstallables(t *testing.T) {
 	input, err := NormalizeInstallFlags(InstallFlags{
 		Preset:     string(model.PresetCustom),
-		Components: []string{string(model.ComponentClaudeTheme), string(model.ComponentOpenCodeGentleLogo)},
+		Components: []string{string(model.ComponentClaudeTheme)},
 	}, system.DetectionResult{})
 	if err != nil {
 		t.Fatalf("NormalizeInstallFlags() error = %v", err)
 	}
 
-	want := []model.ComponentID{model.ComponentClaudeTheme, model.ComponentOpenCodeGentleLogo}
+	want := []model.ComponentID{model.ComponentClaudeTheme}
 	if !reflect.DeepEqual(input.Selection.Components, want) {
 		t.Fatalf("components = %#v, want %#v", input.Selection.Components, want)
 	}
@@ -244,17 +228,17 @@ func TestParseInstallFlagsSDDMode(t *testing.T) {
 	}{
 		{
 			name: "flag absent defaults to empty",
-			args: []string{"--agent", "opencode"},
+			args: []string{"--agent", "claude-code"},
 			want: "",
 		},
 		{
 			name:    "flag set to multi",
-			args:    []string{"--agent", "opencode", "--sdd-mode", "multi"},
+			args:    []string{"--agent", "claude-code", "--sdd-mode", "multi"},
 			wantErr: true,
 		},
 		{
 			name:    "flag set to single",
-			args:    []string{"--agent", "opencode", "--sdd-mode", "single"},
+			args:    []string{"--agent", "claude-code", "--sdd-mode", "single"},
 			wantErr: true,
 		},
 	}
@@ -324,7 +308,7 @@ func TestRunInstallDryRunSkipsExecution(t *testing.T) {
 func makeDetectionWithAgents(present ...string) system.DetectionResult {
 	var configs []system.ConfigState
 	// Full canonical agent set — mirrors knownAgentConfigDirs in config_scan.go.
-	known := []string{"claude-code", "opencode", "kilocode", "gemini-cli", "cursor", "vscode-copilot", "codex", "antigravity", "windsurf", "kimi", "qwen-code", "kiro-ide", "openclaw", "trae-ide", "hermes"}
+	known := []string{"claude-code", "gemini-cli", "cursor", "vscode-copilot", "codex", "antigravity", "windsurf", "kimi", "qwen-code", "kiro-ide", "openclaw", "trae-ide", "hermes"}
 	presentSet := make(map[string]bool, len(present))
 	for _, p := range present {
 		presentSet[p] = true
@@ -370,7 +354,6 @@ func TestDefaultAgentsFromDetection_AllAgentsMappedCorrectly(t *testing.T) {
 		wantID      model.AgentID
 	}{
 		{"claude-code", model.AgentClaudeCode},
-		{"opencode", model.AgentOpenCode},
 		{"codex", model.AgentCodex},
 	}
 

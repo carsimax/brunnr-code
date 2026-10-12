@@ -10,12 +10,6 @@ var defaultContext7ServerJSON = []byte(fmt.Sprintf("{\n  \"command\": \"npx\",\n
 
 var defaultContext7OverlayJSON = []byte(fmt.Sprintf("{\n  \"mcpServers\": {\n    \"context7\": {\n      \"command\": \"npx\",\n      \"args\": [\n        \"-y\",\n        \"--package=@upstash/context7-mcp@%s\",\n        \"--\",\n        \"context7-mcp\"\n      ]\n    }\n  }\n}\n", versions.Context7MCP))
 
-// openCodeContext7OverlayJSON is the opencode.json overlay using the new MCP format.
-// Context7 is a remote MCP server — no npx needed.
-// The context7 entry must replace atomically so legacy local keys do not survive
-// deep merge into OpenCode/KiloCode's strict MCP schema.
-var openCodeContext7OverlayJSON = []byte("{\n  \"mcp\": {\n    \"context7\": {\n      \"__replace__\": {\n        \"type\": \"remote\",\n        \"url\": \"https://mcp.context7.com/mcp\",\n        \"enabled\": true\n      }\n    }\n  }\n}\n")
-
 // openClawContext7OverlayJSON is the OpenClaw openclaw.json overlay.
 // OpenClaw rejects top-level mcpServers and expects MCP entries under
 // mcp.servers.
@@ -45,12 +39,6 @@ func DefaultContext7ServerJSON() []byte {
 func DefaultContext7OverlayJSON() []byte {
 	content := make([]byte, len(defaultContext7OverlayJSON))
 	copy(content, defaultContext7OverlayJSON)
-	return content
-}
-
-func OpenCodeContext7OverlayJSON() []byte {
-	content := make([]byte, len(openCodeContext7OverlayJSON))
-	copy(content, openCodeContext7OverlayJSON)
 	return content
 }
 

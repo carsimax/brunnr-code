@@ -19,18 +19,6 @@ func TestParseSetupModeDefaultsToSupported(t *testing.T) {
 	}
 }
 
-func TestParseSetupModeValues(t *testing.T) {
-	if got := ParseSetupMode("off"); got != SetupModeOff {
-		t.Fatalf("ParseSetupMode(off) = %q, want %q", got, SetupModeOff)
-	}
-	if got := ParseSetupMode("supported"); got != SetupModeSupported {
-		t.Fatalf("ParseSetupMode(supported) = %q, want %q", got, SetupModeSupported)
-	}
-	if got := ParseSetupMode("opencode"); got != SetupModeOpenCode {
-		t.Fatalf("ParseSetupMode(opencode) = %q, want %q", got, SetupModeOpenCode)
-	}
-}
-
 func TestParseSetupStrict(t *testing.T) {
 	truthy := []string{"1", "true", "TRUE", "yes", "on"}
 	for _, value := range truthy {
@@ -53,7 +41,6 @@ func TestSetupAgentSlug(t *testing.T) {
 		slug  string
 		ok    bool
 	}{
-		{model.AgentOpenCode, "opencode", true},
 		{model.AgentClaudeCode, "claude-code", true},
 		{model.AgentCodex, "codex", true},
 		// Hermes MCP is injected directly via YAML helpers — no engram setup slug.
@@ -68,14 +55,8 @@ func TestSetupAgentSlug(t *testing.T) {
 }
 
 func TestShouldAttemptSetup(t *testing.T) {
-	if ShouldAttemptSetup(SetupModeOff, model.AgentOpenCode) {
-		t.Fatal("ShouldAttemptSetup(off, opencode) = true, want false")
-	}
-	if !ShouldAttemptSetup(SetupModeOpenCode, model.AgentOpenCode) {
-		t.Fatal("ShouldAttemptSetup(opencode, opencode) = false, want true")
-	}
-	if ShouldAttemptSetup(SetupModeOpenCode, model.AgentGeminiCLI) {
-		t.Fatal("ShouldAttemptSetup(opencode, gemini-cli) = true, want false")
+	if ShouldAttemptSetup(SetupModeOff, model.AgentClaudeCode) {
+		t.Fatal("ShouldAttemptSetup(off, claude-code) = true, want false")
 	}
 	if !ShouldAttemptSetup(SetupModeSupported, model.AgentClaudeCode) {
 		t.Fatal("ShouldAttemptSetup(supported, claude-code) = false, want true")

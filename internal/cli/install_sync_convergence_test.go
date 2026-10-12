@@ -80,7 +80,7 @@ func assertSameManagedTree(t *testing.T, step string, before, after map[string]s
 // replace a prompt after Engram wrote its protocol and MCP blocks keep their
 // install layout.
 func TestInstallThenSyncConverges(t *testing.T) {
-	for _, agent := range []string{"claude-code", "opencode", "codex"} {
+	for _, agent := range []string{"claude-code", "codex"} {
 		t.Run(agent, func(t *testing.T) {
 			home := convergenceTestHome(t)
 			if _, err := RunInstall([]string{"--agent", agent, "--preset", "full-gentleman"}, system.DetectionResult{}); err != nil {
@@ -152,7 +152,7 @@ func TestCodeGraphInstallThenSyncConverges(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			execution, _, _ := executeTUIInstall(home, selection, resolved, ResolveInstallProfile(system.DetectionResult{}), "", nil)
+			execution, _, _ := executeTUIInstall(home, selection, resolved, ResolveInstallProfile(system.DetectionResult{}), nil)
 			if execution.Err != nil {
 				t.Fatalf("TUI install error = %v", execution.Err)
 			}

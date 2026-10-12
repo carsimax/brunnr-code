@@ -31,7 +31,7 @@ func modelOnAgentBuilderEngine(t *testing.T) Model {
 
 func TestAgentBuilder_WelcomeCreateAgentEnter_NavigatesToEngine(t *testing.T) {
 	// confirmSelection case 5 calls hasAgentBuilderEngines() which checks real
-	// binaries on PATH (claude, opencode, etc.). In CI none are installed, so
+	// binaries on PATH (claude, codex, etc.). In CI none are installed, so
 	// we cannot rely on Update(KeyEnter) to reach ScreenAgentBuilderEngine.
 	// Instead we verify the navigation contract directly: starting from Welcome
 	// with a pre-seeded engine list, setScreen(ScreenAgentBuilderEngine) lands

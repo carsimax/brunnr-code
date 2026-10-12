@@ -826,14 +826,6 @@ func TestReadPersistedStdioCommands_PreservesConfiguredCommandAndArguments(t *te
 			args:    []string{"mcp", "--tools=claude"},
 		},
 		{
-			name:    "OpenCode command array",
-			agentID: "opencode",
-			path:    ".config/opencode/opencode.json",
-			content: `{"mcp":{"engram":{"command":["/configured/opencode-engram","mcp","--tools=opencode"],"type":"local"}}}`,
-			command: "/configured/opencode-engram",
-			args:    []string{"mcp", "--tools=opencode"},
-		},
-		{
 			name:    "Codex TOML configuration",
 			agentID: "codex",
 			path:    ".codex/config.toml",

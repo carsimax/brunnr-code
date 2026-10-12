@@ -14,7 +14,7 @@ func TestLegacyCommandPaths(t *testing.T) {
 		agent  model.AgentID
 		prefix string
 		legacy bool
-	}{{model.AgentClaudeCode, "gentle-", true}, {model.AgentOpenCode, "", false}} {
+	}{{model.AgentClaudeCode, "gentle-", true}, {model.AgentCodex, "", false}} {
 		dir := filepath.Join(t.TempDir(), "commands")
 		want := []string{}
 		for _, name := range names {

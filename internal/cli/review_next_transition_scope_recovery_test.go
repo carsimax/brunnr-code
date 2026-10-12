@@ -2,8 +2,6 @@ package cli
 
 import (
 	"bytes"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
@@ -29,70 +27,5 @@ func TestNegotiatedStatusRoutesHistoricalScopeChangeToRecovery(t *testing.T) {
 		status.NextTransition == nil || status.NextTransition.Kind != reviewNextTransitionExecute ||
 		status.NextTransition.ReasonCode != "fresh_target_ready" {
 		t.Fatalf("historical scope status = %#v", status)
-	}
-}
-
-func TestRejectedTargetedValidatorCaptureRoutesEscalatedRecovery(t *testing.T) {
-	reviewEnabledHome(t)
-	repo, lineage, request := providerCorrectionReadyWithoutVerificationEvidence(t)
-	store, err := reviewtransaction.CompactAuthoritativeStore(t.Context(), repo, lineage)
-	if err != nil {
-		t.Fatal(err)
-	}
-	record, err := store.Load()
-	if err != nil {
-		t.Fatal(err)
-	}
-	payload, err := canonicalProviderRoleResult(facadeValidationResult{
-		TargetedValidationRequestHash: request.RequestHash,
-		CorrectionTargetIdentity:      request.CorrectionTargetIdentity,
-		OriginalCriteria:              facadeValidationCheck{Passed: false, Evidence: []string{"inspected the correction candidate: the critical finding remains"}},
-		CorrectionRegression:          facadeValidationCheck{Passed: true, Evidence: []string{"inspected the correction candidate: no unrelated regression"}},
-		FollowUps:                     []reviewtransaction.FollowUp{},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, _, closure, err := reviewProviderCloseTargetedValidatorRaw(t.Context(), repo, store, record.State, record.State.CapturePhaseRevision, payload)
-	if err != nil || closure == nil || closure.State != reviewtransaction.StateEscalated {
-		t.Fatalf("rejected targeted validator closure = %#v, %v", closure, err)
-	}
-	if err := os.WriteFile(filepath.Join(repo, "recovery.go"), []byte("package candidate\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	runReviewCLIGit(t, repo, "add", "recovery.go")
-
-	for _, tt := range []struct {
-		name, contract, schema string
-		wantEscalation         bool
-	}{
-		{name: "v1", contract: ReviewIntegrationContractV1, schema: ReviewIntegrationStatusSchemaV2},
-		{name: "v2", contract: ReviewIntegrationContractV2, schema: ReviewIntegrationStatusSchemaV9, wantEscalation: true},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			var output bytes.Buffer
-			if err := RunReview([]string{
-				"status", "--cwd", repo, "--contract", tt.contract,
-				"--lineage", lineage, "--next-transition",
-			}, &output); err != nil {
-				t.Fatal(err)
-			}
-			var status ReviewTargetStatusResult
-			decodeStrictReviewJSON(t, output.Bytes(), &status)
-			if status.Schema != tt.schema || status.Action != reviewtransaction.TargetStatusActionRecover ||
-				status.ActionDisposition != reviewtransaction.RecoveryEscalated || status.NextTransition == nil ||
-				status.NextTransition.Kind != reviewNextTransitionExecute || status.NextTransition.Execute == nil || status.NextTransition.Execute.Operation != "review.recover" {
-				t.Fatalf("escalated status = %#v", status)
-			}
-			if err := status.Validate(); err != nil {
-				t.Fatalf("status validation error = %v", err)
-			}
-			if (status.Escalation != nil) != tt.wantEscalation {
-				t.Fatalf("status escalation = %#v, want present=%t", status.Escalation, tt.wantEscalation)
-			}
-			if tt.wantEscalation {
-				validatePublishedReviewSchema(t, compileWholeNativeStatusSchema(t, "status-v9.schema.json"), output.Bytes())
-			}
-		})
 	}
 }

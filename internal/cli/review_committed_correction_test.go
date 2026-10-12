@@ -120,7 +120,7 @@ func TestCommittedBaseDiffLastReviewerCapturePublishesExactStatusContinuation(t 
 }
 
 func TestCommittedBaseDiffCorrectionReentryRunsReturnedContinuationForAdvertisedLanes(t *testing.T) {
-	for _, runtime := range []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode, model.AgentCodex} {
+	for _, runtime := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex} {
 		t.Run(string(runtime), func(t *testing.T) {
 			reviewEnabledHome(t)
 			repo := initReviewCLIRepo(t)
@@ -188,16 +188,6 @@ func TestCommittedBaseDiffCorrectionReentryRunsReturnedContinuationForAdvertised
 					t.Fatalf("%s final capture: %v\n%s", runtime, err, output.String())
 				}
 				terminal = output.Bytes()
-			case model.AgentOpenCode:
-				relay := startOpenCodeTransportRelay(t, repo, openCodeLensTransportStart(t, repo, record, started.SelectedLenses[0]))
-				hostOutput := string(payload)
-				completed, err := relay.complete(openCodeTransportEnvelope{
-					Schema: openCodeReviewTransportSchema, Operation: "complete", Nonce: relay.prompt.Nonce, Output: &hostOutput,
-				})
-				if err != nil || completed.Output == nil {
-					t.Fatalf("%s final capture = %#v, %v", runtime, completed, err)
-				}
-				terminal = []byte(*completed.Output)
 			}
 
 			var closure reviewLastEventClosureResult

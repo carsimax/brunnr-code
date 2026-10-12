@@ -8,7 +8,7 @@ import (
 )
 
 // SDDInventory is what releases installed for one runtime under one config
-// root besides native agents and OpenCode-family settings: SDD skills, slash
+// root besides native agents: SDD skills, slash
 // commands, workflows, Codex profiles, the Kimi module, the Claude Code
 // preflight hook, and the SDD text left in prompt files. Install, sync, and
 // uninstall snapshot (BackupPaths) and retire (Retire) exactly this

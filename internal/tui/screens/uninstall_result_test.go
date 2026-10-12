@@ -45,7 +45,7 @@ func TestRenderUninstallResultFailureShowsManualActions(t *testing.T) {
 func TestRenderUninstallConfirmIncludesEngramProjectScopeDetails(t *testing.T) {
 	out := RenderUninstallConfirm(
 		model.UninstallModePartial,
-		[]model.AgentID{model.AgentOpenCode},
+		[]model.AgentID{model.AgentCodex},
 		[]model.ComponentID{model.ComponentEngram},
 		model.EngramUninstallScopeProject,
 		true,

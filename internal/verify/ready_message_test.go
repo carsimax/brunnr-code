@@ -4,7 +4,7 @@ import "testing"
 
 // TestReadyMessageForCommandsNamesOnlyTheGivenCommands closes organic-dx
 // Phase 3f task 3f.4: the completion line must name only the agents actually
-// installed, never a fixed "claude or opencode" regardless of selection.
+// installed, never a fixed agent list regardless of selection.
 func TestReadyMessageForCommandsNamesOnlyTheGivenCommands(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -12,8 +12,8 @@ func TestReadyMessageForCommandsNamesOnlyTheGivenCommands(t *testing.T) {
 		want     string
 	}{
 		{name: "no runnable commands falls back to the generic ready message", commands: nil, want: readyMessage},
-		{name: "single command", commands: []string{"opencode"}, want: "You're ready. Run `opencode` and start building."},
-		{name: "two commands", commands: []string{"claude", "opencode"}, want: "You're ready. Run `claude` or `opencode` and start building."},
+		{name: "single command", commands: []string{"codex"}, want: "You're ready. Run `codex` and start building."},
+		{name: "two commands", commands: []string{"claude", "codex"}, want: "You're ready. Run `claude` or `codex` and start building."},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

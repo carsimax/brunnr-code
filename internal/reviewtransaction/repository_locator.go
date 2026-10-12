@@ -368,7 +368,7 @@ func matchReviewRepositoryContextV2Handle(handle string, identity RepositoryIden
 }
 
 func canonicalReviewRepositoryContextV2Payload(token reviewRepositoryContextV2Token) ([]byte, error) {
-	if (token.Schema != reviewRepositoryContextV2Schema && token.Schema != reviewRepositoryContextV3Schema) || !validReviewRepositoryContextV2Path(token.RepositoryRoot) ||
+	if token.Schema != reviewRepositoryContextV2Schema || !validReviewRepositoryContextV2Path(token.RepositoryRoot) ||
 		!validReviewRepositoryContextV2Path(token.GitCommonDir) || !validReviewRepositoryContextV2Path(token.GitDir) ||
 		!validSHA256(token.RepositoryRef) || validateReviewRepositoryContextBinding(ReviewRepositoryContextBinding{
 		LineageID: token.LineageID, TargetIdentity: token.TargetIdentity, Revision: token.CapturePhaseRevision,
@@ -398,7 +398,7 @@ func ValidateReviewRepositoryContextHandle(handle string) error {
 	if validReviewRepositoryContextHandle(handle) {
 		return nil
 	}
-	if validReviewRepositoryContextV2Handle(handle) || validReviewRepositoryContextV3Handle(handle) {
+	if validReviewRepositoryContextV2Handle(handle) {
 		return nil
 	}
 	return errors.New("invalid review repository context handle")
@@ -445,15 +445,11 @@ func ResolveReviewRepositoryContextBinding(ctx context.Context, repo, handle str
 }
 
 // resolveReviewRepositoryContext dispatches one handle by its format. An rctx2
-// digest is verified against the caller repository exactly as it always was;
-// an rctx3 handle, issued only to OpenCode hosts, names its own sealed root and
-// never consults the caller repository.
+// digest is verified against the caller repository exactly as it always was.
 func resolveReviewRepositoryContext(ctx context.Context, repo, handle string, binding ReviewRepositoryContextBinding) (string, ReviewRepositoryContextBinding, error) {
 	switch {
 	case strings.HasPrefix(handle, reviewRepositoryContextV2HandlePrefix):
 		return resolveReviewRepositoryContextV2Token(ctx, repo, handle, binding)
-	case strings.HasPrefix(handle, reviewRepositoryContextV3HandlePrefix):
-		return resolveSealedReviewRepositoryContext(ctx, handle, binding)
 	default:
 		return "", ReviewRepositoryContextBinding{}, errInvalidReviewRepositoryContextV2
 	}

@@ -152,7 +152,7 @@ func TestTelemetryRuntimeClaudeIgnoredAndPolicyBeforeRead(t *testing.T) {
 		t.Fatal(err)
 	}
 	out.Reset()
-	if err := runTelemetryRuntimeInput([]string{"claude", "--json"}, &out, noOpenCodeRead{t}); err != nil || !strings.Contains(out.String(), `"disabled"`) {
+	if err := runTelemetryRuntimeInput([]string{"claude", "--json"}, &out, noStdinRead{t}); err != nil || !strings.Contains(out.String(), `"disabled"`) {
 		t.Fatal(out.String(), err)
 	}
 }

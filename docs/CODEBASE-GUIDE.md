@@ -30,7 +30,7 @@ gentle-ai CLI / Bubbletea TUI
   +--> verification reports readiness
   |
   v
-Agent config roots (~/.claude, ~/.config/opencode, ~/.cursor, ...)
+Agent config roots (~/.claude, ~/.codex)
   |
   v
 External tools and agents: Engram, Context7, GGA, supported AI CLIs/IDEs
@@ -68,7 +68,6 @@ Golden rule: **agent-specific paths belong in adapters; reusable behavior belong
 | [Usage](usage.md) | User-facing CLI/TUI behavior. |
 | [Components](components.md) | Component, preset, and managed asset overview. |
 | [Engram Commands](engram.md) | Engram user commands and MCP tool overview. |
-| [Native OpenCode background subagents](opencode-profiles.md) | Managed background execution preference and limitations. |
 | [Skill Registry](skill-registry.md) | Skill indexing and refresh behavior. |
 | [Agents](agents.md) | Supported agent matrix and config paths. |
 | [Rollback](rollback.md) | Backup, restore, and uninstall safety model. |

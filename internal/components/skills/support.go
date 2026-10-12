@@ -14,9 +14,8 @@ import (
 )
 
 // Support assets are the non-skill files that installed skills depend on:
-// the skills/_shared references (skill-resolver, review-ledger-contract, ...)
-// and the OpenCode-compatible slash commands that front skill-creator and
-// skill-registry. Up to v3.7.0 the SDD component installed them; its
+// the skills/_shared references (skill-resolver, review-ledger-contract, ...).
+// Up to v3.7.0 the SDD component installed them; its
 // retirement dropped them by accident while the installed skills still point
 // at them (#4471). The skills component now owns them.
 
@@ -25,7 +24,6 @@ const (
 	// contract carries; it is bound to the runtime that receives the bytes.
 	runtimeAgentIDPlaceholder = "{{GENTLE_AI_RUNTIME_AGENT_ID}}"
 	sharedDirName             = "_shared"
-	skillCommandsAssetDir     = "opencode/commands"
 	// compatibilityRuntimeSlot binds the shared ~/.agents/skills root, which
 	// every runtime reads, to a generic slot instead of one runtime identity.
 	compatibilityRuntimeSlot = "<runtime>"
@@ -77,22 +75,8 @@ func LegacySharedMarkerPath(skillDir string) string {
 	return filepath.Join(skillDir, sharedDirName, "SKILL.md")
 }
 
-// SkillCommandPaths returns the slash-command files the skills component
-// writes for the selected skills. Claude Code has no retained skill commands.
-func SkillCommandPaths(homeDir string, adapter agents.Adapter, skillIDs []model.SkillID) ([]string, error) {
-	commands, err := skillCommands(homeDir, adapter, skillIDs)
-	if err != nil {
-		return nil, err
-	}
-	paths := make([]string, 0, len(commands))
-	for _, command := range commands {
-		paths = append(paths, command.destination)
-	}
-	return paths, nil
-}
-
 // SupportFilePaths returns every support file InjectWithCapability writes for
-// the adapter: shared references plus selected skill commands.
+// the adapter: the shared references.
 func SupportFilePaths(homeDir string, adapter agents.Adapter, skillIDs []model.SkillID) ([]string, error) {
 	if !adapter.SupportsSkills() {
 		return nil, nil
@@ -105,48 +89,7 @@ func SupportFilePaths(homeDir string, adapter agents.Adapter, skillIDs []model.S
 	if err != nil {
 		return nil, err
 	}
-	commands, err := SkillCommandPaths(homeDir, adapter, skillIDs)
-	if err != nil {
-		return nil, err
-	}
-	return append(paths, commands...), nil
-}
-
-// AllSkillCommandPaths returns every skill command gentle-ai may own for the
-// adapter, independent of the current selection. Uninstall and upgrade
-// snapshots use it so a deselected skill's command is still accounted for.
-func AllSkillCommandPaths(homeDir string, adapter agents.Adapter) ([]string, error) {
-	return SkillCommandPaths(homeDir, adapter, AllSkillIDs())
-}
-
-func skillCommands(homeDir string, adapter agents.Adapter, skillIDs []model.SkillID) ([]directoryAsset, error) {
-	if !adapter.SupportsSlashCommands() || adapter.Agent() == model.AgentClaudeCode {
-		return nil, nil
-	}
-	commandsDir := adapter.CommandsDir(homeDir)
-	if commandsDir == "" {
-		return nil, nil
-	}
-	entries, err := fs.ReadDir(assets.FS, skillCommandsAssetDir)
-	if err != nil {
-		return nil, fmt.Errorf("read embedded %s: %w", skillCommandsAssetDir, err)
-	}
-	selected := make(map[model.SkillID]bool, len(skillIDs))
-	for _, id := range skillIDs {
-		selected[id] = true
-	}
-	var commands []directoryAsset
-	for _, entry := range entries {
-		name := entry.Name()
-		if entry.IsDir() || !strings.HasSuffix(name, ".md") || !selected[model.SkillID(strings.TrimSuffix(name, ".md"))] {
-			continue
-		}
-		commands = append(commands, directoryAsset{
-			source:      skillCommandsAssetDir + "/" + name,
-			destination: filepath.Join(commandsDir, name),
-		})
-	}
-	return commands, nil
+	return paths, nil
 }
 
 // injectSupportFiles writes the shared references and skill commands for one
@@ -163,20 +106,6 @@ func injectSupportFiles(homeDir string, adapter agents.Adapter, skillDir string,
 	if removed {
 		result.Changed = true
 		result.Files = append(result.Files, LegacySharedMarkerPath(skillDir))
-	}
-
-	commands, err := skillCommands(homeDir, adapter, skillIDs)
-	if err != nil {
-		return InjectionResult{}, err
-	}
-	for _, command := range commands {
-		content, err := assets.Read(command.source)
-		if err != nil {
-			return InjectionResult{}, fmt.Errorf("read %q: %w", command.source, err)
-		}
-		if err := result.write(filemerge.WriteFileAtomic, command.destination, content); err != nil {
-			return InjectionResult{}, err
-		}
 	}
 	return result, nil
 }

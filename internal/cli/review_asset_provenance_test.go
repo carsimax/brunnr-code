@@ -6,58 +6,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
 )
-
-func TestManagedReviewerAssetProvenanceAuthorityBoundary(t *testing.T) {
-	for name, run := range map[string]func(*testing.T, string, string) (bool, error){
-		"read-only recovery": func(t *testing.T, home, repo string) (bool, error) {
-			staleManagedReviewerAssets(t, home)
-			return false, errors.Join(RunReview([]string{"status", "--cwd", repo}, &bytes.Buffer{}), RunReview([]string{"capabilities"}, &bytes.Buffer{}), RunReview([]string{"start", "--help"}, &bytes.Buffer{}), RunReviewMode([]string{"status", "--cwd", repo, "--json"}, &bytes.Buffer{}))
-		},
-		"abandon": func(t *testing.T, home, repo string) (bool, error) {
-			staleManagedReviewerAssets(t, home)
-			return true, RunReviewAbandon([]string{"--cwd", repo, "--lineage", "lineage", "--expected-revision", "revision", "--reason", "reason", "--actor", "actor", "--maintainer-authorization", "authorization"}, &bytes.Buffer{})
-		},
-		"bundle import": func(t *testing.T, home, repo string) (bool, error) {
-			staleManagedReviewerAssets(t, home)
-			return true, RunReviewBundleImport([]string{"--cwd", repo, "--bundle", filepath.Join(t.TempDir(), "bundle.json")}, &bytes.Buffer{})
-		},
-	} {
-		t.Run(name, func(t *testing.T) {
-			home, repo := reviewEnabledHome(t), initReviewCLIRepo(t)
-			refuse, err := run(t, home, repo)
-			if refuse && (err == nil || !bytes.Contains([]byte(err.Error()), []byte(managedAssetProvenanceRefusal))) {
-				t.Fatalf("authority bypass error = %v, want %q", err, managedAssetProvenanceRefusal)
-			}
-			if !refuse && err != nil {
-				t.Fatalf("recovery surface refused: %v", err)
-			}
-		})
-	}
-	home := t.TempDir()
-	requireManagedAssetProvenanceNoError(t, state.Write(home, state.InstallState{ManagedAssetDigest: "sha256:previous-writer"}))
-	decoy := filepath.Join(home, ".config", "opencode", "plugins", "opencode-review-transport.ts")
-	requireManagedAssetProvenanceNoError(t, os.MkdirAll(filepath.Dir(decoy), 0o755))
-	requireManagedAssetProvenanceNoError(t, os.WriteFile(decoy, []byte(assets.MustRead("opencode/plugins/opencode-review-transport.ts")), 0o644))
-	requireManagedAssetProvenanceNoError(t, os.WriteFile(filepath.Join(home, ".config", "opencode", "opencode.json"), []byte("{\n"), 0o644))
-	result, err := RunSyncWithSelection(home, model.Selection{Agents: []model.AgentID{model.AgentOpenCode}, Components: []model.ComponentID{model.ComponentGGA, model.ComponentSDD}, SDDMode: model.SDDModeSingle})
-	if err == nil || len(result.Execution.Apply.Steps) < 3 || result.Execution.Apply.Steps[1].Status != "succeeded" {
-		t.Fatalf("partial sync result = %#v, %v", result, err)
-	}
-	persisted, readErr := state.Read(home)
-	if _, err := os.Stat(decoy); err != nil || readErr != nil || persisted.ManagedAssetDigest != "sha256:previous-writer" {
-		t.Fatalf("decoy plugin bypassed provenance: stat=%v state=%#v read=%v", err, persisted, readErr)
-	}
-}
 
 // TestManagedReviewerAssetProvenanceRefusesOnlyRecordedSkew pins the two
 // shapes the refusal must NOT take. Only a recorded digest that disagrees is
@@ -71,7 +26,7 @@ func TestManagedReviewerAssetProvenanceRefusesOnlyRecordedSkew(t *testing.T) {
 	for name, persist := range map[string]func(string){
 		"no state file at all": func(string) {},
 		"state without a recorded digest": func(home string) {
-			requireManagedAssetProvenanceNoError(t, state.Write(home, state.InstallState{InstalledAgents: []string{"opencode"}}))
+			requireManagedAssetProvenanceNoError(t, state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code"}}))
 		},
 		"digest matching this binary's assets": func(home string) {
 			requireManagedAssetProvenanceNoError(t, state.Write(home, state.InstallState{ManagedAssetDigest: digest}))
@@ -104,7 +59,7 @@ func TestNegotiatedReviewStartClassifiesStaleManagedAssetsBeforeAuthority(t *tes
 
 	var output bytes.Buffer
 	err := RunReview(boundNegotiatedStartArgs(t, []string{
-		"start", "--contract", ReviewIntegrationContractV2, "--cwd", repo, "--agent", "opencode", "--consent", "granted",
+		"start", "--contract", ReviewIntegrationContractV2, "--cwd", repo, "--agent", "claude-code", "--consent", "granted",
 	}), &output)
 	if err == nil {
 		t.Fatalf("stale managed assets START succeeded: %s", output.String())
@@ -123,7 +78,7 @@ func TestNegotiatedReviewStartClassifiesStaleManagedAssetsBeforeAuthority(t *tes
 	// cause prose. #4434: the command is anchored to the invoking executable,
 	// so it cannot resolve to a different `gentle-ai` through PATH.
 	if failure.Continuation == nil || failure.Continuation.Operation != "sync" ||
-		failure.Continuation.Command != managedAssetsTestContinuationCommand(t, "opencode") || failure.Continuation.Agent != "opencode" ||
+		failure.Continuation.Command != managedAssetsTestContinuationCommand(t, "claude-code") || failure.Continuation.Agent != "claude-code" ||
 		len(failure.Continuation.StaleAssets) != 1 || failure.Continuation.StaleAssets[0] != "sha256:stale" {
 		t.Fatalf("stale managed assets continuation = %#v", failure.Continuation)
 	}
@@ -132,7 +87,7 @@ func TestNegotiatedReviewStartClassifiesStaleManagedAssetsBeforeAuthority(t *tes
 	}
 	malformedFailure := failure
 	malformedContinuation := *failure.Continuation
-	malformedContinuation.Command = "'/tmp/gentle\nai' sync --agent opencode"
+	malformedContinuation.Command = "'/tmp/gentle\nai' sync --agent claude-code"
 	malformedFailure.Continuation = &malformedContinuation
 	if err := malformedFailure.Validate(); err == nil {
 		t.Fatal("FAILURE accepted a multiline managed-assets continuation command")
@@ -148,7 +103,7 @@ func TestNegotiatedReviewStartWithCurrentManagedAssetsStillStarts(t *testing.T) 
 
 	var output bytes.Buffer
 	err = RunReview(boundNegotiatedStartArgs(t, []string{
-		"start", "--contract", ReviewIntegrationContractV2, "--cwd", repo, "--agent", "opencode", "--consent", "granted",
+		"start", "--contract", ReviewIntegrationContractV2, "--cwd", repo, "--agent", "claude-code", "--consent", "granted",
 	}), &output)
 	if err != nil {
 		t.Fatalf("current managed assets START refused: %v\n%s", err, output.String())
@@ -173,7 +128,7 @@ func TestNegotiatedStatusReportsManagedAssetsOutdatedBeforeOfferingStart(t *test
 
 	var output bytes.Buffer
 	if err := RunReview([]string{
-		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "opencode", "--next-transition",
+		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "claude-code", "--next-transition",
 	}, &output); err != nil {
 		t.Fatalf("stale managed assets STATUS: %v\n%s", err, output.String())
 	}
@@ -185,8 +140,8 @@ func TestNegotiatedStatusReportsManagedAssetsOutdatedBeforeOfferingStart(t *test
 		t.Fatalf("stale managed assets STATUS transition = %#v", status.NextTransition)
 	}
 	continuation := status.NextTransition.Continuation
-	if continuation == nil || continuation.Operation != "sync" || continuation.Command != managedAssetsTestContinuationCommand(t, "opencode") ||
-		continuation.Agent != "opencode" || len(continuation.StaleAssets) != 1 || continuation.StaleAssets[0] != "sha256:stale" {
+	if continuation == nil || continuation.Operation != "sync" || continuation.Command != managedAssetsTestContinuationCommand(t, "claude-code") ||
+		continuation.Agent != "claude-code" || len(continuation.StaleAssets) != 1 || continuation.StaleAssets[0] != "sha256:stale" {
 		t.Fatalf("stale managed assets STATUS continuation = %#v", continuation)
 	}
 	statusV9Schema := compileWholeNativeStatusSchema(t, "status-v9.schema.json")
@@ -201,7 +156,7 @@ func TestNegotiatedStatusReportsManagedAssetsOutdatedBeforeOfferingStart(t *test
 
 	var convergedOutput bytes.Buffer
 	if err := RunReview([]string{
-		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "opencode", "--next-transition",
+		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "claude-code", "--next-transition",
 	}, &convergedOutput); err != nil {
 		t.Fatalf("converged managed assets STATUS: %v\n%s", err, convergedOutput.String())
 	}
@@ -211,77 +166,6 @@ func TestNegotiatedStatusReportsManagedAssetsOutdatedBeforeOfferingStart(t *test
 		converged.NextTransition.ReasonCode != "fresh_target_ready" || converged.NextTransition.Execute == nil ||
 		converged.NextTransition.Execute.Operation != "review.start" {
 		t.Fatalf("converged managed assets STATUS transition = %#v", converged.NextTransition)
-	}
-}
-
-// Bound STATUS must suspend capture offers without changing their authority,
-// then resume the exact same slot after the advertised sync converges.
-func TestNegotiatedBoundStatusResumesSameCaptureAfterManagedAssetsConverge(t *testing.T) {
-	for _, phase := range []string{"reviewer", "targeted-validator"} {
-		t.Run(phase, func(t *testing.T) {
-			home := reviewEnabledHome(t)
-			var repo, lineage string
-			if phase == "reviewer" {
-				candidate, _, _, record := newArtifactReview(t, false)
-				repo, lineage = candidate, record.State.LineageID
-			} else {
-				repo, lineage, _ = providerCorrectionReadyWithoutVerificationEvidence(t)
-			}
-			store, before, err := discoverCompactFacadeReview(t.Context(), repo, lineage, false)
-			requireManagedAssetProvenanceNoError(t, err)
-			status := func() ReviewTargetStatusResult {
-				t.Helper()
-				var output bytes.Buffer
-				err := RunReview([]string{"status", "--cwd", repo, "--lineage", lineage,
-					"--contract", ReviewIntegrationContractV2, "--agent", "opencode", "--next-transition"}, &output)
-				requireManagedAssetProvenanceNoError(t, err)
-				var result ReviewTargetStatusResult
-				decodeStrictReviewJSON(t, output.Bytes(), &result)
-				requireManagedAssetProvenanceNoError(t, result.Validate())
-				validatePublishedReviewSchema(t, compileWholeNativeStatusSchema(t, "status-v9.schema.json"), output.Bytes())
-				return result
-			}
-			initial := status()
-			if initial.NextTransition == nil || initial.NextTransition.Collect == nil ||
-				len(initial.NextTransition.Collect.Inputs) == 0 {
-				t.Fatalf("initial STATUS did not offer a capture: %#v", initial.NextTransition)
-			}
-			capture := initial.NextTransition.Collect.Inputs[0]
-			if capture.ProviderTask == nil && capture.ArtifactSubject == nil {
-				t.Fatalf("initial STATUS did not offer a provider-bound capture: %#v", initial.NextTransition)
-			}
-			staleManagedReviewerAssets(t, home)
-			stale := status()
-			transition := stale.NextTransition
-			if transition == nil || transition.Kind != reviewNextTransitionStop || transition.ReasonCode != "managed_assets_outdated" ||
-				transition.Execute != nil || transition.Collect != nil || transition.CorrectionRequest != nil || transition.UnachievableLensSlots != nil {
-				t.Fatalf("stale bound STATUS must offer only stop/managed_assets_outdated: %#v", transition)
-			}
-			continuation := transition.Continuation
-			if continuation == nil || continuation.Operation != "sync" || continuation.Agent != "opencode" ||
-				continuation.Command != managedAssetsTestContinuationCommand(t, "opencode") ||
-				!reflect.DeepEqual(continuation.StaleAssets, []string{"sha256:stale"}) {
-				t.Fatalf("stale bound STATUS continuation = %#v", continuation)
-			}
-			if !reflect.DeepEqual(initial.Authority, stale.Authority) || initial.TargetIdentity != stale.TargetIdentity {
-				t.Fatal("stale STATUS changed authority or target")
-			}
-			assertOpenCodeRelayAuthorityUnchanged(t, repo, lineage, store, before)
-
-			// Execute only the advertised continuation against the test-managed home.
-			argv := splitContinuationCommand(continuation.Command)
-			run := exec.Command(argv[0], argv[1:]...)
-			run.Env = append(os.Environ(), "GENTLE_AI_TEST_CLI_STANDIN=1")
-			if output, err := run.CombinedOutput(); err != nil {
-				t.Fatalf("advertised sync failed: %v\n%s", err, output)
-			}
-			converged := status()
-			if !reflect.DeepEqual(initial.NextTransition, converged.NextTransition) ||
-				!reflect.DeepEqual(initial.Authority, converged.Authority) || initial.TargetIdentity != converged.TargetIdentity {
-				t.Fatal("converged STATUS did not resume the identical authority and capture slot")
-			}
-			assertOpenCodeRelayAuthorityUnchanged(t, repo, lineage, store, before)
-		})
 	}
 }
 
@@ -300,7 +184,7 @@ func TestManagedAssetsStopTransitionCarriesExactlyOneSignal(t *testing.T) {
 
 	var staleOutput bytes.Buffer
 	if err := RunReview([]string{
-		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "opencode", "--next-transition",
+		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "claude-code", "--next-transition",
 	}, &staleOutput); err != nil {
 		t.Fatalf("stale managed assets STATUS: %v\n%s", err, staleOutput.String())
 	}
@@ -316,7 +200,7 @@ func TestManagedAssetsStopTransitionCarriesExactlyOneSignal(t *testing.T) {
 	malformedStatus := stale
 	malformedTransition := *stale.NextTransition
 	malformedContinuation := *stale.NextTransition.Continuation
-	malformedContinuation.Command = "'/tmp/gentle\rai' sync --agent opencode"
+	malformedContinuation.Command = "'/tmp/gentle\rai' sync --agent claude-code"
 	malformedTransition.Continuation = &malformedContinuation
 	malformedStatus.NextTransition = &malformedTransition
 	if err := malformedStatus.Validate(); err == nil {
@@ -339,7 +223,7 @@ func TestManagedAssetsStopTransitionCarriesExactlyOneSignal(t *testing.T) {
 	recordManagedAssetDigest(t, home, digest)
 	var convergedOutput bytes.Buffer
 	if err := RunReview([]string{
-		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "opencode", "--next-transition",
+		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "claude-code", "--next-transition",
 	}, &convergedOutput); err != nil {
 		t.Fatalf("converged managed assets STATUS: %v\n%s", err, convergedOutput.String())
 	}
@@ -354,7 +238,7 @@ func TestManagedAssetsStopTransitionCarriesExactlyOneSignal(t *testing.T) {
 	// caller reading both would not know which one to trust.
 	executeWithContinuation := converged
 	bogusTransition := *converged.NextTransition
-	bogusTransition.Continuation = &ReviewStopContinuation{Operation: "sync", Command: "gentle-ai sync --agent opencode", Agent: "opencode"}
+	bogusTransition.Continuation = &ReviewStopContinuation{Operation: "sync", Command: "gentle-ai sync --agent claude-code", Agent: "claude-code"}
 	executeWithContinuation.NextTransition = &bogusTransition
 	if err := executeWithContinuation.Validate(); err == nil {
 		t.Fatal("STATUS accepted a sync continuation attached to an executable START transition")
@@ -415,27 +299,27 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 		"windows path with spaces uses double quotes": {
 			executable: func() (string, error) { return `C:\Program Files\gentle-ai\gentle-ai.exe`, nil },
 			goos:       "windows",
-			want:       `"C:\Program Files\gentle-ai\gentle-ai.exe" sync --agent opencode`,
+			want:       `"C:\Program Files\gentle-ai\gentle-ai.exe" sync --agent claude-code`,
 		},
 		"posix path with shell expansion uses single quotes": {
 			executable: func() (string, error) { return `/opt/$HOME/gentle-ai`, nil },
 			goos:       "linux",
-			want:       `'/opt/$HOME/gentle-ai' sync --agent opencode`,
+			want:       `'/opt/$HOME/gentle-ai' sync --agent claude-code`,
 		},
 		"posix path with an embedded single quote escapes it": {
 			executable: func() (string, error) { return `/opt/o'brien/gentle-ai`, nil },
 			goos:       "linux",
-			want:       `'/opt/o'\''brien/gentle-ai' sync --agent opencode`,
+			want:       `'/opt/o'\''brien/gentle-ai' sync --agent claude-code`,
 		},
 		"posix path over the safe bare class stays bare": {
 			executable: func() (string, error) { return `/opt/gentle-ai/bin/gentle-ai`, nil },
 			goos:       "linux",
-			want:       `/opt/gentle-ai/bin/gentle-ai sync --agent opencode`,
+			want:       `/opt/gentle-ai/bin/gentle-ai sync --agent claude-code`,
 		},
 		"unresolvable executable keeps the bare fallback": {
 			executable: func() (string, error) { return "", errors.New("unresolvable") },
 			goos:       "linux",
-			want:       `gentle-ai sync --agent opencode`,
+			want:       `gentle-ai sync --agent claude-code`,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -452,7 +336,7 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 			// Keep these renderer cases focused on os.Executable. A relative
 			// argv[0] remains only the final compatibility fallback.
 			os.Args = append([]string{"gentle-ai"}, os.Args[1:]...)
-			continuation := managedAssetsContinuation("opencode", []string{"sha256:stale"})
+			continuation := managedAssetsContinuation("claude-code", []string{"sha256:stale"})
 			if continuation.Command != tc.want {
 				t.Fatalf("continuation command = %q, want %q", continuation.Command, tc.want)
 			}
@@ -491,8 +375,8 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 			reviewManagedAssetsGOOS = tc.goos
 			t.Cleanup(func() { reviewManagedAssetsGOOS = previousGOOS })
 			rendered := managedAssetsExecutableToken(tc.path)
-			argv := splitContinuationCommand(rendered + " sync --agent opencode")
-			if len(argv) != 4 || argv[0] != tc.path || argv[1] != "sync" || argv[2] != "--agent" || argv[3] != "opencode" {
+			argv := splitContinuationCommand(rendered + " sync --agent claude-code")
+			if len(argv) != 4 || argv[0] != tc.path || argv[1] != "sync" || argv[2] != "--agent" || argv[3] != "claude-code" {
 				t.Fatalf("round-trip of %q rendered %q split to argv %q, want the original path plus the sync dispatch", tc.path, rendered, argv)
 			}
 		})
@@ -507,7 +391,7 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 
 	var output bytes.Buffer
 	if err := RunReview([]string{
-		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "opencode", "--next-transition",
+		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "claude-code", "--next-transition",
 	}, &output); err != nil {
 		t.Fatalf("stale managed assets STATUS: %v\n%s", err, output.String())
 	}
@@ -516,7 +400,7 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 	if status.NextTransition == nil || status.NextTransition.Continuation == nil {
 		t.Fatalf("stale managed assets STATUS transition = %#v", status.NextTransition)
 	}
-	if want := quoted(invoking) + " sync --agent opencode"; status.NextTransition.Continuation.Command != want {
+	if want := quoted(invoking) + " sync --agent claude-code"; status.NextTransition.Continuation.Command != want {
 		t.Fatalf("STATUS continuation command = %q, want %q (rooted at the invoking executable %q)",
 			status.NextTransition.Continuation.Command, want, invoking)
 	}
@@ -531,7 +415,7 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 	// dispatch under the stand-in guard, so the command line the refusal
 	// advertised is the command line that runs, against the same captured home.
 	argv := splitContinuationCommand(status.NextTransition.Continuation.Command)
-	if len(argv) != 4 || argv[0] != invoking || argv[1] != "sync" || argv[2] != "--agent" || argv[3] != "opencode" {
+	if len(argv) != 4 || argv[0] != invoking || argv[1] != "sync" || argv[2] != "--agent" || argv[3] != "claude-code" {
 		t.Fatalf("continuation command %q split to argv %q, want the invoking executable %q plus the sync dispatch", status.NextTransition.Continuation.Command, argv, invoking)
 	}
 	var run *exec.Cmd
@@ -554,7 +438,7 @@ func TestManagedAssetsContinuationUsesInvokingExecutable(t *testing.T) {
 	}
 	var convergedOutput bytes.Buffer
 	if err := RunReview([]string{
-		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "opencode", "--next-transition",
+		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "claude-code", "--next-transition",
 	}, &convergedOutput); err != nil {
 		t.Fatalf("post-continuation STATUS: %v\n%s", err, convergedOutput.String())
 	}
@@ -579,25 +463,25 @@ func TestManagedAssetsContinuationRejectsUnsafeExecutableIdentities(t *testing.T
 			name:       "resolver failure accepts absolute argv zero",
 			resolveErr: errors.New("executable unavailable"),
 			argvZero:   absoluteArgvZero,
-			want:       managedAssetsExecutableToken(absoluteArgvZero) + " sync --agent opencode",
+			want:       managedAssetsExecutableToken(absoluteArgvZero) + " sync --agent claude-code",
 		},
 		{
 			name:       "multiline resolver falls through to absolute argv zero",
 			executable: filepath.Join(t.TempDir(), "gentle\nai"),
 			argvZero:   absoluteArgvZero,
-			want:       managedAssetsExecutableToken(absoluteArgvZero) + " sync --agent opencode",
+			want:       managedAssetsExecutableToken(absoluteArgvZero) + " sync --agent claude-code",
 		},
 		{
 			name:       "multiline argv zero falls through to canonical fallback",
 			resolveErr: errors.New("executable unavailable"),
 			argvZero:   filepath.Join(t.TempDir(), "gentle\rai"),
-			want:       "gentle-ai sync --agent opencode",
+			want:       "gentle-ai sync --agent claude-code",
 		},
 		{
 			name:       "relative argv zero falls through to canonical fallback",
 			resolveErr: errors.New("executable unavailable"),
 			argvZero:   "gentle-ai",
-			want:       "gentle-ai sync --agent opencode",
+			want:       "gentle-ai sync --agent claude-code",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -610,7 +494,7 @@ func TestManagedAssetsContinuationRejectsUnsafeExecutableIdentities(t *testing.T
 				os.Args = previousArgs
 			})
 
-			continuation := managedAssetsContinuation("opencode", nil)
+			continuation := managedAssetsContinuation("claude-code", nil)
 			if strings.ContainsAny(continuation.Command, "\r\n") || continuation.Command != test.want {
 				t.Fatalf("continuation command = %q, want %q", continuation.Command, test.want)
 			}

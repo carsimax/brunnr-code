@@ -27,12 +27,9 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/agentguidance"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/gga"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/legacyassets"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencodedefault"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencoderuntimeplugins"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/skills"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/theme"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/update"
@@ -104,7 +101,7 @@ var backupExcludeSubdirs = map[string]bool{
 	"sessions":     true, // conversation session data
 	"tasks":        true, // task tracking state
 	"telemetry":    true, // telemetry data
-	"node_modules": true, // npm dependencies (OpenCode, any Node-based agent)
+	"node_modules": true, // npm dependencies (any Node-based agent)
 
 	// === Claude Code (~/.claude/) ===
 	"file-history":    true, // file change tracking
@@ -235,11 +232,6 @@ func managedAgentBackupPaths(homeDir string, adapter agents.Adapter, diagnostics
 
 	if adapter.SupportsSlashCommands() {
 		add(presentPaths(legacyassets.SlashCommandPaths(adapter.Agent(), adapter.CommandsDir(homeDir)))...)
-		commands, err := skills.AllSkillCommandPaths(homeDir, adapter)
-		if err != nil {
-			writeBackupDiagnostic(diagnostics, "backup: skipping skill commands for %s: %v", adapter.Agent(), err)
-		}
-		add(commands...)
 	}
 
 	if adapter.SupportsSubAgents() {
@@ -266,12 +258,6 @@ func managedAgentBackupPaths(homeDir string, adapter agents.Adapter, diagnostics
 		}
 	}
 
-	// The managed plugin install resolves the config directory through the
-	// adapter and owns the plugin list; the snapshot must match it (#3219).
-	if opencoderuntimeplugins.AgentReceivesManagedOpenCodePlugins(adapter.Agent()) {
-		add(opencoderuntimeplugins.PluginPaths(homeDir, adapter)...)
-	}
-
 	switch adapter.Agent() {
 	case model.AgentClaudeCode:
 		add(claude.UserConfigPath(homeDir))
@@ -289,25 +275,6 @@ func managedAgentBackupPaths(homeDir string, adapter agents.Adapter, diagnostics
 			writeBackupDiagnostic(diagnostics, "backup: skipping Claude module paths: %v", err)
 		}
 		add(modulePaths...)
-	case model.AgentOpenCode:
-		add(theme.VisualThemePaths(homeDir, adapter)...)
-		// The routing step records default-agent ownership beside the effective
-		// settings path, which honors an absolute OPENCODE_CONFIG_DIR; the
-		// snapshot must resolve it the same way.
-		add(opencodedefault.OwnershipPath(opencode.EffectiveSettingsPath(homeDir, "")))
-		add(
-			filepath.Join(homeDir, ".config", "opencode", "tui-plugins", "gentle-logo.tsx"),
-			filepath.Join(homeDir, ".config", "opencode", "tui.json"),
-		)
-		// Retirement never enters a prompts directory that is not a real
-		// directory, and removes only prompts that exist.
-		if dir := legacyassets.SharedPromptDir(homeDir); isRealDir(dir) {
-			var prompts []string
-			for _, phase := range legacyassets.SharedPromptPhases() {
-				prompts = append(prompts, filepath.Join(dir, phase+".md"))
-			}
-			add(presentPaths(prompts)...)
-		}
 	}
 
 	return paths
@@ -324,11 +291,6 @@ func presentPaths(paths []string) []string {
 		}
 	}
 	return present
-}
-
-func isRealDir(path string) bool {
-	info, err := os.Lstat(path)
-	return err == nil && info.IsDir()
 }
 
 func managedGlobalBackupPaths(homeDir string) []string {

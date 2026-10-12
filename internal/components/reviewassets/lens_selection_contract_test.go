@@ -12,7 +12,7 @@ import (
 // lenses by what it touched and how, defines each lens by consequence, and
 // shows where the selection travels (STATUS flags).
 func TestReviewContractsTellTheAgentToSelectItsLenses(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex, model.AgentOpenCode} {
+	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex} {
 		t.Run(string(agent), func(t *testing.T) {
 			contract := ContractFor(agent)
 			required := []string{
@@ -41,7 +41,7 @@ func TestReviewContractsTellTheAgentToSelectItsLenses(t *testing.T) {
 // rendered entry rule starts a review only for a review_due (high-risk)
 // candidate or an explicit user request, never once per candidate.
 func TestReviewContractsEnterReviewOnlyWhenDue(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex, model.AgentOpenCode} {
+	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex} {
 		t.Run(string(agent), func(t *testing.T) {
 			contract := ContractFor(agent)
 			for _, want := range []string{

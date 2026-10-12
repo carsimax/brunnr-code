@@ -37,7 +37,7 @@ func CodeGraphGuidanceMarkdown() string {
 		"",
 		"CodeGraph-aware worktree placement:",
 		"",
-		"- Create Git worktrees that may need CodeGraph under the user's home directory, preferably as a sibling such as `<repo-parent>/<repo-name>-worktrees/<worktree-name>`. Never place a CodeGraph-dependent worktree under `/tmp`, `/var/tmp`, or `/tmp/opencode`; generic temporary-work guidance does not override this rule.",
+		"- Create Git worktrees that may need CodeGraph under the user's home directory, preferably as a sibling such as `<repo-parent>/<repo-name>-worktrees/<worktree-name>`. Never place a CodeGraph-dependent worktree under `/tmp` or `/var/tmp`; generic temporary-work guidance does not override this rule.",
 		"- Every worktree needs its own `.codegraph/` index. Never copy, symlink, or reuse another checkout's index because its root and checked-out bytes may differ.",
 		"",
 		"CodeGraph intelligence surface:",
@@ -261,70 +261,6 @@ func CodeGraphManagedPaths(homeDir string) []string {
 	}
 	slices.Sort(managed)
 	return managed
-}
-
-func NeedsOpenCodeCodeGraphReconcile(homeDir string) bool {
-	reg, err := agents.NewDefaultRegistry()
-	if err != nil {
-		return false
-	}
-	adapter, ok := reg.Get(model.AgentOpenCode)
-	if !ok {
-		return false
-	}
-	detected := slices.ContainsFunc(agents.DiscoverSelected(reg, homeDir), func(agent agents.InstalledAgent) bool {
-		return agent.ID == model.AgentOpenCode
-	})
-	if !detected {
-		return false
-	}
-	_, configured := hasCodeGraphToolWiring(homeDir, adapter)
-	return !configured
-}
-
-// ReconcileOpenCodeCodeGraph delegates JSON/JSONC editing to CodeGraph's own
-// installer so comments and unrelated user configuration remain untouched.
-func ReconcileOpenCodeCodeGraph(homeDir string, runner Runner) (GuidanceInjectionResult, error) {
-	if !NeedsOpenCodeCodeGraphReconcile(homeDir) {
-		return GuidanceInjectionResult{}, nil
-	}
-	if runner == nil {
-		return GuidanceInjectionResult{}, fmt.Errorf("OpenCode CodeGraph reconciliation runner is not configured")
-	}
-
-	paths := CodeGraphManagedPaths(homeDir)
-	before := readCodeGraphManagedFiles(paths)
-	if err := runner.Run("codegraph", "install", "--target", "opencode", "--location", "global", "--yes"); err != nil {
-		return GuidanceInjectionResult{}, fmt.Errorf("reconcile OpenCode CodeGraph MCP wiring: %w", err)
-	}
-	if NeedsOpenCodeCodeGraphReconcile(homeDir) {
-		return GuidanceInjectionResult{}, fmt.Errorf("CodeGraph installer did not create effective OpenCode MCP wiring")
-	}
-
-	result := GuidanceInjectionResult{}
-	for _, path := range paths {
-		after, err := os.ReadFile(path)
-		if err != nil && !os.IsNotExist(err) {
-			return result, fmt.Errorf("read reconciled CodeGraph file %q: %w", path, err)
-		}
-		if string(after) == before[path] {
-			continue
-		}
-		result.Changed = true
-		result.Files = append(result.Files, path)
-	}
-	return result, nil
-}
-
-func readCodeGraphManagedFiles(paths []string) map[string]string {
-	files := make(map[string]string, len(paths))
-	for _, path := range paths {
-		data, err := os.ReadFile(path)
-		if err == nil {
-			files[path] = string(data)
-		}
-	}
-	return files
 }
 
 func injectCodeGraphGuidanceForAgent(homeDir string, adapter agents.Adapter) (string, bool, error) {

@@ -118,7 +118,7 @@ func TestNegotiatedStatusUnbornUntrackedRequiresSelectionBeforeSnapshot(t *testi
 	var output bytes.Buffer
 	if err := RunReview([]string{
 		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2,
-		"--agent", "opencode", "--next-transition",
+		"--agent", "claude-code", "--next-transition",
 	}, &output); err != nil {
 		t.Fatalf("unborn negotiated STATUS: %v\n%s", err, output.String())
 	}

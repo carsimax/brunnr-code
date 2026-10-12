@@ -14,7 +14,6 @@ func TestRuntimeContracts(t *testing.T) {
 		required, excluded string
 	}{
 		{model.AgentClaudeCode, "gentle-ai review status --cwd <repo> --contract gentle-ai.review-integration/v2 --agent claude-code --next-transition", "gentle_review_capture_group"},
-		{model.AgentOpenCode, "### OpenCode Concurrent Reviewer Group", "gentle_review_capture_group"},
 	} {
 		t.Run(string(tc.agent), func(t *testing.T) {
 			got, err := ReviewExecutionContractFor(tc.agent)
@@ -26,7 +25,7 @@ func TestRuntimeContracts(t *testing.T) {
 			}
 		})
 	}
-	if _, err := ReviewExecutionContractFor(model.AgentKilocode); err == nil {
+	if _, err := ReviewExecutionContractFor(model.AgentID("unsupported-runtime")); err == nil {
 		t.Fatal("unsupported runtime accepted")
 	}
 }
@@ -55,14 +54,6 @@ func TestRenderedLensAssets(t *testing.T) {
 	}
 	if got, ok := RenderReviewerAsset("claude/agents/review-refuter.md", source); ok || got != source {
 		t.Fatal("refuter unexpectedly rendered as lens")
-	}
-}
-
-func TestInspectionCommandsIndependent(t *testing.T) {
-	first, second := InspectionCommands(), InspectionCommands()
-	first[0] = "changed"
-	if second[0] == "changed" {
-		t.Fatal("inspection command slices share storage")
 	}
 }
 

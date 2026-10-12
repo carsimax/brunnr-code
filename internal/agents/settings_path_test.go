@@ -39,7 +39,7 @@ func TestJSONSettingsPathClassifiesExtensionCaseInsensitively(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, eligible := range map[string]bool{
-		"/h/settings.JSON": true, "/h/opencode.JsonC": true, "/h/config.toml": false,
+		"/h/settings.JSON": true, "/h/settings.JsonC": true, "/h/config.toml": false,
 		"/h/config.yaml": false, "/h/settings.json.bak": false, "/h/settings": false, "": false,
 	} {
 		want := ""

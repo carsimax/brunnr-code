@@ -27,7 +27,7 @@ const validHeartbeatEvent = `{
 	"version": "2.3.0",
 	"os": "linux",
 	"arch": "amd64",
-	"agents": ["claude-code", "opencode"],
+	"agents": ["claude-code", "codex"],
 	"components": ["sdd"],
 	"rdd_enabled": false,
 	"counters": {
@@ -72,7 +72,7 @@ func TestParseEvent_AcceptsValidHeartbeatEvent(t *testing.T) {
 }
 
 func TestParseEvent_AcceptsConductorAgent(t *testing.T) {
-	body := strings.Replace(validHeartbeatEvent, `"claude-code", "opencode"`, `"claude-code", "conductor", "opencode"`, 1)
+	body := strings.Replace(validHeartbeatEvent, `"claude-code", "codex"`, `"claude-code", "conductor", "codex"`, 1)
 	if _, err := ParseEvent([]byte(body)); err != nil {
 		t.Fatalf("ParseEvent with conductor agent: unexpected error: %v", err)
 	}

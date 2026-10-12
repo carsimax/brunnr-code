@@ -1369,6 +1369,7 @@ func waveOneJourneys() []Journey {
 					return captureCorrectionPlanFor(r, correctedDeliveryLineage, 2)
 				}},
 				{Name: "fixture: corrected candidate proven to change only the reviewed path", Fixture: writeCorrectedCandidate},
+				{Name: "fixture: compiled provider capture gets a writable process temp", Fixture: restoreProcessTemp},
 				{Name: "post-correction exact active-lineage validator capture emits acknowledgement on completion", Requires: capturedProviderValidatorStatusCapability, Composite: func(r *journeyRun) error {
 					return captureProviderValidatorSlotFor(r, correctedDeliveryLineage)
 				}},

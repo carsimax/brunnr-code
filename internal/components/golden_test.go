@@ -10,7 +10,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
 	codexagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/engram"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/mcp"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/persona"
@@ -20,9 +19,8 @@ import (
 
 var update = flag.Bool("update", false, "update golden files")
 
-func claudeAdapter() agents.Adapter   { return claude.NewAdapter() }
-func opencodeAdapter() agents.Adapter { return opencode.NewAdapter() }
-func codexAdapter() agents.Adapter    { return codexagent.NewAdapter() }
+func claudeAdapter() agents.Adapter { return claude.NewAdapter() }
+func codexAdapter() agents.Adapter  { return codexagent.NewAdapter() }
 
 // ---------------------------------------------------------------------------
 // Existing golden tests (context7 and presets)
@@ -107,36 +105,6 @@ func TestGoldenPersona_Claude_Neutral(t *testing.T) {
 	assertGolden(t, "persona-claude-neutral-outputstyle.golden", outputStyle)
 }
 
-func TestGoldenPersona_OpenCode_Gentleman(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := persona.Inject(home, opencodeAdapter(), model.PersonaGentleman)
-	if err != nil {
-		t.Fatalf("persona.Inject(opencode, gentleman) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("persona.Inject(opencode, gentleman) changed = false")
-	}
-
-	agentsMD := readTestFile(t, filepath.Join(home, ".config", "opencode", "AGENTS.md"))
-	assertGolden(t, "persona-opencode-gentleman.golden", agentsMD)
-}
-
-func TestGoldenPersona_OpenCode_Neutral(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := persona.Inject(home, opencodeAdapter(), model.PersonaNeutral)
-	if err != nil {
-		t.Fatalf("persona.Inject(opencode, neutral) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("persona.Inject(opencode, neutral) changed = false")
-	}
-
-	agentsMD := readTestFile(t, filepath.Join(home, ".config", "opencode", "AGENTS.md"))
-	assertGolden(t, "persona-opencode-neutral.golden", agentsMD)
-}
-
 func TestGoldenPersona_Claude_Custom(t *testing.T) {
 	home := t.TempDir()
 
@@ -150,22 +118,6 @@ func TestGoldenPersona_Claude_Custom(t *testing.T) {
 	}
 	if len(result.Files) != 0 {
 		t.Fatalf("persona.Inject(claude, custom) returned files %v, want none", result.Files)
-	}
-}
-
-func TestGoldenPersona_OpenCode_Custom(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := persona.Inject(home, opencodeAdapter(), model.PersonaCustom)
-	if err != nil {
-		t.Fatalf("persona.Inject(opencode, custom) error = %v", err)
-	}
-	// Custom persona does nothing — no files written.
-	if result.Changed {
-		t.Fatalf("persona.Inject(opencode, custom) changed = true, want false")
-	}
-	if len(result.Files) != 0 {
-		t.Fatalf("persona.Inject(opencode, custom) returned files %v, want none", result.Files)
 	}
 }
 
@@ -198,25 +150,6 @@ func TestGoldenEngram_Claude(t *testing.T) {
 	// CLAUDE.md with engram-protocol section (slim, per Decision 1).
 	claudeMD := readTestFile(t, filepath.Join(home, ".claude", "CLAUDE.md"))
 	assertGolden(t, "engram-claude-claudemd.golden", claudeMD)
-}
-
-func TestGoldenEngram_OpenCode(t *testing.T) {
-	home := t.TempDir()
-
-	// Mock engramLookPath so the resolved command matches the golden file regardless
-	// of whether engram is installed at /opt/homebrew/bin/engram on the current machine.
-	engram.SetLookPathForTest(t, "/opt/homebrew/bin/engram", "")
-
-	result, err := engram.Inject(home, opencodeAdapter())
-	if err != nil {
-		t.Fatalf("engram.Inject(opencode) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("engram.Inject(opencode) changed = false")
-	}
-
-	configJSON := readTestFile(t, filepath.Join(home, ".config", "opencode", "opencode.json"))
-	assertGolden(t, "engram-opencode-settings.golden", configJSON)
 }
 
 // TestGoldenEngram_Codex captures the rendered Codex model_instructions_file
@@ -270,25 +203,6 @@ func TestGoldenSkills_Claude(t *testing.T) {
 
 	skillCreator := readTestFile(t, filepath.Join(home, ".claude", "skills", "skill-creator", "SKILL.md"))
 	assertGolden(t, "skills-claude-skill-creator.golden", skillCreator)
-}
-
-func TestGoldenSkills_OpenCode(t *testing.T) {
-	home := t.TempDir()
-
-	skillIDs := []model.SkillID{model.SkillGoTesting, model.SkillCreator}
-	result, err := skills.Inject(home, opencodeAdapter(), skillIDs)
-	if err != nil {
-		t.Fatalf("skills.Inject(opencode) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("skills.Inject(opencode) changed = false")
-	}
-
-	goTestingSkill := readTestFile(t, filepath.Join(home, ".config", "opencode", "skills", "go-testing", "SKILL.md"))
-	assertGolden(t, "skills-opencode-go-testing.golden", goTestingSkill)
-
-	skillCreator := readTestFile(t, filepath.Join(home, ".config", "opencode", "skills", "skill-creator", "SKILL.md"))
-	assertGolden(t, "skills-opencode-skill-creator.golden", skillCreator)
 }
 
 // ---------------------------------------------------------------------------

@@ -46,7 +46,7 @@ func TestNegotiatedStatusMatchesReviewStartRDDMode(t *testing.T) {
 			var output bytes.Buffer
 			stderr := captureReviewProcessStderr(t)
 			if err := RunReview([]string{
-				"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "opencode",
+				"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "claude-code",
 				"--action-eligibility", "--next-transition",
 			}, &output); err != nil {
 				t.Fatalf("STATUS: %v", err)
@@ -78,7 +78,7 @@ func TestNegotiatedStatusMatchesReviewStartRDDMode(t *testing.T) {
 				t.Fatalf("negotiated STATUS wrote stderr, want zero bytes:\n%q", got)
 			}
 			startErr := RunReview([]string{
-				"start", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "opencode",
+				"start", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "claude-code",
 				"--target", status.TargetIdentity, "--projection", "workspace", "--consent", "granted",
 			}, io.Discard)
 			if gotDisabled := errors.Is(startErr, reviewtransaction.ErrRDDDisabled); gotDisabled != !tt.enabled {
@@ -100,7 +100,7 @@ func TestNegotiatedStatusFailsWhenEffectiveModeCannotResolve(t *testing.T) {
 
 	var output bytes.Buffer
 	if err := RunReview([]string{
-		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "opencode",
+		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "claude-code",
 		"--action-eligibility", "--next-transition",
 	}, &output); err == nil {
 		t.Fatalf("STATUS mode-resolution error = %v\n%s", err, output.String())
@@ -122,7 +122,7 @@ func TestNegotiatedStatusKeepsRDDDisabledStopWhenUntrackedSelectionIsNeeded(t *t
 
 	var output bytes.Buffer
 	if err := RunReview([]string{
-		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "opencode",
+		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "claude-code",
 		"--action-eligibility", "--next-transition",
 	}, &output); err != nil {
 		t.Fatalf("STATUS with untracked content: %v\n%s", err, output.String())
@@ -156,7 +156,7 @@ func TestDisabledStatusStaysSilentForEveryCWDSpelling(t *testing.T) {
 			var output bytes.Buffer
 			stderr := captureReviewProcessStderr(t)
 			args := append([]string{"status"}, cwd...)
-			args = append(args, "--contract", ReviewIntegrationContractV2, "--agent", "opencode", "--next-transition")
+			args = append(args, "--contract", ReviewIntegrationContractV2, "--agent", "claude-code", "--next-transition")
 			if err := RunReview(args, &output); err != nil {
 				t.Fatalf("STATUS: %v\n%s", err, output.String())
 			}

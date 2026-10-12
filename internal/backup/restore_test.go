@@ -394,7 +394,7 @@ func TestRestoreScope_WorkspaceRootRestoresAndRemovesWithoutError(t *testing.T) 
 	// restore must remove it (mirrors the engram MCP config scenario from #2451).
 	// Kind=regular opts into the deletion semantics; Kind="" (legacy unknown)
 	// is preserved by default under the #2021 path-kind classification.
-	createdPath := filepath.Join(workspace, ".config", "opencode", "opencode.json")
+	createdPath := filepath.Join(workspace, ".mcp.json")
 	if err := os.MkdirAll(filepath.Dir(createdPath), 0o755); err != nil {
 		t.Fatalf("MkdirAll() error = %v", err)
 	}

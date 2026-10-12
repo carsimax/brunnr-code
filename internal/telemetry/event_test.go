@@ -43,7 +43,7 @@ func TestBuildEventNeverLeaksIdentifyingData(t *testing.T) {
 		InstallID:  loaded.InstallID,
 		Now:        time.Date(2026, 9, 7, 12, 0, 0, 0, time.UTC),
 		Version:    "2.2.0",
-		Agents:     []string{"claude-code", "opencode"},
+		Agents:     []string{"claude-code", "codex"},
 		Components: []string{"sdd", "engram"},
 		RDDEnabled: true,
 		Counters:   Counters{Syncs: 3},

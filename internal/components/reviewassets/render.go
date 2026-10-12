@@ -10,12 +10,9 @@ func RenderReviewerAsset(path, content string) (string, bool) {
 		name = name[slash+1:]
 	}
 	name = strings.TrimSuffix(name, ".md")
-	prompt, reviewer := ReviewerPrompt(name)
+	prompt, reviewer := ClaudeReviewerPrompt(name)
 	if !reviewer {
 		return content, false
-	}
-	if strings.HasPrefix(path, "claude/agents/") {
-		prompt, _ = ClaudeReviewerPrompt(name)
 	}
 	end := strings.Index(content, "\n---\n")
 	if end < 0 {

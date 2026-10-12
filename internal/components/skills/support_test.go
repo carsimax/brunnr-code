@@ -34,10 +34,8 @@ func TestInjectWritesSupportFiles(t *testing.T) {
 	}
 	shared = slices.DeleteFunc(shared, func(name string) bool { return internalSharedSources[name] })
 	for _, tt := range []struct {
-		agent        model.AgentID
-		wantCommands []string
+		agent model.AgentID
 	}{
-		{agent: model.AgentOpenCode, wantCommands: []string{"skill-creator.md"}},
 		{agent: model.AgentClaudeCode},
 		{agent: model.AgentCodex},
 	} {
@@ -73,21 +71,6 @@ func TestInjectWritesSupportFiles(t *testing.T) {
 			}
 			if _, err := os.Stat(marker); !os.IsNotExist(err) {
 				t.Fatalf("legacy _shared/SKILL.md marker not removed: %v", err)
-			}
-			commands, err := SkillCommandPaths(home, adapter, []model.SkillID{model.SkillCreator, model.SkillJudgmentDay})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if len(commands) != len(tt.wantCommands) {
-				t.Fatalf("commands = %v, want %v", commands, tt.wantCommands)
-			}
-			for i, name := range tt.wantCommands {
-				if filepath.Base(commands[i]) != name {
-					t.Fatalf("commands = %v, want %v", commands, tt.wantCommands)
-				}
-				if _, err := os.Stat(commands[i]); err != nil {
-					t.Fatalf("command %s missing: %v", name, err)
-				}
 			}
 			declared, err := SupportFilePaths(home, adapter, []model.SkillID{model.SkillCreator, model.SkillJudgmentDay})
 			if err != nil {

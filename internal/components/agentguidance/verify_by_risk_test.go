@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
 
@@ -43,20 +42,5 @@ func TestRDDNeverReplacesTheRiskTierVerification(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-// TestOpenCodeWorkerReportIsNeverTheVerificationOfRecord keeps the writer's
-// own contract consistent with S1: its report is self-verification, and the
-// risk tier decides whether an independent verifier also runs.
-func TestOpenCodeWorkerReportIsNeverTheVerificationOfRecord(t *testing.T) {
-	t.Parallel()
-
-	worker := assets.MustRead("opencode/agents/gentle-ai-worker.md")
-	if strings.Contains(worker, "verification of record") {
-		t.Fatal("OpenCode worker still calls its report the verification of record when RDD is on")
-	}
-	if !strings.Contains(worker, "the risk tier decides whether an independent verifier also runs") {
-		t.Fatal("OpenCode worker does not say the risk tier decides the independent verifier")
 	}
 }

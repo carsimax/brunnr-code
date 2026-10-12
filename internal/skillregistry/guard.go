@@ -6,8 +6,8 @@ import (
 )
 
 // SkipReason classifies why `skill-registry refresh` must not initialize a
-// registry at the resolved working directory. Startup hooks (OpenCode plugin,
-// Codex/Claude SessionStart hooks) run the refresh from whatever directory
+// registry at the resolved working directory. Startup hooks (Codex/Claude
+// SessionStart hooks) run the refresh from whatever directory
 // the host resolved — which for a brand-new non-project directory can be "/",
 // the user's home directory, or a markerless scratch folder. Initializing
 // there either fails loudly (mkdir /.atl on a read-only root) or pollutes a

@@ -104,7 +104,6 @@ func TestCompactReviewerResultSidecarOwnersAreAbsent(t *testing.T) {
 	for _, source := range []string{
 		"compact_store.go",
 		"compact_reclaim.go",
-		filepath.Join("..", "cli", "review_opencode_transport.go"),
 	} {
 		payload, err := os.ReadFile(source)
 		if err != nil {

@@ -171,46 +171,6 @@ description: project copy
 	}
 }
 
-func TestRegenerateScansProjectOpenCodeSkillsBeforeGlobalOpenCode(t *testing.T) {
-	cwd := t.TempDir()
-	home := t.TempDir()
-	writeSkill(t, filepath.Join(home, ".config", "opencode", "skills", "dup", "SKILL.md"), `---
-name: dup
-description: global OpenCode copy
----
-
-## Hard Rules
-
-- Global OpenCode rule.
-`)
-	writeSkill(t, filepath.Join(cwd, ".opencode", "skills", "dup", "SKILL.md"), `---
-name: dup
-description: project OpenCode copy
----
-
-## Hard Rules
-
-- Project OpenCode rule.
-`)
-
-	result, err := Regenerate(cwd, home, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.SkillCount != 1 {
-		t.Fatalf("SkillCount = %d, want 1", result.SkillCount)
-	}
-	registry := readFile(t, filepath.Join(cwd, RegistryRelPath))
-	for _, want := range []string{filepath.FromSlash("- .opencode/skills"), filepath.Join(cwd, ".opencode", "skills", "dup", "SKILL.md")} {
-		if !strings.Contains(registry, want) {
-			t.Fatalf("registry missing %q:\n%s", want, registry)
-		}
-	}
-	if strings.Contains(registry, filepath.Join(home, ".config", "opencode", "skills", "dup", "SKILL.md")) || strings.Contains(registry, "Global OpenCode rule") || strings.Contains(registry, "Project OpenCode rule") {
-		t.Fatalf("project .opencode skill should win over global duplicate:\n%s", registry)
-	}
-}
-
 func TestRegenerateKeepsUserSkillSourceOrderForGlobalDuplicates(t *testing.T) {
 	cwd := t.TempDir()
 	home := t.TempDir()
@@ -223,14 +183,14 @@ description: Claude copy
 
 - Claude rule.
 `)
-	writeSkill(t, filepath.Join(home, ".config", "opencode", "skills", "dup", "SKILL.md"), `---
+	writeSkill(t, filepath.Join(home, ".config", "agents", "skills", "dup", "SKILL.md"), `---
 name: dup
-description: OpenCode copy
+description: Agents copy
 ---
 
 ## Hard Rules
 
-- OpenCode rule.
+- Agents rule.
 `)
 
 	result, err := Regenerate(cwd, home, false)
@@ -241,9 +201,9 @@ description: OpenCode copy
 		t.Fatalf("SkillCount = %d, want 1", result.SkillCount)
 	}
 	registry := readFile(t, filepath.Join(cwd, RegistryRelPath))
-	openCodePath := filepath.Join(home, ".config", "opencode", "skills", "dup", "SKILL.md")
+	agentsPath := filepath.Join(home, ".config", "agents", "skills", "dup", "SKILL.md")
 	claudePath := filepath.Join(home, ".claude", "skills", "dup", "SKILL.md")
-	if !strings.Contains(registry, openCodePath) || strings.Contains(registry, claudePath) || strings.Contains(registry, "OpenCode rule") || strings.Contains(registry, "Claude rule") {
+	if !strings.Contains(registry, agentsPath) || strings.Contains(registry, claudePath) || strings.Contains(registry, "Agents rule") || strings.Contains(registry, "Claude rule") {
 		t.Fatalf("user duplicate should respect UserSkillDirs source order:\n%s", registry)
 	}
 }
@@ -254,7 +214,6 @@ func TestProjectSkillDirsIncludesWorkspaceSkillLocations(t *testing.T) {
 
 	for _, want := range []string{
 		filepath.Join(cwd, "skills"),
-		filepath.Join(cwd, ".opencode", "skills"),
 		filepath.Join(cwd, ".claude", "skills"),
 		filepath.Join(cwd, ".gemini", "skills"),
 		filepath.Join(cwd, ".cursor", "skills"),

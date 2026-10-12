@@ -1,14 +1,12 @@
 package cli
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/catalog"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/agentguidance"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencodedefault"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/reviewassets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
@@ -36,8 +34,8 @@ func orchestratorRuntimesForInstall(t *testing.T) []model.AgentID {
 	return selected
 }
 
-// installedGuidance returns the path the agent loads guidance from and the
-// decoded guidance text inside it.
+// installedGuidance returns the routing guidance file installed for agent and
+// its content.
 func installedGuidance(t *testing.T, home string, agent model.AgentID) (string, string) {
 	t.Helper()
 
@@ -50,18 +48,7 @@ func installedGuidance(t *testing.T, home string, agent model.AgentID) (string, 
 		t.Fatalf("RoutingPathsWithOptions(%q) = %v, %v", agent, paths, err)
 	}
 	raw := readTextFile(t, paths[0])
-	if !strings.HasSuffix(paths[0], ".json") {
-		return paths[0], raw
-	}
-	var settings struct {
-		Agent map[string]struct {
-			Prompt string `json:"prompt"`
-		} `json:"agent"`
-	}
-	if err := json.Unmarshal([]byte(raw), &settings); err != nil {
-		t.Fatalf("decode %q error = %v", paths[0], err)
-	}
-	return paths[0], settings.Agent[opencodedefault.ManagedAgent].Prompt
+	return paths[0], raw
 }
 
 func TestInstallAndSyncDeliverOrchestratorOnceForEveryRuntime(t *testing.T) {

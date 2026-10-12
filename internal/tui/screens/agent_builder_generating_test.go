@@ -21,8 +21,8 @@ func TestRenderABGenerating_HeadingPresent(t *testing.T) {
 }
 
 func TestRenderABGenerating_ShowsEngineName(t *testing.T) {
-	out := RenderABGenerating("opencode", 2, nil, 0)
-	if !strings.Contains(out, "opencode") {
+	out := RenderABGenerating("codex", 2, nil, 0)
+	if !strings.Contains(out, "codex") {
 		t.Errorf("engine name not found; output:\n%s", out)
 	}
 }

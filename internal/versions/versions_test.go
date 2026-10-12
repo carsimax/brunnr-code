@@ -4,7 +4,6 @@ import "testing"
 
 func TestPinnedVersionsAreDefined(t *testing.T) {
 	for name, val := range map[string]string{
-		"OpenCode":    OpenCode,
 		"Context7MCP": Context7MCP,
 		"GGAVersion":  GGAVersion,
 	} {

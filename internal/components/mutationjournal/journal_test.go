@@ -21,7 +21,7 @@ func TestNewRejectsEmptyRoots(t *testing.T) {
 	if err := j.Capture(target); err == nil || !strings.Contains(err.Error(), "outside mutation journal roots") {
 		t.Fatalf("Capture() empty-roots error = %v, want substring %q", err, "outside mutation journal roots")
 	}
-	if _, err := j.Write(target, []byte("x")); err == nil || !strings.Contains(err.Error(), "outside mutation journal roots") {
+	if _, err := j.WriteWithMode(target, []byte("x"), 0); err == nil || !strings.Contains(err.Error(), "outside mutation journal roots") {
 		t.Fatalf("Write() empty-roots error = %v, want substring %q", err, "outside mutation journal roots")
 	}
 }
@@ -36,7 +36,7 @@ func TestCaptureBeforeWrite(t *testing.T) {
 	if err := j.Capture(target); err != nil {
 		t.Fatalf("Capture() error = %v", err)
 	}
-	if _, err := j.Write(target, []byte("new")); err != nil {
+	if _, err := j.WriteWithMode(target, []byte("new"), 0); err != nil {
 		t.Fatalf("Write() error = %v", err)
 	}
 	got, err := os.ReadFile(target)
@@ -65,7 +65,7 @@ func TestCaptureNonexistent(t *testing.T) {
 	if err := j.Capture(target); err != nil {
 		t.Fatalf("Capture() error = %v", err)
 	}
-	if _, err := j.Write(target, []byte("created")); err != nil {
+	if _, err := j.WriteWithMode(target, []byte("created"), 0); err != nil {
 		t.Fatalf("Write() error = %v", err)
 	}
 	if _, err := os.Stat(target); err != nil {
@@ -86,7 +86,7 @@ func TestWriteAutoCaptures(t *testing.T) {
 		t.Fatalf("seed write error = %v", err)
 	}
 	j := New(dir)
-	if _, err := j.Write(target, []byte("second")); err != nil {
+	if _, err := j.WriteWithMode(target, []byte("second"), 0); err != nil {
 		t.Fatalf("Write() error = %v", err)
 	}
 	if err := j.Restore(); err != nil {
@@ -115,7 +115,7 @@ func TestRefusesSymlink(t *testing.T) {
 	if err := j.Capture(link); err == nil || !strings.Contains(err.Error(), "refuse symlink") {
 		t.Fatalf("Capture() symlink error = %v, want substring %q", err, "refuse symlink")
 	}
-	if _, err := j.Write(link, []byte("x")); err == nil || !strings.Contains(err.Error(), "refuse symlink") {
+	if _, err := j.WriteWithMode(link, []byte("x"), 0); err == nil || !strings.Contains(err.Error(), "refuse symlink") {
 		t.Fatalf("Write() symlink error = %v, want substring %q", err, "refuse symlink")
 	}
 }
@@ -127,7 +127,7 @@ func TestRefusesPathOutsideRoots(t *testing.T) {
 	if err := j.Capture(outside); err == nil || !strings.Contains(err.Error(), "outside mutation journal roots") {
 		t.Fatalf("Capture() outside-root error = %v, want substring %q", err, "outside mutation journal roots")
 	}
-	if _, err := j.Write(outside, []byte("x")); err == nil || !strings.Contains(err.Error(), "outside mutation journal roots") {
+	if _, err := j.WriteWithMode(outside, []byte("x"), 0); err == nil || !strings.Contains(err.Error(), "outside mutation journal roots") {
 		t.Fatalf("Write() outside-root error = %v, want substring %q", err, "outside mutation journal roots")
 	}
 }
@@ -138,7 +138,7 @@ func TestRefusesEmptyPath(t *testing.T) {
 	if err := j.Capture(""); err == nil || !strings.Contains(err.Error(), "empty mutation journal path") {
 		t.Fatalf("Capture(\"\") error = %v, want substring %q", err, "empty mutation journal path")
 	}
-	if _, err := j.Write("", []byte("x")); err == nil || !strings.Contains(err.Error(), "empty mutation journal path") {
+	if _, err := j.WriteWithMode("", []byte("x"), 0); err == nil || !strings.Contains(err.Error(), "empty mutation journal path") {
 		t.Fatalf("Write(\"\") error = %v, want substring %q", err, "empty mutation journal path")
 	}
 }

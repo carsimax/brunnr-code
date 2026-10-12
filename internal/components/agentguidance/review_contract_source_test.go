@@ -57,7 +57,7 @@ func TestInjectRoutingUsesReviewContractOption(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			swapPackageReviewContractSource(t, tc.fallback)
-			for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode} {
+			for _, agent := range []model.AgentID{model.AgentClaudeCode} {
 				home := t.TempDir()
 				path := routingTargetFor(t, home, agent, "")
 				options := RoutingOptions{ReviewContract: fixedReviewContract("OPTION REVIEW CONTRACT")}
@@ -88,7 +88,6 @@ func TestInjectRoutingWithoutReviewContractSourceFailsClosedAndWritesNothing(t *
 		seed  string
 	}{
 		{model.AgentClaudeCode, "# My rules\n\nKeep this.\n"},
-		{model.AgentOpenCode, "{\n  \"agent\": {\"mine\": {\"prompt\": \"keep\"}}\n}\n"},
 	} {
 		t.Run(string(tc.agent), func(t *testing.T) {
 			home := t.TempDir()

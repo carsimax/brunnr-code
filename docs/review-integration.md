@@ -5,7 +5,7 @@
 
 ← [Back to README](../README.md)
 
-`gentle-ai.review-integration/v2` coordinates one immutable review transaction at a time. Go owns the candidate snapshot, review admission, correction boundary, terminal burn, and all provider-facing bindings. Claude Code, OpenCode, Codex, and Pi transport provider-issued work; no runtime adapter decides review or delivery.
+`gentle-ai.review-integration/v2` coordinates one immutable review transaction at a time. Go owns the candidate snapshot, review admission, correction boundary, terminal burn, and all provider-facing bindings. Claude Code and Codex transport provider-issued work; no runtime adapter decides review or delivery.
 
 ## RDD defaults to ON
 
@@ -44,7 +44,7 @@ A session in repository A may review a nested target in unrelated repository B o
 | Isolation | Equal lineage text in A and B names independent transactions. Approval burns B only; A remains untouched. |
 | Delivery | Ordinary repository policy and any explicit delivery authorization name B. Approval never authorizes delivery. |
 
-This lifecycle is available only to Claude Code, Codex, OpenCode, and Pi. Unsupported runtimes fail before repository or authority mutation.
+This lifecycle is available only to Claude Code and Codex. Unsupported runtimes fail before repository or authority mutation.
 
 ### Repository context handles
 
@@ -53,9 +53,7 @@ The provider-issued `repository_context` stays opaque (#3797). Its format depend
 | Handle | Issued to | Resolution |
 | --- | --- | --- |
 | `rctx2_` + sha256 hex | Claude Code, Codex, Pi, manual, and every START/STATUS envelope | A digest over repository identity, lineage, target, and revision, verified against the caller's repository (`--cwd`). |
-| `rctx3_` + unpadded base64url | OpenCode collect inputs and provider tasks only (#5136, #4516) | Seals B's canonical root and identity digest with AES-256-GCM under a private per-user key, `~/.gentle-ai/review-context.key` (32 bytes, mode `0600`, created on first use). Go opens the repository at the sealed root only, re-derives the digest, and requires live authority. Host cwd, worktree registries, and submodule lists never take part. |
 
-The OpenCode relay resolves `rctx3` only; given `rctx2`, it refuses and names the OpenCode STATUS that reissues the Task. Other commands dispatch by prefix, so an OpenCode host can run `capture-result`, `capture-unachievable`, or `lens-context` with its collect input from any cwd. A tampered handle, another user's handle, a moved or replaced root, or stale authority refuses without mutation. An unsafe key file refuses with its repair.
 
 ### Opaque repository-context refusals
 
@@ -202,7 +200,7 @@ After a successful burn, no terminal receipt, tombstone, witness, mirror, or del
 
 ## Reviewer transport
 
-The provider contract is shared by Claude Code, OpenCode, and Codex. Go derives frozen trees, manifest, subject hash, role, binding, schema, evidence limits, and admission. Adapters transport opaque provider output and never parse bindings, manufacture a verdict, or mutate review authority.
+The provider contract is shared by Claude Code and Codex. Go derives frozen trees, manifest, subject hash, role, binding, schema, evidence limits, and admission. Adapters transport opaque provider output and never parse bindings, manufacture a verdict, or mutate review authority.
 
 The in-process Claude Code reviewer uses the saved model and effort for each role (`risk`, `readability`, `reliability`, `resilience`, `refuter`, and `validator`). It passes `--effort` only for a non-default effort supported by the assigned model, using the same compatibility rule as generated `review-*` subagents. Default effort and legacy model-only assignments omit the flag. Missing or malformed assignments preserve native defaults or a valid legacy model fallback. The reviewer keeps `--setting-sources ""`; it does not inherit user or project effort settings.
 
@@ -214,7 +212,7 @@ Dependency locks (`package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml`, 
 
 ### Non-lens provider roles: refuter and targeted validator
 
-`gentle-ai review capture-refuter` and `gentle-ai review capture-validation` bind the transaction-wide refuter batch and the correction-bound targeted validator the same way `review capture-result` binds a lens — `--lineage`, `--target`, `--expected-revision` (plus `--request-hash` for the validator) — and exactly one of three modes. A compiled runtime (Claude Code, Codex, OpenCode) passes `--agent` and `--execute`: Go materializes the role request, runs its own in-process adapter, and admits the raw result; no submission descriptor exists for this form, and `--materialize`/`--input` refuse typed for it.
+`gentle-ai review capture-refuter` and `gentle-ai review capture-validation` bind the transaction-wide refuter batch and the correction-bound targeted validator the same way `review capture-result` binds a lens — `--lineage`, `--target`, `--expected-revision` (plus `--request-hash` for the validator) — and exactly one of three modes. A compiled runtime (Claude Code, Codex) passes `--agent` and `--execute`: Go materializes the role request, runs its own in-process adapter, and admits the raw result; no submission descriptor exists for this form, and `--materialize`/`--input` refuse typed for it.
 
 #### Refuter probe
 
@@ -225,13 +223,12 @@ The refuter may confirm or drop a severe claim with one isolated reproducing com
 | Codex | Yes | Go creates a fresh `mktemp -d` scratch directory under the system temp dir (never inside the workspace), writes the frozen candidate tree into it from Git objects, and runs Codex there with `--sandbox workspace-write`, `sandbox_workspace_write.network_access=false`, and the temp-dir writable roots excluded. |
 | Claude Code | No | Enabling tools gives no network isolation. |
 | Pi | No | The reviewer runs in process without tools. |
-| OpenCode | No | The bash default is unknown. |
 
 - The refuter prompt carries the runtime's paragraph: Codex may run one reproducing command per claim in the scratch copy, with no network and no installs, and must cite the command and its observed output in `proof_refs`. Every other runtime is told to run no command.
 - On a no-probe runtime Go appends `probe unavailable on <runtime>` to each admitted result's `proof_refs`, so the receipt states that no command ran. Result and receipt shapes do not change, and the request hash does not depend on the runtime paragraph.
 - `TMPDIR` can point anywhere, so before creating anything Go resolves the system temp dir and the reviewed repository root through symlinks. If the temp dir is the repository or lies inside it, the refuter fails with `refuter probe scratch would be inside the reviewed workspace`; no scratch is created, no candidate is written, and Codex does not run. Point `TMPDIR` outside the repository and retry.
 - The scratch directory is removed when the refuter returns, also on error and timeout, including read-only output a probe leaves behind. The probe is bounded by the existing capture timeout.
-- Every severe (BLOCKER/CRITICAL) inferential finding with candidate causality reaches the refuter. A deterministic one reaches it too when the runtime frozen at START can run the refuter (Pi, OpenCode, Claude Code, Codex), so a deterministic false positive can be dropped; on any other runtime or the manual lane it blocks directly, so the review closes instead of stopping. A refuted finding becomes a `refuted` advisory; corroborated and inconclusive findings go to the bounded correction. Non-severe findings, and severe findings that are pre-existing, base-only, of unknown causality, or with insufficient evidence, never reach it.
+- Every severe (BLOCKER/CRITICAL) inferential finding with candidate causality reaches the refuter. A deterministic one reaches it too when the runtime frozen at START can run the refuter (Claude Code, Codex), so a deterministic false positive can be dropped; on any other runtime or the manual lane it blocks directly, so the review closes instead of stopping. A refuted finding becomes a `refuted` advisory; corroborated and inconclusive findings go to the bounded correction. Non-severe findings, and severe findings that are pre-existing, base-only, of unknown causality, or with insufficient evidence, never reach it.
 - The bounds stay the same: one refuter batch per transaction, one result per issued claim, the runtime prompt cap, and the START envelope floor.
 - Authority admitted before this change replays unchanged: a deterministic finding the refuter did not answer stays corroborated.
 - The single corrective re-invocation keeps the probe copy and its source root, so a corrective Codex refuter still runs in the confined candidate scratch.

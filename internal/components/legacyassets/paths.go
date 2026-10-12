@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
 
@@ -15,11 +14,6 @@ import (
 var commandNames = [...]string{
 	"sdd-init", "sdd-new", "sdd-continue", "sdd-status", "sdd-explore",
 	"sdd-research", "sdd-ff", "sdd-apply", "sdd-verify", "sdd-archive", "sdd-onboard",
-}
-
-var promptPhases = [...]string{
-	"sdd-init", "sdd-explore", "sdd-research", "sdd-propose", "sdd-spec",
-	"sdd-design", "sdd-tasks", "sdd-apply", "sdd-verify", "sdd-archive", "sdd-onboard",
 }
 
 // SlashCommandPaths inventories historical commands; Claude has both namespaced
@@ -33,16 +27,6 @@ func SlashCommandPaths(agent model.AgentID, commandsDir string) []string {
 		paths = append(paths, filepath.Join(commandsDir, name+".md"))
 	}
 	return paths
-}
-
-// SharedPromptDir is the historical OpenCode prompt location (including XDG).
-func SharedPromptDir(homeDir string) string {
-	return filepath.Join(opencode.ConfigPath(homeDir), "prompts", "sdd")
-}
-
-// SharedPromptPhases returns an independent copy of historical prompt names.
-func SharedPromptPhases() []string {
-	return append([]string(nil), promptPhases[:]...)
 }
 
 // IsLegacyClaudeCommandPath matches exactly the retired unprefixed Claude files.

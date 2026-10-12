@@ -18,9 +18,8 @@ import (
 // now grants exactly one corrective re-invocation whose prompt is the original
 // materialized prompt plus the exact admission error, so the model can see the
 // census of what it left open. The bound is a named constant, the retry lives
-// only here, and it never applies to --input submissions or the OpenCode host
-// relay: those hosts own their reviewer and receive the same preserved
-// payload instead.
+// only here, and it never applies to --input submissions: those callers own
+// their reviewer and receive the same preserved payload instead.
 const (
 	maxReviewerResultAdmissionAttempts     = 2
 	reviewProviderCorrectiveFeedbackHeader = "GENTLE_AI_REVIEW_ADMISSION_FEEDBACK"

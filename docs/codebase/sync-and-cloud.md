@@ -54,7 +54,6 @@ This repository does not contain cloud server or cloud store packages. If future
 - [ ] Use `engram sync` docs for memory sharing behavior.
 - [ ] Keep sync changes idempotent and test `FilesChanged` expectations.
 - [ ] Check persona behavior against persisted state and neutral fallback rules.
-- [ ] Keep community tool guidance separate from OpenCode plugin registration.
 - [ ] Do not touch untracked local `.engram/cloud.json` or `.engram/engram.db` during docs or sync work.
 
 ## Navigation

@@ -354,7 +354,7 @@ func TestReviewStopHookRequiresSupportedAgent(t *testing.T) {
 		args []string
 	}{
 		{name: "missing --agent", args: nil},
-		{name: "unsupported --agent kilocode", args: []string{"--agent", "kilocode"}},
+		{name: "unsupported --agent retired-runtime", args: []string{"--agent", "retired-runtime"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

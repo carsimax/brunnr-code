@@ -175,8 +175,8 @@ func TestExplicitFrozenReviewingStatusRejectsPartialSlotsAndStaleStartLineages(t
 		}
 
 		var output bytes.Buffer
-		if err := RunReview([]string{"status", "--contract", ReviewIntegrationContractV2, "--agent", "opencode", "--next-transition", "--cwd", repo, "--lineage", record.State.LineageID}, &output); err != nil {
-			t.Fatalf("selected OpenCode STATUS: %v\n%s", err, output.String())
+		if err := RunReview([]string{"status", "--contract", ReviewIntegrationContractV2, "--agent", "claude-code", "--next-transition", "--cwd", repo, "--lineage", record.State.LineageID}, &output); err != nil {
+			t.Fatalf("selected Claude Code STATUS: %v\n%s", err, output.String())
 		}
 		var status ReviewTargetStatusResult
 		decodeStrictReviewJSON(t, output.Bytes(), &status)

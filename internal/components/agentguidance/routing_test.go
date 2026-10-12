@@ -15,7 +15,7 @@ import (
 )
 
 func TestRoutingIncludesApplicableTestFirstPolicy(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode} {
+	for _, agent := range []model.AgentID{model.AgentClaudeCode} {
 		rendered, err := RenderRouting(agent)
 		if err != nil {
 			t.Fatal(err)
@@ -34,7 +34,7 @@ func TestRoutingIncludesApplicableTestFirstPolicy(t *testing.T) {
 // supportedAgentCount guards the catalog itself: routing renders for every
 // supported adapter, so a silently shrinking catalog must fail here instead of
 // quietly reducing coverage of the table-driven tests below.
-const supportedAgentCount = 3
+const supportedAgentCount = 2
 
 // retiredRemoteControlPlaneVocabulary is the wire and ceremony vocabulary the
 // organic routing projection must never carry. Rendering any of these would

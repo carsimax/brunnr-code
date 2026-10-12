@@ -10,7 +10,7 @@ import (
 )
 
 // issue3766UpdateCooldownFixture seeds the sandbox HOME's state.json with a
-// current last_update_check, mirroring issue3561DanglingAncestorFixture: a
+// current last_update_check, mirroring issue3557DanglingSymlinkFixture: a
 // fresh sandbox HOME has no update cooldown, so when upstream is newer the
 // launch update check pops an "Update Available" modal that covers the menu
 // the TTY exchange waits for (#3971's second manifestation). No state.json

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewerprovider"
+	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
 )
 
 // TestProviderRoleCollectInputNamesObeyPublishedPattern pins every provider
@@ -24,7 +25,8 @@ func TestProviderRoleCollectInputNamesObeyPublishedPattern(t *testing.T) {
 		RepositoryContext: "rctx1_" + strings.Repeat("c", 64),
 	}
 
-	transition := reviewProviderRoleTransition("provider_refuter_required", binding, reviewerprovider.RoleTargetedValidator, model.AgentOpenCode, nil)
+	validation := &reviewtransaction.TargetedValidationRequest{RequestHash: "sha256:" + strings.Repeat("d", 64)}
+	transition := reviewProviderRoleTransition("provider_refuter_required", binding, reviewerprovider.RoleTargetedValidator, model.AgentClaudeCode, validation)
 	if transition.Kind != "collect" || transition.Collect == nil || len(transition.Collect.Inputs) != 1 {
 		t.Fatalf("targeted-validator transition = %#v", transition)
 	}
@@ -36,7 +38,7 @@ func TestProviderRoleCollectInputNamesObeyPublishedPattern(t *testing.T) {
 		t.Fatalf("targeted-validator collect input name = %q, want provider_targeted_validator", input.Name)
 	}
 
-	refuter := reviewProviderRoleTransition("provider_refuter_required", binding, reviewerprovider.RoleRefuter, model.AgentOpenCode, nil)
+	refuter := reviewProviderRoleTransition("provider_refuter_required", binding, reviewerprovider.RoleRefuter, model.AgentClaudeCode, nil)
 	if refuter.Collect == nil || len(refuter.Collect.Inputs) != 1 || refuter.Collect.Inputs[0].Name != "provider_refuter" {
 		t.Fatalf("refuter transition = %#v", refuter)
 	}

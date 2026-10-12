@@ -224,7 +224,7 @@ func atomicReviewJourneys() []Journey {
 	}, {
 		ID: "j1658-native-status-recovery-executes-without-authored-authorization", Review: reviewOptedIn,
 		Title:  "#1658: bound native STATUS recovery runs without authored authorization",
-		Source: "#1658 CLI boundary only, not OpenCode runtime proof: failed criteria over unchanged bytes stop; changed bytes recover with native binding, and explicit wrong/empty/partial inputs and an existing successor fail closed",
+		Source: "#1658 CLI boundary only, not host runtime proof: failed criteria over unchanged bytes stop; changed bytes recover with native binding, and explicit wrong/empty/partial inputs and an existing successor fail closed",
 		Steps: []Step{
 			{Name: "fixture: repository", Fixture: baseRepo},
 			{Name: "fixture: high-risk correction candidate", Fixture: stageAtomicHighRiskCorrectionCandidate},

@@ -28,11 +28,11 @@ func TestRenderCommunityToolsShowsStatusLoadingAndAgentState(t *testing.T) {
 		CLI:  communitytool.AvailabilityAvailable,
 		Agents: []communitytool.AgentStatus{
 			{Agent: model.AgentClaudeCode, Name: "Claude Code", Detected: true, Configured: true, Status: communitytool.AgentStatusConfigured, Path: "/tmp/.claude/mcp/codegraph.json"},
-			{Agent: model.AgentOpenCode, Name: "OpenCode", Detected: true, Configured: false, Status: communitytool.AgentStatusMissing, Path: "/tmp/.config/opencode"},
+			{Agent: model.AgentCodex, Name: "Codex", Detected: true, Configured: false, Status: communitytool.AgentStatusMissing, Path: "/tmp/.codex"},
 		},
 	}
 	out := RenderCommunityTools(nil, 0, []communitytool.Status{status}, false, nil)
-	for _, want := range []string{"CodeGraph CLI: available", "Agent wiring: 2 detected • 1 configured • 1 missing", "Claude Code: configured", "OpenCode: missing"} {
+	for _, want := range []string{"CodeGraph CLI: available", "Agent wiring: 2 detected • 1 configured • 1 missing", "Claude Code: configured", "Codex: missing"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("status output missing %q; output:\n%s", want, out)
 		}
@@ -46,12 +46,12 @@ func TestRenderCommunityToolResultShowsPartialContextOnError(t *testing.T) {
 			Tool: model.CommunityToolCodeGraph,
 			CLI:  communitytool.AvailabilityMissing,
 			Agents: []communitytool.AgentStatus{
-				{Agent: model.AgentOpenCode, Name: "OpenCode", Detected: true, Configured: false, Status: communitytool.AgentStatusMissing},
+				{Agent: model.AgentCodex, Name: "Codex", Detected: true, Configured: false, Status: communitytool.AgentStatusMissing},
 			},
 		},
 	}
 	out := RenderCommunityToolResult([]communitytool.Result{result}, assertErr("validation failed"))
-	for _, want := range []string{"Community tool setup failed", "validation failed", "CodeGraph: CLI missing", "OpenCode: missing"} {
+	for _, want := range []string{"Community tool setup failed", "validation failed", "CodeGraph: CLI missing", "Codex: missing"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("result output missing %q; output:\n%s", want, out)
 		}
@@ -65,7 +65,6 @@ func TestCommunityToolScreensShowPendingSeparately(t *testing.T) {
 		Agents: []communitytool.AgentStatus{
 			{Agent: model.AgentCodex, Name: "Codex", Detected: true, Status: "pending"},
 			{Agent: model.AgentClaudeCode, Name: "Claude Code", Detected: true, Configured: true, Status: communitytool.AgentStatusConfigured},
-			{Agent: model.AgentOpenCode, Name: "OpenCode", Detected: true, Status: communitytool.AgentStatusMissing},
 		},
 	}
 	for name, out := range map[string]string{
@@ -73,7 +72,7 @@ func TestCommunityToolScreensShowPendingSeparately(t *testing.T) {
 		"result":    RenderCommunityToolResult([]communitytool.Result{{Tool: status.Tool, StatusAfter: &status}}, nil),
 	} {
 		t.Run(name, func(t *testing.T) {
-			for _, want := range []string{"1 configured • 1 missing • 1 pending", "Codex: pending", "Claude Code: configured", "OpenCode: missing"} {
+			for _, want := range []string{"1 configured • 0 missing • 1 pending", "Codex: pending", "Claude Code: configured"} {
 				if !strings.Contains(out, want) {
 					t.Fatalf("missing %q; output:\n%s", want, out)
 				}
@@ -84,7 +83,7 @@ func TestCommunityToolScreensShowPendingSeparately(t *testing.T) {
 		})
 	}
 	out := RenderCommunityToolInstalling([]model.CommunityToolID{status.Tool}, "*", []communitytool.Status{status})
-	if !strings.Contains(out, "1 configured, 1 missing detected agent wiring, 1 pending") {
+	if !strings.Contains(out, "1 configured, 0 missing detected agent wiring, 1 pending") {
 		t.Fatalf("installing counts omit pending:\n%s", out)
 	}
 }

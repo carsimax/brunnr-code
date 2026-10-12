@@ -20,20 +20,6 @@ type flowAction struct {
 	runCmd    bool
 }
 
-func TestOpenCodePresetSkipsExternalPlugins(t *testing.T) {
-	for _, preset := range []model.PresetID{model.PresetMinimal, model.PresetFullGentleman, model.PresetEcosystemOnly} {
-		t.Run(string(preset), func(t *testing.T) {
-			m := NewModel(system.DetectionResult{}, "dev")
-			m.Screen, m.Selection.Agents = ScreenPreset, []model.AgentID{model.AgentOpenCode}
-			m.Cursor = presetCursor(t, preset)
-			state := applyFlowAction(t, m, flowAction{key: tea.KeyMsg{Type: tea.KeyEnter}})
-			if state.Screen != ScreenDependencyTree {
-				t.Fatalf("preset reached %v, want install plan", state.Screen)
-			}
-		})
-	}
-}
-
 func TestPresetSelectionNextScreenFlowMatrix(t *testing.T) {
 	for _, tt := range []struct {
 		name   string
@@ -41,15 +27,10 @@ func TestPresetSelectionNextScreenFlowMatrix(t *testing.T) {
 		preset model.PresetID
 		want   Screen
 	}{
-		{"full OpenCode", []model.AgentID{model.AgentOpenCode}, model.PresetFullGentleman, ScreenDependencyTree},
-		{"ecosystem OpenCode", []model.AgentID{model.AgentOpenCode}, model.PresetEcosystemOnly, ScreenDependencyTree},
-		{"minimal OpenCode", []model.AgentID{model.AgentOpenCode}, model.PresetMinimal, ScreenDependencyTree},
-		{"custom OpenCode", []model.AgentID{model.AgentOpenCode}, model.PresetCustom, ScreenDependencyTree},
 		{"full Cursor", []model.AgentID{model.AgentCursor}, model.PresetFullGentleman, ScreenDependencyTree},
 		{"ecosystem Cursor", []model.AgentID{model.AgentCursor}, model.PresetEcosystemOnly, ScreenDependencyTree},
 		{"minimal Cursor", []model.AgentID{model.AgentCursor}, model.PresetMinimal, ScreenDependencyTree},
 		{"custom Cursor", []model.AgentID{model.AgentCursor}, model.PresetCustom, ScreenDependencyTree},
-		{"full picker agents", []model.AgentID{model.AgentClaudeCode, model.AgentKiroIDE, model.AgentCodex, model.AgentOpenCode}, model.PresetFullGentleman, ScreenDependencyTree},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			m := NewModel(system.DetectionResult{}, "dev")
@@ -87,8 +68,6 @@ func TestCustomPresetPostComponentFlowMatrix(t *testing.T) {
 		components []model.ComponentID
 		want       Screen
 	}{
-		{"OpenCode Engram", model.AgentOpenCode, []model.ComponentID{model.ComponentEngram}, ScreenInstallReviewMode},
-		{"OpenCode Skills", model.AgentOpenCode, []model.ComponentID{model.ComponentSkills}, ScreenSkillPicker},
 		{"Cursor Skills", model.AgentCursor, []model.ComponentID{model.ComponentSkills}, ScreenSkillPicker},
 		{"Cursor Engram", model.AgentCursor, []model.ComponentID{model.ComponentEngram}, ScreenInstallReviewMode},
 	} {
@@ -134,10 +113,7 @@ func TestInstallNavigationRoundTrips(t *testing.T) {
 	}{
 		{"minimal Cursor", model.AgentCursor, model.PresetMinimal, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
 		{"full Cursor", model.AgentCursor, model.PresetFullGentleman, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
-		{"minimal OpenCode", model.AgentOpenCode, model.PresetMinimal, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
-		{"full OpenCode", model.AgentOpenCode, model.PresetFullGentleman, nil, []Screen{ScreenDependencyTree}, []Screen{ScreenPreset}},
 		{"custom Cursor Skills", model.AgentCursor, model.PresetCustom, []model.ComponentID{model.ComponentSDD, model.ComponentSkills}, []Screen{ScreenSkillPicker}, []Screen{ScreenDependencyTree}},
-		{"custom OpenCode Skills", model.AgentOpenCode, model.PresetCustom, []model.ComponentID{model.ComponentSDD, model.ComponentSkills}, []Screen{ScreenSkillPicker}, []Screen{ScreenDependencyTree}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			m := NewModel(system.DetectionResult{}, "dev")
@@ -244,11 +220,9 @@ Toggle components with enter or space.
   [ ] gga
     Gentleman Guardian Angel — AI provider switcher
   [ ] theme
-    Visual polish: OpenCode color theme
+    Visual polish: Gentleman color theme
   [ ] claude-theme
     Visual polish: Gentleman and Gentleman Cute theme assets
-  [ ] opencode-gentle-logo
-    Visual polish: OpenCode home logo plugin
 
   Continue
   Back

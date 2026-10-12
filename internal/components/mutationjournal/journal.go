@@ -86,16 +86,12 @@ func (j *Journal) Validate(path string) error {
 	return j.validate(path)
 }
 
-// Write atomically writes data to path. If the file existed before the first
-// Capture/Write call for this path, the journal will have its content
-// captured automatically; otherwise the file's prior absence is recorded.
-// Returns the resulting OwnedFile record (Before/After/Hash populated).
-func (j *Journal) Write(path string, data []byte) (OwnedFile, error) {
-	return j.WriteWithMode(path, data, 0)
-}
-
-// WriteWithMode is like Write but preserves an explicit file mode for new
-// files. If the file existed before, the prior mode is reused.
+// WriteWithMode atomically writes data to path. If the file existed before
+// the first Capture/Write call for this path, the journal will have its
+// content captured automatically; otherwise the file's prior absence is
+// recorded. It preserves an explicit file mode for new files (0 selects the
+// default); if the file existed before, the prior mode is reused. Returns the
+// resulting OwnedFile record (Before/After/Hash populated).
 func (j *Journal) WriteWithMode(path string, data []byte, mode os.FileMode) (OwnedFile, error) {
 	if err := j.Capture(path); err != nil {
 		return OwnedFile{}, err

@@ -23,7 +23,7 @@ func TestReleasedSDDAgentDigestsMatchGenerator(t *testing.T) {
 		}
 		t.Fatalf("generator failed: %v\n%s", err, output)
 	}
-	for _, name := range []string{"sdd_agent_digests.go", "opencode_sdd_digests.go", "sdd_asset_digests.go"} {
+	for _, name := range []string{"sdd_agent_digests.go", "sdd_asset_digests.go"} {
 		want, err := os.ReadFile(name)
 		if err != nil {
 			t.Fatal(err)
@@ -74,7 +74,7 @@ func runDigestGenerator(t *testing.T, dir string, env ...string) ([]byte, error)
 	if output, err := exec.Command("go", "build", "-o", bin, "../../../scripts/gen-sdd-agent-digests").CombinedOutput(); err != nil {
 		t.Fatalf("build generator: %v\n%s", err, output)
 	}
-	cmd := exec.Command(bin, filepath.Join(dir, "sdd_agent_digests.go"), filepath.Join(dir, "opencode_sdd_digests.go"), filepath.Join(dir, "sdd_asset_digests.go"))
+	cmd := exec.Command(bin, filepath.Join(dir, "sdd_agent_digests.go"), filepath.Join(dir, "sdd_asset_digests.go"))
 	cmd.Env = append(os.Environ(), env...)
 	return cmd.CombinedOutput()
 }
@@ -143,10 +143,9 @@ func TestSDDAgentDigestGeneratorRefusesMissingIntermediateTags(t *testing.T) {
 	repo.release("v3.7.0", "name: sdd-apply\n")
 	repo.git("tag", "v4.0.0")
 	registry := filepath.Join(t.TempDir(), "sdd_agent_digests.go")
-	openCodeRegistry := filepath.Join(t.TempDir(), "opencode_sdd_digests.go")
 	assetRegistry := filepath.Join(t.TempDir(), "sdd_asset_digests.go")
 	run := func() (string, error) {
-		cmd := exec.Command(generator, registry, openCodeRegistry, assetRegistry)
+		cmd := exec.Command(generator, registry, assetRegistry)
 		cmd.Dir, cmd.Env = repo.dir, repo.env
 		out, err := cmd.CombinedOutput()
 		return string(out), err
@@ -172,7 +171,7 @@ func TestSDDAgentDigestGeneratorRefusesMissingIntermediateTags(t *testing.T) {
 	if err := os.WriteFile(registry, []byte(edited), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	for _, file := range []string{openCodeRegistry, assetRegistry} {
+	for _, file := range []string{assetRegistry} {
 		recorded, err := os.ReadFile(file)
 		if err != nil {
 			t.Fatal(err)

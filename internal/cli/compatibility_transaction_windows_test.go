@@ -25,7 +25,7 @@ func createWindowsCompatibilityJunction(t *testing.T, link, target string) {
 
 func windowsCompatibilitySelection() model.Selection {
 	return model.Selection{
-		Agents:     []model.AgentID{model.AgentOpenCode},
+		Agents:     []model.AgentID{model.AgentCodex},
 		Components: []model.ComponentID{model.ComponentSkills},
 		Skills:     []model.SkillID{model.SkillGoTesting},
 		Persona:    model.PersonaNeutral,
@@ -46,43 +46,11 @@ func installWindowsCompatibilityCloseHook(t *testing.T, hook func(error)) {
 	t.Cleanup(func() { windowsCompatibilityTransactionCloseHook = previous })
 }
 
-func TestRunSyncWithSelectionRefreshesCompatibilityAndOpenCodeAssetsOnWindows(t *testing.T) {
-	home := t.TempDir()
-	closeCount := 0
-	installWindowsCompatibilityCloseHook(t, func(err error) {
-		if err != nil {
-			t.Errorf("close compatibility transaction: %v", err)
-		}
-		closeCount++
-	})
-	compatibilityFiles := []string{
-		filepath.Join(home, ".agents", "skills", "go-testing", "SKILL.md"),
-		filepath.Join(home, ".agents", "skills", "go-testing", "references", "examples.md"),
-	}
-	for _, path := range compatibilityFiles {
-		writeStale(t, path)
-	}
-	pluginPath := filepath.Join(home, ".config", "opencode", "plugins", "model-variants.ts")
-	writeStale(t, pluginPath)
-
-	if _, err := RunSyncWithSelection(home, windowsCompatibilitySelection()); err != nil {
-		t.Fatalf("RunSyncWithSelection() error = %v", err)
-	}
-	for _, path := range append(compatibilityFiles, pluginPath) {
-		content, err := os.ReadFile(path)
-		if err != nil || string(content) == "stale" {
-			t.Fatalf("managed asset %q was not refreshed: content=%q error=%v", path, content, err)
-		}
-	}
-	if closeCount != 1 {
-		t.Fatalf("compatibility transaction close count = %d, want 1", closeCount)
-	}
-}
-
 func TestRunSyncWithSelectionClosesWindowsCompatibilityTransactionAfterSnapshotFailure(t *testing.T) {
 	home := t.TempDir()
 	writeStale(t, filepath.Join(home, ".agents", "skills", "go-testing", "SKILL.md"))
-	if err := os.MkdirAll(filepath.Join(home, ".config", "opencode", "plugins", "model-variants.ts"), 0o755); err != nil {
+	// A directory where sync expects the Codex skill file makes the snapshot fail.
+	if err := os.MkdirAll(filepath.Join(home, ".codex", "skills", "go-testing", "SKILL.md"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -93,8 +61,8 @@ func TestRunSyncWithSelectionClosesWindowsCompatibilityTransactionAfterSnapshotF
 		}
 		closeCount++
 	})
-	if _, err := RunSyncWithSelection(home, windowsCompatibilitySelection()); err == nil || !strings.Contains(err.Error(), "model-variants.ts") {
-		t.Fatalf("RunSyncWithSelection() error = %v, want snapshot failure for model-variants.ts", err)
+	if _, err := RunSyncWithSelection(home, windowsCompatibilitySelection()); err == nil || !strings.Contains(err.Error(), filepath.Join(".codex", "skills", "go-testing")) {
+		t.Fatalf("RunSyncWithSelection() error = %v, want snapshot failure for the Codex go-testing skill", err)
 	}
 	if closeCount != 1 {
 		t.Fatalf("compatibility transaction close count = %d, want 1", closeCount)
@@ -157,7 +125,7 @@ func TestExecuteTUIInstallClosesWindowsCompatibilityTransactionAfterSuccess(t *t
 		closeCount++
 	})
 	selection, resolved, profile := windowsTUICompatibilityPlan()
-	result, _, _ := ExecuteTUIInstallRecordingCodexServiceTier(home, selection, resolved, profile, model.OpenCodeBackgroundAuto, nil)
+	result, _, _ := ExecuteTUIInstallRecordingCodexServiceTier(home, selection, resolved, profile, nil)
 	if result.Err != nil {
 		t.Fatalf("ExecuteTUIInstallRecordingCodexServiceTier() error = %v", result.Err)
 	}
@@ -190,7 +158,7 @@ func TestExecuteTUIInstallClosesWindowsCompatibilityTransactionAfterRollback(t *
 	})
 
 	selection, resolved, profile := windowsTUICompatibilityPlan()
-	result, _, _ := ExecuteTUIInstallRecordingCodexServiceTier(home, selection, resolved, profile, model.OpenCodeBackgroundAuto, nil)
+	result, _, _ := ExecuteTUIInstallRecordingCodexServiceTier(home, selection, resolved, profile, nil)
 	if result.Err == nil {
 		t.Fatal("ExecuteTUIInstallRecordingCodexServiceTier() error = nil, want post-publication failure")
 	}
@@ -261,16 +229,16 @@ func TestWindowsCompatibilityTransactionRefusesRootParentAndNestedJunctions(t *t
 			if err := os.WriteFile(outsideSkill, []byte("outside"), 0o600); err != nil {
 				t.Fatal(err)
 			}
-			pluginPath := filepath.Join(home, ".config", "opencode", "plugins", "model-variants.ts")
-			writeStale(t, pluginPath)
+			codexSkillPath := filepath.Join(home, ".codex", "skills", "go-testing", "SKILL.md")
+			writeStale(t, codexSkillPath)
 
 			_, err := RunSyncWithSelection(home, windowsCompatibilitySelection())
 			if err == nil || !strings.Contains(err.Error(), "physical directory") {
 				t.Fatalf("RunSyncWithSelection() error = %v, want physical-directory refusal", err)
 			}
 			assertWindowsCompatibilitySentinel(t, outsideSkill)
-			if content, readErr := os.ReadFile(pluginPath); readErr != nil || string(content) != "stale" {
-				t.Fatalf("plugin refresh ran after compatibility refusal: content=%q error=%v", content, readErr)
+			if content, readErr := os.ReadFile(codexSkillPath); readErr != nil || string(content) != "stale" {
+				t.Fatalf("skill refresh ran after compatibility refusal: content=%q error=%v", content, readErr)
 			}
 			if _, statErr := os.Stat(filepath.Join(home, ".gentle-ai", "backups")); !os.IsNotExist(statErr) {
 				t.Fatalf("backup started after compatibility refusal: %v", statErr)

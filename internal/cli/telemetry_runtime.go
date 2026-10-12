@@ -14,7 +14,7 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/telemetry"
 )
 
-// Tests inject transport and stdin deadlines. Direct send/OpenCode input keeps
+// Tests inject transport and stdin deadlines. Direct send input keeps
 // its 500 ms EOF budget. Hook runtimes allow 3 seconds for delayed hook delivery
 // but return as soon as one complete JSON value arrives; the sender's separate
 // 3-second HTTP budget starts afterward.
@@ -74,8 +74,8 @@ func runTelemetryRuntime(args []string, stdout io.Writer) error {
 }
 
 func runTelemetryRuntimeInput(args []string, stdout io.Writer, input io.Reader) error {
-	if len(args) != 2 || (args[0] != "send" && args[0] != "opencode" && args[0] != "claude" && args[0] != "codex") || args[1] != "--json" {
-		return errors.New("usage: gentle-ai telemetry runtime <send|opencode|claude|codex> --json (bounded aggregate or hook on stdin)")
+	if len(args) != 2 || (args[0] != "send" && args[0] != "claude" && args[0] != "codex") || args[1] != "--json" {
+		return errors.New("usage: gentle-ai telemetry runtime <send|claude|codex> --json (bounded aggregate or hook on stdin)")
 	}
 	decision := "disabled"
 	if telemetry.Decide(os.Getenv, telemetry.State{Enabled: true}).Enabled {
@@ -93,9 +93,7 @@ func runTelemetryRuntimeInput(args []string, stdout io.Writer, input io.Reader) 
 				cancel()
 				decision = "discarded"
 				if ok {
-					if args[0] == "opencode" {
-						decision = telemetryruntime.SendOpenCode(context.Background(), home, os.Getenv, bytes.NewReader(data), runtimeHTTPClient())
-					} else if args[0] == "claude" {
+					if args[0] == "claude" {
 						decision = telemetryruntime.SendClaude(context.Background(), home, os.Getenv, bytes.NewReader(data), runtimeHTTPClient())
 					} else if args[0] == "codex" {
 						decision = telemetryruntime.SendCodex(context.Background(), home, os.Getenv, bytes.NewReader(data), runtimeHTTPClient())

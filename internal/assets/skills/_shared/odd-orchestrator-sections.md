@@ -168,7 +168,7 @@ Discovery order:
 
 1. Read `.atl/skill-registry.md` when present.
 2. If the registry suggests a specific skill, load the indexed `SKILL.md` path before acting.
-3. If the expected skill is absent from the registry but the request clearly names a known workflow, search common project/user skill directories such as `./skills`, `.agents/skills`, `~/.config/opencode/skills`, `~/.claude/skills`, and other configured skill roots.
+3. If the expected skill is absent from the registry but the request clearly names a known workflow, search common project/user skill directories such as `./skills`, `.agents/skills`, `~/.claude/skills`, and other configured skill roots.
 4. Prefer the most specific project skill over a global skill with the same intent.
 5. If no matching skill exists, continue with the smallest safe fallback and say which expected skill was unavailable.
 

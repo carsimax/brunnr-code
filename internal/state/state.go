@@ -18,17 +18,6 @@ import (
 const stateDir = ".gentle-ai"
 const stateFile = "state.json"
 
-// ModelAssignmentState is the JSON-serialisable form of a provider+model pair
-// used by OpenCode-style model assignments. It mirrors model.ModelAssignment
-// but lives in the state package to avoid an import cycle.
-// Effort is the reasoning effort level ("" | "low" | "medium" | "high");
-// omitempty ensures backward-compatibility with existing state files.
-type ModelAssignmentState struct {
-	ProviderID string `json:"provider_id"`
-	ModelID    string `json:"model_id"`
-	Effort     string `json:"effort,omitempty"`
-}
-
 // CodexOrchestratorAssignmentState is the persisted main-session assignment.
 type CodexOrchestratorAssignmentState struct {
 	Model  string `json:"model"`
@@ -101,9 +90,6 @@ type InstallState struct {
 	// unchanged for backward-compatibility).
 	CodexPhaseModelAssignments map[string]string `json:"codexPhaseModelAssignments,omitempty"`
 
-	// ModelAssignments maps sub-agent names to provider/model pairs (OpenCode).
-	ModelAssignments map[string]ModelAssignmentState `json:"model_assignments,omitempty"`
-
 	// Persona records the persona the user installed ("gentleman", "neutral",
 	// "custom"). Persisted so that `gentle-ai sync` regenerates the same persona
 	// the user originally chose instead of defaulting to Gentleman every time.
@@ -144,8 +130,6 @@ type InstallState struct {
 	// recorded is authority, not a cosmetic audit field. Nil for state files
 	// written before the switch existed.
 	RDDModeRecordedAt *time.Time `json:"rdd_mode_recorded_at,omitempty"`
-
-	BackgroundIntent model.OpenCodeBackgroundIntent `json:"opencode_background_subagents,omitempty"`
 
 	// LastSyncedAt records when this home directory last completed a
 	// successful sync. Nil for state files written before this field was added.
@@ -299,7 +283,6 @@ func MergeAgents(existing InstallState, newAgents []string) InstallState {
 		StrictTDD:                   false,
 		CommunityTools:              existing.CommunityTools,
 		CommunityToolsConfigured:    existing.CommunityToolsConfigured,
-		ModelAssignments:            existing.ModelAssignments,
 		ClaudeModelAssignments:      existing.ClaudeModelAssignments,
 		ClaudePhaseAssignments:      existing.ClaudePhaseAssignments,
 		KiroModelAssignments:        existing.KiroModelAssignments,
@@ -314,9 +297,7 @@ func MergeAgents(existing InstallState, newAgents []string) InstallState {
 		PendingSync:                 existing.PendingSync,
 		RDDMode:                     existing.RDDMode,
 		RDDModeRecordedAt:           existing.RDDModeRecordedAt,
-
-		BackgroundIntent: existing.BackgroundIntent,
-		LastSyncedAt:     existing.LastSyncedAt,
+		LastSyncedAt:                existing.LastSyncedAt,
 	}
 }
 

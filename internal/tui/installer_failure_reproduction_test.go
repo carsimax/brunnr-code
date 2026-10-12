@@ -39,19 +39,17 @@ func (s installerFailureRollbackStep) Rollback() error {
 func TestInstallerFailureRollbackReturnsControl(t *testing.T) {
 	labels := []string{
 		"prepare:check-dependencies", "prepare:backup-snapshot",
-		"apply:rollback-restore", "opencode:background-activation",
-		"agent:claude-code", "agent:codex", "agent:hermes", "agent:opencode",
-		"community-tool:codegraph", "opencode-plugin:sdd-engram-plugin",
-		"opencode-plugin:sub-agent-statusline", "component:claude-theme",
+		"apply:rollback-restore",
+		"agent:claude-code", "agent:codex", "agent:hermes",
+		"community-tool:codegraph", "component:claude-theme",
 		"component:context7", "component:persona", "component:engram",
-		"component:gga", "component:opencode-gentle-logo", "component:permissions",
+		"component:gga", "component:permissions",
 		"component:sdd", "component:skills", "agent-guidance:claude-code",
-		"agent-guidance:codex", "agent-guidance:hermes", "agent-guidance:opencode",
+		"agent-guidance:codex", "agent-guidance:hermes",
 		"component:compatibility-skills-refresh",
 	}
 	rollbackIDs := []string{
 		"component:compatibility-skills-refresh",
-		"opencode:background-activation",
 		"apply:rollback-restore",
 	}
 	failure := errors.New("controlled CodeGraph probe failure")
@@ -67,7 +65,7 @@ func TestInstallerFailureRollbackReturnsControl(t *testing.T) {
 			continue
 		}
 		switch id {
-		case "apply:rollback-restore", "opencode:background-activation", "component:compatibility-skills-refresh":
+		case "apply:rollback-restore", "component:compatibility-skills-refresh":
 			plan.Apply = append(plan.Apply, installerFailureRollbackStep{step, &rolledBack})
 		default:
 			plan.Apply = append(plan.Apply, step)
@@ -81,7 +79,7 @@ func TestInstallerFailureRollbackReturnsControl(t *testing.T) {
 	}
 	// Keep an executor configured to disable the manual development fallback.
 	m.ExecuteFn = func(model.Selection, planner.ResolvedPlan, system.DetectionResult,
-		model.OpenCodeBackgroundIntent, model.OpenCodeBackgroundIntent, pipeline.ProgressFunc,
+		pipeline.ProgressFunc,
 	) pipeline.ExecutionResult {
 		panic("executor must not restart after completion")
 	}

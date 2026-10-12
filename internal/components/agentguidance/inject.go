@@ -2,7 +2,6 @@ package agentguidance
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencodedefault"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
 
@@ -68,7 +66,6 @@ type RoutingOptions struct {
 	// explicitly opts into the small variant; empty or unknown uses capable.
 	// Runtime-specific assets ignore this hint. It does not configure models.
 	OrchestratorCapability      string
-	SettingsPath                string
 	ReviewContract              ReviewContractSource
 	CodexPhaseModelAssignments  map[string]string
 	CodexModelAssignments       map[string]model.CodexEffort
@@ -82,15 +79,13 @@ type RoutingOptions struct {
 
 // InjectRoutingWithOptions installs the organic routing guidance for one
 // supported agent under targetDir, which is the installation root the adapter
-// resolves its configuration paths from, using a caller-resolved settings path
-// when the adapter's effective configuration authority differs from its
-// ordinary targetDir-derived path.
+// resolves its configuration paths from.
 //
 // Delivery is strategy-aware: writing one markdown file for every adapter would
 // land the guidance in a scope the agent never loads, or inside a template its
 // own installer rewrites from an embedded asset on the next sync.
 //
-// Every non-Pi runtime also receives its orchestrator instructions as a second
+// Every runtime also receives its orchestrator instructions as a second
 // managed section placed ahead of routing (see RenderOrchestrator); a v3.7.0
 // sdd-orchestrator block is converted in place so exactly one remains.
 //
@@ -155,8 +150,6 @@ func InjectRoutingWithOptions(targetDir string, agent model.AgentID, options Rou
 	}
 
 	switch delivery.kind {
-	case deliveryOrchestratorPrompt:
-		return injectOrchestratorPrompt(delivery, agent, merge)
 	case deliveryJinjaModule:
 		return injectJinjaModule(targetDir, delivery, agent, merge)
 	case deliveryClaudeModules:
@@ -210,7 +203,6 @@ type routingDeliveryKind int
 const (
 	deliveryPromptSection routingDeliveryKind = iota
 	deliveryJinjaModule
-	deliveryOrchestratorPrompt
 	// deliveryClaudeModules is the opt-in Claude global core plus modules;
 	// its paths are the core, every known module name and the ledger.
 	deliveryClaudeModules
@@ -245,16 +237,6 @@ func resolveRoutingDelivery(targetDir string, agent model.AgentID, options Routi
 	}
 
 	switch {
-	case DeliversThroughOrchestratorPrompt(agent):
-		settingsPath := options.SettingsPath
-		if strings.TrimSpace(settingsPath) == "" {
-			settingsPath = adapter.SettingsPath(targetDir)
-		}
-		if strings.TrimSpace(settingsPath) == "" {
-			return routingDelivery{}, fmt.Errorf("%w: adapter %q exposes no settings path", ErrInvalidTarget, agent)
-		}
-		return routingDelivery{kind: deliveryOrchestratorPrompt, adapter: adapter, paths: []string{settingsPath}}, nil
-
 	case adapter.SystemPromptStrategy() == model.StrategyJinjaModules:
 		bootstrapper, ok := adapter.(templateBootstrapper)
 		if !ok {
@@ -285,17 +267,6 @@ func resolveRoutingDelivery(targetDir string, agent model.AgentID, options Routi
 		}
 		return routingDelivery{kind: deliveryPromptSection, adapter: adapter, paths: []string{promptPath}}, nil
 	}
-}
-
-// DeliversThroughOrchestratorPrompt reports whether an agent reads its
-// always-on instructions from the managed orchestrator agent definition inside
-// its settings document rather than from a global prompt file. For these
-// adapters the global prompt file is a separate, non-always-loaded scope, so
-// guidance placed there would simply never reach the model. It is exported so
-// installers can resolve the delivery root for these agents without keeping a
-// second copy of the agent list that could drift from this dispatch.
-func DeliversThroughOrchestratorPrompt(agent model.AgentID) bool {
-	return agent == model.AgentOpenCode || agent == model.AgentKilocode
 }
 
 // guidanceMerge folds every managed guidance section into existing content.
@@ -390,93 +361,6 @@ func requireModuleIsIncluded(adapter agents.Adapter, agent model.AgentID, target
 		return fmt.Errorf("%w: router template %q does not include %q", ErrUnloadableGuidance, templatePath, routingModuleFile)
 	}
 	return nil
-}
-
-// injectOrchestratorPrompt delivers guidance inside the managed orchestrator
-// agent definition of the adapter's settings document — the always-loaded scope
-// for the OpenCode family. Every other key in that document is preserved.
-// A JSONC settings path is rewritten with the JSONC-preserving merge, so user
-// comments and trailing commas around the touched agent value survive; a
-// document the rewrite cannot safely touch (malformed, duplicate keys, escaped
-// spellings of touched keys, comments inside the touched agent value) fails
-// closed with an error and is never written.
-func injectOrchestratorPrompt(delivery routingDelivery, agent model.AgentID, merge guidanceMerge) (Result, error) {
-	settingsPath := delivery.paths[0]
-
-	raw, err := readBytesOrEmpty(settingsPath)
-	if err != nil {
-		return Result{}, err
-	}
-
-	// Decode before merging: a document we cannot parse must abort the install
-	// instead of being silently rebuilt from an empty base, which would discard
-	// the user's entire agent configuration.
-	settings, err := filemerge.UnmarshalJSONObject(raw)
-	if err != nil {
-		return Result{}, fmt.Errorf("%w %q: %w", ErrUnreadableSettings, settingsPath, err)
-	}
-
-	existingPrompt, err := managedOrchestratorPrompt(settings, settingsPath)
-	if err != nil {
-		return Result{}, err
-	}
-
-	updatedPrompt := merge(existingPrompt)
-
-	overlay, err := json.Marshal(map[string]any{
-		"agent": map[string]any{
-			opencodedefault.ManagedAgent: map[string]any{"prompt": updatedPrompt},
-		},
-	})
-	if err != nil {
-		return Result{}, fmt.Errorf("encode routing guidance overlay for %q: %w", agent, err)
-	}
-
-	merged, err := filemerge.MergeJSONObjectsForPath(settingsPath, raw, overlay)
-	if err != nil {
-		return Result{}, fmt.Errorf("merge routing guidance into %q: %w", settingsPath, err)
-	}
-
-	writeResult, err := filemerge.WriteFileAtomic(settingsPath, merged, filemerge.ExistingFileMode(settingsPath, 0o644))
-	if err != nil {
-		return Result{}, err
-	}
-
-	return Result{Changed: writeResult.Changed, Files: []string{settingsPath}}, nil
-}
-
-// managedOrchestratorPrompt reads the current prompt of the managed
-// orchestrator agent. A missing agent map, agent, or prompt is a legitimate
-// first install and yields empty content; a value of an unexpected type is not
-// something this component may overwrite, so it fails closed.
-func managedOrchestratorPrompt(settings map[string]any, settingsPath string) (string, error) {
-	agentsRaw, ok := settings["agent"]
-	if !ok || agentsRaw == nil {
-		return "", nil
-	}
-	agentsMap, ok := agentsRaw.(map[string]any)
-	if !ok {
-		return "", fmt.Errorf("%w %q: %q is not an object", ErrUnreadableSettings, settingsPath, "agent")
-	}
-
-	orchestratorRaw, ok := agentsMap[opencodedefault.ManagedAgent]
-	if !ok || orchestratorRaw == nil {
-		return "", nil
-	}
-	orchestratorMap, ok := orchestratorRaw.(map[string]any)
-	if !ok {
-		return "", fmt.Errorf("%w %q: agent %q is not an object", ErrUnreadableSettings, settingsPath, opencodedefault.ManagedAgent)
-	}
-
-	promptRaw, ok := orchestratorMap["prompt"]
-	if !ok || promptRaw == nil {
-		return "", nil
-	}
-	prompt, ok := promptRaw.(string)
-	if !ok {
-		return "", fmt.Errorf("%w %q: agent %q has a non-string prompt", ErrUnreadableSettings, settingsPath, opencodedefault.ManagedAgent)
-	}
-	return prompt, nil
 }
 
 // readFileOrEmpty treats a missing prompt file as empty content: the first

@@ -15,7 +15,7 @@ import (
 // the line rather than under it and flapped: their report captured the same
 // store both passing and failing.
 //
-// They raised the OpenCode MCP timeout to 15 seconds, saw no change, and
+// They raised the MCP timeout to 15 seconds, saw no change, and
 // reverted it. They were right that it did nothing: StdioCommand carried
 // Command, Args and Source, so a configured timeout had no wire to travel
 // down. It does now.
@@ -26,8 +26,7 @@ func TestConfiguredStdioTimeoutIsRead(t *testing.T) {
 		want   time.Duration
 	}{
 		{name: "absent", server: map[string]any{"command": "engram"}, want: 0},
-		// A bare number is seconds: that is how the OpenCode MCP config
-		// expresses it, and it is what #3068's reporter set.
+		// A bare number is seconds: it is what #3068's reporter set.
 		{name: "seconds as number", server: map[string]any{"command": "engram", "timeout": float64(15)}, want: 15 * time.Second},
 		{name: "seconds as integer", server: map[string]any{"command": "engram", "timeout": 20}, want: 20 * time.Second},
 		{name: "duration string", server: map[string]any{"command": "engram", "timeout": "12s"}, want: 12 * time.Second},

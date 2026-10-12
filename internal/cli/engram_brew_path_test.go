@@ -130,7 +130,7 @@ func TestRepro4020RunInstallUsesOffPathEngramWithoutInvokingBrew(t *testing.T) {
 		return "Usage: engram setup <slug> --protocol=full", nil
 	}
 
-	if _, err := RunInstall([]string{"--agent", "opencode", "--component", "engram"}, macOSDetectionResult()); err != nil {
+	if _, err := RunInstall([]string{"--agent", "claude-code", "--component", "engram"}, macOSDetectionResult()); err != nil {
 		t.Fatalf("RunInstall() error = %v", err)
 	}
 
@@ -213,7 +213,7 @@ func TestRunInstallFreshBrewInstallUsesInstalledBinaryForVersionProbeAndSetup(t 
 		return "Usage: engram setup <slug> --protocol=full", nil
 	}
 
-	if _, err := RunInstall([]string{"--agent", "opencode", "--component", "engram"}, macOSDetectionResult()); err != nil {
+	if _, err := RunInstall([]string{"--agent", "claude-code", "--component", "engram"}, macOSDetectionResult()); err != nil {
 		t.Fatalf("RunInstall() error = %v", err)
 	}
 	if !installed {

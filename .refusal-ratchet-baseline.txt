@@ -265,7 +265,6 @@ internal/cli/uninstall.go	"--all cannot be combined with --agent/--agents or --c
 internal/cli/uninstall.go	"no confirmation provided (use --yes to skip prompt)"
 internal/cli/uninstall.go	"partial uninstall requires at least one --agent/--agents or use --all"
 internal/cli/uninstall.go	"unexpected uninstall argument %q"
-internal/cli/uninstall_opencode_plugin.go	"invalid opencode plugin id %q — valid ids: %s"
 internal/cli/validate.go	"unsupported agent %q (valid: %s)"
 internal/cli/validate.go	"unsupported component %q"
 internal/cli/validate.go	"unsupported persona %q"

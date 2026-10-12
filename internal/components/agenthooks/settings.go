@@ -38,5 +38,5 @@ func encodeHookSettings(data []byte, root, hooks map[string]any) ([]byte, error)
 	if err != nil {
 		return nil, err
 	}
-	return filemerge.MergeOpenCodeJSONCObjects(data, overlay)
+	return filemerge.MergeJSONCObjects(data, overlay)
 }

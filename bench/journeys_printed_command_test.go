@@ -112,11 +112,11 @@ func TestAnchoredContinuationArgumentsRejectsLineBreaks(t *testing.T) {
 	}{
 		{
 			name:    "line feed between tokens",
-			command: binary + " sync\n--agent opencode",
+			command: binary + " sync\n--agent codex",
 		},
 		{
 			name:    "carriage return between tokens",
-			command: binary + " sync\r--agent opencode",
+			command: binary + " sync\r--agent codex",
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {

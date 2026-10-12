@@ -331,74 +331,10 @@ func TestResolveAgentInstall(t *testing.T) {
 			want:    CommandSequence{{"npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
 		},
 		{
-			name:    "opencode on darwin uses V2 npm package",
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
-			agent:   model.AgentOpenCode,
-			want:    CommandSequence{{"npm", "install", "-g", "@opencode/cli@latest"}},
-		},
-		{
-			name:    "opencode on ubuntu system npm uses sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt"},
-			agent:   model.AgentOpenCode,
-			want:    CommandSequence{{"sudo", "npm", "install", "-g", "@opencode/cli@latest"}},
-		},
-		{
-			name:    "opencode on ubuntu nvm skips sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt", NpmWritable: true},
-			agent:   model.AgentOpenCode,
-			want:    CommandSequence{{"npm", "install", "-g", "@opencode/cli@latest"}},
-		},
-		{
-			name:    "opencode on arch system npm uses sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroArch, PackageManager: "pacman"},
-			agent:   model.AgentOpenCode,
-			want:    CommandSequence{{"sudo", "npm", "install", "-g", "@opencode/cli@latest"}},
-		},
-		{
-			name:    "opencode on fedora system npm uses sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroFedora, PackageManager: "dnf"},
-			agent:   model.AgentOpenCode,
-			want:    CommandSequence{{"sudo", "npm", "install", "-g", "@opencode/cli@latest"}},
-		},
-		{
-			name:    "opencode on fedora nvm skips sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroFedora, PackageManager: "dnf", NpmWritable: true},
-			agent:   model.AgentOpenCode,
-			want:    CommandSequence{{"npm", "install", "-g", "@opencode/cli@latest"}},
-		},
-		{
-			// Issue #2499: the probe (#2493) accepts any Linux package manager
-			// on PATH; the resolver must not re-enumerate a subset of that list.
-			name:    "opencode on alpine system npm uses sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: "alpine", PackageManager: "apk", Supported: true},
-			agent:   model.AgentOpenCode,
-			want:    CommandSequence{{"sudo", "npm", "install", "-g", "@opencode/cli@latest"}},
-		},
-		{
-			name:    "opencode on opensuse nvm skips sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: "opensuse-leap", PackageManager: "zypper", Supported: true, NpmWritable: true},
-			agent:   model.AgentOpenCode,
-			want:    CommandSequence{{"npm", "install", "-g", "@opencode/cli@latest"}},
-		},
-		{
-			// A Linux profile the probe rejected (no manager on PATH) must keep
-			// erroring: the default arm is gated on a non-empty PackageManager.
-			name:    "opencode on linux without package manager returns error",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: "unknown", PackageManager: ""},
-			agent:   model.AgentOpenCode,
-			wantErr: true,
-		},
-		{
 			name:    "claude-code on windows uses npm without sudo",
 			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget", NpmWritable: true},
 			agent:   model.AgentClaudeCode,
 			want:    CommandSequence{{"npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
-		},
-		{
-			name:    "opencode on windows uses npm without sudo",
-			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget"},
-			agent:   model.AgentOpenCode,
-			want:    CommandSequence{{"npm", "install", "-g", "@opencode/cli@latest"}},
 		},
 
 		{
@@ -422,92 +358,6 @@ func TestResolveAgentInstall(t *testing.T) {
 
 			if !reflect.DeepEqual(command, tt.want) {
 				t.Fatalf("ResolveAgentInstall() = %v, want %v", command, tt.want)
-			}
-		})
-	}
-}
-
-func TestValidateAgentInstallPreflight(t *testing.T) {
-	tests := []struct {
-		name        string
-		profile     system.PlatformProfile
-		agent       model.AgentID
-		lookPath    func(string) (string, error)
-		wantErr     bool
-		errContains string
-	}{
-		{
-			// ClaudeCode requires npm. This case verifies that npm being present is
-			// sufficient for the preflight to pass — uv absence is irrelevant.
-			name:    "npm agent does not require uv but does require npm (npm present)",
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true},
-			agent:   model.AgentClaudeCode,
-			lookPath: func(file string) (string, error) {
-				if file == "npm" {
-					return "/usr/local/bin/npm", nil
-				}
-				return "", fmt.Errorf("not found")
-			},
-			wantErr: false,
-		},
-		{
-			// Bug A regression: ClaudeCode with npm absent must fail with a clear,
-			// actionable error (not proceed into the pipeline to surface a cryptic
-			// "exec: npm: executable file not found in PATH" during agent install).
-			name:    "claude-code missing npm returns actionable remediation",
-			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget", Supported: true},
-			agent:   model.AgentClaudeCode,
-			lookPath: func(file string) (string, error) {
-				return "", fmt.Errorf("not found")
-			},
-			wantErr:     true,
-			errContains: "winget install OpenJS.NodeJS.LTS",
-		},
-		{
-			// OpenCode also uses npm on Windows.
-			name:    "opencode missing npm returns actionable remediation",
-			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget", Supported: true},
-			agent:   model.AgentOpenCode,
-			lookPath: func(file string) (string, error) {
-				return "", fmt.Errorf("not found")
-			},
-			wantErr:     true,
-			errContains: "npm",
-		},
-		{
-			name:    "silverblue missing npm returns actionable remediation and degraded path",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroFedora, PackageManager: "rpm-ostree", Supported: true},
-			agent:   model.AgentClaudeCode,
-			lookPath: func(file string) (string, error) {
-				return "", fmt.Errorf("not found")
-			},
-			wantErr:     true,
-			errContains: "rpm-ostree install -y nodejs npm && systemctl reboot",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var calls int
-			lookPath := tt.lookPath
-			if lookPath == nil {
-				lookPath = func(string) (string, error) { return "", fmt.Errorf("not found") }
-			}
-			wrappedLookPath := func(file string) (string, error) {
-				calls++
-				return lookPath(file)
-			}
-			origLookPath := cmdLookPath
-			cmdLookPath = wrappedLookPath
-			t.Cleanup(func() { cmdLookPath = origLookPath })
-
-			err := ValidateAgentInstallPreflight(tt.profile, tt.agent)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("ValidateAgentInstallPreflight() error = %v, wantErr %v", err, tt.wantErr)
-			}
-
-			if tt.wantErr && !strings.Contains(err.Error(), tt.errContains) {
-				t.Fatalf("ValidateAgentInstallPreflight() error = %q, want to contain %q", err.Error(), tt.errContains)
 			}
 		})
 	}

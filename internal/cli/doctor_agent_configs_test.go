@@ -19,7 +19,6 @@ func TestRunDoctor_AgentConfigDirectories(t *testing.T) {
 		dir string
 	}{
 		{"claude-code", ".claude"},
-		{"opencode", ".config/opencode"},
 		{"codex", ".codex"},
 	}
 	for _, tt := range tests {

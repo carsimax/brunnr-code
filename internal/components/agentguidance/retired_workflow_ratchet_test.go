@@ -56,23 +56,6 @@ func TestRenderedGuidanceHasNoRetiredWorkflowReferences(t *testing.T) {
 					t.Fatalf("InjectStrictTDDWithOptions(capability=%q): %v", capability, err)
 				}
 				files := append(routing.Files, tdd.Files...)
-				if agent.ID == model.AgentOpenCode || agent.ID == model.AgentKilocode {
-					background := 0
-					for _, path := range routing.Files {
-						if filepath.Ext(path) != ".json" {
-							continue
-						}
-						policy, err := agentguidance.ApplyOpenCodeBackgroundPolicy(path, true)
-						if err != nil {
-							t.Fatalf("ApplyOpenCodeBackgroundPolicy(%s): %v", path, err)
-						}
-						background += len(policy.Files)
-						files = append(files, policy.Files...)
-					}
-					if agent.ID == model.AgentOpenCode && background == 0 {
-						t.Fatal("OpenCode background subagent policy was not rendered")
-					}
-				}
 				assertRenderedFilesClean(t, files)
 				rendered, err := agentguidance.RenderOrchestratorWithSource(agent.ID, reviewassets.ReviewExecutionContractFor, capability)
 				if err != nil {

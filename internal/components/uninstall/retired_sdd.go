@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
-	opencodeagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/legacyassets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
@@ -15,7 +14,7 @@ import (
 // retiredSDDOperation retires what releases installed for SDD for a runtime
 // uninstall removes completely, with the inventory and ownership proof
 // install and sync use (#5157): the legacyassets inventory, the native SDD
-// agents, and the OpenCode family's settings entries and shared prompts.
+// agents.
 // Bytes no release wrote are kept and reported, and a directory that is not a
 // real directory is never entered. It returns every path it may change, for
 // the snapshot.
@@ -39,23 +38,6 @@ func (s *Service) retiredSDDOperation(adapter agents.Adapter) (operation, []stri
 			targets = append(targets, presentPaths(legacyassets.RetiredSDDAgentPaths(agent, agentsDir))...)
 		}
 	}
-	var settings, agentDirs []string
-	var prompts string
-	switch agent {
-	case model.AgentOpenCode:
-		config := opencodeagent.ConfigPath(s.homeDir)
-		agentDirs = []string{filepath.Join(config, "agent"), filepath.Join(config, "agents")}
-		prompts = legacyassets.SharedPromptDir(s.homeDir)
-		fallthrough
-	case model.AgentKilocode:
-		settings = settingsTargets(s.homeDir, adapter)
-	}
-	targets = append(targets, settings...)
-	if prompts != "" && realDirectory(prompts) {
-		for _, phase := range legacyassets.SharedPromptPhases() {
-			targets = append(targets, presentPaths([]string{filepath.Join(prompts, phase+".md")})...)
-		}
-	}
 
 	var removed, rewritten, actions []string
 	op := operation{typeID: opRetireSDD, path: adapter.GlobalConfigDir(s.homeDir), agents: []model.AgentID{agent}}
@@ -69,24 +51,6 @@ func (s *Service) retiredSDDOperation(adapter agents.Adapter) (operation, []stri
 			if err := retireSDDAgents(agent, agentsDir, &removed, &actions); err != nil {
 				return false, false, err
 			}
-		}
-		for _, path := range settings {
-			res, err := legacyassets.RetireOpenCodeSDDSettings(path, agentDirs...)
-			if res.Changed {
-				rewritten = append(rewritten, path)
-			}
-			if err != nil {
-				return false, false, fmt.Errorf("retire SDD agents in %q settings: %w", agent, err)
-			}
-			actions = append(actions, res.ManualActions()...)
-		}
-		if prompts != "" {
-			res, err := legacyassets.RetireOpenCodeSDDPrompts(prompts)
-			removed = append(removed, res.Removed...)
-			if err != nil {
-				return false, false, fmt.Errorf("retire SDD prompts for %q: %w", agent, err)
-			}
-			actions = append(actions, res.ManualActions()...)
 		}
 		return len(removed)+len(rewritten) > 0, false, nil
 	}

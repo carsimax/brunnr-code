@@ -157,9 +157,8 @@ type AssetRetireResult struct {
 // present in it is owned, so an edited skill keeps the references it ships
 // with. Shared SDD references stay while any edited SDD skill remains, since
 // those skills read them. Symlinks, non-regular files, and bytes no release wrote are preserved
-// and reported; files outside the inventory are never inspected. Like the
-// OpenCode prompt retirement, it never enters a directory that is not a real
-// directory, from the runtime root down: the files behind it are the user's,
+// and reported; files outside the inventory are never inspected. It never
+// enters a directory that is not a real directory, from the runtime root down: the files behind it are the user's,
 // so its group is kept and the directory is reported.
 func RetireSDDAssets(agent model.AgentID, dirs SDDAssetDirs) (AssetRetireResult, error) {
 	var result AssetRetireResult

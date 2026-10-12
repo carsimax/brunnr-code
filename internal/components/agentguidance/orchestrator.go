@@ -124,8 +124,6 @@ func orchestratorAsset(agent model.AgentID) string {
 		return "claude/orchestrator.md"
 	case model.AgentCodex:
 		return "codex/orchestrator.md"
-	case model.AgentOpenCode:
-		return "opencode/orchestrator.md"
 	default:
 		return "generic/orchestrator.md"
 	}
@@ -194,11 +192,6 @@ func renderOrchestrator(agent model.AgentID, source ReviewContractSource, capabi
 
 	rdd := model.SupportsReceiptDrivenDevelopment(agent)
 	content, err = expandSharedOrchestratorSections(content, rdd, annotate)
-	if err != nil {
-		return "", fmt.Errorf("render orchestrator for %q: %w", agent, err)
-	}
-
-	content, err = replaceOpenCodeConsentV3QuestionRoute(content, agent)
 	if err != nil {
 		return "", fmt.Errorf("render orchestrator for %q: %w", agent, err)
 	}
@@ -391,28 +384,6 @@ func removeSection(content, heading, nextHeading string) string {
 		return content
 	}
 	return strings.TrimRight(content[:start], "\n") + "\n\n" + strings.TrimLeft(content[end:], "\n")
-}
-
-const openCodeNativeQuestionSourceRoute = "- Native route: The classified native question UI is `question`. Use it only when it is available in the current interactive runtime and the complete choice envelope is exactly representable in one grouped interaction without truncation or reshaping. When the closed domain of a single-select envelope is representable as the classified native question UI, use it; otherwise fall through to the Fallback clause below."
-
-const openCodeConsentV3QuestionRoute = "- Native route: For `gentle-ai.review-integration.consent/v3`: Display labels and provider-owned answer tokens may differ; that difference alone never makes an otherwise complete closed single-select domain unrepresentable. Before invocation, inspect the active classified `question` schema. Set `multiple: false` when exposed. Set `custom: false` only when exposed; otherwise omit `custom`. Missing `custom` alone is not a compatibility block: a text-capable UI does not expand the allowed-answer domain. Never invent unsupported parameters. Preserve the complete envelope, including headline, reason, value, risk evidence, option order, labels, descriptions, effects, and off-path note in one native question. Invoke `question` once per presentation, then STOP and wait. Before any provider invocation, require exactly one question answer containing exactly one value. Trim whitespace and compare case-insensitively against the offered labels; accept only the unambiguous ordinal aliases explicitly permitted by Answer validation below. A typed value is valid only if it resolves to exactly one offered option; it is not a new choice. Empty, multiple, unknown, arbitrary prose, or ambiguous answers authorize no provider invocation: re-present the complete native question and STOP to wait again. Never use chat text as consent, auto-select, or synthesize a continuation. Map the uniquely validated option to its provider-owned answer token once; retain the exact captured target binding and invoke only its exact provider-owned choice invocation once. If `question` is unavailable or the complete envelope cannot be represented, report that compatibility limitation and STOP without invoking any provider continuation; no chat-token fallback. For envelopes other than `gentle-ai.review-integration.consent/v3`, the classified native question UI is `question`. Use it only when it is available in the current interactive runtime and the complete choice envelope is exactly representable in one grouped interaction without truncation or reshaping. When the closed domain of a single-select envelope is representable as the classified native question UI, use it; otherwise fall through to the Fallback clause below."
-
-const openCodeFallbackSourceClause = "- Fallback: If a native UI is unavailable, denied, the runtime is noninteractive, or the complete envelope is oversized or otherwise unrepresentable because of question-count, option-count, or text-length limits, emit the COMPLETE choice envelope as a plain chat or terminal response. Include the required answer syntax and why the input blocks progress. Then STOP. Do not choose, default, infer, launch dependent work, or continue. Native-tool-only wording elsewhere never disables this fallback."
-
-const openCodeConsentV3FallbackClause = "- Fallback: For envelopes other than `gentle-ai.review-integration.consent/v3`, if a native UI is unavailable, denied, the runtime is noninteractive, or the complete envelope is oversized or otherwise unrepresentable because of question-count, option-count, or text-length limits, emit the COMPLETE choice envelope as a plain chat or terminal response. Include the required answer syntax and why the input blocks progress. Then STOP. Do not choose, default, infer, launch dependent work, or continue. Native-tool-only wording elsewhere never disables this fallback."
-
-// replaceOpenCodeConsentV3QuestionRoute adds the OpenCode-only consent-v3
-// native question route (as v3.7.0 rendered it, minus the retired SDD consent
-// envelope) without changing the shared asset Kilo also consumes.
-func replaceOpenCodeConsentV3QuestionRoute(content string, agent model.AgentID) (string, error) {
-	if agent != model.AgentOpenCode {
-		return content, nil
-	}
-	if count := strings.Count(content, openCodeNativeQuestionSourceRoute); count != 1 {
-		return "", fmt.Errorf("OpenCode native route source clause count = %d, want 1", count)
-	}
-	content = strings.Replace(content, openCodeNativeQuestionSourceRoute, openCodeConsentV3QuestionRoute, 1)
-	return strings.ReplaceAll(content, openCodeFallbackSourceClause, openCodeConsentV3FallbackClause), nil
 }
 
 // injectOrchestratorSection merges the orchestrator block into existing

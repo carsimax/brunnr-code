@@ -17,7 +17,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/opencode"
 )
 
 type InjectionResult struct {
@@ -97,27 +96,7 @@ func engramServerJSONWithCmd(cmd string) []byte {
 // and MCPConfigFile strategies), with the resolved engram command.
 func engramOverlayJSON(agentID model.AgentID, cmd string) []byte {
 	var cfg map[string]any
-	if agentID == model.AgentOpenCode || agentID == model.AgentKilocode {
-		// OpenCode 1.3.3+ requires command as an array for type:local servers.
-		// The separate "args" field is not accepted; all args must be in the
-		// command array itself.
-		//
-		// Use the __replace__ sentinel so that MergeJSONObjects replaces the
-		// entire mcp.engram object atomically instead of deep-merging into it.
-		// Without this, users upgrading from v1.11.3 (which had a separate
-		// "args" key) would end up with both "args" and the new array "command"
-		// in their config, which is invalid for OpenCode 1.3.3.
-		cfg = map[string]any{
-			"mcp": map[string]any{
-				"engram": map[string]any{
-					"__replace__": map[string]any{
-						"command": []string{cmd, "mcp", "--tools=agent"},
-						"type":    "local",
-					},
-				},
-			},
-		}
-	} else if agentID == model.AgentOpenClaw {
+	if agentID == model.AgentOpenClaw {
 		cfg = map[string]any{
 			"mcp": map[string]any{
 				"servers": map[string]any{
@@ -164,9 +143,6 @@ func vsCodeEngramOverlayJSON(cmd string) []byte {
 // InjectOptions carries optional configuration for an Inject call.
 // Zero value is always safe — all fields have documented defaults.
 type InjectOptions struct {
-	// OpenCodeSettingsPath overrides only the OpenCode MCP settings merge target.
-	// Empty preserves adapter resolution for other callers and agents.
-	OpenCodeSettingsPath string
 	// CodexMultiAgent controls whether features.multi_agent is written as true
 	// in ~/.codex/config.toml. Default (false) writes multi_agent = false, which
 	// is the safe no-op value for the experimental Codex multi-agent tool set.
@@ -742,20 +718,10 @@ func injectWithOptions(configHomeDir, promptDir string, adapter agents.Adapter, 
 
 	case model.StrategyMergeIntoSettings:
 		settingsPath := adapter.SettingsPath(configHomeDir)
-		if adapter.Agent() == model.AgentOpenCode && opts.OpenCodeSettingsPath != "" {
-			settingsPath = opts.OpenCodeSettingsPath
-		}
 		if settingsPath == "" {
 			break
 		}
 		overlay := engramOverlayJSON(adapter.Agent(), stableEngramCommandForMergedConfig(settingsPath, adapter.Agent()))
-		if adapter.Agent() == model.AgentOpenCode {
-			var err error
-			overlay, err = openCodeEngramOverlay(settingsPath)
-			if err != nil {
-				return InjectionResult{}, err
-			}
-		}
 		settingsWrite, err := mergeJSONFile(settingsPath, overlay)
 		if err != nil {
 			return InjectionResult{}, err
@@ -1217,8 +1183,6 @@ func existingMergedEngramCommand(raw []byte, agentID model.AgentID) (string, boo
 
 	var server any
 	switch agentID {
-	case model.AgentOpenCode:
-		server, _ = opencode.MCPEntry(root, "engram")
 	case model.AgentOpenClaw:
 		mcp, ok := root["mcp"].(map[string]any)
 		if !ok {
@@ -1274,7 +1238,7 @@ func executableFromCommandValue(command any) (string, bool) {
 
 func isStandardAgent(id model.AgentID) bool {
 	switch id {
-	case model.AgentOpenCode, model.AgentQwenCode, model.AgentCodex, model.AgentGeminiCLI, model.AgentAntigravity, model.AgentClaudeCode, model.AgentOpenClaw, model.AgentHermes:
+	case model.AgentQwenCode, model.AgentCodex, model.AgentGeminiCLI, model.AgentAntigravity, model.AgentClaudeCode, model.AgentOpenClaw, model.AgentHermes:
 		return true
 	default:
 		return false
@@ -1546,68 +1510,6 @@ func removeManagedAntigravityGlobalEngram(path string) (bool, []string, error) {
 		return false, nil, fmt.Errorf("rewrite Antigravity global MCP config %q: %w", path, err)
 	}
 	return writeResult.Changed, []string{path}, nil
-}
-
-// ValidateOpenCodeSettings applies the refusals the OpenCode Engram merge
-// applies to settingsPath (locked, non-regular or symlinked file, malformed
-// JSONC, duplicate or escaped keys, comments inside the touched value) without
-// writing, so install can refuse unsafe input before the external
-// `engram setup opencode` side effects. An empty path is accepted.
-func ValidateOpenCodeSettings(settingsPath string) error {
-	if settingsPath == "" {
-		return nil
-	}
-	overlay, err := openCodeEngramOverlay(settingsPath)
-	if err != nil {
-		return err
-	}
-	base, err := osReadFile(settingsPath)
-	if err != nil {
-		return err
-	}
-	_, err = filemerge.MergeJSONObjectsForPath(settingsPath, base, overlay)
-	return err
-}
-
-// openCodeEngramOverlay refuses a locked selected settings file, then returns
-// the Engram overlay in the format the file already uses.
-func openCodeEngramOverlay(settingsPath string) ([]byte, error) {
-	if err := filemerge.RefuseLockedSettingsFile(settingsPath); err != nil {
-		return nil, err
-	}
-	overlay := engramOverlayJSON(model.AgentOpenCode, stableEngramCommandForMergedConfig(settingsPath, model.AgentOpenCode))
-	return nativeOpenCodeEngramOverlay(settingsPath, overlay)
-}
-
-// nativeOpenCodeEngramOverlay updates only the managed server in its existing
-// format, preserving native disabled, environment, and timeout settings.
-func nativeOpenCodeEngramOverlay(path string, overlay []byte) ([]byte, error) {
-	data, err := os.ReadFile(path)
-	if os.IsNotExist(err) {
-		return overlay, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	root, err := filemerge.UnmarshalJSONObject(data)
-	if err != nil {
-		return nil, err
-	}
-	mcp, _ := root["mcp"].(map[string]any)
-	if _, native := mcp["servers"]; !native && !opencode.NativeConfig(root) {
-		return overlay, nil
-	}
-	patch, err := filemerge.UnmarshalJSONObject(overlay)
-	if err != nil {
-		return nil, err
-	}
-	patchMCP, _ := patch["mcp"].(map[string]any)
-	server, _ := patchMCP["engram"].(map[string]any)
-	if replacement, ok := server["__replace__"].(map[string]any); ok {
-		server = replacement
-	}
-	patch["mcp"] = map[string]any{"servers": map[string]any{"engram": server}}
-	return json.Marshal(patch)
 }
 
 func validServiceTier(tier string) string {

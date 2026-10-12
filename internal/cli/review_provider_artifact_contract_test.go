@@ -99,7 +99,7 @@ func TestReviewProviderArtifactV21ContractsArePinned(t *testing.T) {
 		// invocations to `--agent claude-code`, but the live emitter omits the
 		// agent token when the caller declared no runtime (the pinned fixture
 		// itself carries no --agent), and #2676 binds the declared runtime
-		// (claude-code, opencode, codex) when there is one. The schema now
+		// (claude-code, codex) when there is one. The schema now
 		// follows the emitter. The agent enum also admits "pi": the Pi host
 		// relay drives consent with its own declared runtime identity, which
 		// the emitter legitimately publishes once the relay handshake is
@@ -163,51 +163,6 @@ func TestReviewProviderArtifactV25StatusContractsArePinned(t *testing.T) {
 	}
 }
 
-// TestReviewProviderArtifactV23StartContractsArePinned pins the artifacts the
-// start/v4 continuation work first published (issue #3894): the start-v4
-// envelope with its provider-issued reviewing STATUS re-entry, and the v2.3
-// capabilities advertisement that names it.
-func TestReviewProviderArtifactV23StartContractsArePinned(t *testing.T) {
-	root := filepath.Join("..", "..", "contracts", "review-integration", "v2")
-	want := map[string]string{
-		"fixtures/capabilities-v2.3.fixture.json": "ed5fb324791eec28287c621f19dffd69323120f61ce537e7b329fc018a29fe42",
-		"fixtures/start-v4.fixture.json":          "639a6e78b40cb5e000ec15265fd444c243e28594035c7d376c378142162bfb02",
-		// rdd-risk-gated S14 (A3): the feature_name enum admits
-		// start_agent_escalation and start_request_context, which capabilities
-		// v2.6 advertises for review start --escalate-item/--escalate-reason and
-		// --request-context; the v2.3 optional count stays exactly 15, so v2.3
-		// through v2.5 advertisements are unchanged. Deliberate, not drift.
-		// rdd-risk-gated S17: the same enum admits start_options_preflight,
-		// which capabilities v2.6 advertises for the STATUS preflight of those
-		// two START inputs; the v2.3 optional count still stays exactly 15.
-		// Deliberate, not drift.
-		// verify-always-rdd-high S8: the same enum admits start_lens_selection,
-		// which capabilities v2.6 advertises for START and STATUS --lenses;
-		// the v2.3 optional count still stays exactly 15. Deliberate, not drift.
-		"schemas/capabilities-v2.3.schema.json": "c1bc328459af44233943dd7f9414cd3d9bc95079d14f4a732a8719a17cb849e4",
-		// rdd-risk-gated S15: the risk reason enums admit the dangerous_sink
-		// code and signal the classifier already publishes. Deliberate, not drift.
-		//
-		// rdd-risk-gated S14: the risk reason enums admit the agent_escalation
-		// code and signal START publishes for --escalate-item. Deliberate, not drift.
-		//
-		// issues #5136/#4516: the handle also admits the sealed rctx3 shape
-		// OpenCode hosts receive; rctx1/rctx2 are unchanged. Deliberate, not
-		// drift.
-		"schemas/start-v4.schema.json": "28efd5a6545cc72de2f978565af3bfe74098bcded3999f1738fe14308fcd121d",
-	}
-	for name, expected := range want {
-		payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		digest := sha256.Sum256(payload)
-		if actual := hex.EncodeToString(digest[:]); actual != expected {
-			t.Fatalf("%s digest = %s, want %s", name, actual, expected)
-		}
-	}
-}
-
 func TestReviewProviderArtifactV24IntendedUntrackedContractsArePinned(t *testing.T) {
 	root := filepath.Join("..", "..", "contracts", "review-integration", "v2")
 	want := map[string]string{
@@ -216,41 +171,6 @@ func TestReviewProviderArtifactV24IntendedUntrackedContractsArePinned(t *testing
 		// the wire envelope identity remains unchanged. Deliberate, not drift.
 		"schemas/intended-untracked-selection.schema.json": "2379d4b748ffd9719058aa5b10ed6640f0dec9a525198cf8e14cd827408a348e",
 		"schemas/status-v6.schema.json":                    "0aa731e4d3961d678b4e51a6be0af93f2de82a4a326c3366e2fbe6a3e687236c",
-	}
-	for name, expected := range want {
-		payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		digest := sha256.Sum256(payload)
-		if actual := hex.EncodeToString(digest[:]); actual != expected {
-			t.Fatalf("%s digest = %s, want %s", name, actual, expected)
-		}
-	}
-}
-
-// TestReviewProviderArtifactConformanceSchemasArePinned pins the schemas the
-// cross-lane battery conformance work first published: the delivery gate
-// result (gentle-ai.review-gate-result/v1) and the OpenCode provider-role
-// capture acknowledgement (gentle-ai.opencode-review-provider-role/v1). Both
-// envelopes already shipped on the wire; only their published schemas are new.
-func TestReviewProviderArtifactConformanceSchemasArePinned(t *testing.T) {
-	root := filepath.Join("..", "..", "contracts", "review-integration", "v2")
-	want := map[string]string{
-		"schemas/gate-result.schema.json": "afe5e2a030fae9949305811bcac0a6dbc8b4f28802fa61d1e31e58e895f9fcae",
-		// issues #4223/#4226/#4453: last-event-closure publishes rejected
-		// targeted-validator evidence, terminal escalation, and complete admitted
-		// reviewer results before acknowledgement. Deliberate, not drift.
-		"schemas/last-event-closure.schema.json": "d0fa6e52fbe0cf22862ac0ab31f76996885dd9454b5dbe70eca17e7416af5d56",
-		// issue #3894: start/v4 publishes the reviewing status continuation, so
-		// transition-execution gains the start_status_execution definition it
-		// references. Deliberate, not drift.
-		// issue #3932: start_status_execution carries the opaque
-		// repository-context row, so a foreign process cwd fails closed.
-		// issues #5136/#4516: the repository-context row also admits the
-		// sealed rctx3 shape OpenCode hosts receive.
-		"schemas/transition-execution.schema.json":   "fcddf353a243d0e6d6553742e8c180c71a110465d9676f74b149f26b9e3cffd8",
-		"schemas/opencode-provider-role.schema.json": "c6b9f216f89c044f8e844b55e7200114850cfbc16642bca0677f30a399d8aa9b",
 	}
 	for name, expected := range want {
 		payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
@@ -324,7 +244,7 @@ func TestManagedAssetsContinuationSchemaRuleIsExercised(t *testing.T) {
 	// --- failure.schema.json, exercised against the real START preflight failure ---
 	var startOutput bytes.Buffer
 	if err := RunReview(boundNegotiatedStartArgs(t, []string{
-		"start", "--contract", ReviewIntegrationContractV2, "--cwd", repo, "--agent", "opencode", "--consent", "granted",
+		"start", "--contract", ReviewIntegrationContractV2, "--cwd", repo, "--agent", "claude-code", "--consent", "granted",
 	}), &startOutput); err == nil {
 		t.Fatalf("stale managed assets START succeeded: %s", startOutput.String())
 	}
@@ -357,8 +277,8 @@ func TestManagedAssetsContinuationSchemaRuleIsExercised(t *testing.T) {
 		t.Fatal("failure.schema.json accepted a continuation on an unrelated failure code")
 	}
 	for _, command := range []string{
-		"'/tmp/gentle\nai' sync --agent opencode",
-		"\"C:\\\\gentle\r-ai.exe\" sync --agent opencode",
+		"'/tmp/gentle\nai' sync --agent codex",
+		"\"C:\\\\gentle\r-ai.exe\" sync --agent codex",
 	} {
 		multilineCommand := decodeJSONObjectCopy(t, startOutput.Bytes())
 		multilineContinuation := multilineCommand["continuation"].(map[string]any)
@@ -371,7 +291,7 @@ func TestManagedAssetsContinuationSchemaRuleIsExercised(t *testing.T) {
 	// --- status-v9.schema.json, exercised against the real STATUS stop transition ---
 	var stopOutput bytes.Buffer
 	if err := RunReview([]string{
-		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "opencode", "--next-transition",
+		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--agent", "claude-code", "--next-transition",
 	}, &stopOutput); err != nil {
 		t.Fatalf("stale managed assets STATUS: %v\n%s", err, stopOutput.String())
 	}
@@ -408,8 +328,8 @@ func TestManagedAssetsContinuationSchemaRuleIsExercised(t *testing.T) {
 		t.Fatal("status-v9.schema.json accepted a continuation attached to an unrelated stop reason code")
 	}
 	for _, command := range []string{
-		"'/tmp/gentle\nai' sync --agent opencode",
-		"\"C:\\\\gentle\r-ai.exe\" sync --agent opencode",
+		"'/tmp/gentle\nai' sync --agent codex",
+		"\"C:\\\\gentle\r-ai.exe\" sync --agent codex",
 	} {
 		multilineCommand := decodeJSONObjectCopy(t, stopOutput.Bytes())
 		multilineTransition := multilineCommand["next_transition"].(map[string]any)

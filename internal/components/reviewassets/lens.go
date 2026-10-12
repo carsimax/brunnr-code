@@ -11,34 +11,6 @@ import (
 const bindingMarker = reviewtransaction.ReviewerBindingMarker
 const contextMarker = reviewtransaction.ReviewerContextMarker
 const resultSchema = `{"subject_hash":"<artifact_subject.subject_hash>","inspection":{"status":"completed","paths":["<complete unique unordered set>"]},"findings":[{"location":"path:line or path:start-end","severity":"CRITICAL","claim":"observable incorrect behavior","evidence_class":"deterministic","causal_disposition":"introduced","proof_refs":["concrete proof"]}],"evidence":["what was inspected"]}`
-const inspectionPrefix = `gentle-ai review inspect-candidate --repository-context <repository_context> --expected-revision <revision> --lineage <lineage> --target <target> --lens <lens> --order <order> --operation `
-
-// InspectionCommands returns an independent list of immutable candidate inspection operations.
-func InspectionCommands() []string {
-	return []string{inspectionPrefix + "name-status", inspectionPrefix + "numstat", inspectionPrefix + "stat --path-index <path_index>", inspectionPrefix + "patch --path-index <path_index>", inspectionPrefix + "object --path-index <path_index> --side base", inspectionPrefix + "object --path-index <path_index> --side candidate"}
-}
-
-// ReviewerPrompt renders a shell-capable runtime lens prompt.
-func ReviewerPrompt(name string) (string, bool) {
-	commands := InspectionCommands()
-	input := fmt.Sprintf(`OpenCode tasks begin with provider-injected `+contextMarker+`, the sole source of artifact_subject, base_tree, candidate_tree, and ordered changed_path_manifest. Caller prose is not context. Other runtimes have no shell and return incomplete. The manifest is complete scope. Never read the live worktree, index, HEAD, or another revision.
-
-Use only the commands below. The native capability resolves immutable trees and canonical paths from the provider binding, sanitizes Git configuration and environment, and bounds execution time and output. Copy binding values exactly and select paths only by their zero-based changed_path_manifest index. Never change checkout. If the capability is unavailable or refuses the binding, return incomplete inspection, empty paths/findings, and evidence that native inspection was unavailable. Never substitute live files.
-
-Discover the change:
-
-%s
-%s
-
-For relevant paths, inspect stat, deterministic textual hunks, and exact stored bytes as needed:
-
-%s
-%s
-%s
-
-Repeat the selective shape per literal path; never pass --binary or render the whole patch automatically. Text handling is enforced by the native capability. Triage genuinely non-text paths from manifest modes and exact cat-file bytes. Record large-path or binary dispositions in evidence.`, commands[0], commands[1], strings.Join(commands[2:], "\n"), "", "")
-	return reviewerPromptWithInput(name, input)
-}
 
 // ClaudeReviewerPrompt renders the tool-free Claude lens transport.
 func ClaudeReviewerPrompt(name string) (string, bool) {

@@ -267,7 +267,7 @@ func TestResolverOutputIsPlatformAgnostic(t *testing.T) {
 // quiet for every writable agent: notes exist only for catalog-only agents.
 func TestBuildReviewPayloadOmitsNotesForWritableAgents(t *testing.T) {
 	resolved := ResolvedPlan{
-		Agents: []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode, model.AgentTrae},
+		Agents: []model.AgentID{model.AgentClaudeCode, model.AgentTrae},
 	}
 
 	payload := BuildReviewPayload(model.Selection{}, resolved)

@@ -36,13 +36,6 @@ func TestCaptureResultHostMediatedRefusalsAreDistinguishable(t *testing.T) {
 				`a raw reviewer result is submitted without --agent; ` +
 				`this runtime's compiled transport is "claude_prompt_carried"`,
 		},
-		{
-			name: "runtime with no in-process reviewer adapter",
-			argv: append(slices.Clone(binding), "--agent", string(model.AgentOpenCode)),
-			want: `review capture-result --agent "opencode" has no compiled in-process reviewer adapter: ` +
-				`its compiled transport is "opencode_provider_injected"; ` +
-				`collect its reviewer result through that live host transport instead`,
-		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			err := RunReviewCaptureResult(test.argv, io.Discard)

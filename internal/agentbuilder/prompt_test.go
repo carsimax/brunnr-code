@@ -17,9 +17,9 @@ func TestComposePrompt_GenericAgentHasNoRetiredPhaseContext(t *testing.T) {
 }
 
 func TestComposePrompt_InstalledAgentsIncluded(t *testing.T) {
-	agents := []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode}
+	agents := []model.AgentID{model.AgentClaudeCode, model.AgentCodex}
 	prompt := ComposePrompt("build an agent", agents)
-	for _, expected := range []string{"<installed_agents>", "</installed_agents>", string(model.AgentClaudeCode), string(model.AgentOpenCode)} {
+	for _, expected := range []string{"<installed_agents>", "</installed_agents>", string(model.AgentClaudeCode), string(model.AgentCodex)} {
 		if !strings.Contains(prompt, expected) {
 			t.Errorf("missing installed-agent context %q in prompt", expected)
 		}

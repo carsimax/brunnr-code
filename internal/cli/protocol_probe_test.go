@@ -9,8 +9,6 @@ import (
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
-	runtimeopencode "github.com/gentleman-programming/gentle-ai/v4/internal/opencode"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/telemetry"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/testenv"
 )
@@ -55,7 +53,7 @@ func pinGoCachesBeforeHomeIsolation() {
 // invocations exactly — see the exact-argv assertions in
 // run_integration_test.go).
 //
-// It does the same for claude/opencode's own
+// It does the same for claude's own
 // LookPathOverride: since gentle-ai now refuses instead of installing a
 // missing agent runtime (agentInstallStep in run.go), the many tests in this
 // package whose real target is protocol forwarding, engram provisioning,
@@ -66,32 +64,17 @@ func pinGoCachesBeforeHomeIsolation() {
 // intentional, hermetic one; tests that must exercise a genuine absence (the
 // refusal itself) override the relevant package's LookPathOverride back to
 // missing locally, the same save/restore pattern as everywhere else — see
-// e.g. TestRunInstallRefusesMissingOpenCodeInsteadOfInstalling,
-// and TestAgentInstallStepRefusesMissingCodexInsteadOfInstalling for that
+// e.g. TestAgentInstallStepRefusesMissingCodexInsteadOfInstalling for that
 // opposite, deliberately-kept case.
 func TestMain(m *testing.M) {
 	if os.Getenv("GENTLE_AI_TEST_BREW_FIXTURE") == "1" {
 		os.Exit(runPortableBrewFixture())
 	}
-	// Neutralize ambient agent runtime-dir overrides (PI_CODING_AGENT_DIR,
-	// OPENCODE_CONFIG_DIR) before anything else, including before the
-	// stand-in re-exec branch below: this package's catalog.AllAgents() loops
-	// and RunInstall/RunSync calls resolve Pi's config path directly from the
-	// environment, and a developer shell exporting PI_CODING_AGENT_DIR
-	// would otherwise redirect these tests into the real
-	// ~/.pi regardless of the sandboxed HOME set up below.
+	// Neutralize ambient agent config-path overrides before anything else,
+	// including before the stand-in re-exec branch below, so a developer
+	// shell cannot redirect these tests outside the sandboxed HOME set up
+	// below.
 	testenv.Isolate()
-	// The default fake is V1; an inherited host declaration must not override
-	// it, including in stand-in subprocesses. V2 tests set their own declaration.
-	// The un-stubbed real-host E2E keeps both for its relay stand-in (below).
-	inheritedRelayDeclaration, relayDeclared := os.LookupEnv(openCodeRelayContractEnvironment)
-	realVersionRunner := runtimeopencode.VersionRunnerOverride
-	if err := os.Unsetenv(openCodeRelayContractEnvironment); err != nil {
-		panic(err)
-	}
-	runtimeopencode.VersionRunnerOverride = func(context.Context, runtimeopencode.Command) (runtimeopencode.CommandOutput, error) {
-		return runtimeopencode.CommandOutput{Stdout: []byte("1.18.30")}, nil
-	}
 	// Subprocess stand-in (#4434 regression): re-executed with the CLI
 	// arguments of an emitted continuation command, this test binary must
 	// run the real CLI dispatch (flag parsing, agent selection, sync
@@ -105,7 +88,6 @@ func TestMain(m *testing.M) {
 		}
 		agentPresent := func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
 		claude.LookPathOverride = agentPresent
-		opencode.LookPathOverride = agentPresent
 		// The same routing app.RunArgs performs for the sync subcommand
 		// (internal/app/app.go: cli.RunSync(args[1:]) -- it cannot be imported
 		// here without an import cycle): strip the verb, reject anything else,
@@ -115,24 +97,6 @@ func TestMain(m *testing.M) {
 		switch {
 		case len(args) > 0 && args[0] == "sync":
 			_, err = RunSync(args[1:])
-		case len(args) == 2 && args[0] == "review" && args[1] == "opencode-transport":
-			// The real OpenCode V2 host E2E (review_opencode_v2_host_e2e_test.go)
-			// reaches the real Go relay through this stand-in. By default it is a
-			// TEST-ONLY STUB: the declaration the managed plugin sets is unset and
-			// the version runner reports V1 (both above), so the capability gate
-			// is stubbed open as V1 and the gate itself is not proven. With
-			// GENTLE_AI_TEST_STANDIN_REAL_CAPABILITY_GATE=1 the stand-in restores
-			// the plugin's inherited declaration and the production version
-			// runner, so the real gate decides against the real V2 host binary.
-			if os.Getenv(openCodeV2StandInRealGateEnvironment) == "1" {
-				if relayDeclared {
-					if err := os.Setenv(openCodeRelayContractEnvironment, inheritedRelayDeclaration); err != nil {
-						panic(err)
-					}
-				}
-				runtimeopencode.VersionRunnerOverride = realVersionRunner
-			}
-			err = RunReview(args[1:], os.Stdout)
 		default:
 			fmt.Fprintf(os.Stderr, "stand-in: unsupported CLI arguments %q\n", args)
 			os.Exit(1)
@@ -170,7 +134,6 @@ func TestMain(m *testing.M) {
 
 	agentPresent := func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
 	claude.LookPathOverride = agentPresent
-	opencode.LookPathOverride = agentPresent
 
 	// Telemetry hermeticity for the whole binary: countless tests in this
 	// package exercise install/sync/review-outcome code paths that now call

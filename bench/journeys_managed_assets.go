@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 )
 
-// historicalManagedAssetStateSHA256 pins the exact state bytes emitted by
-// `gentle-ai sync --agents opencode` from predecessor 8c2cbd80.
+// historicalManagedAssetStateSHA256 pins the exact agent-agnostic state bytes
+// a `gentle-ai sync` from predecessor 8c2cbd80 emitted.
 const historicalManagedAssetStateSHA256 = "6c337347a4c94055f321b6e4aef7fa6ee96f4ca0159e2e8d99e385557120a329"
 
 //go:embed testdata/managed-assets/state-8c2cbd80.json
@@ -56,7 +56,7 @@ func staleManagedAssetState(sandbox *Sandbox) error {
 // START used to be the only way to discover the skew; now the skew is visible
 // -- and its one runnable remedy is named -- without ever attempting one.
 func staleManagedAssetsStatusIsNotUnknown(r *journeyRun) error {
-	status, err := readStatusForContract(r, reviewContractV2, "--agent", "opencode")
+	status, err := readStatusForContract(r, reviewContractV2, "--agent", "claude-code")
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func staleManagedAssetsStatusIsNotUnknown(r *journeyRun) error {
 		return fmt.Errorf("stale managed assets initial STATUS = %+v", status.NextTransition)
 	}
 	continuation := status.NextTransition.Continuation
-	if continuation == nil || continuation.Operation != "sync" || continuation.Agent != "opencode" {
+	if continuation == nil || continuation.Operation != "sync" || continuation.Agent != "claude-code" {
 		return fmt.Errorf("stale managed assets STATUS continuation = %+v", continuation)
 	}
 	// #4434: the printed continuation is anchored to the executable that
@@ -93,7 +93,7 @@ func staleManagedAssetsStatusIsNotUnknown(r *journeyRun) error {
 		return fmt.Errorf("stale managed assets continuation %q exited %d: %s", continuation.Command, sync.ExitCode, firstLine(sync.Stderr))
 	}
 
-	reconciled, err := readStatusForContract(r, reviewContractV2, "--agent", "opencode")
+	reconciled, err := readStatusForContract(r, reviewContractV2, "--agent", "claude-code")
 	if err != nil {
 		return err
 	}
@@ -109,13 +109,13 @@ func managedAssetJourneys() []Journey {
 		{
 			ID:     "j93-stale-managed-assets-start-is-not-unknown",
 			Review: reviewOptedIn,
-			Title:  "Stale managed assets: v2 OpenCode STATUS stops before authority with a runnable sync continuation, and stays usable",
+			Title:  "Stale managed assets: v2 Claude Code STATUS stops before authority with a runnable sync continuation, and stays usable",
 			Source: "issue #2822, #3299, #4170: a stale product-created managed-asset digest refuses at STATUS's own preflight, before any START is offered, carrying the exact `gentle-ai sync` continuation that reconciles it",
 			Steps: []Step{
 				{Name: "fixture: repository", Fixture: baseRepo},
 				{Name: "fixture: staged prose candidate", Fixture: stageDocs("stale-managed-assets")},
 				{Name: "fixture: predecessor managed asset digest", Fixture: staleManagedAssetState},
-				{Name: "v2 OpenCode STATUS is a typed stop with a sync continuation, and stays usable", Requires: managedAssetsStatusCapability, Composite: staleManagedAssetsStatusIsNotUnknown},
+				{Name: "v2 Claude Code STATUS is a typed stop with a sync continuation, and stays usable", Requires: managedAssetsStatusCapability, Composite: staleManagedAssetsStatusIsNotUnknown},
 			},
 		},
 	}

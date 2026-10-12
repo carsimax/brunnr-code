@@ -26,25 +26,6 @@ func codexRuntimeCapabilities() map[string]model.CodexModelCapabilities {
 	}
 }
 
-func openCodexEffortSelect(t *testing.T, modelID string) screens.CodexModelPickerState {
-	t.Helper()
-	state := screens.NewCodexModelPickerState()
-	screens.HandleCodexModelPickerNav("enter", &state, 3) // Custom
-	if state.ModelCapabilities != nil {
-		t.Fatal("Custom entry kept capabilities from a previous discovery")
-	}
-	state.ModelCapabilities = codexRuntimeCapabilities() // discovery result
-	screens.HandleCodexCustomNav("enter", &state, 0)     // first role
-	for _, r := range modelID {
-		screens.HandleCodexCustomNav(string(r), &state, 0)
-	}
-	screens.HandleCodexCustomNav("enter", &state, 0)
-	if state.CustomMode != screens.CodexCustomModeEffortSelect || state.CustomPendingModel != modelID {
-		t.Fatalf("effort select not reached for %s: mode=%v pending=%q", modelID, state.CustomMode, state.CustomPendingModel)
-	}
-	return state
-}
-
 func renderedEfforts(state screens.CodexModelPickerState) []string {
 	var efforts []string
 	for _, line := range strings.Split(screens.RenderCodexModelPicker(state, 0), "\n") {
@@ -210,4 +191,23 @@ func TestCodexPresetPreservesTierWhenRuntimeOmitsServiceTiers(t *testing.T) {
 	if state.ServiceTier != "priority" {
 		t.Fatalf("ServiceTier = %q, want preserved priority", state.ServiceTier)
 	}
+}
+
+func openCodexEffortSelect(t *testing.T, modelID string) screens.CodexModelPickerState {
+	t.Helper()
+	state := screens.NewCodexModelPickerState()
+	screens.HandleCodexModelPickerNav("enter", &state, 3) // Custom
+	if state.ModelCapabilities != nil {
+		t.Fatal("Custom entry kept capabilities from a previous discovery")
+	}
+	state.ModelCapabilities = codexRuntimeCapabilities() // discovery result
+	screens.HandleCodexCustomNav("enter", &state, 0)     // first role
+	for _, r := range modelID {
+		screens.HandleCodexCustomNav(string(r), &state, 0)
+	}
+	screens.HandleCodexCustomNav("enter", &state, 0)
+	if state.CustomMode != screens.CodexCustomModeEffortSelect || state.CustomPendingModel != modelID {
+		t.Fatalf("effort select not reached for %s: mode=%v pending=%q", modelID, state.CustomMode, state.CustomPendingModel)
+	}
+	return state
 }

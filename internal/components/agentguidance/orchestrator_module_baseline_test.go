@@ -1,11 +1,9 @@
 package agentguidance_test
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"flag"
 	"io/fs"
 	"os"
@@ -18,10 +16,8 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/catalog"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/agentguidance"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencodedefault"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/reviewassets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/opencode"
 )
 
 // #5256 T1 characterizes the orchestrator every runtime receives before
@@ -44,9 +40,6 @@ type moduleVariantInput struct {
 	id         string
 	agent      model.AgentID
 	capability string
-	// openCodeVersion is what the fake `opencode --version` prints; empty
-	// makes the probe fail, as for a missing or unknown CLI.
-	openCodeVersion string
 	// kimiCurrent pre-creates ~/.kimi-code so install selects the flattened
 	// AGENTS.md hub instead of the legacy Jinja router.
 	kimiCurrent bool
@@ -56,9 +49,6 @@ type moduleVariantInput struct {
 var moduleVariantInputs = []moduleVariantInput{
 	{id: "claude-code", agent: model.AgentClaudeCode, asset: "claude/orchestrator.md"},
 	{id: "codex", agent: model.AgentCodex, asset: "codex/orchestrator.md"},
-	{id: "opencode/unknown", agent: model.AgentOpenCode, asset: "opencode/orchestrator.md"},
-	{id: "opencode/v1", agent: model.AgentOpenCode, openCodeVersion: "1.14.0", asset: "opencode/orchestrator.md"},
-	{id: "opencode/v2", agent: model.AgentOpenCode, openCodeVersion: "2.0.4", asset: "opencode/orchestrator.md"},
 }
 
 type moduleVariant struct {
@@ -75,8 +65,7 @@ type moduleVariant struct {
 }
 
 // installedGuidance is one file a fresh install writes, as the runtime reads
-// it: the whole Markdown file, or the managed agent prompt of a JSON settings
-// document. The temporary root is replaced with "~".
+// it: the whole Markdown file. The temporary root is replaced with "~".
 type installedGuidance struct {
 	Path   string `json:"path"`
 	Bytes  int    `json:"bytes"`
@@ -86,20 +75,6 @@ type installedGuidance struct {
 func sha256Hex(content string) string {
 	sum := sha256.Sum256([]byte(content))
 	return hex.EncodeToString(sum[:])
-}
-
-// fakeOpenCodeVersion replaces the `opencode --version` probe the OpenCode
-// review contract runs, so no installed CLI is executed.
-func fakeOpenCodeVersion(t *testing.T, version string) {
-	t.Helper()
-	original := opencode.VersionRunnerOverride
-	t.Cleanup(func() { opencode.VersionRunnerOverride = original })
-	opencode.VersionRunnerOverride = func(context.Context, opencode.Command) (opencode.CommandOutput, error) {
-		if version == "" {
-			return opencode.CommandOutput{}, errors.New("fake opencode is unavailable")
-		}
-		return opencode.CommandOutput{Stdout: []byte(version + "\n")}, nil
-	}
 }
 
 // installedFiles runs the real install carrier into a fresh root.
@@ -125,18 +100,6 @@ func installedFiles(t *testing.T, input moduleVariantInput) []installedGuidance 
 			t.Fatal(err)
 		}
 		content, rel := string(raw), filepath.ToSlash(strings.TrimPrefix(file, root))
-		if agentguidance.DeliversThroughOrchestratorPrompt(input.agent) {
-			var settings struct {
-				Agent map[string]struct {
-					Prompt string `json:"prompt"`
-				} `json:"agent"`
-			}
-			if err := json.Unmarshal(raw, &settings); err != nil {
-				t.Fatalf("decode %s settings: %v", input.id, err)
-			}
-			content = settings.Agent[opencodedefault.ManagedAgent].Prompt
-			rel += "#agent." + opencodedefault.ManagedAgent + ".prompt"
-		}
 		content = strings.ReplaceAll(content, root, "~")
 		files = append(files, installedGuidance{Path: "~" + rel, Bytes: len(content), SHA256: sha256Hex(content)})
 	}
@@ -144,7 +107,7 @@ func installedFiles(t *testing.T, input moduleVariantInput) []installedGuidance 
 }
 
 // TestOrchestratorModuleBaseline is not parallel: it swaps the process-wide
-// OpenCode version probe and HOME.
+// HOME.
 func TestOrchestratorModuleBaseline(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skipf("%s pins Linux install paths and bytes; %s is not measured", moduleBaselineFile, runtime.GOOS)
@@ -157,7 +120,6 @@ func TestOrchestratorModuleBaseline(t *testing.T) {
 	var order []string
 	for _, input := range moduleVariantInputs {
 		t.Run(input.id, func(t *testing.T) {
-			fakeOpenCodeVersion(t, input.openCodeVersion)
 			rendered, err := agentguidance.RenderOrchestratorWithSource(input.agent, reviewassets.ReviewExecutionContractFor, input.capability)
 			if err != nil {
 				t.Fatalf("RenderOrchestratorWithSource(%s) error = %v", input.id, err)
@@ -228,14 +190,6 @@ func TestOrchestratorModuleBaseline(t *testing.T) {
 		return err
 	}); err != nil {
 		t.Fatal(err)
-	}
-
-	// Variant relationships the module split must keep observable.
-	if renders["opencode/unknown"] != renders["opencode/v1"] {
-		t.Error("an unknown OpenCode version no longer renders the v1 contract")
-	}
-	if renders["opencode/v2"] == renders["opencode/v1"] || !strings.Contains(renders["opencode/v2"], "`subagent`") {
-		t.Error("OpenCode v2 no longer binds the review contract to its own tool names")
 	}
 
 	if t.Failed() {

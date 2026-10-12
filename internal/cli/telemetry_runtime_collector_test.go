@@ -23,13 +23,13 @@ func TestTelemetryRuntimeCollectorCompatibility(t *testing.T) {
 	mux := (&telemetrycollector.Server{Storage: storage, Limiter: telemetrycollector.NewRateLimiter(100)}).NewMux()
 	requests := 0
 	runtimeCLIServer(t, func(w http.ResponseWriter, r *http.Request) { requests++; mux.ServeHTTP(w, r) })
-	for _, tc := range []struct{ route, input string }{{"send", string(runtimeCLIFixture())}, {"opencode", completedOpenCodeEnvelope}} {
+	for _, tc := range []struct{ route, input string }{{"send", string(runtimeCLIFixture())}} {
 		var out bytes.Buffer
 		if err := runTelemetryRuntimeInput([]string{tc.route, "--json"}, &out, strings.NewReader(tc.input)); err != nil || !strings.Contains(out.String(), `"stored"`) {
 			t.Fatal("collector did not commit simplified event", out.String(), err)
 		}
 	}
-	if requests != 2 || !reflect.DeepEqual(before, runtimeCLIDisk(t, home)) {
+	if requests != 1 || !reflect.DeepEqual(before, runtimeCLIDisk(t, home)) {
 		t.Fatal("wrong request count or client disk mutation")
 	}
 }

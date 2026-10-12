@@ -68,12 +68,11 @@ Use this page before reviewing or making a change. It turns the codebase map int
 - [ ] Update [Skill Registry](../skill-registry.md) when user-visible flags or output change.
 - [ ] Regenerate `.atl/skill-registry.md` only when the indexed skills intentionally change.
 
-### Community tool or OpenCode plugin behavior
+### Community tool behavior
 
 - [ ] Use `internal/components/communitytool/` for external tool install orchestration plus managed guidance/config/MCP reconciliation.
-- [ ] Use `internal/components/opencodeplugin/` for OpenCode TUI plugin registration: external plugins add package names, while Gentle Logo writes/registers the managed local plugin file.
 - [ ] Keep external runtime ownership explicit in docs.
-- [ ] Test idempotent sync/registration behavior.
+- [ ] Test idempotent sync behavior.
 
 ### Upgrade or deferred sync behavior
 

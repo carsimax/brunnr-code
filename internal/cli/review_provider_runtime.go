@@ -118,8 +118,6 @@ var reviewProviderAdapterFor = func(contract reviewerprovider.Contract, agent mo
 		return reviewerprovider.NewClaudeAdapter(), nil
 	case model.AgentCodex:
 		return reviewerprovider.NewCodexAdapter(), nil
-	case model.AgentOpenCode:
-		return nil, fmt.Errorf("reviewer provider runtime %q is host-mediated; launch the provider-issued OpenCode reviewer task", agent) // refusal:by-design world-action: OpenCode must relay through its ordinary managed host
 	default:
 		return nil, fmt.Errorf("reviewer provider runtime %q has no registered adapter", agent) // refusal:by-design world-action: immutable reviewer execution requires a compiled adapter binding
 	}

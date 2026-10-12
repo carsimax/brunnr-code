@@ -17,8 +17,8 @@ func issue3557DanglingSymlinkFixture(sandbox *Sandbox) error {
 		return err
 	}
 
-	configPath := filepath.Join(sandbox.Home, ".config", "opencode")
-	targetPath := filepath.Join(sandbox.Root, "missing-external-opencode-config")
+	configPath := filepath.Join(sandbox.Home, ".codex")
+	targetPath := filepath.Join(sandbox.Root, "missing-external-codex-config")
 	if err := os.Symlink(targetPath, configPath); err != nil {
 		if !errors.Is(err, windowsErrorPrivilegeNotHeld) {
 			return err
@@ -30,7 +30,7 @@ func issue3557DanglingSymlinkFixture(sandbox *Sandbox) error {
 		return err
 	}
 	statePath := filepath.Join(sandbox.Home, ".gentle-ai", "state.json")
-	state := fmt.Sprintf(`{"installed_agents":["opencode","claude-code"],"last_update_check":%q}`, time.Now().UTC().Format(time.RFC3339Nano))
+	state := fmt.Sprintf(`{"installed_agents":["codex","claude-code"],"last_update_check":%q}`, time.Now().UTC().Format(time.RFC3339Nano))
 	if err := sandbox.write(statePath, state); err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func issue3557Journeys() []Journey {
 		Title:  "Doctor identifies a dangling managed config symlink without recommending sync",
 		Source: "https://github.com/Gentleman-Programming/gentle-ai/issues/3557",
 		Steps: []Step{
-			{Name: "fixture: dangling OpenCode managed config symlink", Fixture: issue3557DanglingSymlinkFixture},
+			{Name: "fixture: dangling Codex managed config symlink", Fixture: issue3557DanglingSymlinkFixture},
 			{Name: "doctor reports manual repair and preserves the filesystem", Skip: issue3557SymlinkSkip, Args: issue3557DoctorArgs, After: issue3557VerifyDoctor},
 		},
 	}}

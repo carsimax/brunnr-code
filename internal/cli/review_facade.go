@@ -595,7 +595,7 @@ func (err *reviewStartContextError) Unwrap() error { return err.Cause }
 
 func RunReview(args []string, stdout io.Writer) error {
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
-		_, _ = fmt.Fprintln(stdout, "Usage: gentle-ai review <acknowledge-approved|capture-result|capture-correction-plan|capture-refuter|capture-unachievable|capture-validation|lens-context|capabilities|assess|start|validate|status|repair|invalidate|abandon|recover|reclaim|store-reset|inspect-authority|inspect-candidate|reopen-results|schema|opencode-transport> [flags]\n\nOrdinary review facade; repository scope, authority, canonical artifacts, and lifecycle transitions are derived by Go. Provider transports relay opaque bytes only; Go materializes, admits, captures, and closes review on its final causal event. Generic review recover remains unchanged. Use review repair --preflight for provider-owned classified authority repair.")
+		_, _ = fmt.Fprintln(stdout, "Usage: gentle-ai review <acknowledge-approved|capture-result|capture-correction-plan|capture-refuter|capture-unachievable|capture-validation|lens-context|capabilities|assess|start|validate|status|repair|invalidate|abandon|recover|reclaim|store-reset|inspect-authority|inspect-candidate|reopen-results|schema> [flags]\n\nOrdinary review facade; repository scope, authority, canonical artifacts, and lifecycle transitions are derived by Go. Provider transports relay opaque bytes only; Go materializes, admits, captures, and closes review on its final causal event. Generic review recover remains unchanged. Use review repair --preflight for provider-owned classified authority repair.")
 		return nil
 	}
 	operation, negotiated, preflightFailure := reviewIntegrationFailureRoute(args)
@@ -763,8 +763,6 @@ func runReviewCommand(args []string, stdout io.Writer) error {
 		return RunReviewReopenResults(args[1:], stdout)
 	case "schema":
 		return RunReviewSchema(args[1:], stdout)
-	case "opencode-transport":
-		return RunReviewOpenCodeTransport(args[1:], stdout)
 	case "stop-hook":
 		return RunReviewStopHook(args[1:], stdout)
 	default:
@@ -1392,10 +1390,8 @@ func runReviewStatus(ctx context.Context, args []string, stdout io.Writer) error
 							artifacts, artifactErr = discoverCapturedReviewerArtifacts(ctx, root, store.Dir, record.State, record.State.CapturePhaseRevision)
 						}
 						if artifactErr == nil {
-							// OpenCode relays Go-issued role tasks through its live
-							// transport; the pi host relay collects the same roles
-							// through the printed materialize + submission route.
-							// Both discover pending roles identically here.
+							// Compiled capture runtimes discover pending refuter and
+							// validator roles identically here.
 							if runtime == "" && record.State.RuntimeAgent != "" {
 								// The lineage froze its runtime at START, so a STATUS
 								// that omits --agent still binds every lens, refuter,
@@ -1406,7 +1402,7 @@ func runReviewStatus(ctx context.Context, args []string, stdout io.Writer) error
 									runtime = recorded
 								}
 							}
-							providerRoleHost := runtime == model.AgentOpenCode || reviewProviderCaptureRuntime(runtime)
+							providerRoleHost := reviewProviderCaptureRuntime(runtime)
 							if providerRoleHost && record.State.State == reviewtransaction.StateReviewing && len(artifacts) == len(record.State.SelectedLenses) {
 								_, readErr := readCapturedProviderRefuterResult(ctx, root, store.Dir, record.State, record.State.CapturePhaseRevision)
 								switch {
@@ -1424,11 +1420,9 @@ func runReviewStatus(ctx context.Context, args []string, stdout io.Writer) error
 								case readErr == nil:
 									capturedProviderTargetedValidator = true
 								case errors.Is(readErr, errReviewProviderTargetedValidatorResultNotCaptured):
-									// OpenCode and the pi host relay are the
-									// host-mediated providers. When no current slot
-									// exists, they receive the Go-issued task that can
-									// fill one; a readable occupied slot is
-									// provider-generic.
+									// When no current slot exists, a compiled capture
+									// runtime receives the Go-issued role that can fill
+									// one; a readable occupied slot is provider-generic.
 									if providerRoleHost {
 										providerRole = reviewerprovider.RoleTargetedValidator
 									}
@@ -1494,18 +1488,8 @@ func runReviewStatus(ctx context.Context, args []string, stdout io.Writer) error
 				}
 				transition = newReviewNextTransition(result, native.SelectedLenses, artifacts, artifactErr, input)
 			}
-			// Only an OpenCode-driven STATUS seals a handle. When sealing failed,
-			// an unsafe key is an environment fault with its own repair, not a
-			// lifecycle stop; every other runtime never consults the key.
-			if runtime == model.AgentOpenCode && transition.ReasonCode == "captured_artifacts_unverifiable" {
-				if keyErr := reviewtransaction.ReviewRepositoryContextKeyHealth(); keyErr != nil {
-					return reviewPreflightRefusal(reviewRepositoryContextKeyUnsafeReason, keyErr)
-				}
-			}
 			result.NextTransition = &transition
-			providerTargetedValidation := (transition.ReasonCode == "targeted_validation_required" || transition.ReasonCode == reviewInconclusiveTargetedValidationReason) &&
-				transition.Collect != nil && len(transition.Collect.Inputs) == 1 && transition.Collect.Inputs[0].ProviderTask != nil
-			if reviewTransitionValidationRequest(&transition) == nil && !providerTargetedValidation {
+			if reviewTransitionValidationRequest(&transition) == nil {
 				result.ValidationRequest = nil
 			}
 			// A negotiated invocation is the machine surface end to end: the

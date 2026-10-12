@@ -50,7 +50,6 @@ func TestManagedDirectReplyAssetsEnforceEnglishNoCodeSwitching(t *testing.T) {
 		{name: "claude gentleman persona", path: "claude/persona-gentleman.md", combineWith: "claude/output-style-gentleman.md"},
 		{name: "generic gentleman persona", path: "generic/persona-gentleman.md"},
 		{name: "generic neutral persona", path: "generic/persona-neutral.md"},
-		{name: "opencode gentleman persona", path: "opencode/persona-gentleman.md"},
 	}
 
 	for _, tc := range tests {
@@ -70,8 +69,8 @@ func TestManagedDirectReplyAssetsEnforceEnglishNoCodeSwitching(t *testing.T) {
 
 func TestODDOrchestratorAssetsEnforceLanguageContract(t *testing.T) {
 	assetPaths := allSDDOrchestratorAssetPaths(t)
-	if len(assetPaths) != 4 {
-		t.Fatalf("ODD orchestrator asset count = %d, want 4", len(assetPaths))
+	if len(assetPaths) != 3 {
+		t.Fatalf("ODD orchestrator asset count = %d, want 3", len(assetPaths))
 	}
 
 	for _, path := range assetPaths {
@@ -129,8 +128,6 @@ func TestSupportedAgentODDLanguageMatrix(t *testing.T) {
 		path  string
 	}{
 		{agent: "claude-code", path: "claude/orchestrator.md"},
-		{agent: "opencode", path: "opencode/orchestrator.md"},
-		{agent: "kilocode", path: "opencode/orchestrator.md"},
 		{agent: "vscode-copilot", path: "generic/orchestrator.md"},
 		{agent: "codex", path: "codex/orchestrator.md"},
 		{agent: "openclaw", path: "generic/orchestrator.md"},
@@ -207,7 +204,6 @@ func TestGentlemanPersonaKeepsDirectConversationVoice(t *testing.T) {
 	}{
 		{path: "claude/persona-gentleman.md", combineWith: "claude/output-style-gentleman.md"},
 		{path: "generic/persona-gentleman.md"},
-		{path: "opencode/persona-gentleman.md"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.path, func(t *testing.T) {
@@ -375,7 +371,6 @@ func TestPersonaChannelsCarryPreWriteArtifactSelfCheck(t *testing.T) {
 		"claude/output-style-neutral.md",
 		"generic/persona-gentleman.md",
 		"generic/persona-neutral.md",
-		"opencode/persona-gentleman.md",
 	}
 	for _, path := range paths {
 		t.Run(path, func(t *testing.T) {

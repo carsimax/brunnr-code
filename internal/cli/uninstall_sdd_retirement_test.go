@@ -9,14 +9,13 @@ import (
 	"testing"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/legacyassets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
 
 // uninstallSDDAgents are the runtimes the uninstall retirement tests remove.
 var uninstallSDDAgents = []model.AgentID{
 	model.AgentClaudeCode, model.AgentQwenCode, model.AgentCodex, model.AgentKimi,
-	model.AgentKiroIDE, model.AgentCursor, model.AgentOpenCode,
+	model.AgentKiroIDE, model.AgentCursor,
 }
 
 func uninstallSDDTestHome(t *testing.T) string {
@@ -28,17 +27,8 @@ func uninstallSDDTestHome(t *testing.T) string {
 	return home
 }
 
-// openCodeSDDUninstallSettings is a v3.7.0 OpenCode settings file: one
-// released phase agent beside the user's own sdd-init.
-func openCodeSDDUninstallSettings(t *testing.T) []byte {
-	t.Helper()
-	agent := releasedOpenCodeSDDAgents(t, "v1", "sdd-apply")
-	agent["sdd-init"] = userSDDInit
-	return []byte("{\n  \"agent\": " + indentedJSON(t, agent) + "\n}\n")
-}
-
 // TestUninstallRetiresOwnedSDDInventoryForEveryRuntime covers #5157 for
-// uninstall: removing a runtime retires the SDD files, settings entries, and
+// uninstall: removing a runtime retires the SDD files, settings hooks, and
 // prompt text releases installed for it with the inventory and ownership
 // proof install and sync use. User bytes are kept and reported, and the snapshot restores everything uninstall changed.
 func TestUninstallRetiresOwnedSDDInventoryForEveryRuntime(t *testing.T) {
@@ -49,26 +39,21 @@ func TestUninstallRetiresOwnedSDDInventoryForEveryRuntime(t *testing.T) {
 		owned[path] = data
 	}
 	owned[filepath.Join(home, ".claude", "agents", "sdd-apply.md")] = releasedSDDRender(t, "claude-sdd-apply.md")
-	prompts := legacyassets.SharedPromptDir(home)
-	owned[filepath.Join(prompts, "sdd-apply.md")] = releasedSDDRender(t, "opencode-prompt-sdd-apply.md")
 	kept := map[string][]byte{
 		runtimeFiles.userProfile: runtimeFiles.kept[runtimeFiles.userProfile],
 		filepath.Join(home, ".claude", "commands", "gentle-sdd-verify.md"): edited[filepath.Join(home, ".claude", "commands", "gentle-sdd-verify.md")],
 		filepath.Join(home, ".qwen", "skills", "sdd-apply", "SKILL.md"):    edited[filepath.Join(home, ".qwen", "skills", "sdd-apply", "SKILL.md")],
 		filepath.Join(home, ".kiro", "agents", "sdd-verify.md"):            []byte("my own verifier\n"),
-		filepath.Join(prompts, "sdd-explore.md"):                           []byte("my own explore prompt\n"),
 	}
 	for _, group := range []map[string][]byte{owned, kept} {
 		for path, data := range group {
 			mustWriteFile(t, path, data)
 		}
 	}
-	settings := filepath.Join(home, ".config", "opencode", "opencode.json")
-	mustWriteFile(t, settings, openCodeSDDUninstallSettings(t))
 	claudePrompt := filepath.Join(home, ".claude", "CLAUDE.md")
 	mustWriteFile(t, claudePrompt, []byte(legacyCodexPromptUser+legacyCodexPromptBlock))
 	rewritten := map[string][]byte{
-		settings: openCodeSDDUninstallSettings(t), filepath.Join(home, ".claude", "settings.json"): []byte(claudeSettingsWithSDDHook),
+		filepath.Join(home, ".claude", "settings.json"): []byte(claudeSettingsWithSDDHook),
 		claudePrompt: []byte(legacyCodexPromptUser + legacyCodexPromptBlock),
 	}
 	for path, data := range runtimeFiles.rewritten {
@@ -118,15 +103,6 @@ func TestUninstallRetiresOwnedSDDInventoryForEveryRuntime(t *testing.T) {
 	if got, _ := os.ReadFile(filepath.Join(home, ".claude", "settings.json")); strings.Contains(string(got), "sdd-preflight-hook") {
 		t.Errorf("Claude settings kept the SDD preflight hook: %s", got)
 	}
-	got, _ := os.ReadFile(settings)
-	if strings.Contains(string(got), `"sdd-apply"`) || !strings.Contains(string(got), `"My own init"`) {
-		t.Errorf("OpenCode settings = %s, want the released sdd-apply removed and the user's sdd-init kept", got)
-	}
-	if !slices.ContainsFunc(result.ManualActions, func(action string) bool {
-		return strings.Contains(action, "agent.sdd-init") && strings.Contains(action, "move or delete it")
-	}) {
-		t.Errorf("preserved OpenCode sdd-init not reported: %v", result.ManualActions)
-	}
 	for path := range rewritten {
 		if !snapshot[path] {
 			t.Errorf("uninstall snapshot omitted rewritten file %s", path)
@@ -157,7 +133,6 @@ func TestUninstallNeverEntersSymlinkedSDDDirectories(t *testing.T) {
 	targets := map[string][]byte{
 		filepath.Join(outside, "agents", "sdd-apply.md"):         releasedSDDRender(t, "claude-sdd-apply.md"),
 		filepath.Join(outside, "skills", "sdd-init", "SKILL.md"): releasedSDDAsset(t, "v3.7.0", "skill-sdd-init.md"),
-		filepath.Join(outside, "prompts", "sdd-apply.md"):        releasedSDDRender(t, "opencode-prompt-sdd-apply.md"),
 	}
 	for path, data := range targets {
 		mustWriteFile(t, path, data)
@@ -165,7 +140,6 @@ func TestUninstallNeverEntersSymlinkedSDDDirectories(t *testing.T) {
 	links := map[string]string{
 		filepath.Join(home, ".claude", "agents"): filepath.Join(outside, "agents"),
 		filepath.Join(home, ".claude", "skills"): filepath.Join(outside, "skills"),
-		legacyassets.SharedPromptDir(home):       filepath.Join(outside, "prompts"),
 	}
 	for link, target := range links {
 		if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
@@ -176,7 +150,7 @@ func TestUninstallNeverEntersSymlinkedSDDDirectories(t *testing.T) {
 		}
 	}
 
-	result, err := RunUninstallWithSelection(home, t.TempDir(), []model.AgentID{model.AgentOpenCode, model.AgentClaudeCode}, nil)
+	result, err := RunUninstallWithSelection(home, t.TempDir(), []model.AgentID{model.AgentClaudeCode}, nil)
 	if err != nil {
 		t.Fatalf("RunUninstallWithSelection() error = %v", err)
 	}

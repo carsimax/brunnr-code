@@ -17,14 +17,13 @@ type Agent struct {
 
 var allAgents = []Agent{
 	{ID: model.AgentClaudeCode, Name: "Claude Code", Tier: model.TierFull, ConfigPath: "~/.claude"},
-	{ID: model.AgentOpenCode, Name: "OpenCode", Tier: model.TierFull, ConfigPath: "~/.config/opencode"},
 	{ID: model.AgentCodex, Name: "Codex", Tier: model.TierFull, ConfigPath: "~/.codex"},
 }
 
-// mvpAgents are the original MVP agents (Claude Code, OpenCode).
+// mvpAgents are the supported core agents (Claude Code, Codex).
 var mvpAgents = []Agent{
 	{ID: model.AgentClaudeCode, Name: "Claude Code", Tier: model.TierFull, ConfigPath: "~/.claude"},
-	{ID: model.AgentOpenCode, Name: "OpenCode", Tier: model.TierFull, ConfigPath: "~/.config/opencode"},
+	{ID: model.AgentCodex, Name: "Codex", Tier: model.TierFull, ConfigPath: "~/.codex"},
 }
 
 func AllAgents() []Agent {

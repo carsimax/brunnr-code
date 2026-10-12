@@ -125,8 +125,7 @@ const SeverityRules = "Severity rules. A BLOCKER or CRITICAL finding must be cau
 // the S11 refuter probe in isolation: a fresh copy of the candidate tree under
 // the system temp dir, writes confined to it, and no network. Only Codex's
 // workspace-write sandbox gives all three. Claude has no network isolation once
-// tools are enabled, Pi reviews in process without tools, and OpenCode's bash
-// default is unknown, so they stay no-probe.
+// tools are enabled, so it stays no-probe.
 func RefuterProbeIsolated(agent model.AgentID) bool {
 	return agent == model.AgentCodex
 }

@@ -38,7 +38,7 @@ Gentle-AI writes agent-specific MCP configuration so agents can call external se
 engram mcp --tools=agent
 ```
 
-OpenCode/Kilo Code use an array-style local MCP command in settings. Other agents use their adapter strategy: separate MCP files, merged settings, dedicated MCP config files, or TOML.
+Agents use their adapter strategy: separate MCP files, merged settings, dedicated MCP config files, or TOML.
 
 ## TUI flow
 
