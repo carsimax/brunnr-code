@@ -47,7 +47,7 @@ log_info()  { printf "${BLUE}[INFO]${NC}  %s\n" "$1"; }
 # Resolution priority (highest → lowest):
 #   1. ./brunnr-code in the current repo directory (freshly built local binary)
 #   2. ~/brunnr-code (explicit copy in home)
-#   3. brunnr-code on PATH (system-installed, e.g. Homebrew)
+#   3. brunnr-code on PATH (system-installed release)
 # This ensures `go build ./cmd/brunnr-code && bash e2e/e2e_test.sh` always
 # tests the locally built binary rather than the installed release version.
 resolve_binary() {

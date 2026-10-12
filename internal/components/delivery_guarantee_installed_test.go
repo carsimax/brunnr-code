@@ -90,7 +90,7 @@ func assertRejectsOppositeFailureContract(t *testing.T, surface string, content 
 func TestDeliveryGuarantee_InstalledOutputs(t *testing.T) {
 	t.Run("claude-slim", func(t *testing.T) {
 		home := t.TempDir()
-		engram.SetLookPathForTest(t, "/opt/homebrew/bin/engram", "")
+		engram.SetLookPathForTest(t, "/usr/local/bin/engram", "")
 
 		result, err := engram.InjectWithOptions(home, claudeAdapter(), engram.InjectOptions{Version: "1.18.0"})
 		if err != nil {
@@ -107,7 +107,7 @@ func TestDeliveryGuarantee_InstalledOutputs(t *testing.T) {
 
 	t.Run("codex-instructions", func(t *testing.T) {
 		home := t.TempDir()
-		engram.SetLookPathForTest(t, "/opt/homebrew/bin/engram", "")
+		engram.SetLookPathForTest(t, "/usr/local/bin/engram", "")
 		t.Cleanup(codexagent.SetRuntimeVersionCommandForTest("codex-cli 0.144.0", nil))
 
 		result, err := engram.Inject(home, codexAdapter())

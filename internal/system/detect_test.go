@@ -183,10 +183,9 @@ func TestResolvePlatformProfileMatrix(t *testing.T) {
 			wantSupported: true,
 		},
 		{
-			name:          "linux with only brew is not a supported manager",
+			name:          "linux with no supported manager",
 			goos:          "linux",
 			osRelease:     "ID=debian\n",
-			tools:         map[string]ToolStatus{"brew": {Name: "brew", Installed: true}},
 			wantOS:        "linux",
 			wantPM:        "",
 			wantDistro:    LinuxDistroDebian,

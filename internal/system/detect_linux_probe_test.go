@@ -146,7 +146,6 @@ func TestLinuxIsSupportedWheneverAPackageManagerIsOnPath(t *testing.T) {
 		{name: "nobara with dnf", osRelease: "ID=nobara\nID_LIKE=\"fedora\"\n", onPath: []string{"dnf"}, wantPM: "dnf"},
 		{name: "distro nobody has heard of, with dnf", osRelease: "ID=some-future-distro\n", onPath: []string{"dnf"}, wantPM: "dnf"},
 		{name: "no os-release at all, with pacman", osRelease: "", onPath: []string{"pacman"}, wantPM: "pacman"},
-		{name: "brew on PATH is ignored in favor of the native manager", osRelease: osReleaseAlpine, onPath: []string{"apk", "brew"}, wantPM: "apk"},
 		{name: "fedora silverblue with rpm-ostree alone", osRelease: osReleaseSilverblue, onPath: []string{"rpm-ostree"}, ostreeBooted: true, wantPM: "rpm-ostree"},
 		{name: "ostree host with dnf and rpm-ostree selects rpm-ostree", osRelease: osReleaseSilverblue, onPath: []string{"dnf", "rpm-ostree"}, ostreeBooted: true, wantPM: "rpm-ostree"},
 		{name: "mutable fedora with dnf and rpm-ostree selects dnf", osRelease: "ID=fedora\nID_LIKE=\"rhel fedora\"\n", onPath: []string{"dnf", "rpm-ostree"}, ostreeBooted: false, wantPM: "dnf"},

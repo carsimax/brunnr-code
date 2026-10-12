@@ -10,7 +10,7 @@ What the removal of other agents left behind, by design:
 
 - Removed agents leave no legacy code paths. Stale `state.json` entries for them are filtered out when selections are read.
 - `internal/assets/generic/`, the frozen text in `contracts/` are kept on purpose. Do not "clean them up".
-- The fork releases through `.goreleaser.yaml` and `.github/workflows/release.yml` (tag `v*`, unsigned, no Homebrew tap). The upstream signing, provenance and promotion pipeline was removed.
+- The fork releases through `.goreleaser.yaml` and `.github/workflows/release.yml` (tag `v*`, unsigned). Install is curl-only via `scripts/install.sh` or `go install`. The upstream signing, provenance and promotion pipeline was removed.
 
 ## Commands
 

@@ -1,6 +1,6 @@
-# Release config for brunnr-code. No minisign signing and no Homebrew tap:
-# the self-upgrade path fails closed (no embedded trust anchors) and users
-# reinstall with scripts/install.sh instead.
+# Release config for brunnr-code. No minisign signing: the self-upgrade
+# path fails closed (no embedded trust anchors) and users reinstall with
+# scripts/install.sh instead.
 version: 2
 
 project_name: brunnr-code

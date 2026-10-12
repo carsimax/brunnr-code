@@ -24,16 +24,11 @@ func TestDarwinDepsAreManual(t *testing.T) {
 	}
 	for dep, want := range wantHints {
 		hint := hints[dep]
-		if !strings.Contains(hint, want) || strings.Contains(strings.ToLower(hint), "brew") {
-			t.Errorf("%s darwin hint = %q, want it to contain %q and no brew", dep, hint, want)
+		if !strings.Contains(hint, want) {
+			t.Errorf("%s darwin hint = %q, want it to contain %q", dep, hint, want)
 		}
 		if cmds := InstallCommandsForDep(dep, profile); cmds != nil {
 			t.Errorf("%s darwin commands = %v, want nil (manual install)", dep, cmds)
-		}
-	}
-	for _, dep := range defineDependencies(profile) {
-		if dep.Name == "brew" || strings.Contains(strings.ToLower(dep.InstallHint), "brew") {
-			t.Errorf("darwin dependency %+v mentions brew", dep)
 		}
 	}
 }

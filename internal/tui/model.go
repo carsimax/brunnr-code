@@ -2654,10 +2654,7 @@ func (m Model) startUninstall() tea.Cmd {
 			if execErr != nil {
 				return UninstallDoneMsg{Result: result, Err: fmt.Errorf("uninstall succeeded but failed to locate binary: %w", execErr)}
 			}
-			if isHomebrewManagedBinary(execPath) {
-				result.ManualActions = append(result.ManualActions,
-					"Homebrew-managed install detected. Run 'brew uninstall brunnr-code' to remove the executable cleanly.")
-			} else if removeErr := osRemoveFn(execPath); removeErr != nil {
+			if removeErr := osRemoveFn(execPath); removeErr != nil {
 				return UninstallDoneMsg{Result: result, Err: fmt.Errorf("uninstall succeeded but failed to remove binary at %q: %w", execPath, removeErr)}
 			}
 		}
@@ -3154,16 +3151,6 @@ func (m Model) optionCount() int {
 	default:
 		return 0
 	}
-}
-
-func isHomebrewManagedBinary(execPath string) bool {
-	path := filepath.ToSlash(filepath.Clean(execPath))
-	if strings.Contains(path, "/Cellar/") {
-		return true
-	}
-	return strings.HasPrefix(path, "/opt/homebrew/") ||
-		strings.HasPrefix(path, "/usr/local/Homebrew/") ||
-		strings.HasPrefix(path, "/home/linuxbrew/.linuxbrew/")
 }
 
 func setOSExecutableForTest(path string, err error) func() {

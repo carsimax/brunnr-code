@@ -135,8 +135,8 @@ func TestMergeJSONObjectsMalformedBaseReturnsOverlayOnly(t *testing.T) {
 // ─── __replace__ sentinel tests ───────────────────────────────────────────────
 
 func TestMergeJSONObjectsReplaceSentinelErasesBaseKeys(t *testing.T) {
-	base := []byte(`{"mcp":{"engram":{"command":"/opt/homebrew/bin/engram","args":["mcp","--tools=agent"],"type":"local"}}}`)
-	overlay := []byte(`{"mcp":{"engram":{"__replace__":{"command":["/opt/homebrew/bin/engram","mcp","--tools=agent"],"type":"local"}}}}`)
+	base := []byte(`{"mcp":{"engram":{"command":"/usr/local/bin/engram","args":["mcp","--tools=agent"],"type":"local"}}}`)
+	overlay := []byte(`{"mcp":{"engram":{"__replace__":{"command":["/usr/local/bin/engram","mcp","--tools=agent"],"type":"local"}}}}`)
 
 	merged, err := MergeJSONObjects(base, overlay)
 	if err != nil {

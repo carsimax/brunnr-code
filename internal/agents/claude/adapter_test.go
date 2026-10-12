@@ -185,7 +185,7 @@ func TestInstallCommand(t *testing.T) {
 	}{
 		{
 			name:    "darwin profile uses npm without sudo",
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew"},
+			profile: system.PlatformProfile{OS: "darwin", PackageManager: ""},
 			want:    [][]string{{"npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
 		},
 		{

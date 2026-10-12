@@ -1984,41 +1984,7 @@ func TestUninstallConfirm_CleanInstallRunsSyncAfterUninstall(t *testing.T) {
 	}
 }
 
-func TestStartUninstall_FullRemoveHomebrewManagedBinaryAddsManualAction(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.UninstallMode = model.UninstallModeFullRemove
-	m.UninstallAgents = []model.AgentID{model.AgentCodex}
-	m.UninstallComponents = []model.ComponentID{model.ComponentEngram}
-	m.UninstallFn = func(agentIDs []model.AgentID, componentIDs []model.ComponentID) (componentuninstall.Result, error) {
-		return componentuninstall.Result{}, nil
-	}
-
-	restoreExec := setOSExecutableForTest("/opt/homebrew/bin/brunnr-code", nil)
-	defer restoreExec()
-
-	removeCalled := false
-	restoreRemove := setOSRemoveForTest(func(path string) error {
-		removeCalled = true
-		return nil
-	})
-	defer restoreRemove()
-
-	msg := m.startUninstall()().(UninstallDoneMsg)
-	if msg.Err != nil {
-		t.Fatalf("UninstallDoneMsg.Err = %v, want nil", msg.Err)
-	}
-	if removeCalled {
-		t.Fatal("os.Remove should not be called for Homebrew-managed install path")
-	}
-	if len(msg.Result.ManualActions) == 0 {
-		t.Fatal("ManualActions should include Homebrew uninstall guidance")
-	}
-	if !strings.Contains(msg.Result.ManualActions[0], "brew uninstall brunnr-code") {
-		t.Fatalf("manual action = %q, want brew uninstall guidance", msg.Result.ManualActions[0])
-	}
-}
-
-func TestStartUninstall_FullRemoveNonBrewRemovesBinary(t *testing.T) {
+func TestStartUninstall_FullRemoveRemovesBinary(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.UninstallMode = model.UninstallModeFullRemove
 	m.UninstallAgents = []model.AgentID{model.AgentCodex}

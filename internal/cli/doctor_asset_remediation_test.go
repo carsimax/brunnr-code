@@ -37,7 +37,7 @@ func TestRunDoctor_AssetVersionRemediation(t *testing.T) {
 	simple := filepath.ToSlash(filepath.Join(home, "pinned", "brunnr-code"))
 	spaces := filepath.Join(home, "pinned build", "brunnr-code")
 	apostrophe := filepath.Join(home, "user's build", "brunnr-code")
-	other := filepath.Join(home, "homebrew", "brunnr-code")
+	other := filepath.Join(home, "other-install", "brunnr-code")
 	for _, tc := range []struct {
 		name, invoked, pathCopy, goos, want string
 		execErr                             error

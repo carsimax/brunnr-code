@@ -101,10 +101,6 @@ func TestDefineDependenciesDarwin(t *testing.T) {
 			t.Fatalf("missing required dep %q for darwin", name)
 		}
 	}
-
-	if names["brew"] {
-		t.Fatalf("brew must not be a darwin dependency")
-	}
 }
 
 func TestDefineDependenciesNodeMinVersion(t *testing.T) {
