@@ -11,7 +11,6 @@ type InstallFlags struct {
 	Agents     []string
 	Components []string
 	Skills     []string
-	Persona    string
 	Preset     string
 	SDDMode    string
 	Scope      string
@@ -28,7 +27,6 @@ FLAGS
   --agent, --agents <list>           Agents to install
   --component, --components <list>   Components to install
   --skill, --skills <list>           Skills to install (requires skills in the resolved plan)
-  --persona <name>                   Persona to apply (requires persona in the resolved plan, except custom)
   --preset <name>                    Preset to apply
   --scope global|workspace           Install scope (env: GENTLE_AI_INSTALL_SCOPE)
   --claude-orchestrator-modules      Global Claude only: install the orchestrator as a core plus on-demand modules
@@ -58,7 +56,6 @@ func ParseInstallFlags(args []string) (InstallFlags, error) {
 	registerListFlag(fs, "components", &opts.Components)
 	registerListFlag(fs, "skill", &opts.Skills)
 	registerListFlag(fs, "skills", &opts.Skills)
-	fs.StringVar(&opts.Persona, "persona", "", "persona to apply")
 	fs.StringVar(&opts.Preset, "preset", "", "preset to apply")
 	fs.StringVar(&opts.Scope, "scope", "", "install scope: global (default) or workspace — env: GENTLE_AI_INSTALL_SCOPE")
 	fs.BoolVar(&opts.ClaudeOrchestratorModules, "claude-orchestrator-modules", false, "global Claude only: install the orchestrator as a core plus on-demand modules")

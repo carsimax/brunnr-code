@@ -19,7 +19,6 @@ func TestRunSyncAddsClaudeHooksToJSONCSettings(t *testing.T) {
 	if err := state.Write(home, state.InstallState{
 		InstalledAgents:     []string{string(model.AgentClaudeCode)},
 		SelectionConfigured: true,
-		Persona:             "neutral",
 	}); err != nil {
 		t.Fatalf("state.Write() error = %v", err)
 	}

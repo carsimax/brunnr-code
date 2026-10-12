@@ -2,8 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"sort"
 	"strings"
 
@@ -35,22 +33,13 @@ func NormalizeInstallFlags(flags InstallFlags, detection system.DetectionResult)
 	}
 	selection.Agents = unique(agents)
 
-	persona, personaRemapped, err := normalizePersona(flags.Persona)
-	if err != nil {
-		return InstallInput{}, err
-	}
-	if personaRemapped {
-		fmt.Fprintln(personaNoticeWriter, personaAliasRemapNotice)
-	}
-	selection.Persona = persona
-
 	preset, err := normalizePreset(flags.Preset)
 	if err != nil {
 		return InstallInput{}, err
 	}
 	selection.Preset = preset
 
-	components, err := normalizeComponents(flags.Components, selection.Preset, selection.Persona)
+	components, err := normalizeComponents(flags.Components, selection.Preset)
 	if err != nil {
 		return InstallInput{}, err
 	}
@@ -98,15 +87,13 @@ func NormalizeInstallFlags(flags InstallFlags, detection system.DetectionResult)
 }
 
 // validateInstallModifierConsumers checks explicit payloads against the final plan,
-// after dependency expansion. Implicit defaults and custom persona opt-out do not
-// request a component payload.
+// after dependency expansion. Implicit defaults do not request a component payload.
 func validateInstallModifierConsumers(flags InstallFlags, selection model.Selection, components []model.ComponentID) error {
 	modifiers := []struct {
 		flag     string
 		explicit bool
 		consumer model.ComponentID
 	}{
-		{"--persona", strings.TrimSpace(flags.Persona) != "" && selection.Persona != model.PersonaCustom, model.ComponentPersona},
 		{"--skill/--skills", len(flags.Skills) > 0, model.ComponentSkills},
 	}
 	for _, modifier := range modifiers {
@@ -127,32 +114,6 @@ func validateInstallModifierConsumers(flags InstallFlags, selection model.Select
 	return nil
 }
 
-// personaAliasRemapNotice is printed whenever the legacy
-// gentleman-neutral-artifacts alias is remapped to the neutral persona.
-const personaAliasRemapNotice = `"gentleman-neutral-artifacts" now maps to "neutral". For a voseo conversation use --persona gentleman.`
-
-// personaNoticeWriter is swappable in tests.
-var personaNoticeWriter io.Writer = os.Stderr
-
-// normalizePersona resolves a --persona flag or persisted state value.
-// The second return is true when the legacy gentleman-neutral-artifacts
-// alias was remapped to neutral: its name promised a neutral tone, so the
-// name now wins; users who want voseo have --persona gentleman.
-func normalizePersona(value string) (model.PersonaID, bool, error) {
-	if strings.TrimSpace(value) == "" {
-		return model.PersonaGentleman, false, nil
-	}
-
-	switch model.PersonaID(value) {
-	case model.PersonaGentlemanNeutralArtifacts:
-		return model.PersonaNeutral, true, nil
-	case model.PersonaGentleman, model.PersonaNeutral, model.PersonaCustom:
-		return model.PersonaID(value), false, nil
-	default:
-		return "", false, fmt.Errorf("unsupported persona %q", value)
-	}
-}
-
 func normalizePreset(value string) (model.PresetID, error) {
 	if strings.TrimSpace(value) == "" {
 		return model.PresetFullGentleman, nil
@@ -166,9 +127,9 @@ func normalizePreset(value string) (model.PresetID, error) {
 	}
 }
 
-func normalizeComponents(values []string, preset model.PresetID, persona model.PersonaID) ([]model.ComponentID, error) {
+func normalizeComponents(values []string, preset model.PresetID) ([]model.ComponentID, error) {
 	if len(values) == 0 {
-		return componentsForPreset(preset, persona), nil
+		return componentsForPreset(preset), nil
 	}
 
 	allowed := map[model.ComponentID]struct{}{}
@@ -223,8 +184,8 @@ func normalizeSDDMode(value string) (model.SDDModeID, error) {
 	}
 }
 
-func componentsForPreset(preset model.PresetID, persona model.PersonaID) []model.ComponentID {
-	return model.ComponentsForPreset(preset, persona)
+func componentsForPreset(preset model.PresetID) []model.ComponentID {
+	return model.ComponentsForPreset(preset)
 }
 
 func defaultAgentsFromDetection(detection system.DetectionResult) []model.AgentID {

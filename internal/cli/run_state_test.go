@@ -32,12 +32,11 @@ func TestMergeExplicitAgentInstallStatePreservesExistingAssignmentsWhenFreshStat
 		CodexPhaseModelAssignments: map[string]string{
 			"sdd-verify": "gpt-5.4",
 		},
-		Persona: "neutral",
 	}); err != nil {
 		t.Fatalf("state.Write: %v", err)
 	}
 
-	merged, err := mergeExplicitAgentInstallState(home, state.InstallState{InstalledAgents: []string{"codex"}, Persona: "gentleman"}, []string{"codex"}, InstallFlags{})
+	merged, err := mergeExplicitAgentInstallState(home, state.InstallState{InstalledAgents: []string{"codex"}}, []string{"codex"}, InstallFlags{})
 	if err != nil {
 		t.Fatalf("mergeExplicitAgentInstallState() error = %v, want nil", err)
 	}
@@ -55,9 +54,6 @@ func TestMergeExplicitAgentInstallStatePreservesExistingAssignmentsWhenFreshStat
 	}
 	if merged.CodexPhaseModelAssignments["sdd-verify"] != "gpt-5.4" {
 		t.Fatalf("CodexPhaseModelAssignments not preserved: %#v", merged.CodexPhaseModelAssignments)
-	}
-	if merged.Persona != "neutral" {
-		t.Fatalf("Persona = %q, want existing neutral", merged.Persona)
 	}
 }
 
@@ -80,10 +76,10 @@ func TestMergeExplicitAgentInstallStateDropsUnsupportedAgents(t *testing.T) {
 }
 
 func TestMergeExplicitAgentInstallStateMergesOnlyExplicitSelectionField(t *testing.T) {
-	original := state.InstallState{InstalledAgents: []string{"claude-code"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentEngram}, Skills: []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom, SDDMode: model.SDDModeSingle, Persona: "neutral"}
-	fresh := state.InstallState{InstalledAgents: []string{"codex"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSDD}, Skills: []model.SkillID{model.SkillSDDInit}, Preset: model.PresetFullGentleman, SDDMode: model.SDDModeMulti, Persona: "gentleman"}
-	cases := []InstallFlags{{Components: []string{"sdd"}}, {Skills: []string{"sdd-init"}}, {Preset: "full-gentleman"}, {SDDMode: "multi"}, {Persona: "gentleman"}}
-	wants := []string{"[sdd]|[comment-writer]|custom|single|neutral", "[engram]|[sdd-init]|custom|single|neutral", "[engram]|[comment-writer]|full-gentleman|single|neutral", "[engram]|[comment-writer]|custom|multi|neutral", "[engram]|[comment-writer]|custom|single|gentleman"}
+	original := state.InstallState{InstalledAgents: []string{"claude-code"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentEngram}, Skills: []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom, SDDMode: model.SDDModeSingle}
+	fresh := state.InstallState{InstalledAgents: []string{"codex"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSDD}, Skills: []model.SkillID{model.SkillSDDInit}, Preset: model.PresetFullGentleman, SDDMode: model.SDDModeMulti}
+	cases := []InstallFlags{{Components: []string{"sdd"}}, {Skills: []string{"sdd-init"}}, {Preset: "full-gentleman"}, {SDDMode: "multi"}}
+	wants := []string{"[sdd]|[comment-writer]|custom|single", "[engram]|[sdd-init]|custom|single", "[engram]|[comment-writer]|full-gentleman|single", "[engram]|[comment-writer]|custom|multi"}
 	for i, flags := range cases {
 		home := t.TempDir()
 		if err := state.Write(home, original); err != nil {
@@ -101,7 +97,7 @@ func TestMergeExplicitAgentInstallStateMergesOnlyExplicitSelectionField(t *testi
 		if err != nil {
 			t.Fatalf("flags %#v merge error: %v", flags, err)
 		}
-		key := fmt.Sprintf("%v|%v|%s|%s|%s", got.Components, got.Skills, got.Preset, got.SDDMode, got.Persona)
+		key := fmt.Sprintf("%v|%v|%s|%s", got.Components, got.Skills, got.Preset, got.SDDMode)
 		if key != wants[i] || got.StrictTDD || !got.SelectionConfigured || len(got.InstalledAgents) != 2 || got.InstalledAgents[0] != "claude-code" || got.InstalledAgents[1] != "codex" {
 			t.Errorf("flags %#v merged state %#v, selection %s, want %s with legacy StrictTDD ignored and agents preserved", flags, got, key, wants[i])
 		}
@@ -195,8 +191,7 @@ func TestRunInstallIncrementalSelectionPreservesUnspecifiedFields(t *testing.T) 
 	if err := state.Write(home, state.InstallState{
 		InstalledAgents: []string{"codex"}, SelectionConfigured: true,
 		Components: []model.ComponentID{model.ComponentSkills, model.ComponentContext7},
-		Skills:     []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom, Persona: "neutral",
-	}); err != nil {
+		Skills:     []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := RunInstall([]string{"--agent", "claude-code", "--component", "persona"}, system.DetectionResult{}); err != nil {
@@ -206,8 +201,8 @@ func TestRunInstallIncrementalSelectionPreservesUnspecifiedFields(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !got.SelectionConfigured || !slices.Equal(got.Components, []model.ComponentID{model.ComponentPersona}) || !slices.Equal(got.Skills, []model.SkillID{model.SkillCommentWriter}) || got.Preset != model.PresetCustom || got.Persona != "neutral" || !slices.Equal(got.InstalledAgents, []string{"codex", "claude-code"}) {
-		t.Fatalf("incremental selection = %#v, want explicit components with existing skills, preset, persona and agents preserved", got)
+	if !got.SelectionConfigured || !slices.Equal(got.Components, []model.ComponentID{model.ComponentPersona}) || !slices.Equal(got.Skills, []model.SkillID{model.SkillCommentWriter}) || got.Preset != model.PresetCustom || !slices.Equal(got.InstalledAgents, []string{"codex", "claude-code"}) {
+		t.Fatalf("incremental selection = %#v, want explicit components with existing skills, preset and agents preserved", got)
 	}
 }
 
@@ -233,7 +228,6 @@ func TestMergeExplicitAgentInstallStatePreservesFreshAssignments(t *testing.T) {
 		CodexPhaseModelAssignments: map[string]string{
 			"sdd-apply": "gpt-5.4",
 		},
-		Persona: "gentleman",
 	}
 
 	merged, err := mergeExplicitAgentInstallState(home, fresh, []string{"codex"}, InstallFlags{})
@@ -251,9 +245,6 @@ func TestMergeExplicitAgentInstallStatePreservesFreshAssignments(t *testing.T) {
 	}
 	if merged.CodexPhaseModelAssignments["sdd-apply"] != "gpt-5.4" {
 		t.Fatalf("CodexPhaseModelAssignments not preserved: %#v", merged.CodexPhaseModelAssignments)
-	}
-	if merged.Persona != "gentleman" {
-		t.Fatalf("Persona = %q, want gentleman", merged.Persona)
 	}
 }
 

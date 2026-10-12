@@ -42,13 +42,7 @@ func TestManagedDirectReplyAssetsEnforceEnglishNoCodeSwitching(t *testing.T) {
 		path        string
 		combineWith string // "" when the asset alone still carries the contract
 	}{
-		{name: "claude gentleman output style", path: "claude/output-style-gentleman.md"},
 		{name: "claude neutral output style", path: "claude/output-style-neutral.md"},
-		// Claude personas are residuals (Decision 1) — evaluate the
-		// combined persona-residual + output-style channel, not the persona
-		// file alone.
-		{name: "claude gentleman persona", path: "claude/persona-gentleman.md", combineWith: "claude/output-style-gentleman.md"},
-		{name: "generic gentleman persona", path: "generic/persona-gentleman.md"},
 		{name: "generic neutral persona", path: "generic/persona-neutral.md"},
 	}
 
@@ -191,32 +185,6 @@ func TestCommentWriterLanguageContractSources(t *testing.T) {
 	}
 }
 
-func TestGentlemanPersonaKeepsDirectConversationVoice(t *testing.T) {
-	// Claude personas are residuals (Decision 1) — the direct-
-	// conversation voice now lives exclusively in the output style; evaluate
-	// the combined persona-residual + output-style channel for them.
-	tests := []struct {
-		path        string
-		combineWith string
-	}{
-		{path: "claude/persona-gentleman.md", combineWith: "claude/output-style-gentleman.md"},
-		{path: "generic/persona-gentleman.md"},
-	}
-	for _, tc := range tests {
-		t.Run(tc.path, func(t *testing.T) {
-			content := MustRead(tc.path)
-			if tc.combineWith != "" {
-				content += "\n" + MustRead(tc.combineWith)
-			}
-			for _, required := range []string{"Rioplatense", "voseo", "Passionate teacher"} {
-				if !strings.Contains(content, required) {
-					t.Fatalf("%s (combined=%q) missing Gentleman direct-conversation voice marker %q", tc.path, tc.combineWith, required)
-				}
-			}
-		})
-	}
-}
-
 func TestNeutralPersonaAssetsProvideMentorParityWithoutRegionalVoice(t *testing.T) {
 	for _, path := range []string{
 		"generic/persona-neutral.md",
@@ -333,7 +301,6 @@ func readRepoRootFile(t *testing.T, rel string) string {
 // This is a structural contract check, not a behavioral model evaluation.
 func TestOutputStylesKeepHumanReplyLanguageAcrossHarnessTurns(t *testing.T) {
 	paths := []string{
-		"claude/output-style-gentleman.md",
 		"claude/output-style-neutral.md",
 	}
 	required := []string{
@@ -364,9 +331,7 @@ const neutralToneDialectAntiDriftRequired = "The same rule applies to tone and d
 
 func TestPersonaChannelsCarryPreWriteArtifactSelfCheck(t *testing.T) {
 	paths := []string{
-		"claude/output-style-gentleman.md",
 		"claude/output-style-neutral.md",
-		"generic/persona-gentleman.md",
 		"generic/persona-neutral.md",
 	}
 	for _, path := range paths {

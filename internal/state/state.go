@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/carsimax/brunnr-code/internal/components/filemerge"
@@ -85,16 +83,6 @@ type InstallState struct {
 	// unchanged for backward-compatibility).
 	CodexPhaseModelAssignments map[string]string `json:"codexPhaseModelAssignments,omitempty"`
 
-	// Persona records the persona the user installed ("gentleman", "neutral",
-	// "custom"). Persisted so that `gentle-ai sync` regenerates the same persona
-	// the user originally chose instead of defaulting to Gentleman every time.
-	// Empty for state files written before persona persistence was added —
-	// callers fall back to PersonaGentleman in that case.
-	Persona string `json:"persona,omitempty"`
-	// PersonaPresent distinguishes an omitted legacy field from an explicit
-	// empty persona, which must fail closed during sync validation.
-	PersonaPresent bool `json:"-"`
-
 	// LastUpdateCheck records the last time a successful remote update check was
 	// performed. Used by the cooldown gate (UpdateCheckTTL = 6h) to avoid
 	// hitting the GitHub API on every launch. Nil = never checked, so the
@@ -122,8 +110,7 @@ type InstallState struct {
 	LastSyncedAt *time.Time `json:"last_synced_at,omitempty"`
 }
 
-// UnmarshalJSON preserves whether the persisted persona field was present.
-// The value itself is still decoded into the public InstallState field.
+// UnmarshalJSON rejects a null document and decodes the legacy strict_tdd key.
 func (s *InstallState) UnmarshalJSON(data []byte) error {
 	type plainInstallState InstallState
 	var decoded plainInstallState
@@ -136,48 +123,11 @@ func (s *InstallState) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	if fields == nil {
-		return errors.New("state file must contain a JSON object, not null; restore a valid state file from a backup that keeps your intended persona and installation settings, then retry")
+		return errors.New("state file must contain a JSON object, not null; restore a valid state file from a backup that keeps your intended installation settings, then retry")
 	}
-	if err := rejectAmbiguousPersonaKeys(data); err != nil {
-		return err
-	}
-
 	*s = InstallState(decoded)
 	if legacy, ok := fields["strict_tdd"]; ok {
 		if err := json.Unmarshal(legacy, &s.StrictTDD); err != nil {
-			return err
-		}
-	}
-	_, s.PersonaPresent = fields["persona"]
-	return nil
-}
-
-// rejectAmbiguousPersonaKeys refuses top-level keys that the case-insensitive
-// struct decoder would collapse into Persona, so presence and value cannot
-// disagree. Keys are compared after JSON unescaping.
-func rejectAmbiguousPersonaKeys(data []byte) error {
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	if _, err := decoder.Token(); err != nil {
-		return err
-	}
-	seen := false
-	for decoder.More() {
-		token, err := decoder.Token()
-		if err != nil {
-			return err
-		}
-		key, _ := token.(string)
-		if strings.EqualFold(key, "persona") {
-			if key != "persona" {
-				return fmt.Errorf("state file key %q must be spelled %q; rename it and retry", key, "persona")
-			}
-			if seen {
-				return fmt.Errorf("state file has duplicate %q keys; keep exactly one and retry", "persona")
-			}
-			seen = true
-		}
-		var value json.RawMessage
-		if err := decoder.Decode(&value); err != nil {
 			return err
 		}
 	}
@@ -276,8 +226,6 @@ func MergeAgents(existing InstallState, newAgents []string) InstallState {
 		CodexServiceTier:            existing.CodexServiceTier,
 		CodexCarrilModelAssignments: existing.CodexCarrilModelAssignments,
 		CodexPhaseModelAssignments:  existing.CodexPhaseModelAssignments,
-		Persona:                     existing.Persona,
-		PersonaPresent:              existing.PersonaPresent,
 		LastUpdateCheck:             existing.LastUpdateCheck,
 		RDDMode:                     existing.RDDMode,
 		RDDModeRecordedAt:           existing.RDDModeRecordedAt,

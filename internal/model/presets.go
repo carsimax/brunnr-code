@@ -13,10 +13,9 @@ func installSafePresetVisualComponents() []ComponentID {
 	return []ComponentID{ComponentClaudeTheme}
 }
 
-// ComponentsForPreset returns the managed components implied by a preset/persona
-// pair. PersonaCustom opts out of managed persona only; preset choice still
-// controls visual polish.
-func ComponentsForPreset(preset PresetID, persona PersonaID) []ComponentID {
+// ComponentsForPreset returns the managed components implied by a preset. Every
+// non-custom preset installs the managed (Neutral) persona.
+func ComponentsForPreset(preset PresetID) []ComponentID {
 	var components []ComponentID
 	switch preset {
 	case PresetMinimal:
@@ -34,8 +33,5 @@ func ComponentsForPreset(preset PresetID, persona PersonaID) []ComponentID {
 		}
 		components = append(components, installSafePresetVisualComponents()...)
 	}
-	if persona != PersonaCustom {
-		components = append(components, ComponentPersona)
-	}
-	return components
+	return append(components, ComponentPersona)
 }

@@ -23,7 +23,7 @@ func TestPersistSyncManagedAssetStateReReadsLatestStateAfterLockContention(t *te
 	if err := persistSyncManagedAssetState(home, model.Selection{}, "sha256:current-writer"); err == nil || !strings.Contains(err.Error(), "acquire install state lock") {
 		t.Fatalf("contended sync state persistence error = %v", err)
 	}
-	if err := state.Write(home, state.InstallState{Persona: "concurrent"}); err != nil {
+	if err := state.Write(home, state.InstallState{Preset: "concurrent"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := held.Release(); err != nil {
@@ -33,7 +33,7 @@ func TestPersistSyncManagedAssetStateReReadsLatestStateAfterLockContention(t *te
 		t.Fatal(err)
 	}
 	got, err := state.Read(home)
-	if err != nil || got.Persona != "concurrent" || got.ManagedAssetDigest != "sha256:current-writer" || !got.CommunityToolsConfigured || len(got.CommunityTools) != 1 || got.CommunityTools[0] != string(model.CommunityToolCodeGraph) {
+	if err != nil || got.Preset != "concurrent" || got.ManagedAssetDigest != "sha256:current-writer" || !got.CommunityToolsConfigured || len(got.CommunityTools) != 1 || got.CommunityTools[0] != string(model.CommunityToolCodeGraph) {
 		t.Fatalf("persisted sync state = %#v, err = %v", got, err)
 	}
 }
@@ -57,7 +57,7 @@ func TestPersistInstallStateMergesExplicitAgentsFromLatestState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code"}, Persona: "concurrent"}); err != nil {
+	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"claude-code"}, Preset: "concurrent"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := held.Release(); err != nil {
@@ -67,7 +67,7 @@ func TestPersistInstallStateMergesExplicitAgentsFromLatestState(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := state.Read(home)
-	if err != nil || len(got.InstalledAgents) != 2 || got.InstalledAgents[0] != "claude-code" || got.InstalledAgents[1] != "codex" || got.Persona != "concurrent" || got.ManagedAssetDigest != "sha256:current-writer" {
+	if err != nil || len(got.InstalledAgents) != 2 || got.InstalledAgents[0] != "claude-code" || got.InstalledAgents[1] != "codex" || got.Preset != "concurrent" || got.ManagedAssetDigest != "sha256:current-writer" {
 		t.Fatalf("persisted install state = %#v, err = %v", got, err)
 	}
 }

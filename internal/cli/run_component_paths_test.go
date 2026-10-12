@@ -477,11 +477,11 @@ func readTextFile(t *testing.T, path string) string {
 }
 
 func TestInstallRemoteAuthorizationIndependentOfComponents(t *testing.T) {
-	for _, persona := range []model.PersonaID{"", model.PersonaCustom} {
-		t.Run(string(persona), func(t *testing.T) {
+	for _, withPersona := range []bool{false, true} {
+		t.Run(map[bool]string{false: "without-persona", true: "with-persona"}[withPersona], func(t *testing.T) {
 			home := t.TempDir()
-			selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}, Persona: persona}
-			if persona != "" {
+			selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}}
+			if withPersona {
 				selection.Components = []model.ComponentID{model.ComponentPersona}
 			}
 			runInstallInjectionSteps(t, newTestInstallRuntime(t, home, selection))
@@ -499,7 +499,6 @@ func TestInstallDeliversRoutingGuidanceWithoutSDDComponent(t *testing.T) {
 	rt := newTestInstallRuntime(t, home, model.Selection{
 		Agents:     []model.AgentID{model.AgentClaudeCode},
 		Components: []model.ComponentID{model.ComponentPersona},
-		Persona:    model.PersonaGentleman,
 	})
 	runInstallInjectionSteps(t, rt)
 
@@ -562,7 +561,7 @@ func TestInstallRoutingGuidanceIsIndependentOfSDDSelection(t *testing.T) {
 		selection model.Selection
 	}{
 		{"no components", model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}}},
-		{"persona selected", model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}, Components: []model.ComponentID{model.ComponentPersona}, Persona: model.PersonaGentleman}},
+		{"persona selected", model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}, Components: []model.ComponentID{model.ComponentPersona}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			home := t.TempDir()

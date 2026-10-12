@@ -560,7 +560,6 @@ func tuiExecute(
 			}
 			installState.CodexCarrilModelAssignments = selection.CodexCarrilModelAssignments
 			installState.CodexPhaseModelAssignments = selection.CodexPhaseModelAssignments
-			installState.Persona = string(selection.Persona)
 			installState.SetSelection(selection)
 			if writeErr := appStateWriteReconciled(homeDir, installState); writeErr != nil {
 				return fmt.Errorf("persist install state: %w", writeErr)

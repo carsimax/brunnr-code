@@ -20,7 +20,6 @@ type ResolvedPlan struct {
 type ReviewPayload struct {
 	Agents            []model.AgentID
 	UnsupportedAgents []model.AgentID
-	Persona           model.PersonaID
 	Preset            model.PresetID
 	Components        []ComponentAction
 	AddedDependencies []model.ComponentID

@@ -445,7 +445,7 @@ func TestClaudeEmbeddedAssetLayout(t *testing.T) {
 		seen[entry.Name()] = true
 	}
 
-	for _, name := range []string{"agents", "persona-gentleman.md", "orchestrator.md"} {
+	for _, name := range []string{"agents", "persona-neutral-residual.md", "orchestrator.md"} {
 		if !seen[name] {
 			t.Fatalf("claude embedded assets missing %q", name)
 		}
@@ -552,159 +552,11 @@ func TestRetiredSDDLedgerGuidanceAbsentFromDistributedAssets(t *testing.T) {
 	}
 }
 
-func TestGentlemanLanguageInstructionsDoNotBiasEnglishSessions(t *testing.T) {
-	// Claude has an active output-style channel — its persona
-	// section is a residual and no longer carries language content on its
-	// own; the guardrail contract must be evaluated over the COMBINED
-	// persona-residual + output-style channel (design.md Decision 1;
-	// spec.md "Generic Neutral Asset Parity" applies the same combined-channel
-	// principle to Gentleman here).
-	personaPaths := []struct {
-		path           string
-		combineWith    string // "" when the persona file alone still carries language content
-		languagePhrase string // exact per-path phrase asserting the "match current language" guardrail
-	}{
-		// Claude no longer carries "REPLY ONLY" in the persona residual —
-		// its combined channel exposes the output style's own Language
-		// Rules opener instead (JD-019).
-		{path: "claude/persona-gentleman.md", combineWith: "claude/output-style-gentleman.md", languagePhrase: "Always match the user's current language in your reply."},
-		{path: "generic/persona-gentleman.md", languagePhrase: "Match the user's current language in your REPLY ONLY"},
-	}
-
-	for _, tc := range personaPaths {
-		t.Run(tc.path, func(t *testing.T) {
-			content := MustRead(tc.path)
-			if tc.combineWith != "" {
-				content += "\n" + MustRead(tc.combineWith)
-			}
-
-			for _, banned := range []string{
-				`Say "déjame verificar"`,
-				`Spanish input → Rioplatense Spanish (voseo):`,
-				`English input → same warm energy:`,
-			} {
-				if strings.Contains(content, banned) {
-					t.Fatalf("%s (combined=%q) still contains language-biasing phrase %q", tc.path, tc.combineWith, banned)
-				}
-			}
-
-			for _, required := range []string{
-				tc.languagePhrase,
-				"Do not switch languages unless the user does, asks you to, or you are quoting/translating content.",
-				"keep the full reply in natural English with the same warm energy",
-			} {
-				if !strings.Contains(content, required) {
-					t.Fatalf("%s (combined=%q) missing language guardrail %q", tc.path, tc.combineWith, required)
-				}
-			}
-		})
-	}
-
-	for _, path := range []string{
-		"claude/output-style-gentleman.md",
-	} {
-		t.Run(path, func(t *testing.T) {
-			content := MustRead(path)
-
-			for _, banned := range []string{
-				"### Spanish Input → Rioplatense Spanish (voseo)",
-				`Use naturally: "Bien"`,
-				`Use naturally: "Here's the thing"`,
-			} {
-				if strings.Contains(content, banned) {
-					t.Fatalf("%s still contains drift-prone style example %q", path, banned)
-				}
-			}
-
-			for _, required := range []string{
-				"Always match the user's current language",
-				"Do not drift into another language because of persona wording, examples, or stylistic momentum.",
-				// Decision 4/JD-013: merged bullet replaces the old verbatim wording.
-				"keep the full reply in natural English with the same warm energy",
-			} {
-				if !strings.Contains(content, required) {
-					t.Fatalf("%s missing output-style guardrail %q", path, required)
-				}
-			}
-		})
-	}
-
-	for _, path := range allODDOrchestratorAssetPaths(t) {
-		t.Run(path, func(t *testing.T) {
-			if strings.Contains(MustRead(path), "haceme un SDD para X") {
-				t.Fatalf("%s still contains a Spanish example that biases English sessions", path)
-			}
-		})
-	}
-
-	// The canonical engram protocol asset must not ship Spanish trigger
-	// examples that bias English sessions into Spanish replies (same
-	// mechanism as #341 / #350). Since design.md Decision 3 consolidated the
-	// former claude/engram-protocol.md and codex/engram-instructions.md into
-	// one canonical source, a single check now covers both surfaces.
-	for _, path := range []string{
-		"engram/protocol.md",
-	} {
-		t.Run(path, func(t *testing.T) {
-			content := MustRead(path)
-
-			for _, banned := range []string{
-				`"recordar"`,
-				`"listo"`,
-				`"acordate"`,
-				`"qué hicimos"`,
-			} {
-				if strings.Contains(content, banned) {
-					t.Fatalf("%s still contains Spanish trigger phrase %q that biases English sessions", path, banned)
-				}
-			}
-		})
-	}
-
-	for _, path := range []string{
-		"engram/protocol.md",
-		"skills/_shared/engram-convention.md",
-	} {
-		t.Run(path+"/lifecycle", func(t *testing.T) {
-			content := MustRead(path)
-
-			required := []string{
-				"when Engram exposes lifecycle metadata/tooling",
-				"At session start or before architecture-sensitive work",
-				"mem_review",
-				"action `list`",
-				"current project",
-				"If `mem_review` is unavailable, do not fail the task",
-				"Continue with normal `mem_context`/`mem_search`",
-				"still apply lifecycle metadata from any returned observations when present",
-				"active memories may be used normally",
-				"needs_review",
-				"stale context",
-				"verify it against current evidence before relying on it",
-				"Do NOT call `mem_review` with action `mark_reviewed` automatically",
-				"Only call `mark_reviewed` after explicit user confirmation or through a dedicated memory maintenance command",
-			}
-			for _, want := range required {
-				if !strings.Contains(content, want) && !strings.Contains(normalizedWords(content), normalizedWords(want)) {
-					t.Fatalf("%s missing memory lifecycle rule %q", path, want)
-				}
-			}
-		})
-	}
-}
-
 func TestClaudeManagedOutputStylesAnchorReplyLanguageToLatestUserRequest(t *testing.T) {
 	tests := []struct {
 		path              string
 		artifactContracts []string
 	}{
-		{
-			path: "claude/output-style-gentleman.md",
-			artifactContracts: []string{
-				"Default to English. UI labels, comments, identifiers, and copy are in English",
-				"The persona styles HOW YOU TALK, not WHAT YOU BUILD.",
-			},
-		},
 		{
 			path: "claude/output-style-neutral.md",
 			artifactContracts: []string{
@@ -744,24 +596,6 @@ func TestClaudeManagedOutputStylesAnchorReplyLanguageToLatestUserRequest(t *test
 	}
 }
 
-func TestClaudeGentlemanPersonaPreventsEnglishGreetingCodeSwitching(t *testing.T) {
-	// Claude's persona section is a residual (Decision 1) — the code-switching
-	// guardrail contract now lives in the output style; evaluate the combined
-	// channel, not the persona file in isolation.
-	content := MustRead("claude/persona-gentleman.md") + "\n" + MustRead("claude/output-style-gentleman.md")
-
-	for _, required := range []string{
-		"If the selected reply language is English, every part of the direct reply must be English: greetings, interjections, acknowledgements, transition phrases, and the first sentence.",
-		"Do not use Hola, dale, listo, Spanish punctuation, or other Spanish fragments.",
-		"Prompts starting with or dominated by hi, hello, hey, or similar English greetings are English prompts unless the user explicitly asks for another language.",
-		"Do not switch languages unless the user does, asks you to, or you are quoting/translating content.",
-	} {
-		if !strings.Contains(content, required) {
-			t.Fatalf("claude/persona-gentleman.md missing code-switching guardrail %q", required)
-		}
-	}
-}
-
 // TestPersonasContainContextualSkillLoadingDirective verifies that every
 // persona asset injected into a host's system prompt carries the mandatory
 // "Contextual Skill Loading" directive (design Decisions 1 and 2 of the
@@ -777,8 +611,6 @@ func TestPersonasContainContextualSkillLoadingDirective(t *testing.T) {
 		isClaude  bool
 		invokeMsg string // wording specific to the agent family
 	}{
-		{path: "claude/persona-gentleman.md", isClaude: true, invokeMsg: "invoke it via the built-in `Skill` tool"},
-		{path: "generic/persona-gentleman.md", isClaude: false, invokeMsg: "read the matching SKILL.md"},
 		{path: "generic/persona-neutral.md", isClaude: false, invokeMsg: "read the matching SKILL.md"},
 	}
 

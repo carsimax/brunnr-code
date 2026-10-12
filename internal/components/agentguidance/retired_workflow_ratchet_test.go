@@ -14,7 +14,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/engram"
 	"github.com/carsimax/brunnr-code/internal/components/persona"
 	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
-	"github.com/carsimax/brunnr-code/internal/model"
 )
 
 // retiredWorkflowReference matches SDD and OpenSpec, both retired in v4.0.0.
@@ -62,12 +61,12 @@ func TestRenderedGuidanceHasNoRetiredWorkflowReferences(t *testing.T) {
 				t.Errorf("orchestrator leaks a shared-section marker")
 			}
 
-			for _, selected := range []model.PersonaID{model.PersonaGentleman, model.PersonaNeutral} {
+			{
 				home := t.TempDir()
 				t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
-				result, err := persona.Inject(home, adapter, selected)
+				result, err := persona.Inject(home, adapter)
 				if err != nil {
-					t.Fatalf("persona.Inject(%s): %v", selected, err)
+					t.Fatalf("persona.Inject: %v", err)
 				}
 				assertRenderedFilesClean(t, result.Files)
 			}

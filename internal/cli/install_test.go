@@ -37,7 +37,6 @@ func TestParseInstallFlagsSupportsCSVAndRepeated(t *testing.T) {
 		"--component", "engram,sdd",
 		"--component", "skills",
 		"--skill", "sdd-apply",
-		"--persona", "neutral",
 		"--preset", "minimal",
 		"--dry-run",
 	})
@@ -65,9 +64,8 @@ func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 	}
 
 	want := model.Selection{
-		Agents:  []model.AgentID{model.AgentClaudeCode, model.AgentCodex},
-		Persona: model.PersonaGentleman,
-		Preset:  model.PresetFullGentleman,
+		Agents: []model.AgentID{model.AgentClaudeCode, model.AgentCodex},
+		Preset: model.PresetFullGentleman,
 		Components: []model.ComponentID{
 			model.ComponentEngram,
 			model.ComponentSkills,
@@ -85,7 +83,7 @@ func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 
 func TestDefaultInstallPresetsAndPickerExcludeLegacySDD(t *testing.T) {
 	for _, preset := range []model.PresetID{model.PresetFullGentleman, model.PresetEcosystemOnly, model.PresetMinimal} {
-		for _, component := range model.ComponentsForPreset(preset, model.PersonaGentleman) {
+		for _, component := range model.ComponentsForPreset(preset) {
 			if component == model.ComponentSDD {
 				t.Errorf("preset %s selected legacy SDD", preset)
 			}
@@ -113,38 +111,6 @@ func TestNormalizeInstallFlagsAcceptsBundledSkills(t *testing.T) {
 	}
 }
 
-func TestNormalizeInstallFlagsFullPresetCustomPersonaKeepsPresetPolish(t *testing.T) {
-	input, err := NormalizeInstallFlags(InstallFlags{
-		Preset:  string(model.PresetFullGentleman),
-		Persona: string(model.PersonaCustom),
-	}, system.DetectionResult{})
-	if err != nil {
-		t.Fatalf("NormalizeInstallFlags() error = %v", err)
-	}
-
-	for _, got := range input.Selection.Components {
-		if got == model.ComponentPersona {
-			t.Fatalf("components should not include persona for custom persona; got %#v", input.Selection.Components)
-		}
-		if got == model.ComponentTheme {
-			t.Fatalf("components should not include generic theme; got %#v", input.Selection.Components)
-		}
-	}
-
-	for _, want := range []model.ComponentID{model.ComponentClaudeTheme} {
-		found := false
-		for _, got := range input.Selection.Components {
-			if got == want {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatalf("components should include preset polish %q; got %#v", want, input.Selection.Components)
-		}
-	}
-}
-
 func TestNormalizeInstallFlagsCustomAcceptsOptionalGentlemanInstallables(t *testing.T) {
 	input, err := NormalizeInstallFlags(InstallFlags{
 		Preset:     string(model.PresetCustom),
@@ -157,13 +123,6 @@ func TestNormalizeInstallFlagsCustomAcceptsOptionalGentlemanInstallables(t *test
 	want := []model.ComponentID{model.ComponentClaudeTheme}
 	if !reflect.DeepEqual(input.Selection.Components, want) {
 		t.Fatalf("components = %#v, want %#v", input.Selection.Components, want)
-	}
-}
-
-func TestNormalizeInstallFlagsRejectsUnknownPersona(t *testing.T) {
-	_, err := NormalizeInstallFlags(InstallFlags{Persona: "wizard"}, system.DetectionResult{})
-	if err == nil {
-		t.Fatalf("NormalizeInstallFlags() expected error")
 	}
 }
 

@@ -26,6 +26,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/backup"
 	"github.com/carsimax/brunnr-code/internal/components/agentguidance"
 	"github.com/carsimax/brunnr-code/internal/components/legacyassets"
+	"github.com/carsimax/brunnr-code/internal/components/persona"
 	"github.com/carsimax/brunnr-code/internal/components/skills"
 	"github.com/carsimax/brunnr-code/internal/components/theme"
 	"github.com/carsimax/brunnr-code/internal/model"
@@ -209,7 +210,7 @@ func managedAgentBackupPaths(homeDir string, adapter agents.Adapter, diagnostics
 	}
 
 	if adapter.SupportsOutputStyles() {
-		add(filepath.Join(adapter.OutputStyleDir(homeDir), "gentleman.md"))
+		add(persona.OutputStylePath(adapter.OutputStyleDir(homeDir)))
 	}
 
 	if adapter.SupportsSlashCommands() {

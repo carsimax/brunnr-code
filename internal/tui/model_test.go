@@ -343,7 +343,7 @@ func TestCodexCustomDiscoveryNewestRequestWins(t *testing.T) {
 
 func TestNavigationBackWithEscape(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPersona
+	m.Screen = ScreenPreset
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	state := updated.(Model)
@@ -378,8 +378,8 @@ func TestAgentSelectionToggleAndContinue(t *testing.T) {
 	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state = updated.(Model)
 
-	if state.Screen != ScreenPersona {
-		t.Fatalf("screen = %v, want %v", state.Screen, ScreenPersona)
+	if state.Screen != ScreenPreset {
+		t.Fatalf("screen = %v, want %v", state.Screen, ScreenPreset)
 	}
 }
 
@@ -397,15 +397,8 @@ func TestCombinedAgentsTUIInstallKeepsAllAgentsInPlan(t *testing.T) {
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
-	if state.Screen != ScreenPersona {
-		t.Fatalf("after agents screen = %v, want %v", state.Screen, ScreenPersona)
-	}
-
-	state.Cursor = 0
-	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state = updated.(Model)
 	if state.Screen != ScreenPreset {
-		t.Fatalf("after persona screen = %v, want %v", state.Screen, ScreenPreset)
+		t.Fatalf("after agents screen = %v, want %v", state.Screen, ScreenPreset)
 	}
 
 	state.Cursor = 2 // Minimal preset: Engram only, no model detours.
@@ -3317,9 +3310,9 @@ func TestClaudeModelPickerBackRowExitCustomModeResetsCursor(t *testing.T) {
 // Closes #150.
 func TestWrapAroundDownAtLast(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPersona
+	m.Screen = ScreenPreset
 
-	// optionCount() for ScreenPersona = len(PersonaOptions()) + 1 (Back).
+	// optionCount() for ScreenPreset = len(PresetOptions()) + 1 (Back).
 	last := m.optionCount() - 1
 	m.Cursor = last
 
@@ -3337,7 +3330,7 @@ func TestWrapAroundDownAtLast(t *testing.T) {
 // Closes #150.
 func TestWrapAroundUpAtFirst(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPersona
+	m.Screen = ScreenPreset
 	m.Cursor = 0
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("k")})
@@ -3354,7 +3347,7 @@ func TestWrapAroundUpAtFirst(t *testing.T) {
 // Closes #150.
 func TestWrapAroundDownAtLastWithArrowKey(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPersona
+	m.Screen = ScreenPreset
 	last := m.optionCount() - 1
 	m.Cursor = last
 
@@ -3371,7 +3364,7 @@ func TestWrapAroundDownAtLastWithArrowKey(t *testing.T) {
 // Closes #150.
 func TestWrapAroundUpAtFirstWithArrowKey(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPersona
+	m.Screen = ScreenPreset
 	m.Cursor = 0
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
@@ -3615,193 +3608,9 @@ func TestPinErrClearedOnScreenReentry(t *testing.T) {
 	}
 }
 
-// TestComponentsForPreset_PersonaMatrix verifies that componentsForPreset includes
-// ComponentPersona when persona != PersonaCustom and excludes it for PersonaCustom.
-func TestComponentsForPreset_PersonaMatrix(t *testing.T) {
-	tests := []struct {
-		name            string
-		preset          model.PresetID
-		persona         model.PersonaID
-		wantPersona     bool
-		wantTheme       bool
-		wantClaudeTheme bool
-		wantNil         bool
-	}{
-		{
-			name:            "full-gentleman + gentleman includes persona and safe agent visuals",
-			preset:          model.PresetFullGentleman,
-			persona:         model.PersonaGentleman,
-			wantPersona:     true,
-			wantTheme:       false,
-			wantClaudeTheme: true,
-		},
-		{
-			name:            "full-gentleman + custom excludes persona but keeps safe agent visuals",
-			preset:          model.PresetFullGentleman,
-			persona:         model.PersonaCustom,
-			wantPersona:     false,
-			wantTheme:       false,
-			wantClaudeTheme: true,
-		},
-		{
-			name:        "minimal + gentleman includes persona",
-			preset:      model.PresetMinimal,
-			persona:     model.PersonaGentleman,
-			wantPersona: true,
-		},
-		{
-			name:        "minimal + custom does not include persona",
-			preset:      model.PresetMinimal,
-			persona:     model.PersonaCustom,
-			wantPersona: false,
-		},
-		{
-			name:        "ecosystem-only + neutral includes persona",
-			preset:      model.PresetEcosystemOnly,
-			persona:     model.PersonaNeutral,
-			wantPersona: true,
-		},
-		{
-			name:        "ecosystem-only + custom does not include persona",
-			preset:      model.PresetEcosystemOnly,
-			persona:     model.PersonaCustom,
-			wantPersona: false,
-		},
-		{
-			name:    "custom preset returns nil regardless of persona (gentleman)",
-			preset:  model.PresetCustom,
-			persona: model.PersonaGentleman,
-			wantNil: true,
-		},
-		{
-			name:    "custom preset returns nil regardless of persona (custom)",
-			preset:  model.PresetCustom,
-			persona: model.PersonaCustom,
-			wantNil: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := componentsForPreset(tt.preset, tt.persona)
-
-			if tt.wantNil {
-				if got != nil {
-					t.Fatalf("componentsForPreset(%v, %v) = %v, want nil", tt.preset, tt.persona, got)
-				}
-				return
-			}
-
-			hasPersona := false
-			hasTheme := false
-			hasClaudeTheme := false
-			for _, c := range got {
-				if c == model.ComponentPersona {
-					hasPersona = true
-				}
-				if c == model.ComponentTheme {
-					hasTheme = true
-				}
-				if c == model.ComponentClaudeTheme {
-					hasClaudeTheme = true
-				}
-			}
-
-			if tt.wantPersona && !hasPersona {
-				t.Fatalf("componentsForPreset(%v, %v) missing ComponentPersona; got: %v", tt.preset, tt.persona, got)
-			}
-			if !tt.wantPersona && hasPersona {
-				t.Fatalf("componentsForPreset(%v, %v) should not include ComponentPersona; got: %v", tt.preset, tt.persona, got)
-			}
-			if tt.wantTheme != hasTheme {
-				t.Fatalf("componentsForPreset(%v, %v) ComponentTheme present = %v, want %v; got: %v", tt.preset, tt.persona, hasTheme, tt.wantTheme, got)
-			}
-			if tt.wantClaudeTheme != hasClaudeTheme {
-				t.Fatalf("componentsForPreset(%v, %v) ComponentClaudeTheme present = %v, want %v; got: %v", tt.preset, tt.persona, hasClaudeTheme, tt.wantClaudeTheme, got)
-			}
-		})
-	}
-}
-
-// TestPersonaScreenRecomputesComponentsWhenPresetAlreadySet verifies that changing
-// the persona on the Persona screen recomputes the component list when a non-custom
-// preset has already been selected.
-func TestPersonaScreenRecomputesComponentsWhenPresetAlreadySet(t *testing.T) {
-	// Start with a model that has already picked full-gentleman preset and
-	// gentleman persona (the default), then go back to Persona screen and pick custom.
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPersona
-	m.Selection.Preset = model.PresetFullGentleman
-	m.Selection.Persona = model.PersonaGentleman
-	m.Selection.Components = componentsForPreset(model.PresetFullGentleman, model.PersonaGentleman)
-
-	// Confirm that managed persona and visual polish are initially included.
-	hasPersonaBefore := false
-	hasPolishBefore := false
-	for _, c := range m.Selection.Components {
-		if c == model.ComponentPersona {
-			hasPersonaBefore = true
-		}
-		if slices.Contains(model.VisualPolishComponents(), c) {
-			hasPolishBefore = true
-		}
-	}
-	if !hasPersonaBefore {
-		t.Fatal("setup: expected ComponentPersona in initial components")
-	}
-	if !hasPolishBefore {
-		t.Fatal("setup: expected managed visual polish in initial components")
-	}
-
-	// Move cursor to PersonaCustom and confirm.
-	m.Cursor = len(screens.PersonaOptions()) - 1
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	if state.Selection.Persona != model.PersonaCustom {
-		t.Fatalf("Persona = %v, want %v", state.Selection.Persona, model.PersonaCustom)
-	}
-
-	// ComponentPersona and the generic theme must be removed after recompute, while
-	// preset-owned agent-specific visual components remain.
-	for _, c := range state.Selection.Components {
-		if c == model.ComponentPersona {
-			t.Fatalf("ComponentPersona must not be in components after switching to PersonaCustom; got: %v", state.Selection.Components)
-		}
-		if c == model.ComponentTheme {
-			t.Fatalf("ComponentTheme must not be in full preset components; got: %v", state.Selection.Components)
-		}
-	}
-	for _, want := range []model.ComponentID{model.ComponentClaudeTheme} {
-		if !slices.Contains(state.Selection.Components, want) {
-			t.Fatalf("agent-specific visual should remain preset-owned after switching to PersonaCustom; missing %v in %v", want, state.Selection.Components)
-		}
-	}
-}
-
-// TestPersonaScreenDoesNotRecomputeForCustomPreset verifies that changing persona
-// does NOT recompute (and wipe) the nil component list when preset is custom.
-func TestPersonaScreenDoesNotRecomputeForCustomPreset(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPersona
-	m.Selection.Preset = model.PresetCustom
-	m.Selection.Persona = model.PersonaGentleman
-	m.Selection.Components = nil
-
-	m.Cursor = 0 // PersonaGentleman
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	// Components must remain nil for custom preset.
-	if state.Selection.Components != nil {
-		t.Fatalf("components should stay nil for custom preset; got: %v", state.Selection.Components)
-	}
-}
-
-func TestCustomPersonaCustomPresetCanSelectEngramWithoutPersonaOrPolish(t *testing.T) {
+func TestCustomPresetCanSelectEngramWithoutPersonaOrPolish(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenPreset
-	m.Selection.Persona = model.PersonaCustom
 	m.Cursor = len(screens.PresetOptions()) - 1 // Custom preset
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -3923,7 +3732,7 @@ func TestCodexPicker_EscBackNavToPreset(t *testing.T) {
 	m.ModelConfigMode = false
 	m.Selection.Preset = model.PresetFullGentleman
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = componentsForPreset(model.PresetFullGentleman, model.PersonaGentleman)
+	m.Selection.Components = componentsForPreset(model.PresetFullGentleman)
 	m.CodexModelPicker = screens.NewCodexModelPickerStateFromAssignments(m.Selection.CodexModelAssignments)
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
@@ -3942,7 +3751,7 @@ func TestCodexPicker_EscBackNavToClaudeWhenClaudeSelected(t *testing.T) {
 	m.ModelConfigMode = false
 	m.Selection.Preset = model.PresetFullGentleman
 	m.Selection.Agents = []model.AgentID{model.AgentClaudeCode, model.AgentCodex}
-	m.Selection.Components = componentsForPreset(model.PresetFullGentleman, model.PersonaGentleman)
+	m.Selection.Components = componentsForPreset(model.PresetFullGentleman)
 	m.CodexModelPicker = screens.NewCodexModelPickerStateFromAssignments(m.Selection.CodexModelAssignments)
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
@@ -3962,7 +3771,7 @@ func TestCodexPicker_EscBackNavToPresetWithoutClaude(t *testing.T) {
 	m.ModelConfigMode = false
 	m.Selection.Preset = model.PresetFullGentleman
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = componentsForPreset(model.PresetFullGentleman, model.PersonaGentleman)
+	m.Selection.Components = componentsForPreset(model.PresetFullGentleman)
 	m.CodexModelPicker = screens.NewCodexModelPickerStateFromAssignments(m.Selection.CodexModelAssignments)
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})

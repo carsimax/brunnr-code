@@ -247,7 +247,6 @@ func RunPreparedInstall(prepared PreparedInstall, detection system.DetectionResu
 		CodexOrchestratorAssignment: codexOrchestratorToState(input.Selection.CodexOrchestratorAssignment),
 		CodexCarrilModelAssignments: input.Selection.CodexCarrilModelAssignments,
 		CodexPhaseModelAssignments:  input.Selection.CodexPhaseModelAssignments,
-		Persona:                     string(input.Selection.Persona),
 	}
 	newState.SetSelection(input.Selection)
 	writer, err := deriveManagedAssetWriter()
@@ -307,7 +306,6 @@ func mergeFullInstallState(existing, fresh state.InstallState) state.InstallStat
 	merged.CodexModelAssignments = fresh.CodexModelAssignments
 	merged.CodexOrchestratorAssignment = fresh.CodexOrchestratorAssignment
 	merged.CodexCarrilModelAssignments, merged.CodexPhaseModelAssignments = fresh.CodexCarrilModelAssignments, fresh.CodexPhaseModelAssignments
-	merged.Persona = fresh.Persona
 	return merged
 }
 
@@ -372,9 +370,6 @@ func mergeExplicitAgentInstallState(homeDir string, newState state.InstallState,
 		if flags.SDDMode != "" {
 			merged.SDDMode = newState.SDDMode
 		}
-	}
-	if flags.Persona != "" || merged.Persona == "" {
-		merged.Persona = newState.Persona
 	}
 	return merged, nil
 }
@@ -1515,7 +1510,7 @@ func (s componentApplyStep) Run() error {
 	case model.ComponentPersona:
 		for _, adapter := range adapters {
 			targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)
-			if _, err := injectInstallPersona(targetDir, adapter, s.selection.Persona); err != nil {
+			if _, err := injectInstallPersona(targetDir, adapter); err != nil {
 				return fmt.Errorf("inject persona for %q: %w", adapter.Agent(), err)
 			}
 		}
@@ -1863,16 +1858,13 @@ func installBackupTargets(homeDir, workspaceDir string, scope InstallScope, sele
 				}
 			}
 		}
-		// Persona backup captures every managed output-style file, not just the
-		// selected one, so a failed persona switch can restore the file its
-		// cleanup removed. Backup-only: verification stays on the selected file.
+		// Persona backup captures the managed output-style file.
 		if component == model.ComponentPersona {
-			plan := persona.ResourcePlanFor(selection.Persona)
 			for _, adapter := range adapters {
 				if !adapter.SupportsOutputStyles() {
 					continue
 				}
-				for _, path := range plan.OutputStylePaths(adapter.OutputStyleDir(componentPathDirScoped(homeDir, workspaceDir, scope, adapter, model.ComponentPersona))).Backup {
+				if path := persona.OutputStylePath(adapter.OutputStyleDir(componentPathDirScoped(homeDir, workspaceDir, scope, adapter, model.ComponentPersona))); path != "" {
 					paths[path] = struct{}{}
 				}
 			}
@@ -2134,15 +2126,12 @@ func componentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Insta
 				}
 			}
 		case model.ComponentPersona:
-			if selection.Persona == model.PersonaCustom {
-				break
-			}
 			if adapter.SupportsSystemPrompt() {
 				paths = append(paths, adapter.SystemPromptFile(targetDir))
 			}
 			if adapter.SupportsOutputStyles() {
-				if stylePaths := persona.ResourcePlanFor(selection.Persona).OutputStylePaths(adapter.OutputStyleDir(targetDir)); stylePaths.Write != "" {
-					paths = append(paths, stylePaths.Write)
+				if stylePath := persona.OutputStylePath(adapter.OutputStyleDir(targetDir)); stylePath != "" {
+					paths = append(paths, stylePath)
 					if p := adapter.SettingsPath(targetDir); p != "" {
 						paths = append(paths, p)
 					}

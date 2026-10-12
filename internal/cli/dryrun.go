@@ -16,7 +16,6 @@ func RenderDryRun(result InstallResult) string {
 	_, _ = fmt.Fprintln(b, "=====================")
 	_, _ = fmt.Fprintf(b, "Agents: %s\n", joinAgentIDs(result.Resolved.Agents))
 	_, _ = fmt.Fprintf(b, "Unsupported agents: %s\n", joinAgentIDs(result.Resolved.UnsupportedAgents))
-	_, _ = fmt.Fprintf(b, "Persona: %s\n", result.Selection.Persona)
 	_, _ = fmt.Fprintf(b, "Preset: %s\n", result.Selection.Preset)
 	_, _ = fmt.Fprintf(b, "Components order: %s\n", joinComponentIDs(result.Resolved.OrderedComponents))
 	_, _ = fmt.Fprintf(b, "Auto-added dependencies: %s\n", joinComponentIDs(result.Resolved.AddedDependencies))

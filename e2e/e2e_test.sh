@@ -178,65 +178,36 @@ test_dry_run_preset_custom() {
 
 # --- Category 1e: Preset component order validation ---
 
-test_preset_minimal_components() {
-    log_test "Preset minimal with persona=custom produces only engram component"
-
-    # Use persona=custom to test the preset alone, since persona is now
-    # driven by Selection.Persona (decoupled from preset).
-    output=$($BINARY install --preset minimal --persona custom --agent claude-code --dry-run 2>&1) || true
-
-    # The component list should contain engram
-    assert_output_contains "$output" "engram" "Minimal preset includes engram"
-    # Persona is excluded when the user selects custom.
-    assert_output_not_contains "$output" "Components order:.*persona" "Minimal + persona=custom excludes persona"
-}
 
 test_preset_minimal_with_default_persona_includes_persona() {
-    log_test "Preset minimal with default persona (gentleman) includes persona"
+    log_test "Preset minimal includes the Neutral persona"
 
-    # Persona is now decoupled from preset — default Gentleman persona is
-    # installed regardless of which preset the user picks.
+    # The Neutral persona is installed with every managed preset.
     output=$($BINARY install --preset minimal --agent claude-code --dry-run 2>&1) || true
 
     local components_line
     components_line=$(echo "$output" | grep "Components order:")
 
     assert_output_contains "$components_line" "engram" "Minimal includes engram"
-    assert_output_contains "$components_line" "persona" "Minimal + default Gentleman persona includes persona"
+    assert_output_contains "$components_line" "persona" "Minimal includes persona"
 }
 
 test_preset_ecosystem_components() {
-    log_test "Preset ecosystem-only with persona=custom includes ecosystem components"
+    log_test "Preset ecosystem-only includes ecosystem components"
 
-    # Use persona=custom to test the preset alone, since persona is now
-    # driven by Selection.Persona (decoupled from preset).
-    output=$($BINARY install --preset ecosystem-only --persona custom --agent claude-code --dry-run 2>&1) || true
+    output=$($BINARY install --preset ecosystem-only --agent claude-code --dry-run 2>&1) || true
 
-    # ecosystem-only (without persona) includes engram, skills and context7.
+    # ecosystem-only includes engram, skills, context7 and the Neutral persona.
     local components_line
     components_line=$(echo "$output" | grep "Components order:")
 
     assert_output_contains "$components_line" "engram" "Ecosystem includes engram"
     assert_output_contains "$components_line" "skills" "Ecosystem includes skills"
     assert_output_contains "$components_line" "context7" "Ecosystem includes context7"
-    assert_output_not_contains "$components_line" "persona" "Ecosystem + persona=custom excludes persona"
+    assert_output_contains "$components_line" "persona" "Ecosystem includes persona"
     assert_output_not_contains "$components_line" "permissions" "Ecosystem excludes permissions"
 }
 
-test_preset_full_with_custom_persona_excludes_persona() {
-    log_test "Preset full-gentleman with persona=custom excludes persona"
-
-    # Persona is decoupled — picking persona=custom skips persona install
-    # even when the preset is full-gentleman.
-    output=$($BINARY install --preset full-gentleman --persona custom --agent claude-code --dry-run 2>&1) || true
-
-    local components_line
-    components_line=$(echo "$output" | grep "Components order:")
-
-    assert_output_contains "$components_line" "engram" "Full + persona=custom keeps engram"
-    assert_output_contains "$components_line" "permissions" "Full + persona=custom keeps permissions"
-    assert_output_not_contains "$components_line" "persona" "Full + persona=custom excludes persona"
-}
 
 test_preset_full_components() {
     log_test "Preset full-gentleman includes core and optional Gentleman components"
@@ -327,7 +298,7 @@ test_preset_custom_no_components() {
 test_preset_custom_explicit_components() {
     log_test "Preset custom with explicit --component flags"
 
-    output=$($BINARY install --preset custom --persona custom --agent claude-code --component engram --component skills --dry-run 2>&1) || true
+    output=$($BINARY install --preset custom --agent claude-code --component engram --component skills --dry-run 2>&1) || true
 
     local components_line
     components_line=$(echo "$output" | grep "Components order:")
@@ -377,15 +348,6 @@ test_dry_run_component_theme() {
 
 # --- Category 1g: Invalid input rejection ---
 
-test_invalid_persona_rejected() {
-    log_test "Invalid persona is rejected"
-
-    if $BINARY install --persona nonexistent --dry-run 2>&1; then
-        log_fail "Invalid persona should have been rejected"
-    else
-        log_pass "Invalid persona correctly rejected"
-    fi
-}
 
 test_invalid_component_rejected() {
     log_test "Invalid component is rejected"
@@ -446,38 +408,12 @@ test_cc_engram_injection() {
     fi
 }
 
-test_cc_persona_gentleman() {
-    log_test "Claude Code: persona injection (gentleman)"
-    cleanup_test_env
 
-    if $BINARY install --agent claude-code --component persona --persona gentleman 2>&1; then
-        assert_file_exists "$HOME/.claude/CLAUDE.md" "CLAUDE.md exists"
-        assert_file_contains "$HOME/.claude/CLAUDE.md" "gentle-ai:persona" "CLAUDE.md has persona section marker"
-        # Claude has an active output-style channel — the CLAUDE.md persona
-        # section is now a residual (tooling directives + pointer only); tone
-        # content lives exclusively in the output style (design.md Decision 1).
-        assert_file_contains "$HOME/.claude/CLAUDE.md" "Persona Voice" "CLAUDE.md persona residual points to the output style"
-        assert_file_not_contains "$HOME/.claude/CLAUDE.md" "Senior Architect" "CLAUDE.md persona residual carries no tone content"
-        assert_file_size_min "$HOME/.claude/CLAUDE.md" 200 "Persona section is substantial"
-        # Output-style file — canonical tone channel
-        assert_file_exists "$HOME/.claude/output-styles/gentleman.md" "Output-style file exists"
-        assert_file_contains "$HOME/.claude/output-styles/gentleman.md" "name: Gentleman" "Output-style has YAML frontmatter"
-        assert_file_contains "$HOME/.claude/output-styles/gentleman.md" "keep-coding-instructions: true" "Output-style keeps coding instructions"
-        assert_file_contains "$HOME/.claude/output-styles/gentleman.md" "Senior Architect" "Output-style carries the Gentleman tone content"
-        # settings.json outputStyle key
-        assert_file_exists "$HOME/.claude/settings.json" "settings.json exists"
-        assert_file_contains "$HOME/.claude/settings.json" "outputStyle" "settings.json has outputStyle key"
-        assert_file_contains "$HOME/.claude/settings.json" "Gentleman" "settings.json outputStyle is Gentleman"
-    else
-        log_fail "persona (gentleman) install command failed"
-    fi
-}
-
-test_cc_persona_neutral() {
+test_cc_persona() {
     log_test "Claude Code: persona injection (neutral)"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --component persona --persona neutral 2>&1; then
+    if $BINARY install --agent claude-code --component persona 2>&1; then
         assert_file_exists "$HOME/.claude/CLAUDE.md" "CLAUDE.md exists"
         assert_file_contains "$HOME/.claude/CLAUDE.md" "gentle-ai:persona" "CLAUDE.md has persona section marker"
         # Claude has an active output-style channel — the CLAUDE.md persona
@@ -493,28 +429,12 @@ test_cc_persona_neutral() {
     fi
 }
 
-test_cc_persona_custom_does_nothing() {
-    log_test "Claude Code: persona custom does nothing (user keeps own personality)"
-    cleanup_test_env
-
-    if $BINARY install --agent claude-code --component persona --persona custom 2>&1; then
-        # CLAUDE.md may exist: routing guidance is scheduled per agent and
-        # deliberately outside the component loop, so every configured agent
-        # receives it. What `--persona custom` promises is that no personality
-        # is imposed, so assert that instead of the file's absence.
-        assert_file_not_contains "$HOME/.claude/CLAUDE.md" "Senior Architect\|Rioplatense\|voseo" "CLAUDE.md carries no tone content under custom"
-        # No output-style file either.
-        assert_file_not_exists "$HOME/.claude/output-styles/gentleman.md" "No output-style for custom"
-    else
-        log_fail "Custom persona install command failed"
-    fi
-}
 
 test_cc_skills_minimal() {
     log_test "Claude Code: minimal skills component retains only judgment-day"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --component skills --preset minimal --persona custom 2>&1; then
+    if $BINARY install --agent claude-code --component skills --preset minimal 2>&1; then
         local skills_dir="$HOME/.claude/skills"
         if [ -d "$skills_dir" ]; then
             assert_file_count "$skills_dir" "SKILL.md" 1 "Minimal skills component installs only judgment-day"
@@ -681,7 +601,7 @@ test_full_preset_claude_code() {
     cleanup_test_env
 
     # Exercise independent injection components without invoking package downloads.
-    if $BINARY install --agent claude-code --component engram --component persona --component skills --component context7 --component permissions --component theme --preset full-gentleman --persona gentleman 2>&1; then
+    if $BINARY install --agent claude-code --component engram --component persona --component skills --component context7 --component permissions --component theme --preset full-gentleman 2>&1; then
         local claude_md="$HOME/.claude/CLAUDE.md"
         local settings="$HOME/.claude/settings.json"
 
@@ -718,16 +638,16 @@ test_full_preset_claude_code() {
 }
 
 test_minimal_preset_claude_only_engram() {
-    log_test "Minimal preset: Claude Code (only engram, nothing else)"
+    log_test "Minimal preset: Claude Code (engram and persona only)"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --preset minimal --persona custom 2>&1; then
+    if $BINARY install --agent claude-code --preset minimal 2>&1; then
         # Engram should be installed (MCP + CLAUDE.md)
         assert_file_exists "$HOME/.claude/CLAUDE.md" "CLAUDE.md exists"
         assert_file_contains "$HOME/.claude/CLAUDE.md" "gentle-ai:engram-protocol" "Engram protocol section"
 
-        # Persona should NOT be in CLAUDE.md
-        assert_file_not_contains "$HOME/.claude/CLAUDE.md" "gentle-ai:persona" "No persona in minimal"
+        # The Neutral persona is part of every managed preset
+        assert_file_contains "$HOME/.claude/CLAUDE.md" "gentle-ai:persona" "Persona in minimal"
         # No permissions settings.json
         if [ -f "$HOME/.claude/settings.json" ]; then
             assert_file_not_contains "$HOME/.claude/settings.json" '"permissions"' "No permissions in minimal"
@@ -774,8 +694,8 @@ test_content_claude_md_sections_substantial() {
     cleanup_test_env
 
     # Install persona and engram alongside unconditional ODD routing guidance.
-    $BINARY install --agent claude-code --component persona --persona gentleman 2>&1 || true
-    $BINARY install --agent claude-code --component engram --persona gentleman 2>&1 || true
+    $BINARY install --agent claude-code --component persona 2>&1 || true
+    $BINARY install --agent claude-code --component engram 2>&1 || true
 
     local claude_md="$HOME/.claude/CLAUDE.md"
     if [ -f "$claude_md" ]; then
@@ -837,8 +757,8 @@ test_idempotent_persona_claude() {
     log_test "Idempotency: persona on Claude Code (no duplicate sections)"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component persona --persona gentleman 2>&1 || true
-    $BINARY install --agent claude-code --component persona --persona gentleman 2>&1 || true
+    $BINARY install --agent claude-code --component persona 2>&1 || true
+    $BINARY install --agent claude-code --component persona 2>&1 || true
 
     local claude_md="$HOME/.claude/CLAUDE.md"
     if [ -f "$claude_md" ]; then
@@ -924,12 +844,12 @@ test_idempotent_skills_claude() {
 
     # Minimal intentionally selects no default skills; ecosystem installs the
     # foundation catalog so byte-idempotency checks nonempty SKILL.md files.
-    $BINARY install --agent claude-code --component skills --preset ecosystem-only --persona custom 2>&1 || true
+    $BINARY install --agent claude-code --component skills --preset ecosystem-only 2>&1 || true
     # Capture file hashes
     local first_hashes
     first_hashes=$(find "$HOME/.claude/skills" -name "SKILL.md" -exec md5sum {} \; 2>/dev/null | sort)
 
-    $BINARY install --agent claude-code --component skills --preset ecosystem-only --persona custom 2>&1 || true
+    $BINARY install --agent claude-code --component skills --preset ecosystem-only 2>&1 || true
     local second_hashes
     second_hashes=$(find "$HOME/.claude/skills" -name "SKILL.md" -exec md5sum {} \; 2>/dev/null | sort)
 
@@ -944,7 +864,7 @@ test_idempotent_full_claude() {
     log_test "Idempotency: full injection-only on Claude Code"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component persona --component context7 --component permissions --component theme --preset full-gentleman --persona gentleman 2>&1 || true
+    $BINARY install --agent claude-code --component persona --component context7 --component permissions --component theme --preset full-gentleman 2>&1 || true
     local first_md_hash
     first_md_hash=$(md5sum "$HOME/.claude/CLAUDE.md" 2>/dev/null | cut -d' ' -f1)
     # Snapshot settings.json for semantic comparison (engram setup may reorder
@@ -952,7 +872,7 @@ test_idempotent_full_claude() {
     # serialization). Byte-exact hashing would false-fail on harmless reorder.
     cp "$HOME/.claude/settings.json" /tmp/gai_settings_run1.json 2>/dev/null || true
 
-    $BINARY install --agent claude-code --component persona --component context7 --component permissions --component theme --preset full-gentleman --persona gentleman 2>&1 || true
+    $BINARY install --agent claude-code --component persona --component context7 --component permissions --component theme --preset full-gentleman 2>&1 || true
     local second_md_hash
     second_md_hash=$(md5sum "$HOME/.claude/CLAUDE.md" 2>/dev/null | cut -d' ' -f1)
 
@@ -1015,29 +935,6 @@ test_edge_multiple_agents_same_component() {
     fi
 }
 
-test_edge_persona_switch() {
-    log_test "Edge case: switching persona from gentleman to neutral"
-    cleanup_test_env
-
-    # First install with gentleman. Claude has an active output-style channel,
-    # so the teacher identity ("Senior Architect") lives in the output style —
-    # the CLAUDE.md persona section is a residual pointer (design.md Decision 1).
-    $BINARY install --agent claude-code --component persona --persona gentleman 2>&1 || true
-    assert_file_contains "$HOME/.claude/CLAUDE.md" "Persona Voice" "First install: gentleman persona residual points to the output style"
-    assert_file_contains "$HOME/.claude/output-styles/gentleman.md" "Senior Architect" "First install: gentleman output-style has the teacher identity"
-
-    # Then install with neutral — should REPLACE persona section AND the
-    # selected output style. Neutral is a distinct professional voice (same
-    # mentor identity, no regional language, no "Senior Architect" bio), so
-    # the CLAUDE.md residual stays tone-free and the neutral output style is
-    # checked for its own mentor-teaching tone content instead.
-    $BINARY install --agent claude-code --component persona --persona neutral 2>&1 || true
-    assert_file_contains "$HOME/.claude/CLAUDE.md" "Persona Voice" "Second install: neutral persona residual still points to the output style"
-    assert_file_not_contains "$HOME/.claude/CLAUDE.md" "Senior Architect" "Second install: CLAUDE.md residual carries no tone content"
-    assert_file_contains "$HOME/.claude/output-styles/neutral.md" "Push back when user asks for code without context or understanding" "Second install: neutral output-style has the mentor identity"
-    assert_file_not_contains "$HOME/.claude/output-styles/neutral.md" "Rioplatense\|voseo\|ponete las pilas" "Second install: regional language removed from output style"
-    assert_no_duplicate_section "$HOME/.claude/CLAUDE.md" "persona" "No duplicate persona after switch"
-}
 
 # --- Category 12: Codex context7 TOML injection ---
 
@@ -1252,11 +1149,9 @@ test_dry_run_preset_full
 test_dry_run_preset_custom
 
 # Category 1e: Preset component order validation
-test_preset_minimal_components
 test_preset_minimal_with_default_persona_includes_persona
 test_preset_ecosystem_components
 test_preset_full_components
-test_preset_full_with_custom_persona_excludes_persona
 test_dry_run_full_preset_persona_before_engram
 test_preset_no_legacy_theme_in_any_preset
 test_preset_custom_no_components
@@ -1271,7 +1166,6 @@ test_dry_run_component_permissions
 test_dry_run_component_theme
 
 # Category 1g: Invalid inputs
-test_invalid_persona_rejected
 test_invalid_component_rejected
 test_invalid_preset_rejected
 test_unknown_command_rejected
@@ -1282,9 +1176,7 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
 
     # Category 2: Claude Code injection
     test_cc_engram_injection
-    test_cc_persona_gentleman
-    test_cc_persona_neutral
-    test_cc_persona_custom_does_nothing
+    test_cc_persona
     test_cc_skills_minimal
     test_cc_skills_full
     test_cc_skills_ecosystem
@@ -1317,7 +1209,6 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
     # Category 8: Edge cases
     test_edge_theme_not_in_presets
     test_edge_multiple_agents_same_component
-    test_edge_persona_switch
 
     # Category 7: Injection integrity (issue #4 regression guard)
     test_integrity_full_preset_all_skills_nonempty

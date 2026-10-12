@@ -266,7 +266,6 @@ internal/cli/uninstall.go	"partial uninstall requires at least one --agent/--age
 internal/cli/uninstall.go	"unexpected uninstall argument %q"
 internal/cli/validate.go	"unsupported agent %q (valid: %s)"
 internal/cli/validate.go	"unsupported component %q"
-internal/cli/validate.go	"unsupported persona %q"
 internal/cli/validate.go	"unsupported preset %q"
 internal/cli/validate.go	"unsupported sdd-mode %q (valid: single, multi)"
 internal/cli/validate.go	"unsupported skill %q"

@@ -17,7 +17,6 @@ func TestRunArgsOrphanInstallModifiersRejectedWithoutEffects(t *testing.T) {
 		args []string
 		want string
 	}{
-		{"persona", []string{"--persona", "neutral"}, "--persona requires component persona in the resolved install plan; rerun gentle-ai install with --component persona added to your existing component list, or remove --persona"},
 		{"skill", []string{"--skill", "go-testing"}, "--skill/--skills requires component skills in the resolved install plan; rerun gentle-ai install with --component skills added to your existing component list, or remove --skill/--skills"},
 		{"skills", []string{"--skills", "go-testing"}, "--skill/--skills requires component skills in the resolved install plan; rerun gentle-ai install with --component skills added to your existing component list, or remove --skill/--skills"},
 	} {
@@ -30,7 +29,7 @@ func TestRunArgsOrphanInstallModifiersRejectedWithoutEffects(t *testing.T) {
 				home := t.TempDir()
 				setupMockHome(t, home)
 				timestamp := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-				before := state.InstallState{InstalledAgents: []string{"claude-code"}, Persona: "custom", LastUpdateCheck: &timestamp}
+				before := state.InstallState{InstalledAgents: []string{"claude-code"}, LastUpdateCheck: &timestamp}
 				if err := state.Write(home, before); err != nil {
 					t.Fatal(err)
 				}

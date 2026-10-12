@@ -78,8 +78,6 @@ func fullyPopulatedInstallState() InstallState {
 		CodexPhaseModelAssignments: map[string]string{
 			"sdd-propose": "gpt-5.6-sol",
 		},
-		Persona:           "neutral",
-		PersonaPresent:    true,
 		LastUpdateCheck:   &lastUpdateCheck,
 		RDDMode:           "off",
 		RDDModeRecordedAt: &rddModeRecordedAt,
@@ -170,7 +168,6 @@ func TestMergeAgents(t *testing.T) {
 				CommunityTools:           existingCommunityTools,
 				CommunityToolsConfigured: true,
 				ClaudeModelAssignments:   existingClaude,
-				Persona:                  "gentleman",
 			},
 			newAgents: []string{"third-agent"},
 			wantIDs:   []string{"example-agent", "third-agent"},
@@ -188,9 +185,6 @@ func TestMergeAgents(t *testing.T) {
 			// Verify all preserved fields are unchanged.
 			if !reflect.DeepEqual(got.ClaudeModelAssignments, tt.existing.ClaudeModelAssignments) {
 				t.Errorf("ClaudeModelAssignments not preserved: got %v, want %v", got.ClaudeModelAssignments, tt.existing.ClaudeModelAssignments)
-			}
-			if got.Persona != tt.existing.Persona {
-				t.Errorf("Persona not preserved: got %q, want %q", got.Persona, tt.existing.Persona)
 			}
 			if !reflect.DeepEqual(got.CommunityTools, tt.existing.CommunityTools) || got.CommunityToolsConfigured != tt.existing.CommunityToolsConfigured {
 				t.Errorf("CommunityTools not preserved: got (%v, %t), want (%v, %t)", got.CommunityTools, got.CommunityToolsConfigured, tt.existing.CommunityTools, tt.existing.CommunityToolsConfigured)
@@ -260,12 +254,12 @@ func TestLegacyStrictTDDValuesDecodeButNeverWriteOrRestore(t *testing.T) {
 	for _, value := range []string{"true", "false"} {
 		t.Run(value, func(t *testing.T) {
 			var legacy InstallState
-			if err := json.Unmarshal([]byte(`{"selection_configured":true,"strict_tdd":`+value+`,"persona":"neutral"}`), &legacy); err != nil {
+			if err := json.Unmarshal([]byte(`{"selection_configured":true,"strict_tdd":`+value+`,"preset":"minimal"}`), &legacy); err != nil {
 				t.Fatal(err)
 			}
 			selection := model.Selection{StrictTDD: true}
 			legacy.RestoreSelection(&selection)
-			if selection.StrictTDD || selection.Persona != "" {
+			if selection.StrictTDD {
 				t.Fatalf("legacy toggle leaked into selection: %+v", selection)
 			}
 			home := t.TempDir()
@@ -273,7 +267,7 @@ func TestLegacyStrictTDDValuesDecodeButNeverWriteOrRestore(t *testing.T) {
 				t.Fatal(err)
 			}
 			raw, err := os.ReadFile(Path(home))
-			if err != nil || bytes.Contains(raw, []byte(`"strict_tdd"`)) || !bytes.Contains(raw, []byte(`"persona": "neutral"`)) {
+			if err != nil || bytes.Contains(raw, []byte(`"strict_tdd"`)) || !bytes.Contains(raw, []byte(`"preset": "minimal"`)) {
 				t.Fatalf("migration lost unrelated state or wrote retired toggle: %s, %v", raw, err)
 			}
 		})
@@ -299,117 +293,6 @@ func TestWriteAndRead(t *testing.T) {
 	}
 }
 
-// TestPersonaRoundTrip verifies the Persona field round-trips through
-// Write/Read. Both `gentle-ai install` (CLI in run.go) and the TUI app
-// (internal/app/app.go) write this field after a successful install so that
-// `gentle-ai sync` regenerates the persona the user actually selected — not a
-// hard-coded default.
-func TestPersonaRoundTrip(t *testing.T) {
-	for _, persona := range []string{"gentleman", "neutral", "custom"} {
-		t.Run(persona, func(t *testing.T) {
-			home := t.TempDir()
-			if err := Write(home, InstallState{
-				InstalledAgents: []string{"claude-code"},
-				Persona:         persona,
-			}); err != nil {
-				t.Fatalf("Write() error = %v", err)
-			}
-			s, err := Read(home)
-			if err != nil {
-				t.Fatalf("Read() error = %v", err)
-			}
-			if s.Persona != persona {
-				t.Errorf("Persona = %q, want %q", s.Persona, persona)
-			}
-		})
-	}
-}
-
-// TestPersonaBackwardCompat verifies that state files written before persona
-// persistence (no `persona` JSON field) still read cleanly with an empty
-// Persona, allowing the sync fallback to take over.
-func TestPersonaBackwardCompat(t *testing.T) {
-	home := t.TempDir()
-	if err := Write(home, InstallState{InstalledAgents: []string{"claude-code"}}); err != nil {
-		t.Fatalf("Write() error = %v", err)
-	}
-	s, err := Read(home)
-	if err != nil {
-		t.Fatalf("Read() error = %v", err)
-	}
-	if s.Persona != "" {
-		t.Errorf("Persona = %q, want empty for pre-feature state", s.Persona)
-	}
-}
-
-func TestPersonaPresenceDistinguishesOmittedAndExplicitEmpty(t *testing.T) {
-	for _, tc := range []struct {
-		name        string
-		stateJSON   string
-		wantPresent bool
-	}{
-		{name: "omitted", stateJSON: `{"installed_agents":["codex"]}`, wantPresent: false},
-		{name: "explicit empty", stateJSON: `{"installed_agents":["codex"],"persona":""}`, wantPresent: true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			home := t.TempDir()
-			if err := os.MkdirAll(filepath.Dir(Path(home)), 0o755); err != nil {
-				t.Fatalf("MkdirAll() error = %v", err)
-			}
-			if err := os.WriteFile(Path(home), []byte(tc.stateJSON), 0o644); err != nil {
-				t.Fatalf("WriteFile() error = %v", err)
-			}
-
-			got, err := Read(home)
-			if err != nil {
-				t.Fatalf("Read() error = %v", err)
-			}
-			if got.PersonaPresent != tc.wantPresent {
-				t.Fatalf("PersonaPresent = %t, want %t", got.PersonaPresent, tc.wantPresent)
-			}
-		})
-	}
-}
-
-// TestReadRejectsAmbiguousPersistedPersona verifies that state shapes which
-// would silently collapse to a different persona fail closed instead.
-func TestReadRejectsAmbiguousPersistedPersona(t *testing.T) {
-	for _, tc := range []struct {
-		name      string
-		stateJSON string
-		wantErr   string
-	}{
-		{name: "null document", stateJSON: "null", wantErr: "must contain a JSON object"},
-		{name: "padded null document", stateJSON: " \n null \n", wantErr: "must contain a JSON object"},
-		{name: "duplicate unknown then neutral", stateJSON: `{"persona":"unknown","persona":"neutral"}`, wantErr: `duplicate "persona" keys`},
-		{name: "duplicate neutral then unknown", stateJSON: `{"persona":"neutral","persona":"unknown"}`, wantErr: `duplicate "persona" keys`},
-		{name: "duplicate valid values", stateJSON: `{"persona":"neutral","persona":"gentleman"}`, wantErr: `duplicate "persona" keys`},
-		{name: "duplicate via unicode escape", stateJSON: `{"persona":"unknown","pers\u006fna":"neutral"}`, wantErr: `duplicate "persona" keys`},
-		{name: "case variant alone", stateJSON: `{"installed_agents":["codex"],"Persona":""}`, wantErr: `"Persona" must be spelled "persona"`},
-		{name: "case variant before canonical", stateJSON: `{"PERSONA":"unknown","persona":"neutral"}`, wantErr: `"PERSONA" must be spelled "persona"`},
-		{name: "case variant after canonical", stateJSON: `{"persona":"unknown","Persona":"neutral"}`, wantErr: `"Persona" must be spelled "persona"`},
-		{name: "unicode fold variant", stateJSON: `{"persona":"unknown","per\u017fona":"neutral"}`, wantErr: "must be spelled"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			home := t.TempDir()
-			if err := os.MkdirAll(filepath.Dir(Path(home)), 0o755); err != nil {
-				t.Fatalf("MkdirAll() error = %v", err)
-			}
-			if err := os.WriteFile(Path(home), []byte(tc.stateJSON), 0o644); err != nil {
-				t.Fatalf("WriteFile() error = %v", err)
-			}
-
-			got, err := Read(home)
-			if err == nil {
-				t.Fatalf("Read() = %+v, want error containing %q", got, tc.wantErr)
-			}
-			if !strings.Contains(err.Error(), tc.wantErr) {
-				t.Fatalf("Read() error = %q, want %q", err, tc.wantErr)
-			}
-		})
-	}
-}
-
 // An empty object would drop installation settings and the persona, so the
 // null refusal must point at restoring the intended state instead.
 func TestReadNullStateAdvisesRestoreNotReset(t *testing.T) {
@@ -425,44 +308,8 @@ func TestReadNullStateAdvisesRestoreNotReset(t *testing.T) {
 	if err == nil {
 		t.Fatal("Read() error = nil, want null state refusal")
 	}
-	if msg := err.Error(); strings.Contains(msg, "{}") || !strings.Contains(msg, "restore a valid state file from a backup that keeps your intended persona and installation settings") {
+	if msg := err.Error(); strings.Contains(msg, "{}") || !strings.Contains(msg, "restore a valid state file from a backup that keeps your intended installation settings") {
 		t.Fatalf("Read() error = %q, want restore advice without an empty-object reset", msg)
-	}
-}
-
-// TestReadAcceptsUnambiguousPersistedPersona pins the shapes that must keep
-// decoding unchanged next to the ambiguity guard.
-func TestReadAcceptsUnambiguousPersistedPersona(t *testing.T) {
-	for _, tc := range []struct {
-		name        string
-		stateJSON   string
-		wantPersona string
-		wantPresent bool
-	}{
-		{name: "canonical", stateJSON: `{"installed_agents":["codex"],"persona":"neutral"}`, wantPersona: "neutral", wantPresent: true},
-		{name: "canonical escaped", stateJSON: `{"pers\u006fna":"custom"}`, wantPersona: "custom", wantPresent: true},
-		{name: "missing legacy field", stateJSON: `{"installed_agents":["codex"]}`},
-		{name: "empty object", stateJSON: `{}`},
-		{name: "explicit null value", stateJSON: `{"persona":null}`, wantPresent: true},
-		{name: "nested persona keys", stateJSON: `{"claude_model_assignments":{"persona":"a","Persona":"b"},"persona":"gentleman"}`, wantPersona: "gentleman", wantPresent: true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			home := t.TempDir()
-			if err := os.MkdirAll(filepath.Dir(Path(home)), 0o755); err != nil {
-				t.Fatalf("MkdirAll() error = %v", err)
-			}
-			if err := os.WriteFile(Path(home), []byte(tc.stateJSON), 0o644); err != nil {
-				t.Fatalf("WriteFile() error = %v", err)
-			}
-
-			got, err := Read(home)
-			if err != nil {
-				t.Fatalf("Read() error = %v", err)
-			}
-			if got.Persona != tc.wantPersona || got.PersonaPresent != tc.wantPresent {
-				t.Fatalf("Persona = %q (present %t), want %q (present %t)", got.Persona, got.PersonaPresent, tc.wantPersona, tc.wantPresent)
-			}
-		})
 	}
 }
 
@@ -565,7 +412,7 @@ func TestWriteOverwrite(t *testing.T) {
 
 func TestWriteFailurePreservesExistingState(t *testing.T) {
 	home := t.TempDir()
-	original := InstallState{InstalledAgents: []string{"example-agent"}, Persona: "neutral", PersonaPresent: true}
+	original := InstallState{InstalledAgents: []string{"example-agent"}, Preset: "minimal"}
 	if err := Write(home, original); err != nil {
 		t.Fatal(err)
 	}

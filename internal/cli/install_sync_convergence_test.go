@@ -160,7 +160,6 @@ func TestCodeGraphInstallThenSyncConverges(t *testing.T) {
 				InstalledAgents:          []string{string(agent)},
 				CommunityTools:           []string{string(model.CommunityToolCodeGraph)},
 				CommunityToolsConfigured: true,
-				Persona:                  string(selection.Persona),
 			}
 			installState.SetSelection(selection)
 			// Persist state the way the TUI does after a successful install.

@@ -129,7 +129,6 @@ func TestSyncWorkspaceScopeDeclaresAndVerifiesPersonaWorkspaceTarget(t *testing.
 	selection := model.Selection{
 		Agents:     []model.AgentID{model.AgentClaudeCode},
 		Components: []model.ComponentID{model.ComponentPersona},
-		Persona:    model.PersonaNeutral,
 	}
 	adapters := resolveAdapters(selection.Agents)
 	adapter := adapters[0]
@@ -256,7 +255,6 @@ func TestRunSyncWorkspaceScopeUpdatesClaudeEngramWithoutGlobalMutation(t *testin
 	selection := model.Selection{
 		Agents:     []model.AgentID{model.AgentClaudeCode},
 		Components: []model.ComponentID{model.ComponentEngram, model.ComponentContext7},
-		Persona:    model.PersonaNeutral,
 	}
 	t.Chdir(workspace)
 	result, err := RunSyncWithSelectionScope(home, selection, ScopeWorkspace)
@@ -344,7 +342,6 @@ func TestSyncWorkspaceBackupTargetsExcludeHomeOnlyPaths(t *testing.T) {
 	selection := model.Selection{
 		Agents:     []model.AgentID{model.AgentClaudeCode},
 		Components: []model.ComponentID{model.ComponentEngram, model.ComponentContext7, model.ComponentPermission, model.ComponentPersona},
-		Persona:    model.PersonaNeutral,
 	}
 	declared, err := syncBackupTargetsScoped(home, workspace, ScopeWorkspace, selection, resolveAdapters(selection.Agents))
 	if err != nil {

@@ -18,6 +18,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/components/agentguidance"
 	"github.com/carsimax/brunnr-code/internal/components/engram"
 	"github.com/carsimax/brunnr-code/internal/components/filemerge"
+	"github.com/carsimax/brunnr-code/internal/components/persona"
 	"github.com/carsimax/brunnr-code/internal/components/reviewassets"
 	"github.com/carsimax/brunnr-code/internal/components/skills"
 	"github.com/carsimax/brunnr-code/internal/components/theme"
@@ -661,7 +662,7 @@ func (s *Service) componentOperations(adapter agents.Adapter, componentID model.
 			}))
 		}
 		if adapter.SupportsOutputStyles() {
-			path := filepath.Join(adapter.OutputStyleDir(homeDir), "gentleman.md")
+			path := persona.OutputStylePath(adapter.OutputStyleDir(homeDir))
 			targets = append(targets, path)
 			ops = append(ops, removeFile(path))
 			ops = append(ops, removeDirIfEmpty(adapter.OutputStyleDir(homeDir)))

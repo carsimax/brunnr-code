@@ -562,13 +562,12 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 			}
 		}
 		if component == model.ComponentPersona {
-			plan := persona.ResourcePlanFor(selection.Persona)
 			for _, adapter := range componentAdapters {
 				if !adapter.SupportsOutputStyles() {
 					continue
 				}
 				targetDir := componentInjectionDirScoped(homeDir, workspaceDir, scope, adapter)
-				for _, path := range plan.OutputStylePaths(adapter.OutputStyleDir(targetDir)).Backup {
+				if path := persona.OutputStylePath(adapter.OutputStyleDir(targetDir)); path != "" {
 					paths[path] = struct{}{}
 				}
 			}
@@ -783,9 +782,6 @@ func syncComponentPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope I
 // componentInjectionDirScoped so the backup and verification contracts match
 // the actual workspace persona writes (issue #1074).
 func syncPersonaPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope InstallScope, selection model.Selection, adapters []agents.Adapter) []string {
-	if selection.Persona == model.PersonaCustom {
-		return nil
-	}
 	paths := []string{}
 	for _, adapter := range adapters {
 		targetDir := componentInjectionDirScoped(homeDir, workspaceDir, scope, adapter)
@@ -794,8 +790,8 @@ func syncPersonaPathsWithWorkspaceScoped(homeDir, workspaceDir string, scope Ins
 		}
 		paths = append(paths, adapter.SystemPromptFile(targetDir))
 		if adapter.SupportsOutputStyles() {
-			if stylePaths := persona.ResourcePlanFor(selection.Persona).OutputStylePaths(adapter.OutputStyleDir(targetDir)); stylePaths.Write != "" {
-				paths = append(paths, stylePaths.Write)
+			if stylePath := persona.OutputStylePath(adapter.OutputStyleDir(targetDir)); stylePath != "" {
+				paths = append(paths, stylePath)
 				if p := adapter.SettingsPath(targetDir); p != "" {
 					paths = append(paths, p)
 				}
@@ -1047,7 +1043,7 @@ func (s componentSyncStep) Run() error {
 		// the Gentleman output-style overlay.
 		for _, adapter := range adapters {
 			targetDir := componentInjectionDirScoped(s.homeDir, s.workspaceDir, s.scope, adapter)
-			res, err := injectSyncPersona(targetDir, adapter, s.selection.Persona)
+			res, err := injectSyncPersona(targetDir, adapter)
 			if err != nil {
 				return fmt.Errorf("sync persona for %q: %w", adapter.Agent(), err)
 			}
@@ -1287,98 +1283,12 @@ func boolToInt(b bool) int {
 	return 0
 }
 
-// applyResolvedPersona fills selection.Persona when it was not explicitly set.
-// It accepts the already-loaded persisted persona string (from state.json)
-// so no disk I/O happens inside this function.
-//
-// Resolution order:
-//  1. Explicit: if selection.Persona is non-empty, it is left untouched.
-//  2. Persisted: the persisted string is normalized via normalizePersona.
-//  3. Fallback: PersonaNeutral for default-safe behavior when the persona field
-//     is empty or the state file is absent. Other read/validation errors are
-//     rejected by validatePersistedSyncState before this function is called.
-func applyResolvedPersona(selection *model.Selection, persisted string) {
-	if selection.Persona != "" {
-		return
-	}
-	if persisted != "" {
-		if id, _, err := normalizePersona(persisted); err == nil {
-			selection.Persona = id
-			return
-		}
-		// The sync entry points reject unknown persisted values before resolution.
-	}
-	// Default-safe fallback for state files written before persona persistence.
-	selection.Persona = model.PersonaNeutral
-}
-
-// migratePersistedPersonaAlias rewrites a persisted legacy
-// gentleman-neutral-artifacts persona to neutral, printing the remap notice
-// once. State that predates persona persistence, explicit gentleman state,
-// and unreadable state are untouched.
-//
-// The persisted parameter is only an advisory snapshot: the rewrite re-reads
-// the latest state inside the canonical install-state lock and re-checks the
-// alias there, so a concurrent writer's change between the advisory read and
-// the write is never clobbered.
-func migratePersistedPersonaAlias(homeDir string, persisted *state.InstallState, persistedErr error) error {
-	if persistedErr != nil || persisted == nil || persisted.Persona != string(model.PersonaGentlemanNeutralArtifacts) {
-		return nil
-	}
-	remapped := false
-	if err := withInstallStateLock(homeDir, func() error {
-		latest, readErr := state.Read(homeDir)
-		if readErr != nil {
-			// The advisory caller read succeeded, so a missing file now means a
-			// concurrent delete removed the state: nothing is left to migrate.
-			if os.IsNotExist(readErr) {
-				return nil
-			}
-			return fmt.Errorf("read persisted installation state: %w", readErr)
-		}
-		if latest.Persona != string(model.PersonaGentlemanNeutralArtifacts) {
-			return nil
-		}
-		latest.Persona = string(model.PersonaNeutral)
-		if err := state.Write(homeDir, latest); err != nil {
-			return fmt.Errorf("persist remapped persona: %w", err)
-		}
-		remapped = true
-		return nil
-	}); err != nil {
-		return err
-	}
-	// Notice only after the rewrite is durably persisted: a failed write must
-	// not tell the user the remap happened.
-	if remapped {
-		fmt.Fprintln(personaNoticeWriter, personaAliasRemapNotice)
-	}
-	return nil
-}
-
 // validatePersistedSyncState rejects state that cannot safely drive sync.
-// A missing state file is allowed for fresh homes; a decoded state without a
-// persona remains compatible with legacy installations.
-func validatePersistedSyncState(persisted state.InstallState, readErr error) error {
-	// guard:population persisted-sync-state-integrity fail-closed: legitimate persisted sync state is a missing file or decoded state with an empty or supported persona; read/decode errors, whitespace-only values, and unsupported persona values remain excluded
-	if readErr != nil {
-		if os.IsNotExist(readErr) {
-			return nil
-		}
+// A missing state file is allowed for fresh homes.
+func validatePersistedSyncState(readErr error) error {
+	// guard:population persisted-sync-state-integrity fail-closed: legitimate persisted sync state is a missing file or a decoded state; read/decode errors remain excluded
+	if readErr != nil && !os.IsNotExist(readErr) {
 		return fmt.Errorf("read persisted installation state: %w", readErr)
-	}
-
-	if persisted.Persona == "" {
-		if persisted.PersonaPresent {
-			return fmt.Errorf("validate persisted persona: explicitly empty persona is not valid") // refusal:by-design operator-knowledge: only the operator can choose the intended persona to replace malformed persisted state
-		}
-		return nil
-	}
-	if strings.TrimSpace(persisted.Persona) == "" {
-		return fmt.Errorf("validate persisted persona: whitespace-only persona is not valid") // refusal:by-design operator-knowledge: only the operator can choose the intended persona to replace malformed persisted state
-	}
-	if _, _, err := normalizePersona(persisted.Persona); err != nil {
-		return fmt.Errorf("validate persisted persona: %w", err)
 	}
 	return nil
 }
@@ -1400,18 +1310,6 @@ func RunSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 	if _, err := parseInstallScope(string(scope)); err != nil {
 		return SyncResult{}, err
 	}
-	// An explicit persona is validated before the alias migration or any write;
-	// only an empty value means "resolve from persisted state" (#1677).
-	if selection.Persona != "" {
-		if strings.TrimSpace(string(selection.Persona)) == "" {
-			return SyncResult{Agents: selection.Agents, Selection: selection}, fmt.Errorf("validate selected persona: whitespace-only persona is not valid") // refusal:by-design operator-knowledge: only the caller can choose the intended persona
-		}
-		persona, _, err := normalizePersona(string(selection.Persona))
-		if err != nil {
-			return SyncResult{Agents: selection.Agents, Selection: selection}, fmt.Errorf("validate selected persona: %w", err)
-		}
-		selection.Persona = persona
-	}
 	result, err := runSyncWithSelectionScopeAfterSkip(homeDir, selection, scope)
 	return finishPartialSync(result, err, nil)
 }
@@ -1429,36 +1327,12 @@ var compareChangedSyncFiles = changedSyncFiles
 
 func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope InstallScope, persistedState state.InstallState, persistedStateErr error) (SyncResult, error) {
 	agentIDs := selection.Agents
-	// The caller's preflight snapshot and its read error drive this sync, so
-	// persona resolves from one read (#1677). The alias
-	// migration and managed-asset provenance re-read under their own locks.
-	if err := validatePersistedSyncState(persistedState, persistedStateErr); err != nil {
+	// The caller's preflight snapshot and its read error drive this sync.
+	// Managed-asset provenance re-reads under its own lock.
+	if err := validatePersistedSyncState(persistedStateErr); err != nil {
 		return SyncResult{Agents: agentIDs, Selection: selection}, err
 	}
 	restorePersistedCommunityTools(homeDir, &selection, persistedState)
-
-	// Resolve persona from persisted state when the caller has not provided one.
-	// RunSync already resolves persona before delegating here, so on the CLI path
-	// selection.Persona is already set and applyResolvedPersona early-returns with
-	// no disk read. On the TUI path the Selection has an empty Persona field, so
-	// we apply the persisted snapshot value (or neutral fallback).
-	if selection.Persona == "" {
-		var persistedPersona string
-		persistedPersona = persistedState.Persona
-		applyResolvedPersona(&selection, persistedPersona)
-	}
-
-	// Migrate a persisted legacy alias BEFORE any early return: a no-agent
-	// no-op sync and a failing pipeline must still leave state.json remapped,
-	// otherwise the one-time migration never fires for those users. State
-	// records intent — the next sync applies the neutral assets. A workspace
-	// sync never mutates state, so the migration is deferred to the next
-	// global sync (issue #1074).
-	if scope == ScopeGlobal {
-		if err := migratePersistedPersonaAlias(homeDir, &persistedState, persistedStateErr); err != nil {
-			return SyncResult{Agents: agentIDs, Selection: selection}, err
-		}
-	}
 
 	result := SyncResult{
 		Agents:    agentIDs,
@@ -1629,7 +1503,7 @@ func RunSync(args []string) (SyncResult, error) {
 	// A missing state file is treated as a fresh home; other read/validation
 	// errors stop sync before any persona mutation or asset write.
 	persistedState, persistedStateErr := state.Read(homeDir)
-	if err := validatePersistedSyncState(persistedState, persistedStateErr); err != nil {
+	if err := validatePersistedSyncState(persistedStateErr); err != nil {
 		return SyncResult{Agents: agentIDs, Selection: selection}, err
 	}
 	RestorePersistedSelection(&selection, persistedState, flags)
@@ -1689,12 +1563,6 @@ func RunSync(args []string) (SyncResult, error) {
 		}
 		selection.CodexPhaseModelAssignments = m
 	}
-
-	// Resolve persona from the already-read state. This covers both the dry-run
-	// branch (which returns early) and the normal path (which delegates to
-	// RunSyncWithSelection — that function's early-return guard prevents a second
-	// disk read on the CLI path).
-	applyResolvedPersona(&selection, persistedState.Persona)
 
 	if flags.DryRun {
 		// Build the plan for inspection, skip execution.

@@ -413,7 +413,6 @@ const (
 	ScreenWelcome
 	ScreenDetection
 	ScreenAgents
-	ScreenPersona
 	ScreenPreset
 	ScreenClaudeModelPicker
 	ScreenCodexModelPicker
@@ -680,11 +679,10 @@ func NewModel(detection system.DetectionResult, version string, installState ...
 		s = installState[0]
 	}
 	agents := preselectedAgents(detection, s)
-	components := componentsForPreset(model.PresetFullGentleman, model.PersonaGentleman)
+	components := componentsForPreset(model.PresetFullGentleman)
 
 	selection := model.Selection{
 		Agents:                 agents,
-		Persona:                model.PersonaGentleman,
 		Preset:                 model.PresetFullGentleman,
 		Components:             components,
 		ClaudeModelAssignments: installStateClaudeAssignments(s.ClaudeModelAssignments),
@@ -1227,8 +1225,6 @@ func (m Model) View() string {
 		return screens.RenderDetection(m.Detection, m.Cursor)
 	case ScreenAgents:
 		return screens.RenderAgents(m.Selection.Agents, m.Cursor)
-	case ScreenPersona:
-		return screens.RenderPersona(m.Selection.Persona, m.Cursor)
 	case ScreenPreset:
 		return screens.RenderPreset(m.Selection.Preset, m.Cursor)
 	case ScreenClaudeModelPicker:
@@ -1885,27 +1881,15 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 		case m.Cursor < agentCount:
 			m.toggleCurrentAgent()
 		case m.Cursor == agentCount && len(m.Selection.Agents) > 0:
-			m.setScreen(ScreenPersona)
+			m.setScreen(ScreenPreset)
 		case m.Cursor == agentCount+1:
 			m.setScreen(ScreenDetection)
 		}
-	case ScreenPersona:
-		options := screens.PersonaOptions()
-		if m.Cursor < len(options) {
-			m.Selection.Persona = options[m.Cursor]
-			// Recompute components if a non-custom preset was already chosen
-			if m.Selection.Preset != "" && m.Selection.Preset != model.PresetCustom {
-				m.Selection.Components = componentsForPreset(m.Selection.Preset, m.Selection.Persona)
-			}
-			m.setScreen(ScreenPreset)
-			return m, nil
-		}
-		m.setScreen(ScreenAgents)
 	case ScreenPreset:
 		options := screens.PresetOptions()
 		if m.Cursor < len(options) {
 			m.Selection.Preset = options[m.Cursor]
-			m.Selection.Components = componentsForPreset(options[m.Cursor], m.Selection.Persona)
+			m.Selection.Components = componentsForPreset(options[m.Cursor])
 			// Enter the conditional picker chain through the single source of
 			// truth. pickerNextScreen(ScreenPreset) returns the first chain member
 			// for the current selection (Claude → Codex);
@@ -1924,7 +1908,7 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			m.setScreen(ScreenDependencyTree)
 			return m, nil
 		}
-		m.setScreen(ScreenPersona)
+		m.setScreen(ScreenAgents)
 	case ScreenClaudeModelPicker:
 		if !m.ClaudeModelPicker.InCustomMode && m.Cursor == screens.ClaudeModelPickerOptionCount(m.ClaudeModelPicker)-1 {
 			// "Back" option: in ModelConfigMode return to the config menu,
@@ -3129,8 +3113,6 @@ func (m Model) optionCount() int {
 		return len(screens.DetectionOptions())
 	case ScreenAgents:
 		return len(screens.AgentOptions()) + 2
-	case ScreenPersona:
-		return len(screens.PersonaOptions()) + 1
 	case ScreenPreset:
 		return len(screens.PresetOptions()) + 1
 	case ScreenClaudeModelPicker:
@@ -3655,8 +3637,8 @@ func (m *Model) applyPickerEntry(next Screen) tea.Cmd {
 	return discoveryCmd
 }
 
-func componentsForPreset(preset model.PresetID, persona model.PersonaID) []model.ComponentID {
-	return model.ComponentsForPreset(preset, persona)
+func componentsForPreset(preset model.PresetID) []model.ComponentID {
+	return model.ComponentsForPreset(preset)
 }
 
 func hasSelectedComponent(components []model.ComponentID, target model.ComponentID) bool {

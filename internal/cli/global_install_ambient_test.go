@@ -29,7 +29,7 @@ func testGlobalArtifactRoots(t *testing.T, sync bool) {
 		Agents:     []model.AgentID{model.AgentClaudeCode, model.AgentCodex},
 		Components: []model.ComponentID{model.ComponentPersona, model.ComponentSkills, model.ComponentEngram, model.ComponentContext7},
 		Skills:     []model.SkillID{model.SkillGoTesting},
-		Persona:    model.PersonaGentleman, StrictTDD: true,
+		StrictTDD:  true,
 	}
 	previous := cmdLookPath
 	t.Cleanup(func() { cmdLookPath = previous })

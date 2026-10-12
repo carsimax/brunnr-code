@@ -15,7 +15,6 @@ func TestRunInstallRejectsOrphanModifiers(t *testing.T) {
 		args []string
 		want string
 	}{
-		{"persona", []string{"--persona", "neutral"}, "--persona requires component persona in the resolved install plan; rerun gentle-ai install with --component persona added to your existing component list, or remove --persona"},
 		{"skill", []string{"--skill", "go-testing"}, "--skill/--skills requires component skills in the resolved install plan; rerun gentle-ai install with --component skills added to your existing component list, or remove --skill/--skills"},
 		{"skills", []string{"--skills", "go-testing"}, "--skill/--skills requires component skills in the resolved install plan; rerun gentle-ai install with --component skills added to your existing component list, or remove --skill/--skills"},
 	} {
@@ -56,8 +55,7 @@ func TestRunInstallModifierConsumersAndDefaults(t *testing.T) {
 		want []model.ComponentID
 	}{
 		{"implicit persona with theme", []string{"--component", "theme"}, []model.ComponentID{model.ComponentTheme}},
-		{"custom persona opt-out", []string{"--component", "theme", "--persona", "custom"}, []model.ComponentID{model.ComponentTheme}},
-		{"explicit persona consumer", []string{"--component", "persona", "--persona", "neutral"}, []model.ComponentID{model.ComponentPersona}},
+		{"explicit persona component", []string{"--component", "persona"}, []model.ComponentID{model.ComponentPersona}},
 		{"explicit skill consumer", []string{"--component", "skills", "--skill", "go-testing"}, []model.ComponentID{model.ComponentSkills}},
 		{"explicit skills alias consumer", []string{"--components", "skills", "--skills", "go-testing"}, []model.ComponentID{model.ComponentSkills}},
 	} {

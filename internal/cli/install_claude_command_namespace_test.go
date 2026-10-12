@@ -50,7 +50,6 @@ func TestRunSyncPreservesUserEditedLegacyClaudeCommandWithoutReinstallingSDD(t *
 		InstalledAgents:     []string{string(model.AgentClaudeCode)},
 		SelectionConfigured: true,
 		Components:          []model.ComponentID{model.ComponentSDD},
-		Persona:             "neutral",
 	}); err != nil {
 		t.Fatalf("state.Write() error = %v", err)
 	}

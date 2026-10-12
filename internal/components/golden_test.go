@@ -64,31 +64,10 @@ func TestGoldenConfigs(t *testing.T) {
 // Persona Injector golden tests
 // ---------------------------------------------------------------------------
 
-func TestGoldenPersona_Claude_Gentleman(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := persona.Inject(home, claudeAdapter(), model.PersonaGentleman)
-	if err != nil {
-		t.Fatalf("persona.Inject(claude, gentleman) error = %v", err)
-	}
-	if !result.Changed {
-		t.Fatalf("persona.Inject(claude, gentleman) changed = false")
-	}
-
-	claudeMD := readTestFile(t, filepath.Join(home, ".claude", "CLAUDE.md"))
-	assertGolden(t, "persona-claude-gentleman.golden", claudeMD)
-
-	outputStyle := readTestFile(t, filepath.Join(home, ".claude", "output-styles", "gentleman.md"))
-	assertGolden(t, "persona-claude-gentleman-outputstyle.golden", outputStyle)
-
-	settingsJSON := readTestFile(t, filepath.Join(home, ".claude", "settings.json"))
-	assertGolden(t, "persona-claude-gentleman-settings.golden", settingsJSON)
-}
-
 func TestGoldenPersona_Claude_Neutral(t *testing.T) {
 	home := t.TempDir()
 
-	result, err := persona.Inject(home, claudeAdapter(), model.PersonaNeutral)
+	result, err := persona.Inject(home, claudeAdapter())
 	if err != nil {
 		t.Fatalf("persona.Inject(claude, neutral) error = %v", err)
 	}
@@ -103,22 +82,6 @@ func TestGoldenPersona_Claude_Neutral(t *testing.T) {
 	// existed for this file before the canonical-channel change.
 	outputStyle := readTestFile(t, filepath.Join(home, ".claude", "output-styles", "neutral.md"))
 	assertGolden(t, "persona-claude-neutral-outputstyle.golden", outputStyle)
-}
-
-func TestGoldenPersona_Claude_Custom(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := persona.Inject(home, claudeAdapter(), model.PersonaCustom)
-	if err != nil {
-		t.Fatalf("persona.Inject(claude, custom) error = %v", err)
-	}
-	// Custom persona does nothing — no files written.
-	if result.Changed {
-		t.Fatalf("persona.Inject(claude, custom) changed = true, want false")
-	}
-	if len(result.Files) != 0 {
-		t.Fatalf("persona.Inject(claude, custom) returned files %v, want none", result.Files)
-	}
 }
 
 // ---------------------------------------------------------------------------
@@ -215,7 +178,7 @@ func TestGoldenCombined_Claude(t *testing.T) {
 	engram.SetLookPathForTest(t, "/opt/homebrew/bin/engram", "")
 
 	// Combine retained persona and Engram sections in CLAUDE.md.
-	if _, err := persona.Inject(home, claudeAdapter(), model.PersonaGentleman); err != nil {
+	if _, err := persona.Inject(home, claudeAdapter()); err != nil {
 		t.Fatalf("persona.Inject error = %v", err)
 	}
 	// Pin the engram version above the Decision 1 floor so the combined

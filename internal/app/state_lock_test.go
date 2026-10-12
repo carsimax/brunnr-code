@@ -39,7 +39,7 @@ func TestPersistAssignmentsReReadsLatestStateUnderLock(t *testing.T) {
 	if err := persistAssignments(home, selection); err == nil || !strings.Contains(err.Error(), "acquire install state lock") {
 		t.Fatalf("contended persistAssignments error = %v, want lock acquisition failure", err)
 	}
-	if err := state.Write(home, state.InstallState{RDDMode: "on", Persona: "concurrent"}); err != nil {
+	if err := state.Write(home, state.InstallState{RDDMode: "on", Preset: "concurrent"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := held.Release(); err != nil {
@@ -56,7 +56,7 @@ func TestPersistAssignmentsReReadsLatestStateUnderLock(t *testing.T) {
 	if got.CodexCarrilModelAssignments["sdd-strong"] != "test-model" {
 		t.Fatalf("assignments were not persisted: %#v", got.CodexCarrilModelAssignments)
 	}
-	if got.RDDMode != "on" || got.Persona != "concurrent" {
+	if got.RDDMode != "on" || got.Preset != "concurrent" {
 		t.Fatalf("concurrent writer state was clobbered: %#v", got)
 	}
 }

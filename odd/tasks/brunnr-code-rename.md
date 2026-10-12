@@ -30,8 +30,8 @@ Each task: `go build ./... && go vet ./...` plus touched-package tests; Conventi
 - [x] **T3 — Binary.** `cmd/gentle-ai` → `cmd/brunnr-code`; goreleaser, workflows, scripts. Route: delegated (writer). Done in `8241dfd2`. Verified: build/vet root+bench, deadcode ratchet, `test-review-capabilities.sh`, full suite only failing `TestIssueCreationAuthorityBoundary` (pre-existing since `5563eba0` replaced AGENTS.md; fixed inline by dropping its AGENTS.md routing check).
 - [x] **T4a — Remove telemetry.** Route: delegated (writer). Done in `a8c49af7`; deleted `internal/telemetry`, `internal/telemetrycollector`, `internal/components/telemetryruntime`, `cmd/gentle-telemetry`, `deploy/`, `contracts/telemetry`, the `telemetry` CLI, Claude/Codex telemetry hooks and the j4395 bench journey; dead `model.CodexTierGroups` removed (invariant test moved internal).
 - [x] **T4b — Remove prerelease channels and `brunnr-code` self-update** (keep Engram updates); remove dead upstream release packages (`releasepolicy*`, `releaseprovenance*`) and minisign paths if unused. Route: delegated (writer). Done in `dadf5b19`; removed `--channel`/`GENTLE_AI_CHANNEL` (incl. Engram `@main` installs), the gentle-ai registry entry, beta/main-head checks, advisory (and its TUI banner), self-update/PendingSync deferred sync, go-install route, minisign download, `releasepolicy*`/`releaseprovenance*`; `update`/`upgrade` now cover Engram and GGA only. `go mod tidy` also dropped `go-minisign` and the telemetry-only `modernc.org/sqlite`.
-- [x] **T4c — Remove GGA.** Route: delegated (writer). Done in the `refactor(gga): remove Gentleman Guardian Angel integration` commit; deleted `internal/components/gga`, `internal/assets/gga` (PowerShell/cmd shims, `pr_mode.sh`), `model.ComponentGGA`, `versions.GGAVersion`, installer/sync/uninstall/doctor/TUI wiring, the GGA update registry entry and the script-based upgrade strategy, and GGA e2e cases; uninstall no longer recognizes GGA config.
-- [ ] **T4d — Remove the Gentleman persona and persona selection.**
+- [x] **T4c — Remove GGA.** Route: delegated (writer). Done in `035c239a`; deleted `internal/components/gga`, `internal/assets/gga` (PowerShell/cmd shims, `pr_mode.sh`), `model.ComponentGGA`, `versions.GGAVersion`, installer/sync/uninstall/doctor/TUI wiring, the GGA update registry entry and the script-based upgrade strategy, and GGA e2e cases; uninstall no longer recognizes GGA config.
+- [x] **T4d — Remove the Gentleman persona and persona selection.** Route: delegated (writer). Done in the `refactor(persona): keep Neutral as the only persona` commit; deleted Gentleman persona/output-style assets and goldens, `model.PersonaID`, `Selection.Persona`, state `persona`, `--persona`, the TUI persona screen and the alias migration; every managed preset installs the Neutral persona (`TestComponentsForPresetAlwaysInstallsNeutralPersona`); `combined-claude-claudemd.golden` regenerated with `-update`. Full suite after T4d: all packages ok; bench ok.
 - [ ] **T5 — User-visible prose.** Help, TUI logo, CLI strings and tests.
 - [ ] **T6 — Commands in assets and hooks**, goldens.
 - [ ] **T7 — State dirs and section markers.**
@@ -51,4 +51,4 @@ Sole maintainer: work-unit commits on the branch, merge to `main` by the user. R
 
 ## Next step
 
-T4a–T4d (removals), then T5–T10.
+T5–T10 (rename).
