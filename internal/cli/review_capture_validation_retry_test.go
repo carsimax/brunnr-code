@@ -199,8 +199,8 @@ func TestValidationCaptureTransportErrorIsNotRetried(t *testing.T) {
 // document gets exactly the same single corrective re-invocation.
 func TestRefuterCaptureRetriesOnceWithAdmissionFeedback(t *testing.T) {
 	reviewEnabledHome(t)
-	repo, store, record, handle := piRefuterReview(t)
-	binding := piRefuterBinding(repo, record, handle)
+	repo, store, record, handle := roleRefuterReviewForTest(t)
+	binding := roleRefuterBindingForTest(repo, record, handle)
 	refuterRequest, err := reviewProviderNewRefuterRequest(t.Context(), repo, store.Dir, record.State, record.State.CapturePhaseRevision)
 	if err != nil {
 		t.Fatal(err)
@@ -238,7 +238,7 @@ func TestRefuterCaptureRetriesOnceWithAdmissionFeedback(t *testing.T) {
 // refused before any authority write, ahead of payload canonicalization.
 func TestRefuterCaptureRefusesRequestTargetIdentityDriftFromState(t *testing.T) {
 	reviewEnabledHome(t)
-	repo, store, record, _ := piRefuterReview(t)
+	repo, store, record, _ := roleRefuterReviewForTest(t)
 	request, err := reviewProviderNewRefuterRequest(t.Context(), repo, store.Dir, record.State, record.State.CapturePhaseRevision)
 	if err != nil {
 		t.Fatal(err)

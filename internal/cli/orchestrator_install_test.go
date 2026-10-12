@@ -19,15 +19,12 @@ const (
 )
 
 // orchestratorRuntimesForInstall lists every runtime whose installed prompt
-// carries the orchestrator; Pi's prompt belongs to the Gentle Shell package.
+// carries the orchestrator.
 func orchestratorRuntimesForInstall(t *testing.T) []model.AgentID {
 	t.Helper()
 
 	var selected []model.AgentID
 	for _, agent := range catalog.AllAgents() {
-		if agent.ID == model.AgentPi {
-			continue
-		}
 		adapter, err := agents.NewAdapter(agent.ID)
 		if err != nil {
 			t.Fatalf("NewAdapter(%q) error = %v", agent.ID, err)

@@ -64,7 +64,7 @@ func TestReviewProviderArtifactV20ContractsArePinned(t *testing.T) {
 	want := map[string]string{
 		"fixtures/capabilities.fixture.json": "8d5e1a8491db1a5a2f6329e8c1d5cd210dd175e0525ff4d51fa914351d2fcf08",
 		"fixtures/consent.fixture.json":      "66a3a9d7d3fe1b8956739616f333f8e38c2515bf8e0030e65f5213b415d48ad2",
-		// issue #3922 / #4199 / gentle-pi#543: the native-git reviewer_result
+		// issue #3922 / #4199: the native-git reviewer_result
 		// collect input no longer inlines changed_path_manifest -- it is
 		// already committed to by artifact_subject.changed_path_manifest_sha256
 		// -- so this fixture legitimately dropped that array. Deliberate, not
@@ -137,7 +137,7 @@ func TestReviewProviderArtifactV25StatusContractsArePinned(t *testing.T) {
 		// submission oneOf and the no-submission allOf rule both rejected.
 		// Deliberate, not drift.
 		//
-		// issue #3922 / #4199 / gentle-pi#543: the review.capture-result `then`
+		// issue #3922 / #4199: the review.capture-result `then`
 		// clause no longer requires changed_path_manifest -- it stays an
 		// allowed property, but the native-git transport no longer needs to
 		// inline it since artifact_subject.changed_path_manifest_sha256 already

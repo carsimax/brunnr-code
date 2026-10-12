@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -55,7 +57,6 @@ type closedIntendedUntrackedSelection struct {
 }
 
 func mixedIntendedUntrackedCandidate(sandbox *Sandbox) error {
-	sandbox.PiReviewRelayContract = "gentle-pi.review-relay/v1"
 	if err := sandbox.write(filepath.Join(sandbox.Repo, "README.md"), "# demo\n\ntracked review candidate\n"); err != nil {
 		return err
 	}
@@ -75,15 +76,15 @@ func mixedIntendedUntrackedCandidate(sandbox *Sandbox) error {
 func selectIntendedUntrackedAndRunPrintedStart(r *journeyRun) error {
 	initialObservation := r.run(productArgsFor(r,
 		"review", "status", "--cwd", r.sandbox.Repo, "--contract", reviewContractV2,
-		"--agent", "pi", "--next-transition"), false)
+		"--agent", "claude-code", "--next-transition"), false)
 	var initial intendedUntrackedSelectionStatus
-	if err := decodeWaveObservation(initialObservation, &initial, "initial Pi STATUS"); err != nil {
+	if err := decodeWaveObservation(initialObservation, &initial, "initial STATUS"); err != nil {
 		return err
 	}
 	if initial.Schema != statusSchemaV9 || initial.Authority != nil ||
 		initial.NextTransition.Kind != "collect" || initial.NextTransition.ReasonCode != "intended_untracked_selection_required" ||
 		len(initial.NextTransition.Collect.Inputs) != 1 {
-		return fmt.Errorf("initial Pi STATUS = %+v", initial)
+		return fmt.Errorf("initial STATUS = %+v", initial)
 	}
 	input := initial.NextTransition.Collect.Inputs[0]
 	if input.Name != "intended_untracked_selection" || input.Schema != "gentle-ai.review-intended-untracked-selection/v1" ||
@@ -122,7 +123,7 @@ func selectIntendedUntrackedAndRunPrintedStart(r *journeyRun) error {
 	if selected.Schema != statusSchemaV9 || selected.NextTransition.Kind != "execute" ||
 		selected.NextTransition.Execute.Operation != "review.start" ||
 		!slices.Equal(selected.Projection.Paths, []string{"README.md", selectedPaths[0], selectedPaths[1]}) {
-		return fmt.Errorf("selected Pi STATUS = %+v", selected)
+		return fmt.Errorf("selected STATUS = %+v", selected)
 	}
 	var printed statusEnvelope
 	if err := json.Unmarshal([]byte(strings.TrimSpace(selectedObservation.Stdout)), &printed); err != nil {
@@ -597,45 +598,77 @@ var (
 )
 
 // corroborateProviderRefuter answers a provider_refuter_required STATUS the
-// way a host would: it materializes the Go-issued refuter task through the Pi
-// relay, corroborates every claim it names, and captures that result. The
-// sandbox keeps the Pi relay handshake afterwards.
+// way an OpenCode host would: it relays the Go-issued refuter task through
+// `review opencode-transport`, corroborates every claim the task names, and
+// returns the capture the relay reports.
 func corroborateProviderRefuter(r *journeyRun, status statusEnvelope) (Observation, error) {
-	// The Pi relay captures the refuter, so the returned continuation names
-	// the Pi runtime; keep its handshake for the rest of the journey.
-	r.sandbox.PiReviewRelayContract = "gentle-pi.review-relay/v1"
-	binding := []string{
-		"--cwd", r.sandbox.Repo, "--lineage", status.argument("lineage"), "--target", status.argument("target"),
-		"--expected-revision", status.argument("expected-revision"), "--repository-context", status.argument("repository-context"), "--agent", "pi",
+	inputs := status.NextTransition.Collect.Inputs
+	if len(inputs) != 1 || inputs[0].ProviderTask == nil || inputs[0].ProviderTask.Role != "refuter" || inputs[0].ProviderTask.Prompt == "" {
+		return Observation{}, fmt.Errorf("provider refuter collect input = %+v", inputs)
 	}
-	task := r.run(append([]string{"review", "capture-refuter"}, append(binding, "--materialize")...), false)
-	if task.ExitCode != 0 {
-		return task, fmt.Errorf("materialize provider refuter: %s", firstLine(task.Stderr))
+	start, err := json.Marshal(map[string]string{
+		"schema": "gentle-ai.provider-transport/v1", "operation": "start", "prompt": inputs[0].ProviderTask.Prompt,
+	})
+	if err != nil {
+		return Observation{}, err
 	}
-	hash := refuterRequestHashPattern.FindStringSubmatch(task.Stdout)
-	if hash == nil {
-		return task, fmt.Errorf("materialized provider refuter task has no request hash")
-	}
-	results := []map[string]any{}
-	seen := map[string]bool{}
-	for _, match := range refuterFindingIDPattern.FindAllStringSubmatch(task.Stdout, -1) {
-		if seen[match[1]] {
-			continue
+	observation, err := r.runInteractive([]string{"review", "opencode-transport"}, true, func(reader *bufio.Reader, writer io.WriteCloser) error {
+		if _, err := writer.Write(append(start, '\n')); err != nil {
+			return fmt.Errorf("write relay start: %w", err)
 		}
-		seen[match[1]] = true
-		results = append(results, map[string]any{"finding_id": match[1], "outcome": "corroborated", "proof_refs": []string{"independent reproduction of " + match[1]}})
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("read relay prompt: %w", err)
+		}
+		var relayPrompt struct {
+			Operation string `json:"operation"`
+			Nonce     string `json:"nonce"`
+			Prompt    string `json:"prompt"`
+		}
+		if err := json.Unmarshal([]byte(line), &relayPrompt); err != nil || relayPrompt.Operation != "prompt" || relayPrompt.Nonce == "" {
+			return fmt.Errorf("relay prompt = %q: %w", line, err)
+		}
+		// The relayed child prompt carries the materialized refuter request.
+		hash := refuterRequestHashPattern.FindStringSubmatch(relayPrompt.Prompt)
+		if hash == nil {
+			return fmt.Errorf("relayed provider refuter prompt has no request hash")
+		}
+		results := []map[string]any{}
+		seen := map[string]bool{}
+		for _, match := range refuterFindingIDPattern.FindAllStringSubmatch(relayPrompt.Prompt, -1) {
+			if seen[match[1]] {
+				continue
+			}
+			seen[match[1]] = true
+			results = append(results, map[string]any{"finding_id": match[1], "outcome": "corroborated", "proof_refs": []string{"independent reproduction of " + match[1]}})
+		}
+		payload, err := json.Marshal(map[string]any{"refuter_request_hash": hash[1], "results": results})
+		if err != nil {
+			return err
+		}
+		completion, err := json.Marshal(map[string]string{
+			"schema": "gentle-ai.provider-transport/v1", "operation": "complete", "nonce": relayPrompt.Nonce, "output": string(payload),
+		})
+		if err != nil {
+			return err
+		}
+		if _, err := writer.Write(append(completion, '\n')); err != nil {
+			return fmt.Errorf("write relay completion: %w", err)
+		}
+		return nil
+	})
+	if err != nil || observation.ExitCode != 0 {
+		return observation, fmt.Errorf("provider refuter relay = exit %d err=%v stderr=%s", observation.ExitCode, err, firstLine(observation.Stderr))
 	}
-	payload, err := json.Marshal(map[string]any{"refuter_request_hash": hash[1], "results": results})
-	if err != nil {
-		return task, err
+	// The relay's last stdout frame carries the capture closure as its output.
+	lines := strings.Split(strings.TrimSpace(observation.Stdout), "\n")
+	var result struct {
+		Operation string `json:"operation"`
+		Output    string `json:"output"`
 	}
-	path, err := writeScratch(r.sandbox, "provider-refuter-result.json", payload)
-	if err != nil {
-		return task, err
+	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &result); err != nil || result.Operation != "result" || result.Output == "" {
+		return observation, fmt.Errorf("provider refuter relay result frame = %q: %v", lines[len(lines)-1], err)
 	}
-	captured := r.run(append([]string{"review", "capture-refuter"}, append(binding, "--input", path)...), true)
-	if captured.ExitCode != 0 {
-		return captured, fmt.Errorf("capture provider refuter: %s", firstLine(captured.Stderr))
-	}
-	return captured, nil
+	observation.Stdout = result.Output
+	return observation, nil
 }

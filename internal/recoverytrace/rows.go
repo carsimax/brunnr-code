@@ -518,7 +518,7 @@ func retiredSDDRows() []Row {
 			Contributor:      recoveryContributor,
 			Publication:      published(),
 			DestinationPath:  "internal/components/reviewassets/contract.go",
-			DestinationProof: []string{"internal/components/reviewassets/reviewassets_test.go", "internal/providercontractbundle/review_execution_contract_test.go"},
+			DestinationProof: []string{"internal/components/reviewassets/reviewassets_test.go"},
 		},
 		{
 			Path:             "internal/components/sdd/inject_test.go",

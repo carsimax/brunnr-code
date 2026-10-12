@@ -20,9 +20,6 @@ import (
 // the unchanged rctx2 digest.
 
 func TestOpenCodeLineageStatusSealsOnlyItsCollectInputs(t *testing.T) {
-	// Inheritance applies only without the Pi relay handshake; a Pi host
-	// running this test must not turn the STATUS into a Pi-driven one.
-	t.Setenv(reviewPiHostRelayContractEnvironment, "")
 	if testing.Short() {
 		t.Skip("requires relay subprocesses")
 	}
@@ -68,9 +65,6 @@ func TestOpenCodeLineageStatusSealsOnlyItsCollectInputs(t *testing.T) {
 }
 
 func TestOpenCodeSealedCollectArgumentsResolveFromAnUnrelatedCwd(t *testing.T) {
-	// Inheritance applies only without the Pi relay handshake; a Pi host
-	// running this test must not turn the STATUS into a Pi-driven one.
-	t.Setenv(reviewPiHostRelayContractEnvironment, "")
 	if testing.Short() {
 		t.Skip("requires git fixtures")
 	}
@@ -132,8 +126,6 @@ func TestOpenCodeSealedCollectArgumentsResolveFromAnUnrelatedCwd(t *testing.T) {
 }
 
 func TestSharedResolverRefusesATamperedSealedHandleWithoutAuthorityMutation(t *testing.T) {
-	// Exercise OpenCode sealing even when the test runs inside a Pi host.
-	t.Setenv(reviewPiHostRelayContractEnvironment, "")
 	if testing.Short() {
 		t.Skip("requires git fixtures")
 	}
@@ -174,39 +166,36 @@ func TestSharedResolverRefusesATamperedSealedHandleWithoutAuthorityMutation(t *t
 
 // A STATUS renders for the runtime that drives it: the declared --agent, else
 // the lineage's frozen runtime. A lineage driven by another runtime is
-// reissued in that runtime's format, so a Pi host never sees rctx3 and an
+// reissued in that runtime's format, so a Codex host never sees rctx3 and an
 // OpenCode host never receives a digest its relay cannot resolve.
 func TestCrossRuntimeStatusReissuesTheHandleInTheDrivingRuntimesFormat(t *testing.T) {
-	// Pi is admitted only through its relay handshake; declare it so the test
-	// does not depend on running inside a Pi host.
-	t.Setenv("GENTLE_PI_REVIEW_RELAY_CONTRACT", "gentle-pi.review-relay/v1")
 	if testing.Short() {
 		t.Skip("requires relay subprocesses")
 	}
 	reviewEnabledHome(t)
 
-	t.Run("OpenCode lineage driven by Pi", func(t *testing.T) {
-		repo, started, _, _ := openCodeSealedLineage(t, "opencode-driven-by-pi")
-		raw, status := openCodeSealedStatus(t, repo, started.LineageID, model.AgentPi)
+	t.Run("OpenCode lineage driven by Codex", func(t *testing.T) {
+		repo, started, _, _ := openCodeSealedLineage(t, "opencode-driven-by-codex")
+		raw, status := openCodeSealedStatus(t, repo, started.LineageID, model.AgentCodex)
 		if bytes.Contains(raw, []byte("rctx3_")) {
-			t.Fatalf("Pi-driven STATUS carried a sealed handle: %s", raw)
+			t.Fatalf("Codex-driven STATUS carried a sealed handle: %s", raw)
 		}
 		if status.RepositoryContext == nil || !strings.HasPrefix(status.RepositoryContext.Handle, "rctx2_") {
-			t.Fatalf("Pi-driven STATUS repository context = %#v", status.RepositoryContext)
+			t.Fatalf("Codex-driven STATUS repository context = %#v", status.RepositoryContext)
 		}
 	})
 
-	t.Run("Pi lineage driven by OpenCode", func(t *testing.T) {
+	t.Run("Codex lineage driven by OpenCode", func(t *testing.T) {
 		repo := initReviewCLIRepo(t)
 		writeReviewStartCandidate(t, repo, "candidate.go", "package candidate\n\nfunc driven() int { return 1 }\n", 0o644)
-		started := runNegotiatedReviewStartWith(t, repo, "pi-driven-by-opencode", "--agent", string(model.AgentPi))
+		started := runNegotiatedReviewStartWith(t, repo, "codex-driven-by-opencode", "--agent", string(model.AgentCodex))
 		store, record := loadOpenCodeRelayAuthority(t, repo, started.LineageID)
-		if record.State.RuntimeAgent != string(model.AgentPi) {
-			t.Fatalf("fixture froze runtime %q, want pi", record.State.RuntimeAgent)
+		if record.State.RuntimeAgent != string(model.AgentCodex) {
+			t.Fatalf("fixture froze runtime %q, want codex", record.State.RuntimeAgent)
 		}
-		raw, piStatus := openCodeSealedStatus(t, repo, started.LineageID, "")
-		if bytes.Contains(raw, []byte("rctx3_")) || piStatus.RepositoryContext == nil {
-			t.Fatalf("Pi lineage STATUS carried a sealed handle or no context: %s", raw)
+		raw, codexStatus := openCodeSealedStatus(t, repo, started.LineageID, "")
+		if bytes.Contains(raw, []byte("rctx3_")) || codexStatus.RepositoryContext == nil {
+			t.Fatalf("Codex lineage STATUS carried a sealed handle or no context: %s", raw)
 		}
 		_, status := openCodeSealedStatus(t, repo, started.LineageID, model.AgentOpenCode)
 		input := openCodeSealedCollectInput(t, status)
@@ -230,14 +219,11 @@ func TestCrossRuntimeStatusReissuesTheHandleInTheDrivingRuntimesFormat(t *testin
 // Every non-OpenCode runtime keeps the rctx2 digest everywhere STATUS renders
 // a handle, and that digest is exactly the unchanged derivation.
 func TestNonOpenCodeStatusKeepsTheUnchangedRctx2Digest(t *testing.T) {
-	// Pi is admitted only through its relay handshake; declare it so the test
-	// does not depend on running inside a Pi host.
-	t.Setenv("GENTLE_PI_REVIEW_RELAY_CONTRACT", "gentle-pi.review-relay/v1")
 	if testing.Short() {
 		t.Skip("requires git fixtures")
 	}
 	reviewEnabledHome(t)
-	for _, runtime := range []model.AgentID{model.AgentPi, model.AgentClaudeCode, model.AgentCodex} {
+	for _, runtime := range []model.AgentID{model.AgentCodex, model.AgentClaudeCode, model.AgentCodex} {
 		t.Run(string(runtime), func(t *testing.T) {
 			repo := initReviewCLIRepo(t)
 			writeReviewStartCandidate(t, repo, "candidate.go", "package candidate\n\nfunc kept() int { return 1 }\n", 0o644)

@@ -18,12 +18,9 @@ import (
 // agents, and the OpenCode family's settings entries and shared prompts.
 // Bytes no release wrote are kept and reported, and a directory that is not a
 // real directory is never entered. It returns every path it may change, for
-// the snapshot. Pi has nothing to retire: gentle-pi owns its home (#5219).
+// the snapshot.
 func (s *Service) retiredSDDOperation(adapter agents.Adapter) (operation, []string, bool) {
 	agent := adapter.Agent()
-	if agent == model.AgentPi {
-		return operation{}, nil, false
-	}
 	inventory := legacyassets.RetiredSDDInventory(adapter, s.homeDir)
 	// Uninstall delivers no routing guidance, so nothing migrates the SDD
 	// block of the active prompt: it is retired there too.

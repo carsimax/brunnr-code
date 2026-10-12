@@ -80,7 +80,7 @@ func TestOpenCodeV2SDKConfirmationSeparateAndDefaultsBack(t *testing.T) {
 	}
 	confirm.Cursor = 0
 	var received *cli.OpenCodeSDKConsent
-	confirm.ExecuteSDKFn = func(_ model.Selection, _ planner.ResolvedPlan, _ system.DetectionResult, _, _ model.OpenCodeBackgroundIntent, _, _ model.PiBackgroundIntent, _ pipeline.ProgressFunc, consent *cli.OpenCodeSDKConsent) pipeline.ExecutionResult {
+	confirm.ExecuteSDKFn = func(_ model.Selection, _ planner.ResolvedPlan, _ system.DetectionResult, _, _ model.OpenCodeBackgroundIntent, _ pipeline.ProgressFunc, consent *cli.OpenCodeSDKConsent) pipeline.ExecutionResult {
 		received = consent
 		return pipeline.ExecutionResult{}
 	}
@@ -522,7 +522,7 @@ func TestOpenCodeBackgroundChoiceFeedsInstall(t *testing.T) {
 			m.Cursor = tt.cursor
 			var got model.OpenCodeBackgroundIntent
 			var gotPersist model.OpenCodeBackgroundIntent
-			m.ExecuteFn = func(_ model.Selection, _ planner.ResolvedPlan, _ system.DetectionResult, background, persist model.OpenCodeBackgroundIntent, _, _ model.PiBackgroundIntent, _ pipeline.ProgressFunc) pipeline.ExecutionResult {
+			m.ExecuteFn = func(_ model.Selection, _ planner.ResolvedPlan, _ system.DetectionResult, background, persist model.OpenCodeBackgroundIntent, _ pipeline.ProgressFunc) pipeline.ExecutionResult {
 				got = background
 				gotPersist = persist
 				return pipeline.ExecutionResult{}
@@ -757,67 +757,7 @@ func TestAgentSelectionToggleAndContinue(t *testing.T) {
 	}
 }
 
-func TestPiOnlyAgentContinueSkipsPromptsAndIncludesEngram(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenAgents
-	m.Selection.Agents = []model.AgentID{model.AgentPi}
-	m.Selection.Components = componentsForPreset(model.PresetFullGentleman, model.PersonaGentleman)
-	m.Cursor = len(screensAgentOptions())
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("screen = %v, want %v", state.Screen, ScreenDependencyTree)
-	}
-	wantComponents := []model.ComponentID{model.ComponentEngram}
-	if !reflect.DeepEqual(state.Selection.Components, wantComponents) {
-		t.Fatalf("components = %v, want %v", state.Selection.Components, wantComponents)
-	}
-	if !reflect.DeepEqual(state.DependencyPlan.Agents, []model.AgentID{model.AgentPi}) {
-		t.Fatalf("dependency agents = %v, want [pi]", state.DependencyPlan.Agents)
-	}
-	if !reflect.DeepEqual(state.DependencyPlan.OrderedComponents, wantComponents) {
-		t.Fatalf("dependency components = %v, want %v", state.DependencyPlan.OrderedComponents, wantComponents)
-	}
-}
-
-func TestNewModelPiOnlyDetectionDefaultsToEngramOnly(t *testing.T) {
-	detection := system.DetectionResult{Configs: []system.ConfigState{{
-		Agent:       string(model.AgentPi),
-		Path:        "/tmp/fake/pi",
-		Exists:      true,
-		IsDirectory: true,
-	}}}
-
-	m := NewModel(detection, "dev")
-
-	wantAgents := []model.AgentID{model.AgentPi}
-	if !reflect.DeepEqual(m.Selection.Agents, wantAgents) {
-		t.Fatalf("agents = %v, want %v", m.Selection.Agents, wantAgents)
-	}
-	wantComponents := []model.ComponentID{model.ComponentEngram}
-	if !reflect.DeepEqual(m.Selection.Components, wantComponents) {
-		t.Fatalf("components = %v, want %v", m.Selection.Components, wantComponents)
-	}
-}
-
-func TestPiCombinedWithOtherAgentKeepsGenericFlow(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenAgents
-	m.Selection.Agents = []model.AgentID{model.AgentPi, model.AgentOpenCode}
-	m.Cursor = len(screensAgentOptions())
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	if state.Screen != ScreenPersona {
-		t.Fatalf("screen = %v, want %v", state.Screen, ScreenPersona)
-	}
-}
-
-func TestPiCombinedWithOtherAgentsTUIInstallKeepsAllAgentsInPlan(t *testing.T) {
-	t.Setenv(cli.PiBackgroundSubagentsEnv, "")
+func TestCombinedAgentsTUIInstallKeepsAllAgentsInPlan(t *testing.T) {
 	// Pin the host: OpenCode detection and the SDK proposal read `opencode
 	// --version` and the user's config, so a runner without OpenCode would
 	// otherwise stop on the Review screen instead of installing.
@@ -833,7 +773,7 @@ func TestPiCombinedWithOtherAgentsTUIInstallKeepsAllAgentsInPlan(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenAgents
 	m.InstallFlowActive = true
-	m.Selection.Agents = []model.AgentID{model.AgentPi, model.AgentOpenCode, model.AgentClaudeCode}
+	m.Selection.Agents = []model.AgentID{model.AgentOpenCode, model.AgentClaudeCode}
 	m.Cursor = len(screensAgentOptions())
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -869,7 +809,7 @@ func TestPiCombinedWithOtherAgentsTUIInstallKeepsAllAgentsInPlan(t *testing.T) {
 		t.Fatalf("after community tools screen = %v, want %v", state.Screen, ScreenDependencyTree)
 	}
 
-	wantAgents := []model.AgentID{model.AgentPi, model.AgentOpenCode, model.AgentClaudeCode}
+	wantAgents := []model.AgentID{model.AgentOpenCode, model.AgentClaudeCode}
 	if !reflect.DeepEqual(state.DependencyPlan.Agents, wantAgents) {
 		t.Fatalf("dependency agents = %v, want %v", state.DependencyPlan.Agents, wantAgents)
 	}
@@ -903,7 +843,7 @@ func TestPiCombinedWithOtherAgentsTUIInstallKeepsAllAgentsInPlan(t *testing.T) {
 
 	var gotSelection model.Selection
 	var gotPlan planner.ResolvedPlan
-	state.ExecuteFn = func(selection model.Selection, resolved planner.ResolvedPlan, _ system.DetectionResult, _ model.OpenCodeBackgroundIntent, _ model.OpenCodeBackgroundIntent, _, _ model.PiBackgroundIntent, _ pipeline.ProgressFunc) pipeline.ExecutionResult {
+	state.ExecuteFn = func(selection model.Selection, resolved planner.ResolvedPlan, _ system.DetectionResult, _ model.OpenCodeBackgroundIntent, _ model.OpenCodeBackgroundIntent, _ pipeline.ProgressFunc) pipeline.ExecutionResult {
 		gotSelection = selection
 		gotPlan = resolved
 		return pipeline.ExecutionResult{
@@ -912,24 +852,18 @@ func TestPiCombinedWithOtherAgentsTUIInstallKeepsAllAgentsInPlan(t *testing.T) {
 		}
 	}
 
-	// Both OpenCode and Pi remain selected, so resolve each background prompt
-	// before executing the combined installation.
+	// OpenCode remains selected, so resolve its background prompt before
+	// executing the combined installation.
 	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state = updated.(Model)
 	if state.Screen != ScreenOpenCodeBackground {
 		t.Fatalf("after review screen = %v, want %v", state.Screen, ScreenOpenCodeBackground)
 	}
 	state.Cursor = 1 // Keep OpenCode foreground.
-	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state = updated.(Model)
-	if state.Screen != ScreenPiBackground {
-		t.Fatalf("after OpenCode background screen = %v, want %v", state.Screen, ScreenPiBackground)
-	}
-	state.Cursor = 1 // Keep Pi foreground.
 	updated, cmd := state.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state = updated.(Model)
 	if state.Screen != ScreenInstalling {
-		t.Fatalf("after pi background screen = %v, want %v", state.Screen, ScreenInstalling)
+		t.Fatalf("after OpenCode background screen = %v, want %v", state.Screen, ScreenInstalling)
 	}
 	if cmd == nil {
 		t.Fatal("start installing command = nil")
@@ -967,7 +901,6 @@ func TestReviewToInstallingInitializesProgress(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenReview
 	m.BackgroundIntent = model.OpenCodeBackgroundOff
-	m.PiBackgroundIntent = model.PiBackgroundOff
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
@@ -1139,8 +1072,8 @@ func succeededExecution(stepID string) pipeline.ExecutionResult {
 }
 
 func TestStepProgressMsgAddsNestedPackageProgress(t *testing.T) {
-	const packageStep = "agent:pi:pi install npm:gentle-pi"
-	state := updateModel(installingModel([]string{"agent:pi"}, 0), StepProgressMsg{StepID: packageStep, Status: pipeline.StepStatusRunning})
+	const packageStep = "agent:codex:npm install -g example-package"
+	state := updateModel(installingModel([]string{"agent:codex"}, 0), StepProgressMsg{StepID: packageStep, Status: pipeline.StepStatusRunning})
 	if len(state.Progress.Items) != 2 {
 		t.Fatalf("progress items = %v, want the nested package item", state.Progress.Items)
 	}
@@ -1193,11 +1126,9 @@ func TestInstallPipelineProgressDeliveryDoesNotBlockWithoutReceiver(t *testing.T
 		_ system.DetectionResult,
 		_ model.OpenCodeBackgroundIntent,
 		_ model.OpenCodeBackgroundIntent,
-		_ model.PiBackgroundIntent,
-		_ model.PiBackgroundIntent,
 		progress pipeline.ProgressFunc,
 	) pipeline.ExecutionResult {
-		progress(pipeline.ProgressEvent{StepID: "agent:pi:pi install npm:gentle-pi", Status: pipeline.StepStatusRunning})
+		progress(pipeline.ProgressEvent{StepID: "agent:codex:npm install -g example-package", Status: pipeline.StepStatusRunning})
 		return pipeline.ExecutionResult{}
 	}
 
@@ -1259,19 +1190,19 @@ func TestPipelineDoneMsgMarksCompletion(t *testing.T) {
 }
 
 func TestPipelineDoneMsgPreservesNestedPackageProgress(t *testing.T) {
-	m := installingModel([]string{"agent:pi", "fallback:with:colon"}, 7)
+	m := installingModel([]string{"agent:codex", "fallback:with:colon"}, 7)
 
-	const packageStep = "agent:pi:pi install npm:gentle-pi"
+	const packageStep = "agent:codex:npm install -g example-package"
 	for _, msg := range []StepProgressMsg{
 		{RunID: 7, StepID: packageStep, Status: pipeline.StepStatusRunning},
 		{RunID: 7, StepID: packageStep, Status: pipeline.StepStatusSucceeded},
-		{RunID: 7, StepID: "agent:pi", Status: pipeline.StepStatusRunning},
-		{RunID: 7, StepID: "agent:pi", Status: pipeline.StepStatusSucceeded},
+		{RunID: 7, StepID: "agent:codex", Status: pipeline.StepStatusRunning},
+		{RunID: 7, StepID: "agent:codex", Status: pipeline.StepStatusSucceeded},
 	} {
 		m = updateModel(m, msg)
 	}
 
-	state := updateModel(m, PipelineDoneMsg{RunID: 7, Result: succeededExecution("agent:pi")})
+	state := updateModel(m, PipelineDoneMsg{RunID: 7, Result: succeededExecution("agent:codex")})
 	if state.pipelineRunning {
 		t.Fatal("matching PipelineDoneMsg did not finish the active pipeline")
 	}

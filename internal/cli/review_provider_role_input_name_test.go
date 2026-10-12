@@ -7,12 +7,11 @@ import (
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewerprovider"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
 )
 
 // TestProviderRoleCollectInputNamesObeyPublishedPattern pins every provider
 // role collection input name to the published transition_input name pattern
-// (^[a-z0-9_]+$, status-v5.schema.json and gentle-pi's own decoder). The
+// (^[a-z0-9_]+$, status-v5.schema.json). The
 // battery found the targeted-validator slot publishing the raw hyphenated
 // role token, which no published consumer can admit.
 func TestProviderRoleCollectInputNamesObeyPublishedPattern(t *testing.T) {
@@ -40,14 +39,5 @@ func TestProviderRoleCollectInputNamesObeyPublishedPattern(t *testing.T) {
 	refuter := reviewProviderRoleTransition("provider_refuter_required", binding, reviewerprovider.RoleRefuter, model.AgentOpenCode, nil)
 	if refuter.Collect == nil || len(refuter.Collect.Inputs) != 1 || refuter.Collect.Inputs[0].Name != "provider_refuter" {
 		t.Fatalf("refuter transition = %#v", refuter)
-	}
-
-	validation := &reviewtransaction.TargetedValidationRequest{RequestHash: "sha256:" + strings.Repeat("d", 64)}
-	relay, err := reviewProviderRoleMaterializeSubmissionInput(binding, reviewerprovider.RoleTargetedValidator, model.AgentPi, validation)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !pattern.MatchString(relay.Name) || relay.Name != "provider_targeted_validator" {
-		t.Fatalf("host-relay targeted-validator input name = %q, want provider_targeted_validator", relay.Name)
 	}
 }

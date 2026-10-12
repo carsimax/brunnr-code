@@ -41,7 +41,7 @@ func legacyAliasRepairFixture(t *testing.T, repo, lineage string, operation ...s
 		t.Fatal(err)
 	}
 	// review/complete-fix is the historically valid predecessor used by the
-	// affected gentle-pi chains; the following alias is the sole invalid event.
+	// affected chains; the following alias is the sole invalid event.
 	head = writeStoreEvent(t, store, Record{Operation: "review/complete-fix", PreviousRevision: head, Transaction: *tx})
 	legacy := historicalValidationTransition(*tx)
 	alias := "review/validate-fix"

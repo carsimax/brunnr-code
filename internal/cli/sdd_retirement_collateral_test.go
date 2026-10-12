@@ -33,7 +33,7 @@ var skillRuntimes = []model.AgentID{
 // installed. odd-orchestrator-sections.md is embedded source material only.
 var v370SharedReferences = []string{
 	"README.md", "engram-convention.md", "persistence-contract.md", "research-lifecycle.md",
-	"review-ledger-contract-pi.md", "review-ledger-contract.md", "skill-resolver.md",
+	"review-ledger-contract.md", "skill-resolver.md",
 }
 
 func installFullGentleman(t *testing.T, agent model.AgentID) string {

@@ -105,7 +105,7 @@ func TestNegotiatedRestartStatusSuppliesFrozenContextForEveryMissingReviewer(t *
 				t.Fatalf("restart reviewer input %d omits %q: %s", order, field, payload)
 			}
 		}
-		// issue #3922 / #4199 / gentle-pi#543: the native-git transport no
+		// issue #3922 / #4199: the native-git transport no
 		// longer inlines the manifest on this per-lens input -- it is already
 		// committed to by artifact_subject.changed_path_manifest_sha256.
 		if _, found := document["changed_path_manifest"]; found {
@@ -536,7 +536,7 @@ func TestReviewNextTransitionCollectContextValidatesAgainstPublishedSchema(t *te
 	got := newReviewNextTransition(status, lenses, nil, nil, reviewNextTransitionInput{
 		CaptureContext: nextTransitionTestCaptureContext(t, status, lenses),
 	})
-	// issue #3922 / #4199 / gentle-pi#543: the native-git transport no longer
+	// issue #3922 / #4199: the native-git transport no longer
 	// inlines the manifest on this per-lens input -- it is already committed
 	// to by artifact_subject.changed_path_manifest_sha256.
 	if got.Collect == nil || len(got.Collect.Inputs) != 1 || got.Collect.Inputs[0].ArtifactSubject == nil ||
@@ -952,7 +952,7 @@ func TestNegotiatedStatusForecastStaysStructuralAndV1StaysFrozen(t *testing.T) {
 		t.Fatalf("status forecast = %#v, transition = %#v", status.Forecast, status.NextTransition)
 	}
 	// The forecast is structural only: a successful negotiated STATUS writes
-	// zero bytes to stderr (gentle-pi fails closed on any stderr a successful
+	// zero bytes to stderr (machine callers fail closed on any stderr a successful
 	// native process writes).
 	if got := stderr(); got != "" {
 		t.Errorf("negotiated STATUS narrated the forecast to stderr, want zero bytes:\n%q", got)

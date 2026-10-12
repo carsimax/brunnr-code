@@ -1530,31 +1530,31 @@ func TestCheckToolBinaries_AgentNotInState_NotReported(t *testing.T) {
 	// appear in the report.
 	lookPathFn = func(string) (string, error) { return "", errors.New("not found") }
 
-	results := checkToolBinaries([]string{"/usr/local/bin"}, []string{"pi"})
+	results := checkToolBinaries([]string{"/usr/local/bin"}, []string{"codex"})
 
 	for _, r := range results {
 		if r.Name == "tool:opencode" {
-			t.Errorf("did not expect tool:opencode to appear when state lists only pi; got %+v", r)
+			t.Errorf("did not expect tool:opencode to appear when state lists only codex; got %+v", r)
 		}
 		if r.Name == "tool:claude" {
-			t.Errorf("did not expect tool:claude to appear when state lists only pi; got %+v", r)
+			t.Errorf("did not expect tool:claude to appear when state lists only codex; got %+v", r)
 		}
 	}
 
 	// Core tools must still be required.
-	var sawGentleAI, sawEngram, sawPi bool
+	var sawGentleAI, sawEngram, sawCodex bool
 	for _, r := range results {
 		switch r.Name {
 		case "tool:gentle-ai":
 			sawGentleAI = true
 		case "tool:engram":
 			sawEngram = true
-		case "tool:pi":
-			sawPi = true
+		case "tool:codex":
+			sawCodex = true
 		}
 	}
-	if !sawGentleAI || !sawEngram || !sawPi {
-		t.Errorf("expected core+pi checks present; got sawGentleAI=%v sawEngram=%v sawPi=%v", sawGentleAI, sawEngram, sawPi)
+	if !sawGentleAI || !sawEngram || !sawCodex {
+		t.Errorf("expected core+codex checks present; got sawGentleAI=%v sawEngram=%v sawCodex=%v", sawGentleAI, sawEngram, sawCodex)
 	}
 }
 
@@ -1702,18 +1702,14 @@ func TestRunDoctor_OnlySelectedAgentsAreRequired(t *testing.T) {
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	piDir := filepath.Join(homeDir, ".pi")
-	if err := os.MkdirAll(piDir, 0o755); err != nil {
+	codexDir := filepath.Join(homeDir, ".codex")
+	if err := os.MkdirAll(codexDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	piMCPPath := filepath.Join(homeDir, ".pi", "agent", "mcp.json")
-	if err := os.MkdirAll(filepath.Dir(piMCPPath), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(codexDir, "config.toml"), []byte("[mcp_servers.engram]\ncommand = \"engram\"\nargs = [\"mcp\", \"--tools=agent\"]\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(piMCPPath, []byte(`{"mcpServers":{"engram":{"command":"engram","args":["mcp","--tools=agent"]}}}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	payload := `{"installed_agents":["pi"]}`
+	payload := `{"installed_agents":["codex"]}`
 	if err := os.WriteFile(filepath.Join(stateDir, "state.json"), []byte(payload), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -1745,11 +1741,11 @@ func TestRunDoctor_OnlySelectedAgentsAreRequired(t *testing.T) {
 	if strings.Contains(output, "tool:claude") {
 		t.Errorf("did not expect tool:claude in the rendered report when claude-code is not in state.json; got:\n%s", output)
 	}
-	if !strings.Contains(output, "tool:pi") {
-		t.Errorf("expected tool:pi in the rendered report; got:\n%s", output)
+	if !strings.Contains(output, "tool:codex") {
+		t.Errorf("expected tool:codex in the rendered report; got:\n%s", output)
 	}
 	if !strings.Contains(output, "Status:  healthy") {
-		t.Errorf("expected healthy status for pi-only install with all binaries present; got:\n%s", output)
+		t.Errorf("expected healthy status for codex-only install with all binaries present; got:\n%s", output)
 	}
 }
 
@@ -1762,48 +1758,18 @@ func TestRenderDoctorReportDoesNotRenderRemedyMetadata(t *testing.T) {
 	}
 }
 
-// TestCheckEngramReachable_PiOnlyNativeEngramPasses covers a Pi-only host:
-// Engram on Pi runs through gentle-engram's native tools, not an MCP server,
-// so a missing Engram MCP entry is expected and 'gentle-ai sync' cannot and
-// should not create one.
-func TestCheckEngramReachable_PiOnlyNativeEngramPasses(t *testing.T) {
-	t.Setenv(engramHealthEnvVar, "")
-	probes := 0
-	orig := engramProbeStdioFn
-	engramProbeStdioFn = func(context.Context, time.Duration, string, ...string) error {
-		probes++
-		return nil
-	}
-	t.Cleanup(func() { engramProbeStdioFn = orig })
-
-	got := checkEngramReachable(context.Background(), t.TempDir(), []string{"pi"})
-
-	if got.Status != CheckStatusPass {
-		t.Fatalf("engram:reachable status = %q, detail = %q; want pass for Pi native Engram", got.Status, got.Detail)
-	}
-	if got.Remedy != nil {
-		t.Fatalf("engram:reachable remedy = %+v; want none for Pi native Engram", got.Remedy)
-	}
-	if !strings.Contains(got.Detail, "native") {
-		t.Fatalf("engram:reachable detail = %q; want it to explain Pi uses native Engram tools", got.Detail)
-	}
-	if probes != 0 {
-		t.Fatalf("stdio probe ran %d time(s); want 0 when no MCP configuration applies", probes)
-	}
-}
-
-// TestCheckEngramReachable_PiWithUnconfiguredMCPAgentWarns keeps the sync
-// warning when another installed agent still expects Engram MCP.
-func TestCheckEngramReachable_PiWithUnconfiguredMCPAgentWarns(t *testing.T) {
+// TestCheckEngramReachable_UnconfiguredMCPAgentWarns keeps the sync warning
+// when an installed agent expects Engram MCP but has none configured.
+func TestCheckEngramReachable_UnconfiguredMCPAgentWarns(t *testing.T) {
 	t.Setenv(engramHealthEnvVar, "")
 	setStdioProbeForTest(t, nil)
 
-	got := checkEngramReachable(context.Background(), t.TempDir(), []string{"pi", "claude-code"})
+	got := checkEngramReachable(context.Background(), t.TempDir(), []string{"claude-code"})
 
 	if got.Status != CheckStatusWarn {
-		t.Fatalf("engram:reachable status = %q, detail = %q; want warn when a non-Pi agent lacks Engram MCP", got.Status, got.Detail)
+		t.Fatalf("engram:reachable status = %q, detail = %q; want warn when an agent lacks Engram MCP", got.Status, got.Detail)
 	}
 	if got.Remedy == nil {
-		t.Fatal("expected sync remedy when a non-Pi agent lacks Engram MCP")
+		t.Fatal("expected sync remedy when an agent lacks Engram MCP")
 	}
 }

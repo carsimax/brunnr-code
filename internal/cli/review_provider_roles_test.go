@@ -119,7 +119,7 @@ func TestReviewProviderRefuterPromptIsRuntimeConditional(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, runtime := range []model.AgentID{model.AgentCodex, model.AgentClaudeCode, model.AgentPi, model.AgentOpenCode} {
+	for _, runtime := range []model.AgentID{model.AgentCodex, model.AgentClaudeCode, model.AgentOpenCode} {
 		prompt, err := reviewProviderRolePrompt(refuter, runtimeBudgetRolePromptRequest(""), string(runtime))
 		if err != nil {
 			t.Fatal(err)
@@ -151,7 +151,7 @@ func TestReviewProviderRefuterAdmissionNotesProbeUnavailable(t *testing.T) {
 	request.RequestHash = "sha256:" + strings.Repeat("a", 64)
 	request.Claims = []reviewtransaction.RefuterClaim{{FindingID: "R3-001", SnapshotIdentity: request.SnapshotIdentity, Proof: "tracked.txt:1 lens proof", Claim: "candidate failure"}}
 	raw := []byte(`{"refuter_request_hash":"` + request.RequestHash + `","results":[{"finding_id":"R3-001","outcome":"refuted","proof_refs":["tracked.txt:1 baseline already fails"]}]}`)
-	for _, runtime := range []model.AgentID{model.AgentClaudeCode, model.AgentPi, model.AgentOpenCode, model.AgentCodex} {
+	for _, runtime := range []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode, model.AgentCodex} {
 		request.Runtime = string(runtime)
 		result, err := reviewProviderAdmitRefuterRaw(request, raw)
 		if err != nil {
@@ -169,8 +169,8 @@ func TestReviewProviderRefuterAdmissionNotesProbeUnavailable(t *testing.T) {
 		}
 	}
 	// A refuter that already wrote the note does not get it twice.
-	request.Runtime = string(model.AgentPi)
-	noted := []byte(`{"refuter_request_hash":"` + request.RequestHash + `","results":[{"finding_id":"R3-001","outcome":"corroborated","proof_refs":["tracked.txt:1 read","probe unavailable on pi"]}]}`)
+	request.Runtime = string(model.AgentClaudeCode)
+	noted := []byte(`{"refuter_request_hash":"` + request.RequestHash + `","results":[{"finding_id":"R3-001","outcome":"corroborated","proof_refs":["tracked.txt:1 read","probe unavailable on claude-code"]}]}`)
 	result, err := reviewProviderAdmitRefuterRaw(request, noted)
 	if err != nil {
 		t.Fatal(err)
@@ -186,8 +186,7 @@ func TestReviewProviderRefuterAdmissionNotesProbeUnavailable(t *testing.T) {
 // no other runtime's invocation carries one.
 func TestReviewProviderCodexRefuterInvocationMaterializesTheCandidateTree(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-	repo, store, record, _ := piRefuterReview(t)
+	repo, store, record, _ := roleRefuterReviewForTest(t)
 	if err := os.WriteFile(filepath.Join(repo, "tracked.txt"), []byte("drifted after start\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +214,7 @@ func TestReviewProviderCodexRefuterInvocationMaterializesTheCandidateTree(t *tes
 		t.Fatal("Codex refuter prompt does not offer the probe its invocation carries")
 	}
 
-	for _, runtime := range []model.AgentID{model.AgentClaudeCode, model.AgentPi, model.AgentOpenCode} {
+	for _, runtime := range []model.AgentID{model.AgentClaudeCode, model.AgentOpenCode} {
 		state.RuntimeAgent = string(runtime)
 		other, err := reviewProviderNewRefuterRequest(t.Context(), repo, store.Dir, state, state.CapturePhaseRevision)
 		if err != nil {
@@ -256,7 +255,7 @@ func TestReviewProviderRefuterClaimsIncludeDeterministicSevereFindings(t *testin
 			classification("X-insufficient", reviewtransaction.EvidenceInsufficient, reviewtransaction.CausalIntroduced),
 		},
 	}
-	claims, err := reviewProviderRefuterClaims(snapshot, input, string(model.AgentPi))
+	claims, err := reviewProviderRefuterClaims(snapshot, input, string(model.AgentClaudeCode))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +271,7 @@ func TestReviewProviderRefuterClaimsIncludeDeterministicSevereFindings(t *testin
 	}
 
 	input.Classifications = input.Classifications[2:]
-	if _, err := reviewProviderRefuterClaims(snapshot, input, string(model.AgentPi)); !errors.Is(err, errReviewProviderRefuterNotRequired) {
+	if _, err := reviewProviderRefuterClaims(snapshot, input, string(model.AgentClaudeCode)); !errors.Is(err, errReviewProviderRefuterNotRequired) {
 		t.Fatalf("batch without severe candidate-caused findings = %v, want the not-required sentinel", err)
 	}
 }
@@ -296,7 +295,6 @@ func TestReviewProviderRefuterClaimsKeepDeterministicOnlyWhereARefuterRuns(t *te
 		runtime string
 		want    string
 	}{
-		{runtime: string(model.AgentPi), want: "D-introduced,I-worsened"},
 		{runtime: string(model.AgentOpenCode), want: "D-introduced,I-worsened"},
 		{runtime: string(model.AgentClaudeCode), want: "D-introduced,I-worsened"},
 		{runtime: string(model.AgentCodex), want: "D-introduced,I-worsened"},
@@ -321,17 +319,16 @@ func TestReviewProviderRefuterClaimsKeepDeterministicOnlyWhereARefuterRuns(t *te
 }
 
 // TestReviewCaptureRefuterDropsADeterministicSevereFinding drives L20 end to
-// end through the Pi host relay: a severe deterministic finding now requires
+// end through the compiled runtime: a severe deterministic finding now requires
 // the refuter batch, and a refuted verdict drops it to a refuted advisory on
 // an approved review instead of opening a correction.
 func TestReviewCaptureRefuterDropsADeterministicSevereFinding(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-	// START freezes the Pi runtime: a deterministic finding waits for the
-	// refuter only on a runtime that can run it.
+	// START freezes the compiled claude-code runtime: a deterministic finding
+	// waits for the refuter only on a runtime that can run it.
 	repo := initReviewCLIRepo(t)
 	writeReviewStartCandidate(t, repo, "tracked.txt", "candidate\n", 0o644)
-	started := startFacadeReviewForRuntime(t, repo, model.AgentPi)
+	started := startFacadeReviewForRuntime(t, repo, model.AgentClaudeCode)
 	store, err := reviewtransaction.CompactAuthoritativeStore(t.Context(), repo, started.LineageID)
 	if err != nil {
 		t.Fatal(err)
@@ -377,8 +374,9 @@ func TestReviewCaptureRefuterDropsADeterministicSevereFinding(t *testing.T) {
 	handle := rctx2ReviewRepositoryContextForTest(t, repo, reviewtransaction.ReviewRepositoryContextBinding{
 		LineageID: record.State.LineageID, TargetIdentity: record.State.InitialSnapshot.Identity, Revision: record.State.CapturePhaseRevision,
 	})
+	stubCompiledProviderRawForTest(t, raw)
 	var output bytes.Buffer
-	if err := RunReview(append(append([]string{"capture-refuter"}, piRefuterBinding(repo, record, handle)...), "--agent", "pi", "--input", writeReviewCLIRawInput(t, raw)), &output); err != nil {
+	if err := RunReview(append(append([]string{"capture-refuter"}, roleRefuterBindingForTest(repo, record, handle)...), "--agent", string(model.AgentClaudeCode), "--execute=true"), &output); err != nil {
 		t.Fatalf("capture refuter: %v\n%s", err, output.String())
 	}
 	var terminal reviewLastEventClosureResult

@@ -35,8 +35,8 @@ func TestAuthorizeReviewTransportCapabilityMatrix(t *testing.T) {
 		}
 	})
 	t.Run("absent claim fails closed", func(t *testing.T) {
-		// Every compiled adapter advertises ContractReviewTransportV1 since
-		// gentle-ai#3249 registered Pi, so the absent claim is synthesized
+		// Every compiled adapter advertises ContractReviewTransportV1, so the
+		// absent claim is synthesized
 		// through the resolution seam: a valid manifest whose transport
 		// exposure stays dormant.
 		previous := reviewTransportCapabilityForAgent
@@ -49,8 +49,8 @@ func TestAuthorizeReviewTransportCapabilityMatrix(t *testing.T) {
 			return manifest, nil
 		}
 		defer func() { reviewTransportCapabilityForAgent = previous }()
-		if err := authorizeReviewTransportCapability(string(model.AgentPi)); err == nil {
-			t.Fatal("authorizeReviewTransportCapability(pi) with a dormant transport claim = nil, want an absent-claim refusal")
+		if err := authorizeReviewTransportCapability(string(model.AgentCodex)); err == nil {
+			t.Fatal("authorizeReviewTransportCapability(codex) with a dormant transport claim = nil, want an absent-claim refusal")
 		}
 	})
 	t.Run("unrecognised claim fails closed", func(t *testing.T) {
@@ -111,7 +111,6 @@ func TestUnsupportedReviewTransportCapabilityStopsBeforeAnyAuthority(t *testing.
 }
 
 func TestReviewTransportAdmissionRefusalNamesWorkingExits(t *testing.T) {
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	repo := initReviewCLIRepo(t)
 	writeReviewStartCandidate(t, repo, "candidate.go", "package candidate\n", 0o644)
 
@@ -127,7 +126,7 @@ func TestReviewTransportAdmissionRefusalNamesWorkingExits(t *testing.T) {
 		t.Fatalf("unrecognised-runtime refusal code = %q, want %q", failure.Code, reviewTransportCapabilityUnsupportedCode)
 	}
 	const exit = "gentle-ai review mode disable --scope clone --cwd <repo>"
-	if !strings.Contains(failure.Cause, exit) || !strings.Contains(failure.Cause, string(model.AgentClaudeCode)) || !strings.Contains(failure.Cause, string(model.AgentOpenCode)) || !strings.Contains(failure.Cause, string(model.AgentPi)) {
+	if !strings.Contains(failure.Cause, exit) || !strings.Contains(failure.Cause, string(model.AgentClaudeCode)) || !strings.Contains(failure.Cause, string(model.AgentOpenCode)) {
 		t.Fatalf("transport refusal does not name actionable exits: %s", failure.Cause)
 	}
 }

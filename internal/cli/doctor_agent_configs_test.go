@@ -21,7 +21,6 @@ func TestRunDoctor_AgentConfigDirectories(t *testing.T) {
 		{"claude-code", ".claude"},
 		{"opencode", ".config/opencode"},
 		{"codex", ".codex"},
-		{"pi", ".pi"},
 	}
 	for _, tt := range tests {
 		for _, present := range []bool{false, true} {
@@ -60,7 +59,7 @@ func TestRunDoctor_AgentConfigSpecialCases(t *testing.T) {
 		dirs                []string
 	}{
 		{"unknown", `{"installed_agents":["future-agent"]}`, "  [!!]  state:json                     state lists unrecognized agent IDs: future-agent; inspect or repair the state file, then re-run 'gentle-ai doctor'", nil},
-		{"unknown and missing", `{"installed_agents":["future-agent","pi"]}`, "  [!!]  state:json                     state lists unrecognized agent IDs: future-agent; inspect or repair the state file, then re-run 'gentle-ai doctor'; config dirs are missing: pi", nil},
+		{"unknown and missing", `{"installed_agents":["future-agent","codex"]}`, "  [!!]  state:json                     state lists unrecognized agent IDs: future-agent; inspect or repair the state file, then re-run 'gentle-ai doctor'; config dirs are missing: codex", nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

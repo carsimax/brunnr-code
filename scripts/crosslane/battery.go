@@ -68,13 +68,10 @@ type battery struct {
 	// default ON, without ever writing to the operator's state.
 	sandboxHome string
 
-	envelopes        []capturedEnvelope
-	checks           []check
-	hostCosts        []string
-	piEnvironment    []string
-	piEnvironmentErr string
-	piRelayDir       string
-	lineages         map[string]lineageScope
+	envelopes []capturedEnvelope
+	checks    []check
+	hostCosts []string
+	lineages  map[string]lineageScope
 }
 
 func (b *battery) pass(lane, name, note string) {

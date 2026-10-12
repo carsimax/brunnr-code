@@ -14,11 +14,9 @@ import (
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/agentguidance"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/communitytool"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/engram"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/gga"
@@ -44,15 +42,13 @@ type Snapshotter interface {
 }
 
 type Result struct {
-	Manifest                         backup.Manifest
-	BackupPath                       string
-	ChangedFiles                     []string
-	RemovedFiles                     []string
-	RemovedDirectories               []string
-	RetainedPiResources              []string
-	OptionalPiPackageCleanupCommands []string
-	ManualActions                    []string
-	AgentsRemovedFromState           []model.AgentID
+	Manifest               backup.Manifest
+	BackupPath             string
+	ChangedFiles           []string
+	RemovedFiles           []string
+	RemovedDirectories     []string
+	ManualActions          []string
+	AgentsRemovedFromState []model.AgentID
 	// FailedAgents lists the agents whose cleanup did not complete. They are
 	// deliberately left in state.json so the recorded state keeps matching the
 	// disk, and each one is named in ManualActions with the command that
@@ -466,14 +462,6 @@ func (s *Service) buildPlan(agentIDs []model.AgentID, componentIDs []model.Compo
 	}
 
 	backupTargets[state.Path(s.homeDir)] = struct{}{}
-	if slices.Contains(agentIDs, model.AgentPi) {
-		for _, target := range communitytool.PiCodeGraphPaths(s.homeDir, s.workspaceDir) {
-			backupTargets[target] = struct{}{}
-		}
-		if piAdapter, ok := s.registry.Get(model.AgentPi); ok {
-			backupTargets[piAdapter.SystemPromptFile(s.homeDir)] = struct{}{}
-		}
-	}
 	if removesAllAgentComponents(componentIDs) {
 		for _, agentID := range agentIDs {
 			adapter, _ := s.registry.Get(agentID)
@@ -632,45 +620,6 @@ func (s *Service) executePlan(p plan, agentsToRemove []model.AgentID) (Result, e
 	// their state removal.
 	failures := make([]operationFailure, 0)
 
-	// Pi ownership hashes include the shared MCP file. Remove its managed entry
-	// before other component cleanup (notably Engram) mutates that file, otherwise
-	// an unrelated mutation is indistinguishable from user drift.
-	if slices.Contains(agentsToRemove, model.AgentPi) {
-		piResult, piErr := communitytool.UninstallPiCodeGraph(s.homeDir)
-		if piErr != nil {
-			failures = append(failures, operationFailure{
-				path:   firstOrEmpty(communitytool.PiCodeGraphPaths(s.homeDir, s.workspaceDir)),
-				agents: []model.AgentID{model.AgentPi},
-				err:    fmt.Errorf("remove Pi CodeGraph integration: %w", piErr),
-			})
-		} else {
-			result.ChangedFiles = append(result.ChangedFiles, piResult.Files...)
-			result.ManualActions = append(result.ManualActions, piResult.ManualActions...)
-		}
-
-		// Pi's SupportsSystemPrompt() gate keeps componentOperations() from
-		// ever queuing a rewrite for its SystemPromptFile, so a stale
-		// gentle-ai block left there by an older install is never cleaned up
-		// by the generic persona rewrite ops above. Retire it directly.
-		if piAdapter, ok := s.registry.Get(model.AgentPi); ok {
-			promptPath := piAdapter.SystemPromptFile(s.homeDir)
-			retireResult, retireErr := agentguidance.RetirePiSystemPromptBlocks(s.homeDir, piAdapter)
-			if retireErr != nil {
-				failures = append(failures, operationFailure{
-					path:   promptPath,
-					agents: []model.AgentID{model.AgentPi},
-					err:    fmt.Errorf("retire stale Pi system prompt blocks: %w", retireErr),
-				})
-			} else if retireResult.Changed {
-				if _, statErr := os.Stat(promptPath); os.IsNotExist(statErr) {
-					result.RemovedFiles = append(result.RemovedFiles, promptPath)
-				} else {
-					result.ChangedFiles = append(result.ChangedFiles, retireResult.Files...)
-				}
-			}
-		}
-	}
-
 	for _, op := range p.operations {
 		changed, removed, err := op.apply(op.path)
 		if op.report != nil {
@@ -713,11 +662,6 @@ func (s *Service) executePlan(p plan, agentsToRemove []model.AgentID) (Result, e
 				err:    fmt.Errorf("retire Claude orchestrator modules: %w", err),
 			})
 		}
-	}
-
-	if slices.Contains(agentsToRemove, model.AgentPi) {
-		result.RetainedPiResources = retainedPiResources(s.homeDir, s.workspaceDir)
-		result.OptionalPiPackageCleanupCommands = optionalPiPackageCleanupCommands()
 	}
 
 	result.FailedAgents = failedAgents(failures, agentsToRemove)
@@ -869,43 +813,6 @@ func firstOrEmpty(items []string) string {
 		return ""
 	}
 	return items[0]
-}
-
-// retainedPiResources returns existing Pi-owned runtime and configuration paths
-// that gentle-ai deliberately leaves intact because they can be shared with Pi,
-// gentle-pi packages, or user-managed configuration.
-func retainedPiResources(homeDir, workspaceDir string) []string {
-	paths := []string{
-		filepath.Join(homeDir, ".pi", "agent", "agents"),
-		filepath.Join(homeDir, ".pi", "agent", "chains"),
-		filepath.Join(homeDir, ".pi", "agent", "gentle-ai"),
-		filepath.Join(homeDir, ".pi", "agent", "subagents.json"),
-		filepath.Join(homeDir, ".pi", "gentle-ai"),
-	}
-	if workspaceDir != "" {
-		paths = append(paths, filepath.Join(workspaceDir, ".pi", "gentle-ai"))
-	}
-
-	retained := make([]string, 0, len(paths))
-	for _, path := range paths {
-		if _, err := os.Lstat(path); err == nil || !os.IsNotExist(err) {
-			retained = append(retained, path)
-		}
-	}
-	return retained
-}
-
-// optionalPiPackageCleanupCommands mirrors the Pi adapter's uninstall package
-// sources: the managed packages plus the retired pi-mcp-adapter that older
-// releases installed. Each command remains separate because Pi 0.85.1
-// supports `pi remove <source>`, not a bulk remove form.
-func optionalPiPackageCleanupCommands() []string {
-	sources := pi.UninstallPackageSources()
-	commands := make([]string, 0, len(sources))
-	for _, source := range sources {
-		commands = append(commands, "pi remove "+source)
-	}
-	return commands
 }
 
 func manualActionForNonEmptyDirectory(path string) (string, bool) {

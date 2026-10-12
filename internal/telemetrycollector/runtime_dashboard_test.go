@@ -360,7 +360,7 @@ func TestRuntimeDashboard(t *testing.T) {
 		{"2026-01-02", "version", "1.1.0", 1},
 		{"2026-01-02", "version", "1.1.0-0.20260102", 1},
 		{"2026-01-02", "version", "1.1.0-20260102", 2},
-		{"2026-01-02", "npm_downloads_day", "gentle-pi", 100},
+		{"2026-01-02", "npm_downloads_day", "gentle-tool", 100},
 		{"2026-01-02", "npm_downloads_day", "gentle-engram", 200},
 		{"2026-01-02", "github_release_downloads_total", "v1.0.0", 10},
 		{"2026-01-03", "github_release_downloads_total", "v1.0.0", 20},

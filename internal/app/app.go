@@ -637,11 +637,9 @@ func tuiExecuteWithBackground(
 	detection system.DetectionResult,
 	background model.OpenCodeBackgroundIntent,
 	backgroundPersist model.OpenCodeBackgroundIntent,
-	piBackground model.PiBackgroundIntent,
-	piBackgroundPersist model.PiBackgroundIntent,
 	onProgress pipeline.ProgressFunc,
 ) pipeline.ExecutionResult {
-	return tuiExecuteWithSDK(selection, resolved, detection, background, backgroundPersist, piBackground, piBackgroundPersist, onProgress, nil)
+	return tuiExecuteWithSDK(selection, resolved, detection, background, backgroundPersist, onProgress, nil)
 }
 
 func tuiExecuteWithSDK(
@@ -650,8 +648,6 @@ func tuiExecuteWithSDK(
 	detection system.DetectionResult,
 	background model.OpenCodeBackgroundIntent,
 	backgroundPersist model.OpenCodeBackgroundIntent,
-	piBackground model.PiBackgroundIntent,
-	piBackgroundPersist model.PiBackgroundIntent,
 	onProgress pipeline.ProgressFunc,
 	consent *cli.OpenCodeSDKConsent,
 ) pipeline.ExecutionResult {
@@ -666,7 +662,7 @@ func tuiExecuteWithSDK(
 	profile := cli.ResolveInstallProfile(detection)
 	resolved.PlatformDecision = planner.PlatformDecisionFromProfile(profile)
 
-	execResult, orchestrator, codexServiceTier := cli.ExecuteTUIInstallRecordingCodexServiceTier(homeDir, selection, resolved, profile, background, piBackground, onProgress, consent)
+	execResult, orchestrator, codexServiceTier := cli.ExecuteTUIInstallRecordingCodexServiceTier(homeDir, selection, resolved, profile, background, onProgress, consent)
 	// The TUI settles asynchronously: keep its deduplicated rollback snapshot
 	// until state persistence succeeds or the failure has been compensated.
 	if orchestrator != nil {
@@ -705,9 +701,6 @@ func tuiExecuteWithSDK(
 			installState.SetSelection(selection)
 			if backgroundPersist != "" {
 				installState.BackgroundIntent = backgroundPersist
-			}
-			if piBackgroundPersist != "" {
-				installState.PiBackgroundIntent = piBackgroundPersist
 			}
 			if writeErr := appStateWriteReconciled(homeDir, installState); writeErr != nil {
 				return fmt.Errorf("persist install state: %w", writeErr)
@@ -1238,7 +1231,7 @@ func tuiReviewStoreSurvey() (reviewtransaction.StoreResetReport, error) {
 
 // tuiReviewStoreReset applies the reset for that same clone.
 //
-// It never sets IncludeInFlight, and never sets IncludeAdapterReviews either.
+// It never sets IncludeInFlight.
 // The TUI has no keystroke that destroys a review somebody is in the middle of,
 // nor one that destroys a store this command cannot classify: the confirmation
 // screen refuses outright and prints the CLI invocation that overrides it, so

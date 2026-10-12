@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -400,16 +399,11 @@ func reviewLensContextStatusBudgetExhausted(ctx context.Context, repo string, st
 }
 
 // reviewEffectiveRuntime is the runtime a STATUS renders for: the declared
-// --agent, else Pi when the exact Pi relay handshake is present (the same
-// proof that admits Pi, so the invocation is Pi-driven), else the runtime the
-// lineage froze at START. A lineage that froze no runtime keeps the manual
-// route.
+// --agent, else the runtime the lineage froze at START. A lineage that froze
+// no runtime keeps the manual route.
 func reviewEffectiveRuntime(declared model.AgentID, frozen string) model.AgentID {
 	if declared != "" {
 		return declared
-	}
-	if frozen != "" && os.Getenv(reviewPiHostRelayContractEnvironment) == reviewPiHostRelayContract {
-		return model.AgentPi
 	}
 	return model.AgentID(frozen)
 }

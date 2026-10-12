@@ -668,7 +668,7 @@ func RunReview(args []string, stdout io.Writer) error {
 // the negotiated collect transitions render their submission argv. Their
 // success paths already print one JSON document on stdout unconditionally, so
 // refusals printing one JSON document is symmetric; without it a machine
-// caller that parses stdout (the gentle-pi runtime's shared invoke path) can
+// caller that parses stdout can
 // only classify the refusal as empty-output with mutation outcome unknown --
 // a false ambiguity for a refusal that provably never started. The
 // operator-facing error still returns unchanged, so stderr keeps its
@@ -933,8 +933,7 @@ func runReviewStatus(ctx context.Context, args []string, stdout io.Writer) error
 		// pendingApprovedTerminalTarget carries the exact frozen target kind
 		// and base ref an approved-pending lineage resumed below, so a
 		// selectorless refresh can rebuild the same committed-range
-		// projection instead of silently defaulting to current-changes
-		// (gentle-pi#569).
+		// projection instead of silently defaulting to current-changes.
 		var pendingApprovedTerminalTarget *reviewtransaction.Snapshot
 		if selectedProjection == reviewtransaction.ProjectionStaged {
 			if reviewIntendedUntrackedDeclared(untrackedScope, intendedUntracked, expectedUntrackedInventory) {
@@ -1003,7 +1002,7 @@ func runReviewStatus(ctx context.Context, args []string, stdout io.Writer) error
 				target.BaseRef = selectedBaseTree
 			}
 		}
-		// Issue gentle-pi#569: a caller-authorized committed-range approval
+		// A caller-authorized committed-range approval
 		// (base-diff, committed-only) must survive a selectorless STATUS
 		// refresh performed only to reach `review.acknowledge-approved`. The
 		// caller supplied no --base-ref/--committed-only/--workspace-overlay
@@ -1400,15 +1399,14 @@ func runReviewStatus(ctx context.Context, args []string, stdout io.Writer) error
 							if runtime == "" && record.State.RuntimeAgent != "" {
 								// The lineage froze its runtime at START, so a STATUS
 								// that omits --agent still binds every lens, refuter,
-								// and validator slot to the runtime driving it: Pi
-								// under its relay handshake, else the frozen one
+								// and validator slot to the frozen runtime
 								// (#3805, #4808). A record without the field keeps
 								// the manual route.
 								if recorded, recordedErr := reviewRuntimeWithImmutableTransport(string(reviewEffectiveRuntime("", record.State.RuntimeAgent))); recordedErr == nil {
 									runtime = recorded
 								}
 							}
-							providerRoleHost := runtime == model.AgentOpenCode || reviewProviderHostRelayMaterializeRuntime(runtime) || reviewProviderCaptureRuntime(runtime)
+							providerRoleHost := runtime == model.AgentOpenCode || reviewProviderCaptureRuntime(runtime)
 							if providerRoleHost && record.State.State == reviewtransaction.StateReviewing && len(artifacts) == len(record.State.SelectedLenses) {
 								_, readErr := readCapturedProviderRefuterResult(ctx, root, store.Dir, record.State, record.State.CapturePhaseRevision)
 								switch {
@@ -1513,10 +1511,9 @@ func runReviewStatus(ctx context.Context, args []string, stdout io.Writer) error
 			// A negotiated invocation is the machine surface end to end: the
 			// stdout JSON envelope carries every routing fact (kind,
 			// reason_code, forecast), and a successful operation writes zero
-			// bytes to stderr. gentle-pi fails closed (UNEXPECTED_STDERR) on
-			// any stderr a successful native process writes, so the Tier C
-			// stop narration that used to print here was removed rather than
-			// allowlisted downstream. The registered Tier C statements remain
+			// bytes to stderr, so machine callers can fail closed on any
+			// stderr a successful native process writes; the Tier C stop
+			// narration that used to print here was removed for that reason. The registered Tier C statements remain
 			// in review_narration.go as the human-surface vocabulary source.
 		}
 		// The current status schema is emitted unconditionally for contract v2:

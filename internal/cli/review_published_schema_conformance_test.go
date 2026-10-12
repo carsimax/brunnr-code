@@ -9,6 +9,7 @@ import (
 
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 
+	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
 )
 
@@ -125,14 +126,12 @@ func TestPublishedLastEventClosureSchemaAcceptsApprovedTerminalCapture(t *testin
 
 func TestPublishedLastEventClosureSchemaAcceptsTerminalRefuterCapture(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-	repo, store, record, handle := piRefuterReview(t)
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	resultFile := writeReviewCLIRawInput(t, piRefuterRawResult(t, repo, store, record))
+	repo, store, record, handle := roleRefuterReviewForTest(t)
+	// The compiled runtime returns the canned raw result through --execute.
+	stubCompiledProviderRawForTest(t, roleRefuterRawResultForTest(t, repo, store, record))
 
 	var output bytes.Buffer
-	if err := RunReview(append(append([]string{"capture-refuter"}, piRefuterBinding(repo, record, handle)...), "--agent", "pi", "--input", resultFile), &output); err != nil {
+	if err := RunReview(append(append([]string{"capture-refuter"}, roleRefuterBindingForTest(repo, record, handle)...), "--agent", string(model.AgentClaudeCode), "--execute=true"), &output); err != nil {
 		t.Fatal(err)
 	}
 
@@ -142,7 +141,6 @@ func TestPublishedLastEventClosureSchemaAcceptsTerminalRefuterCapture(t *testing
 
 func TestPublishedLastEventClosureSchemaAcceptsRejectedTargetedValidatorCapture(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	repo, lineage, request := providerCorrectionReadyWithoutVerificationEvidence(t)
 	store, err := reviewtransaction.CompactAuthoritativeStore(t.Context(), repo, lineage)
 	if err != nil {
@@ -166,9 +164,8 @@ func TestPublishedLastEventClosureSchemaAcceptsRejectedTargetedValidatorCapture(
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	failedResultFile := writeReviewCLIRawInput(t, failedPayload)
+	// The compiled runtime returns the canned raw result through --execute.
+	stubCompiledProviderRawForTest(t, failedPayload)
 
 	var output bytes.Buffer
 	if err := RunReviewCaptureValidation([]string{
@@ -177,8 +174,8 @@ func TestPublishedLastEventClosureSchemaAcceptsRejectedTargetedValidatorCapture(
 		"--target", request.CorrectionTargetIdentity,
 		"--expected-revision", record.State.CapturePhaseRevision,
 		"--request-hash", request.RequestHash,
-		"--agent", "pi",
-		"--input", failedResultFile,
+		"--agent", string(model.AgentClaudeCode),
+		"--execute=true",
 	}, &output); err != nil {
 		t.Fatalf("capture rejected targeted validator: %v\\n%s", err, output.String())
 	}
@@ -221,14 +218,12 @@ func TestPublishedLastEventClosureSchemaAcceptsRejectedTargetedValidatorCapture(
 
 func TestPublishedLastEventClosureSchemaRejectsNonStatusCorrectionContinuation(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-	repo, store, record, handle := piRefuterReview(t)
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	resultFile := writeReviewCLIRawInput(t, piRefuterRawResult(t, repo, store, record))
+	repo, store, record, handle := roleRefuterReviewForTest(t)
+	// The compiled runtime returns the canned raw result through --execute.
+	stubCompiledProviderRawForTest(t, roleRefuterRawResultForTest(t, repo, store, record))
 
 	var output bytes.Buffer
-	if err := RunReview(append(append([]string{"capture-refuter"}, piRefuterBinding(repo, record, handle)...), "--agent", "pi", "--input", resultFile), &output); err != nil {
+	if err := RunReview(append(append([]string{"capture-refuter"}, roleRefuterBindingForTest(repo, record, handle)...), "--agent", string(model.AgentClaudeCode), "--execute=true"), &output); err != nil {
 		t.Fatal(err)
 	}
 	var closure map[string]any

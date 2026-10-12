@@ -118,11 +118,11 @@ func TestRenderedSurfaceNamesOnlyItsOwnRuntime(t *testing.T) {
 	}
 
 	// The review contract is now rendered separately from the historical
-	// combined goldens. Require a real bound command for every non-Pi review
+	// combined goldens. Require a real bound command for every review
 	// runtime, and reject cross-binding or unextractable bindings there too.
 	for _, agent := range catalog.AllAgents() {
 		id := agent.ID
-		if !reviewerprovider.RegisteredRuntime(id) && id != model.AgentPi {
+		if !reviewerprovider.RegisteredRuntime(id) {
 			continue
 		}
 		t.Run(string(id), func(t *testing.T) {
@@ -145,11 +145,7 @@ func TestRenderedSurfaceNamesOnlyItsOwnRuntime(t *testing.T) {
 			if raw := len(rawAgentBindingRegexp.FindAllString(content, -1)); raw != found {
 				t.Errorf("review contract carries %d --agent bindings but only %d are extractable invocations", raw, found)
 			}
-			if id == model.AgentPi {
-				if found != 0 {
-					t.Errorf("Pi uses facade operations, not --agent CLI bindings; found %d", found)
-				}
-			} else if found == 0 {
+			if found == 0 {
 				t.Fatal("rendered review contract contains no bound --agent invocation")
 			}
 			verified += found

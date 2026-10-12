@@ -65,7 +65,6 @@ func TestIsolateProtectsExternalOpenCodeConfig(t *testing.T) {
 				"HOME":                       home, "USERPROFILE": home,
 				"XDG_CONFIG_HOME":                external,
 				"OPENCODE_CONFIG_DIR":            filepath.Join(root, "override-opencode"),
-				"PI_CODING_AGENT_DIR":            filepath.Join(root, "override-pi"),
 				"GENTLE_AI_TESTENV_EXPLICIT_XDG": "",
 			}
 			if scenario == "unset" {

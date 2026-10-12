@@ -57,7 +57,7 @@ Run focused tests first. Broad suites, builds, formatters, or linters may run on
 
 ## Verification
 
-When the parent task carries a `## Verification` heading, that heading is the delegated verification contract for this task (gentle-pi#661, RDD-aware pilot):
+When the parent task carries a `## Verification` heading, that heading is the delegated verification contract for this task (RDD-aware pilot):
 
 - Run every command listed under it exactly as written, one at a time, in the foreground. Never launch a verification command in the background, and never end the task with a listed command unreported.
 - A long foreground command is live work, not silence: while a tool call is in flight the runner's stall watchdog uses `tool_stall_timeout_ms` (default 30 minutes) instead of the `stall_timeout_ms` idle budget, so an announced verification command is not killed mid-run.

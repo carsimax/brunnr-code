@@ -63,7 +63,6 @@ func TestTUIOpenCodeSDKConsentProvisioningIntegration(t *testing.T) {
 			m.Selection = model.Selection{Agents: []model.AgentID{model.AgentOpenCode}}
 			m.DependencyPlan.Agents = m.Selection.Agents
 			m.BackgroundIntent = model.OpenCodeBackgroundOff
-			m.PiBackgroundIntent = model.PiBackgroundOff
 			m.ExecuteSDKFn = tuiExecuteWithSDK
 			m.Screen, m.Cursor = tui.ScreenReview, 0
 			updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -211,7 +210,6 @@ func runSDKFullApplyIntegration(t *testing.T, home, config, log string, realSDK 
 	m.Selection = model.Selection{Agents: []model.AgentID{model.AgentOpenCode}}
 	m.DependencyPlan.Agents = m.Selection.Agents
 	m.BackgroundIntent = model.OpenCodeBackgroundOff
-	m.PiBackgroundIntent = model.PiBackgroundOff
 	m.InstallReviewModeChoiceSet = false
 	m.ExecuteSDKFn = tuiExecuteWithSDK
 	// Fail closed if this flow unexpectedly schedules native review-mode work.

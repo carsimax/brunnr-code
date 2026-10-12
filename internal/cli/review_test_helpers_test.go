@@ -15,8 +15,7 @@ import (
 
 // writeReviewCLIRawInput writes raw provider role result bytes to a temp file
 // and returns its path, for tests driving the `--input=<path>` submission
-// form a host-relay runtime uses after it materializes and runs its own
-// reviewer (#4611): Go never spawns anything for these tests either.
+// form.
 func writeReviewCLIRawInput(t *testing.T, raw []byte) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "role-result.json")
@@ -30,7 +29,7 @@ func writeReviewCLIRawInput(t *testing.T, raw []byte) string {
 // lineage requires once every lens is captured with a severe candidate-caused
 // finding (L20: deterministic findings reach the refuter too when the frozen
 // runtime can run it; otherwise it returns a zero closure). It corroborates
-// every issued claim through the public host-relay capture and returns the
+// every issued claim through the compiled capture and returns the
 // terminal closure, which leaves the lineage where the last lens capture used
 // to leave it when deterministic findings were corroborated without a refuter.
 func corroborateRefuterClaimsForTest(t *testing.T, repo, lineage string) reviewLastEventClosureResult {
@@ -62,10 +61,11 @@ func corroborateRefuterClaimsForTest(t *testing.T, repo, lineage string) reviewL
 	if err != nil {
 		t.Fatal(err)
 	}
+	stubCompiledProviderRawForTest(t, raw)
 	var output bytes.Buffer
 	if err := RunReview([]string{
 		"capture-refuter", "--cwd", root, "--lineage", lineage, "--target", record.State.InitialSnapshot.Identity,
-		"--expected-revision", record.State.CapturePhaseRevision, "--agent", "pi", "--input", writeReviewCLIRawInput(t, raw),
+		"--expected-revision", record.State.CapturePhaseRevision, "--agent", string(model.AgentClaudeCode), "--execute=true",
 	}, &output); err != nil {
 		t.Fatalf("capture corroborating refuter: %v\n%s", err, output.String())
 	}

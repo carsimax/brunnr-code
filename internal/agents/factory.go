@@ -6,7 +6,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
 
@@ -14,7 +13,6 @@ var defaultAgentIDs = []model.AgentID{
 	model.AgentClaudeCode,
 	model.AgentOpenCode,
 	model.AgentCodex,
-	model.AgentPi,
 }
 
 func NewAdapter(agent model.AgentID) (Adapter, error) {
@@ -25,8 +23,6 @@ func NewAdapter(agent model.AgentID) (Adapter, error) {
 		return opencode.NewAdapter(), nil
 	case model.AgentCodex:
 		return codex.NewAdapter(), nil
-	case model.AgentPi:
-		return pi.NewAdapter(), nil
 	default:
 		return nil, AgentNotSupportedError{Agent: agent}
 	}

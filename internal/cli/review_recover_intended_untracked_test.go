@@ -96,14 +96,12 @@ func escalateReviewForRecovery(t *testing.T, repo string, started ReviewFacadeSt
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	resultFile := writeReviewCLIRawInput(t, payload)
+	// The compiled runtime returns the canned raw result through --execute.
+	stubCompiledProviderRawForTest(t, payload)
 	if err := RunReviewCaptureValidation([]string{
 		"--cwd", repo, "--lineage", started.LineageID, "--target", request.CorrectionTargetIdentity,
 		"--expected-revision", record.State.CapturePhaseRevision, "--request-hash", request.RequestHash,
-		"--agent", string(model.AgentPi), "--input", resultFile,
+		"--agent", string(model.AgentClaudeCode), "--execute=true",
 	}, io.Discard); err != nil {
 		t.Fatalf("capture rejected targeted validator: %v", err)
 	}

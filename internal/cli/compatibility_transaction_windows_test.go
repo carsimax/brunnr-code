@@ -157,7 +157,7 @@ func TestExecuteTUIInstallClosesWindowsCompatibilityTransactionAfterSuccess(t *t
 		closeCount++
 	})
 	selection, resolved, profile := windowsTUICompatibilityPlan()
-	result, _, _ := ExecuteTUIInstallRecordingCodexServiceTier(home, selection, resolved, profile, model.OpenCodeBackgroundAuto, model.PiBackgroundIntent(""), nil)
+	result, _, _ := ExecuteTUIInstallRecordingCodexServiceTier(home, selection, resolved, profile, model.OpenCodeBackgroundAuto, nil)
 	if result.Err != nil {
 		t.Fatalf("ExecuteTUIInstallRecordingCodexServiceTier() error = %v", result.Err)
 	}
@@ -190,7 +190,7 @@ func TestExecuteTUIInstallClosesWindowsCompatibilityTransactionAfterRollback(t *
 	})
 
 	selection, resolved, profile := windowsTUICompatibilityPlan()
-	result, _, _ := ExecuteTUIInstallRecordingCodexServiceTier(home, selection, resolved, profile, model.OpenCodeBackgroundAuto, model.PiBackgroundIntent(""), nil)
+	result, _, _ := ExecuteTUIInstallRecordingCodexServiceTier(home, selection, resolved, profile, model.OpenCodeBackgroundAuto, nil)
 	if result.Err == nil {
 		t.Fatal("ExecuteTUIInstallRecordingCodexServiceTier() error = nil, want post-publication failure")
 	}

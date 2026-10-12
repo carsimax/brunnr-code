@@ -89,12 +89,11 @@ func TestSelectorlessStatusDoesNotRestartEscalatedCandidate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-	resultFile := writeReviewCLIRawInput(t, payload)
+	stubCompiledProviderRawForTest(t, payload)
 	if err := RunReviewCaptureValidation([]string{
 		"--cwd", repo, "--lineage", lineage, "--target", request.CorrectionTargetIdentity,
 		"--expected-revision", record.State.CapturePhaseRevision, "--request-hash", request.RequestHash,
-		"--agent", string(model.AgentPi), "--input", resultFile,
+		"--agent", string(model.AgentClaudeCode), "--execute=true",
 	}, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}

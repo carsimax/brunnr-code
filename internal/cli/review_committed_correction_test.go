@@ -18,7 +18,6 @@ import (
 
 func TestCommittedBaseDiffLastReviewerCapturePublishesExactStatusContinuation(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	repo := initReviewCLIRepo(t)
 	const baseRef = "frozen-base"
 	const lineage = "committed-last-capture-continuation"
@@ -290,7 +289,7 @@ func TestCorrectionStatusContinuationRefusesUnsupportedTargetKind(t *testing.T) 
 				InitialSnapshot: reviewtransaction.Snapshot{
 					Kind: kind, Identity: "sha256:" + strings.Repeat("a", 64),
 				},
-			}, "sha256:"+strings.Repeat("b", 64), model.AgentPi)
+			}, "sha256:"+strings.Repeat("b", 64), model.AgentClaudeCode)
 			if continuation != nil {
 				t.Fatalf("unsupported target kind %q emitted selector-incomplete continuation %#v", kind, continuation)
 			}
@@ -301,7 +300,6 @@ func TestCorrectionStatusContinuationRefusesUnsupportedTargetKind(t *testing.T) 
 func TestSelectorlessCommittedCorrectionClosesOnTargetedValidation(t *testing.T) {
 	for _, amend := range []bool{false, true} {
 		t.Run(map[bool]string{false: "commit", true: "amend"}[amend], func(t *testing.T) {
-			t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 			repo, base, lineage := forecastCommittedCorrection(t)
 			writeCommittedCorrection(t, repo, amend)
 			// The mutable ref must not influence the frozen correction boundary.
@@ -326,14 +324,10 @@ func TestSelectorlessCommittedCorrectionClosesOnTargetedValidation(t *testing.T)
 				t.Fatalf("post-commit correction status = %#v", status)
 			}
 			request := status.ValidationRequest
-			// The pi host relay submits its own raw result through --input
-			// (#4611): Go never spawns anything for this capture.
-			submission := status.NextTransition.Collect.Inputs[0].Submission
-			resultFile := writeReviewCLIRawInput(t, providerTargetedValidationPayload(t, *request))
-			submit := append([]string{"--cwd", repo}, submission.ArgumentTokens...)
-			for index := range submit {
-				submit[index] = strings.ReplaceAll(submit[index], reviewSubmissionValuePlaceholder, resultFile)
-			}
+			// The compiled runtime returns the canned raw result through the
+			// rendered --execute collect input.
+			stubCompiledProviderRawForTest(t, providerTargetedValidationPayload(t, *request))
+			submit := append([]string{"--cwd", repo}, collectInputArgumentTokensForTest(status.NextTransition.Collect.Inputs[0])...)
 			var terminalOutput bytes.Buffer
 			if err := RunReviewCaptureValidation(submit, &terminalOutput); err != nil {
 				t.Fatalf("capture selector-less targeted validation: %v\n%s", err, terminalOutput.String())
@@ -350,7 +344,6 @@ func TestSelectorlessCommittedCorrectionClosesOnTargetedValidation(t *testing.T)
 
 func TestStagedCorrectionClosesOnTargetedValidation(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	repo := initReviewCLIRepo(t)
 	writeReviewStartCandidate(t, repo, "tracked.txt", "base\none\ntwo\nthree\nwrong\n", 0o755)
 	runReviewCLIGit(t, repo, "add", "tracked.txt")
@@ -377,7 +370,7 @@ func TestStagedCorrectionClosesOnTargetedValidation(t *testing.T) {
 	var statusOutput bytes.Buffer
 	if err := RunReview([]string{
 		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--next-transition",
-		"--lineage", started.LineageID, "--projection", "staged", "--agent", "pi",
+		"--lineage", started.LineageID, "--projection", "staged", "--agent", "claude-code",
 	}, &statusOutput); err != nil {
 		t.Fatalf("staged correction status: %v\n%s", err, statusOutput.String())
 	}
@@ -389,14 +382,10 @@ func TestStagedCorrectionClosesOnTargetedValidation(t *testing.T) {
 		t.Fatalf("staged correction status = %#v", status)
 	}
 	request := status.ValidationRequest
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	submission := status.NextTransition.Collect.Inputs[0].Submission
-	resultFile := writeReviewCLIRawInput(t, providerTargetedValidationPayload(t, *request))
-	submit := append([]string{"--cwd", repo}, submission.ArgumentTokens...)
-	for index := range submit {
-		submit[index] = strings.ReplaceAll(submit[index], reviewSubmissionValuePlaceholder, resultFile)
-	}
+	// The compiled runtime returns the canned raw result through the
+	// rendered --execute collect input.
+	stubCompiledProviderRawForTest(t, providerTargetedValidationPayload(t, *request))
+	submit := append([]string{"--cwd", repo}, collectInputArgumentTokensForTest(status.NextTransition.Collect.Inputs[0])...)
 	var terminalOutput bytes.Buffer
 	if err := RunReviewCaptureValidation(submit, &terminalOutput); err != nil {
 		t.Fatalf("capture staged targeted validation: %v\n%s", err, terminalOutput.String())
@@ -636,7 +625,7 @@ func committedCorrectionStatus(t *testing.T, repo, lineage, baseTree string) Rev
 	var output bytes.Buffer
 	if err := RunReview([]string{
 		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2, "--next-transition", "--lineage", lineage,
-		"--base-ref", baseTree, "--committed-only", "--agent", "pi",
+		"--base-ref", baseTree, "--committed-only", "--agent", "claude-code",
 	}, &output); err != nil {
 		t.Fatal(err)
 	}

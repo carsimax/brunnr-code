@@ -227,38 +227,3 @@ func TestCheckDependenciesStepPassesWhenNpmPresent(t *testing.T) {
 		})
 	}
 }
-
-// TestCheckDependenciesStepFailsWhenNpmMissingForPi verifies that selecting Pi with
-// npm absent produces a clear, actionable Node.js / npm error before any npm command
-// runs. Pi's install always runs engramInitCommand(), which falls through to
-// `npm exec` when pnpm is absent — so npm (and Node.js) is an unconditional
-// requirement, and Pi is the one agent this step still preflights.
-func TestCheckDependenciesStepFailsWhenNpmMissingForPi(t *testing.T) {
-	restore := installcmd.OverrideLookPath(func(file string) (string, error) {
-		// pi binary is present, but npm (and pnpm) are absent.
-		if file == "pi" {
-			return "/usr/local/bin/pi", nil
-		}
-		return "", errNotFound{}
-	})
-	t.Cleanup(restore)
-
-	step := checkDependenciesStep{
-		id:      "prepare:check-dependencies",
-		profile: windowsProfile,
-		selection: model.Selection{
-			Agents: []model.AgentID{model.AgentPi},
-		},
-	}
-
-	err := step.Run()
-	if err == nil {
-		t.Fatal("checkDependenciesStep.Run() expected error for missing npm when pi is selected")
-	}
-	if !strings.Contains(err.Error(), "npm") {
-		t.Fatalf("checkDependenciesStep.Run() error = %q, want npm remediation hint", err.Error())
-	}
-	if !strings.Contains(err.Error(), "Node.js") {
-		t.Fatalf("checkDependenciesStep.Run() error = %q, want Node.js remediation hint", err.Error())
-	}
-}

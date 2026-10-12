@@ -2,7 +2,6 @@ package uninstall
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/fs"
 	"maps"
@@ -11,17 +10,14 @@ import (
 	"runtime"
 	"slices"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/components/communitytool"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/engram"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/gga"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/opencodedefault"
@@ -796,107 +792,6 @@ func TestReconcileSharedComponentsWithUnreadableState(t *testing.T) {
 	})
 }
 
-func TestBuildPlanSnapshotsPiManifestAndOwnedOverlay(t *testing.T) {
-	homeDir := t.TempDir()
-	svc, err := NewService(homeDir, t.TempDir(), "dev")
-	if err != nil {
-		t.Fatal(err)
-	}
-	packageChild := filepath.Join(homeDir, ".pi", "agent", "node_modules", "gentle-pi", "subagents", "package.md")
-	if err := os.MkdirAll(filepath.Dir(packageChild), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(packageChild, []byte("---\ntools: bash\n---\npackage\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := communitytool.ReconcilePiCodeGraph(communitytool.PiCodeGraphOptions{HomeDir: homeDir, Selected: true, EffectiveMCPProbe: piCodeGraphProbeForServiceTest}); err != nil {
-		t.Fatal(err)
-	}
-	plan, err := svc.buildPlan([]model.AgentID{model.AgentPi}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	paths := communitytool.PiCodeGraphPaths(homeDir, "")
-	for _, path := range paths {
-		if !slices.Contains(plan.backupTargets, path) {
-			t.Fatalf("backup targets = %v, missing Pi artifact %q", plan.backupTargets, path)
-		}
-	}
-	promptPath := pi.NewAdapter().SystemPromptFile(homeDir)
-	if !slices.Contains(plan.backupTargets, promptPath) {
-		t.Fatalf("backup targets = %v, missing Pi system prompt file %q", plan.backupTargets, promptPath)
-	}
-}
-
-// TestExecutePlanRetiresStalePiSystemPromptBlocks covers issue #4057: a Pi
-// install made before SupportsSystemPrompt()==false for Pi left gentle-ai
-// managed blocks in ~/.pi/agent/APPEND_SYSTEM.md. Since adapter.SupportsSystemPrompt()
-// is false, componentOperations() never queues a rewrite op for that file, so
-// uninstall must retire the stale blocks directly.
-func TestExecutePlanRetiresStalePiSystemPromptBlocks(t *testing.T) {
-	home := t.TempDir()
-	svc, err := NewService(home, t.TempDir(), "dev")
-	if err != nil {
-		t.Fatal(err)
-	}
-	svc.snapshotter = stubSnapshotter{}
-
-	promptPath := pi.NewAdapter().SystemPromptFile(home)
-	if err := os.MkdirAll(filepath.Dir(promptPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	stale := "user text\n\n<!-- gentle-ai:sdd-orchestrator -->\nSDD body\n<!-- /gentle-ai:sdd-orchestrator -->\n"
-	if err := os.WriteFile(promptPath, []byte(stale), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	result, err := svc.executePlan(plan{}, []model.AgentID{model.AgentPi})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	got := string(mustReadServiceFile(t, promptPath))
-	want := "user text\n\n\n"
-	if got != want {
-		t.Fatalf("APPEND_SYSTEM.md = %q, want %q", got, want)
-	}
-	if !slices.Contains(result.ChangedFiles, promptPath) {
-		t.Fatalf("ChangedFiles = %v, want to contain %q", result.ChangedFiles, promptPath)
-	}
-}
-
-func TestExecutePlanCleansPiBeforeSharedMCPMutation(t *testing.T) {
-	home := t.TempDir()
-	svc, err := NewService(home, t.TempDir(), "dev")
-	if err != nil {
-		t.Fatal(err)
-	}
-	svc.snapshotter = stubSnapshotter{}
-	mcpPath := filepath.Join(home, ".pi", "agent", "mcp.json")
-	child := filepath.Join(home, ".pi", "agent", "subagents", "worker.md")
-	if err := os.MkdirAll(filepath.Dir(child), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(child, []byte("---\ntools: bash\n---\nwork\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := communitytool.ReconcilePiCodeGraph(communitytool.PiCodeGraphOptions{HomeDir: home, Selected: true, EffectiveMCPProbe: piCodeGraphProbeForServiceTest}); err != nil {
-		t.Fatal(err)
-	}
-	result, err := svc.executePlan(plan{operations: []operation{{path: mcpPath, apply: func(path string) (bool, bool, error) {
-		return true, false, os.WriteFile(path, []byte(`{"mcpServers":{"engram":{"command":"engram"}}}`), 0o600)
-	}}}}, []model.AgentID{model.AgentPi})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if body := string(mustReadServiceFile(t, mcpPath)); strings.Contains(body, `"codegraph"`) {
-		t.Fatalf("false drift preserved CodeGraph entry: %s", body)
-	}
-	if slices.ContainsFunc(result.ManualActions, func(action string) bool { return strings.Contains(action, "CodeGraph MCP drifted") }) {
-		t.Fatalf("manual actions = %v, want no false drift", result.ManualActions)
-	}
-}
-
 func mustReadServiceFile(t *testing.T, path string) []byte {
 	t.Helper()
 	data, err := os.ReadFile(path)
@@ -904,185 +799,6 @@ func mustReadServiceFile(t *testing.T, path string) []byte {
 		t.Fatal(err)
 	}
 	return data
-}
-
-func TestExecutePlanPiUninstallPreservesPreexistingMarkedUserChildAndUserMCP(t *testing.T) {
-	homeDir := t.TempDir()
-	svc, err := NewService(homeDir, t.TempDir(), "dev")
-	if err != nil {
-		t.Fatalf("NewService() error = %v", err)
-	}
-	svc.snapshotter = stubSnapshotter{}
-	mcpPath := filepath.Join(homeDir, ".pi", "agent", "mcp.json")
-	childPath := filepath.Join(homeDir, ".pi", "agent", "subagents", "worker.md")
-	preexisting := "---\ntools: bash, mcp\n---\nuser instructions\n\n<!-- gentle-ai:pi-codegraph-tool -->\npreexisting tool guidance\n<!-- /gentle-ai:pi-codegraph -->\n\n<!-- gentle-ai:pi-codegraph-guidance -->\npreexisting lazy-init guidance\n<!-- /gentle-ai:pi-codegraph -->\n"
-	if err := os.MkdirAll(filepath.Dir(mcpPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(mcpPath, []byte(`{"mcpServers":{"user":{"command":"user-server"}}}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(filepath.Dir(childPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(childPath, []byte(preexisting), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := communitytool.ReconcilePiCodeGraph(communitytool.PiCodeGraphOptions{HomeDir: homeDir, Selected: true, EffectiveMCPProbe: piCodeGraphProbeForServiceTest}); err != nil {
-		t.Fatalf("ReconcilePiCodeGraph() error = %v", err)
-	}
-
-	result, err := svc.executePlan(plan{}, []model.AgentID{model.AgentPi})
-	if err != nil {
-		t.Fatalf("executePlan() error = %v", err)
-	}
-	if got, err := os.ReadFile(childPath); err != nil || string(got) != preexisting {
-		t.Fatalf("service uninstall child = %q, err = %v; want exact preexisting content", got, err)
-	}
-	if got, err := os.ReadFile(mcpPath); err != nil || !strings.Contains(string(got), "user-server") || strings.Contains(string(got), `"codegraph"`) {
-		t.Fatalf("service uninstall MCP = %q, err = %v", got, err)
-	}
-	if len(result.ManualActions) != 0 {
-		t.Fatalf("service uninstall manual actions = %v, want none", result.ManualActions)
-	}
-	if _, err := svc.executePlan(plan{}, []model.AgentID{model.AgentPi}); err != nil {
-		t.Fatalf("repeat service uninstall error = %v", err)
-	}
-}
-
-func TestExecutePlanPiUninstallPreservesDriftedChildAndGentlePiSource(t *testing.T) {
-	homeDir := t.TempDir()
-	svc, err := NewService(homeDir, t.TempDir(), "dev")
-	if err != nil {
-		t.Fatalf("NewService() error = %v", err)
-	}
-	svc.snapshotter = stubSnapshotter{}
-	childPath := filepath.Join(homeDir, ".pi", "agent", "subagents", "worker.md")
-	packageChild := filepath.Join(homeDir, ".pi", "agent", "node_modules", "gentle-pi", "subagents", "package.md")
-	packageBody := "---\ntools: bash\n---\npackage instructions\n"
-	if err := os.MkdirAll(filepath.Dir(childPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(childPath, []byte("---\ntools: bash\n---\nuser instructions\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(filepath.Dir(packageChild), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(packageChild, []byte(packageBody), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := communitytool.ReconcilePiCodeGraph(communitytool.PiCodeGraphOptions{HomeDir: homeDir, Selected: true, EffectiveMCPProbe: piCodeGraphProbeForServiceTest}); err != nil {
-		t.Fatalf("ReconcilePiCodeGraph() error = %v", err)
-	}
-	if err := os.WriteFile(childPath, append([]byte("user changed after provision\n"), []byte("keep this\n")...), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	result, err := svc.executePlan(plan{}, []model.AgentID{model.AgentPi})
-	if err != nil {
-		t.Fatalf("executePlan() error = %v", err)
-	}
-	if got, err := os.ReadFile(childPath); err != nil || !strings.Contains(string(got), "keep this") {
-		t.Fatalf("drifted child was not preserved: %q, err = %v", got, err)
-	}
-	if got, err := os.ReadFile(packageChild); err != nil || string(got) != packageBody {
-		t.Fatalf("gentle-pi package child changed: %q, err = %v", got, err)
-	}
-	if !slices.ContainsFunc(result.ManualActions, func(action string) bool { return strings.Contains(action, "child drifted") }) {
-		t.Fatalf("manual actions = %v, want drift action", result.ManualActions)
-	}
-}
-
-func TestPartialUninstallPiReportsRetainedResourcesAndOptionalCleanup(t *testing.T) {
-	homeDir := t.TempDir()
-	workspaceDir := t.TempDir()
-	svc, err := NewService(homeDir, workspaceDir, "dev")
-	if err != nil {
-		t.Fatal(err)
-	}
-	svc.snapshotter = stubSnapshotter{}
-
-	retainedPaths := []string{
-		filepath.Join(homeDir, ".pi", "agent", "agents"),
-		filepath.Join(homeDir, ".pi", "agent", "chains"),
-		filepath.Join(homeDir, ".pi", "agent", "gentle-ai"),
-		filepath.Join(homeDir, ".pi", "agent", "subagents.json"),
-		filepath.Join(homeDir, ".pi", "gentle-ai"),
-		filepath.Join(workspaceDir, ".pi", "gentle-ai"),
-	}
-	for _, path := range retainedPaths {
-		if filepath.Ext(path) == ".json" {
-			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(path, []byte(`{"user":"owned"}`), 0o644); err != nil {
-				t.Fatal(err)
-			}
-			continue
-		}
-		if err := os.MkdirAll(path, 0o755); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	result, err := svc.PartialUninstall([]model.AgentID{model.AgentPi}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Equal(result.RetainedPiResources, retainedPaths) {
-		t.Fatalf("RetainedPiResources = %v, want %v", result.RetainedPiResources, retainedPaths)
-	}
-	wantCommands := []string{
-		"pi remove npm:gentle-pi",
-		"pi remove npm:gentle-engram",
-		"pi remove npm:pi-web-access",
-		"pi remove npm:pi-btw",
-		"pi remove npm:pi-mcp-adapter",
-	}
-	if !slices.Equal(result.OptionalPiPackageCleanupCommands, wantCommands) {
-		t.Fatalf("OptionalPiPackageCleanupCommands = %v, want %v", result.OptionalPiPackageCleanupCommands, wantCommands)
-	}
-	for _, path := range retainedPaths {
-		if _, err := os.Stat(path); err != nil {
-			t.Fatalf("retained Pi resource %q was deleted: %v", path, err)
-		}
-		if slices.Contains(result.RemovedDirectories, path) || slices.Contains(result.RemovedFiles, path) {
-			t.Fatalf("retained Pi resource %q was reported as removed: %#v", path, result)
-		}
-	}
-}
-
-func TestPartialUninstallPiDoesNotReportAbsentRetainedResources(t *testing.T) {
-	svc, err := NewService(t.TempDir(), t.TempDir(), "dev")
-	if err != nil {
-		t.Fatal(err)
-	}
-	svc.snapshotter = stubSnapshotter{}
-
-	result, err := svc.PartialUninstall([]model.AgentID{model.AgentPi}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(result.RetainedPiResources) != 0 {
-		t.Fatalf("RetainedPiResources = %v, want none for absent paths", result.RetainedPiResources)
-	}
-	t.Run("dangling link", func(t *testing.T) {
-		path := filepath.Join(svc.homeDir, ".pi", "gentle-ai")
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.Symlink(filepath.Join(svc.homeDir, "missing"), path); err != nil {
-			if runtime.GOOS == "windows" && errors.Is(err, syscall.Errno(1314)) {
-				t.Skipf("symlink privilege unavailable: %v", err)
-			}
-			t.Fatal(err)
-		}
-		result, err := svc.PartialUninstall([]model.AgentID{model.AgentPi}, nil)
-		if target, linkErr := os.Readlink(path); err != nil || linkErr != nil || target != filepath.Join(svc.homeDir, "missing") || !slices.Contains(result.RetainedPiResources, path) {
-			t.Fatalf("dangling link must remain and be reported: result=%+v err=%v linkErr=%v", result, err, linkErr)
-		}
-	})
 }
 
 func TestCompleteUninstallKeepsExecutableRemovalAction(t *testing.T) {
@@ -1100,25 +816,6 @@ func TestCompleteUninstallKeepsExecutableRemovalAction(t *testing.T) {
 	if !slices.Contains(result.ManualActions, want) {
 		t.Fatalf("ManualActions = %v, want %q", result.ManualActions, want)
 	}
-}
-
-func piCodeGraphProbeForServiceTest(string) (communitytool.PiCodeGraphMCPProbeResult, error) {
-	return communitytool.PiCodeGraphMCPProbeResult{
-		AdapterAvailable: true,
-		Initialized:      true,
-		Tools: []communitytool.PiCodeGraphMCPTool{{
-			Name: "codegraph_explore",
-			InputSchema: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"query":       map[string]any{"type": "string"},
-					"maxFiles":    map[string]any{"type": "number"},
-					"projectPath": map[string]any{"type": "string"},
-				},
-				"required": []any{"query"},
-			},
-		}},
-	}, nil
 }
 
 func TestExpandVisualPolishUninstallComponents(t *testing.T) {

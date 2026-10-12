@@ -715,21 +715,16 @@ func TestCorrectionWithinBudgetStillOffersTargetedValidation(t *testing.T) {
 	}
 }
 
-// TestOverBudgetCorrectionStopCarriesTheReleaseContinuation closes the Pi dead
-// end. The shipped Pi ledger row for correction_context_budget_exceeded tells
-// the maintainer to run "the release command the stop's `continuation` names",
-// and the Pi facade contract may not name a raw `gentle-ai review ` route at
-// all, so the continuation is the only channel that route can travel. This
+// TestOverBudgetCorrectionStopCarriesTheReleaseContinuation: the shipped
+// ledger row for correction_context_budget_exceeded tells the maintainer to
+// run "the release command the stop's `continuation` names", so the
+// continuation is the channel that route travels. This
 // asserts the stop actually carries it, that the command is the executable
 // -anchored abandon route bound to this repository, and that it is runnable
 // exactly as printed -- the flagless form whose refusal prints the binding
 // template every remaining value is read from.
 func TestOverBudgetCorrectionStopCarriesTheReleaseContinuation(t *testing.T) {
 	reviewEnabledHome(t)
-	// Pi is eligible for immutable receipt-review transport only while its
-	// host relay contract is exported; the gentle-pi host exports it on every
-	// invocation it relays.
-	t.Setenv("GENTLE_PI_REVIEW_RELAY_CONTRACT", "gentle-pi.review-relay/v1")
 	repo, record := driveReviewToOpenTargetedValidationWithCorrection(t,
 		"correction-budget-continuation", reviewCorrectionBudgetOverBudgetCorrection(t))
 
@@ -737,7 +732,7 @@ func TestOverBudgetCorrectionStopCarriesTheReleaseContinuation(t *testing.T) {
 	if err := RunReview([]string{
 		"status", "--contract", ReviewIntegrationContractV2, "--cwd", repo,
 		"--lineage", record.State.LineageID, "--next-transition", "--projection", "staged",
-		"--agent", string(model.AgentPi),
+		"--agent", string(model.AgentCodex),
 	}, &status); err != nil {
 		t.Fatalf("status on the over-budget correction failed: %v\n%s", err, status.String())
 	}
@@ -761,12 +756,12 @@ func TestOverBudgetCorrectionStopCarriesTheReleaseContinuation(t *testing.T) {
 	}
 	continuation := parsed.NextTransition.Continuation
 	if continuation == nil {
-		t.Fatalf("the correction budget stop carries no continuation, so a Pi maintainer following the shipped ledger row has no release command to run:\n%s", status.String())
+		t.Fatalf("the correction budget stop carries no continuation, so a maintainer following the shipped ledger row has no release command to run:\n%s", status.String())
 	}
 	if continuation.Operation != "abandon" {
 		t.Fatalf("continuation operation = %q, want abandon", continuation.Operation)
 	}
-	if continuation.Agent != string(model.AgentPi) {
+	if continuation.Agent != string(model.AgentCodex) {
 		t.Fatalf("continuation agent = %q, want the runtime STATUS was asked for", continuation.Agent)
 	}
 	wantCommand := managedAssetsContinuationExecutable() + " review abandon --cwd " + reviewTransitionShellWord(repo)
@@ -795,10 +790,10 @@ func TestOverBudgetCorrectionStopCarriesTheReleaseContinuation(t *testing.T) {
 // command is worse than an honest "ask a maintainer".
 func TestCorrectionBudgetStopOmitsTheContinuationWhenReleaseIsRefused(t *testing.T) {
 	ineligible := reviewtransaction.CompactAbandonEligibility{}
-	if continuation := reviewCorrectionReleaseContinuation("/repo", "pi", &ineligible); continuation != nil {
+	if continuation := reviewCorrectionReleaseContinuation("/repo", "codex", &ineligible); continuation != nil {
 		t.Fatalf("an ineligible authority was handed a release command that would be refused: %+v", continuation)
 	}
-	if continuation := reviewCorrectionReleaseContinuation("/repo", "pi", nil); continuation != nil {
+	if continuation := reviewCorrectionReleaseContinuation("/repo", "codex", nil); continuation != nil {
 		t.Fatalf("an unprobed authority was handed a release command: %+v", continuation)
 	}
 }

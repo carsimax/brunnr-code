@@ -397,7 +397,6 @@ func providerCorrectionReadyWithoutVerificationEvidence(t *testing.T, startArgs 
 
 func TestTargetedValidatorCaptureRequiresNoVerificationEvidenceAndLeavesNoStrandedSlot(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	repo, lineage, request := providerCorrectionReadyWithoutVerificationEvidence(t)
 	store, err := reviewtransaction.CompactAuthoritativeStore(context.Background(), repo, lineage)
 	if err != nil {
@@ -408,9 +407,8 @@ func TestTargetedValidatorCaptureRequiresNoVerificationEvidenceAndLeavesNoStrand
 		t.Fatal(err)
 	}
 
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	resultFile := writeReviewCLIRawInput(t, providerTargetedValidationPayload(t, request))
+	// The compiled runtime returns the canned raw result through --execute.
+	stubCompiledProviderRawForTest(t, providerTargetedValidationPayload(t, request))
 
 	var terminalOutput bytes.Buffer
 	if err := RunReviewCaptureValidation([]string{
@@ -419,8 +417,8 @@ func TestTargetedValidatorCaptureRequiresNoVerificationEvidenceAndLeavesNoStrand
 		"--target", request.CorrectionTargetIdentity,
 		"--expected-revision", record.State.CapturePhaseRevision,
 		"--request-hash", request.RequestHash,
-		"--agent", string(model.AgentPi),
-		"--input", resultFile,
+		"--agent", string(model.AgentClaudeCode),
+		"--execute=true",
 	}, &terminalOutput); err != nil {
 		t.Fatalf("capture targeted validator without repository verification evidence: %v\n%s", err, terminalOutput.String())
 	}
@@ -488,7 +486,6 @@ func TestCompiledTargetedValidatorCaptureClosesOnItsTerminalEvent(t *testing.T) 
 
 func TestTargetedValidationCaptureClosesWithoutVerificationEvidence(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	repo, lineage, request := providerCorrectionReadyWithoutVerificationEvidence(t)
 	store, err := reviewtransaction.CompactAuthoritativeStore(context.Background(), repo, lineage)
 	if err != nil {
@@ -498,14 +495,13 @@ func TestTargetedValidationCaptureClosesWithoutVerificationEvidence(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	resultFile := writeReviewCLIRawInput(t, providerTargetedValidationPayload(t, request))
+	// The compiled runtime returns the canned raw result through --execute.
+	stubCompiledProviderRawForTest(t, providerTargetedValidationPayload(t, request))
 	var terminalOutput bytes.Buffer
 	if err := RunReview([]string{
 		"capture-validation", "--cwd", repo, "--lineage", lineage,
 		"--target", request.CorrectionTargetIdentity, "--expected-revision", record.State.CapturePhaseRevision,
-		"--request-hash", request.RequestHash, "--agent", string(model.AgentPi), "--input", resultFile,
+		"--request-hash", request.RequestHash, "--agent", string(model.AgentClaudeCode), "--execute=true",
 	}, &terminalOutput); err != nil {
 		t.Fatalf("submit targeted validation capture: %v\n%s", err, terminalOutput.String())
 	}
@@ -519,7 +515,6 @@ func TestTargetedValidationCaptureClosesWithoutVerificationEvidence(t *testing.T
 
 func TestConcurrentAndReplayedTargetedValidatorCaptureHasOneCloser(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	repo, lineage, request := providerCorrectionReadyWithoutVerificationEvidence(t)
 	store, err := reviewtransaction.CompactAuthoritativeStore(context.Background(), repo, lineage)
 	if err != nil {
@@ -529,13 +524,12 @@ func TestConcurrentAndReplayedTargetedValidatorCaptureHasOneCloser(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture, even concurrently.
-	resultFile := writeReviewCLIRawInput(t, providerTargetedValidationPayload(t, request))
+	// The compiled runtime returns the canned raw result through --execute, even concurrently.
+	stubCompiledProviderRawForTest(t, providerTargetedValidationPayload(t, request))
 	args := []string{
 		"--cwd", repo, "--lineage", lineage, "--target", request.CorrectionTargetIdentity,
 		"--expected-revision", record.State.CapturePhaseRevision, "--request-hash", request.RequestHash,
-		"--agent", string(model.AgentPi), "--input", resultFile,
+		"--agent", string(model.AgentClaudeCode), "--execute=true",
 	}
 
 	const attempts = 8
@@ -607,7 +601,6 @@ func TestConcurrentAndReplayedTargetedValidatorCaptureHasOneCloser(t *testing.T)
 
 func TestTargetedValidatorCaptureIssuesAcknowledgementWithoutFinalize(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	repo, lineage, request := providerCorrectionReadyWithoutVerificationEvidence(t)
 	store, err := reviewtransaction.CompactAuthoritativeStore(context.Background(), repo, lineage)
 	if err != nil {
@@ -618,9 +611,8 @@ func TestTargetedValidatorCaptureIssuesAcknowledgementWithoutFinalize(t *testing
 		t.Fatal(err)
 	}
 
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	resultFile := writeReviewCLIRawInput(t, providerTargetedValidationPayload(t, request))
+	// The compiled runtime returns the canned raw result through --execute.
+	stubCompiledProviderRawForTest(t, providerTargetedValidationPayload(t, request))
 
 	var terminalOutput bytes.Buffer
 	if err := RunReviewCaptureValidation([]string{
@@ -629,8 +621,8 @@ func TestTargetedValidatorCaptureIssuesAcknowledgementWithoutFinalize(t *testing
 		"--target", request.CorrectionTargetIdentity,
 		"--expected-revision", record.State.CapturePhaseRevision,
 		"--request-hash", request.RequestHash,
-		"--agent", string(model.AgentPi),
-		"--input", resultFile,
+		"--agent", string(model.AgentClaudeCode),
+		"--execute=true",
 	}, &terminalOutput); err != nil {
 		t.Fatalf("capture targeted validator: %v\n%s", err, terminalOutput.String())
 	}
@@ -814,7 +806,6 @@ func TestCompiledRefuterClosesOnTheFinalLensCapture(t *testing.T) {
 
 func TestTargetedValidatorCaptureEscalatesRejectedCorrectionWithoutFinalize(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	repo, lineage, request := providerCorrectionReadyWithoutVerificationEvidence(t)
 	store, err := reviewtransaction.CompactAuthoritativeStore(context.Background(), repo, lineage)
 	if err != nil {
@@ -838,9 +829,8 @@ func TestTargetedValidatorCaptureEscalatesRejectedCorrectionWithoutFinalize(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	failedResultFile := writeReviewCLIRawInput(t, failedPayload)
+	// The compiled runtime returns the canned raw result through --execute.
+	stubCompiledProviderRawForTest(t, failedPayload)
 
 	var terminalOutput bytes.Buffer
 	if err := RunReviewCaptureValidation([]string{
@@ -849,8 +839,8 @@ func TestTargetedValidatorCaptureEscalatesRejectedCorrectionWithoutFinalize(t *t
 		"--target", request.CorrectionTargetIdentity,
 		"--expected-revision", record.State.CapturePhaseRevision,
 		"--request-hash", request.RequestHash,
-		"--agent", string(model.AgentPi),
-		"--input", failedResultFile,
+		"--agent", string(model.AgentClaudeCode),
+		"--execute=true",
 	}, &terminalOutput); err != nil {
 		t.Fatalf("capture rejected targeted validator: %v\n%s", err, terminalOutput.String())
 	}
@@ -881,8 +871,8 @@ func TestTargetedValidatorCaptureEscalatesRejectedCorrectionWithoutFinalize(t *t
 		"--target", request.CorrectionTargetIdentity,
 		"--expected-revision", record.State.CapturePhaseRevision,
 		"--request-hash", request.RequestHash,
-		"--agent", string(model.AgentPi),
-		"--input", failedResultFile,
+		"--agent", string(model.AgentClaudeCode),
+		"--execute=true",
 	}, &replayOutput); err != nil {
 		t.Fatalf("replay rejected targeted validator: %v\\n%s", err, replayOutput.String())
 	}
@@ -1127,7 +1117,6 @@ func TestNegotiatedStatusKeepsFreshStartForApprovedRecordOfDifferentTarget(t *te
 func TestNegotiatedStatusAfterInBudgetCorrectionExposesValidationWithoutHostRuntime(t *testing.T) {
 	// Inheritance applies only without the Pi relay handshake; a Pi host
 	// running this test must not turn the STATUS into a Pi-driven one.
-	t.Setenv(reviewPiHostRelayContractEnvironment, "")
 	reviewEnabledHome(t)
 	repo, lineage, request := providerCorrectionReadyWithoutVerificationEvidence(t, "--agent", string(model.AgentClaudeCode))
 
@@ -1207,8 +1196,7 @@ func TestNegotiatedStatusReplaysPendingAcknowledgementDespiteUnreadableSiblingSt
 // bounded correction (StateCorrectionRequired), not an immediate terminal escalation.
 func TestRefuterCaptureInconclusiveRoutesToCorrectionRequiredWithoutEscalating(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-	repo, store, record, handle := piRefuterReview(t)
+	repo, store, record, handle := roleRefuterReviewForTest(t)
 	request, err := reviewProviderNewRefuterRequest(t.Context(), repo, store.Dir, record.State, record.State.CapturePhaseRevision)
 	if err != nil {
 		t.Fatal(err)
@@ -1222,12 +1210,11 @@ func TestRefuterCaptureInconclusiveRoutesToCorrectionRequiredWithoutEscalating(t
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	inconclusiveFile := writeReviewCLIRawInput(t, inconclusive)
+	// The compiled runtime returns the canned raw result through --execute.
+	stubCompiledProviderRawForTest(t, inconclusive)
 
 	var output bytes.Buffer
-	if err := RunReview(append(append([]string{"capture-refuter"}, piRefuterBinding(repo, record, handle)...), "--agent", "pi", "--input", inconclusiveFile), &output); err != nil {
+	if err := RunReview(append(append([]string{"capture-refuter"}, roleRefuterBindingForTest(repo, record, handle)...), "--agent", string(model.AgentClaudeCode), "--execute=true"), &output); err != nil {
 		t.Fatalf("capture refuter inconclusive: %v\n%s", err, output.String())
 	}
 
@@ -1272,9 +1259,8 @@ func TestLineageEscalationPublishesEscalationCauseInClosureAndStatusEnvelopes(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	failedResultFile := writeReviewCLIRawInput(t, failedPayload)
+	// The compiled runtime returns the canned raw result through --execute.
+	stubCompiledProviderRawForTest(t, failedPayload)
 
 	var terminalOutput bytes.Buffer
 	if err := RunReviewCaptureValidation([]string{
@@ -1283,8 +1269,8 @@ func TestLineageEscalationPublishesEscalationCauseInClosureAndStatusEnvelopes(t 
 		"--target", request.CorrectionTargetIdentity,
 		"--expected-revision", record.State.CapturePhaseRevision,
 		"--request-hash", request.RequestHash,
-		"--agent", string(model.AgentPi),
-		"--input", failedResultFile,
+		"--agent", string(model.AgentClaudeCode),
+		"--execute=true",
 	}, &terminalOutput); err != nil {
 		t.Fatalf("capture rejected targeted validator: %v\n%s", err, terminalOutput.String())
 	}

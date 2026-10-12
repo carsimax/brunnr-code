@@ -20,31 +20,25 @@ import (
 // every other runtime -- whatever runtime the lineage froze at START.
 
 func TestPiDrivenStatusOnAnOpenCodeLineageNeverCreatesTheSealingKey(t *testing.T) {
-	// Pi is admitted only through its relay handshake; declare it so the test
-	// does not depend on running inside a Pi host.
-	t.Setenv("GENTLE_PI_REVIEW_RELAY_CONTRACT", "gentle-pi.review-relay/v1")
 	if testing.Short() {
 		t.Skip("requires git fixtures")
 	}
 	home := reviewEnabledHome(t)
-	repo, started, _, _ := openCodeSealedLineage(t, "pi-driven-key")
+	repo, started, _, _ := openCodeSealedLineage(t, "codex-driven-key")
 	key := filepath.Join(home, ".gentle-ai", "review-context.key")
 	if err := os.Remove(key); err != nil {
 		t.Fatalf("the OpenCode START did not create the sealing key: %v", err)
 	}
-	raw, status := openCodeSealedStatus(t, repo, started.LineageID, model.AgentPi)
+	raw, status := openCodeSealedStatus(t, repo, started.LineageID, model.AgentCodex)
 	if bytes.Contains(raw, []byte("rctx3_")) || status.NextTransition.Collect == nil {
-		t.Fatalf("Pi-driven STATUS = %s", raw)
+		t.Fatalf("Codex-driven STATUS = %s", raw)
 	}
 	if _, err := os.Stat(key); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("a Pi-driven STATUS created the OpenCode sealing key: %v", err)
+		t.Fatalf("a Codex-driven STATUS created the OpenCode sealing key: %v", err)
 	}
 }
 
 func TestOpenCodeDrivenStatusOnAPiLineageMeasuresTheSealedHandle(t *testing.T) {
-	// Pi is admitted only through its relay handshake; declare it so the test
-	// does not depend on running inside a Pi host.
-	t.Setenv("GENTLE_PI_REVIEW_RELAY_CONTRACT", "gentle-pi.review-relay/v1")
 	if testing.Short() {
 		t.Skip("requires git fixtures")
 	}
@@ -52,7 +46,7 @@ func TestOpenCodeDrivenStatusOnAPiLineageMeasuresTheSealedHandle(t *testing.T) {
 	repo := initReviewCLIRepo(t)
 	const base = 1000
 	writeSealedBudgetCandidate(t, repo, base)
-	probe := runNegotiatedReviewStartWith(t, repo, "sealed-budget-probe", "--agent", string(model.AgentPi))
+	probe := runNegotiatedReviewStartWith(t, repo, "sealed-budget-probe", "--agent", string(model.AgentCodex))
 	_, probeRecord := loadOpenCodeRelayAuthority(t, repo, probe.LineageID)
 
 	// The largest patch growth each handle format still fits, measured on the
@@ -73,10 +67,10 @@ func TestOpenCodeDrivenStatusOnAPiLineageMeasuresTheSealedHandle(t *testing.T) {
 
 	// A candidate that fits with rctx2 but not with rctx3.
 	writeSealedBudgetCandidate(t, repo, base+(digestSlack+sealedSlack)/2)
-	started := runNegotiatedReviewStartWith(t, repo, "sealed-budget-limit", "--agent", string(model.AgentPi))
-	_, piStatus := openCodeSealedStatus(t, repo, started.LineageID, "")
-	if piStatus.NextTransition.Kind != reviewNextTransitionCollect {
-		t.Fatalf("Pi-driven STATUS at the rctx2 limit = %#v, want its reviewer slots", piStatus.NextTransition)
+	started := runNegotiatedReviewStartWith(t, repo, "sealed-budget-limit", "--agent", string(model.AgentCodex))
+	_, codexStatus := openCodeSealedStatus(t, repo, started.LineageID, "")
+	if codexStatus.NextTransition.Kind != reviewNextTransitionCollect {
+		t.Fatalf("Codex-driven STATUS at the rctx2 limit = %#v, want its reviewer slots", codexStatus.NextTransition)
 	}
 	_, openCodeStatus := openCodeSealedStatus(t, repo, started.LineageID, model.AgentOpenCode)
 	if openCodeStatus.NextTransition.Kind != reviewNextTransitionStop || openCodeStatus.NextTransition.ReasonCode != "lens_context_budget_exceeded" {
@@ -163,9 +157,6 @@ func sealedBudgetSlack(t *testing.T, repo string, record reviewtransaction.Compa
 // OpenCode-driven STATUS that has to seal refuses with the key's repair and
 // mutates nothing, while every other runtime never consults the key.
 func TestOpenCodeStatusWithAnUnsafeSealingKeyRefusesWithItsRepair(t *testing.T) {
-	// Pi is admitted only through its relay handshake; declare it so the test
-	// does not depend on running inside a Pi host.
-	t.Setenv("GENTLE_PI_REVIEW_RELAY_CONTRACT", "gentle-pi.review-relay/v1")
 	if testing.Short() {
 		t.Skip("requires git fixtures")
 	}
@@ -210,9 +201,9 @@ func TestOpenCodeStatusWithAnUnsafeSealingKeyRefusesWithItsRepair(t *testing.T) 
 		t.Fatalf("unsafe key STATUS mutated compact authority: %v", err)
 	}
 
-	raw, piStatus := openCodeSealedStatus(t, repo, started.LineageID, model.AgentPi)
-	if piStatus.NextTransition.Kind != reviewNextTransitionCollect || bytes.Contains(raw, []byte("rctx3_")) {
-		t.Fatalf("Pi-driven STATUS with an unsafe OpenCode key = %s", raw)
+	raw, codexStatus := openCodeSealedStatus(t, repo, started.LineageID, model.AgentCodex)
+	if codexStatus.NextTransition.Kind != reviewNextTransitionCollect || bytes.Contains(raw, []byte("rctx3_")) {
+		t.Fatalf("Codex-driven STATUS with an unsafe OpenCode key = %s", raw)
 	}
 	if info, err := os.Stat(key); err != nil || info.Mode().Perm() != 0o644 {
 		t.Fatalf("a STATUS repaired or replaced the unsafe key on its own: %v, %v", info, err)

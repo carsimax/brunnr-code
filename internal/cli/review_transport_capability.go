@@ -52,24 +52,7 @@ const (
 	// reviewImmutableTransportCodexAdvisoryScratchProcess retains the canonical
 	// Go-owned provider contract across a fresh Codex subprocess boundary.
 	reviewImmutableTransportCodexAdvisoryScratchProcess reviewImmutableTransport = "codex_advisory_scratch_process"
-	// reviewImmutableTransportPiHostRelay is host-mediated like OpenCode's
-	// transport, but with the launcher owned by gentle-pi: the Pi host reads
-	// the negotiated collection input, launches a brand-new print-mode pi
-	// subprocess in an empty scratch directory with every discovery surface
-	// disabled, forwards the Go-issued opaque prompt untouched, and returns
-	// the raw final bytes through the exact capture operation. Go keeps
-	// prompt materialization, admission, budgets, receipts, and gates.
-	reviewImmutableTransportPiHostRelay reviewImmutableTransport = "pi_host_relay"
 )
-
-// reviewPiHostRelayContract is the exact relay contract this binary admits.
-// The Pi launcher lives in gentle-pi and is versioned independently; it
-// declares this identity on every invocation it relays, and any other value
-// (or none) keeps Pi fail-closed at admission instead of freezing review
-// authority no installed host can ever collect.
-const reviewPiHostRelayContract = "gentle-pi.review-relay/v1"
-
-const reviewPiHostRelayContractEnvironment = "GENTLE_PI_REVIEW_RELAY_CONTRACT"
 
 type reviewImmutableRuntimePolicy struct {
 	Eligible  bool
@@ -165,15 +148,6 @@ func reviewImmutableRuntimeCapabilityChecking(agent model.AgentID, openCodeRunti
 			return policy
 		}
 		policy.Eligible = true
-	case model.AgentPi:
-		// The relay's declared contract is a required conjunct: it can only
-		// narrow the compiled boundary, never expand it. Without the exact
-		// handshake, `review start --agent pi` refuses before any repository,
-		// target, or authority work, and Pi never appears as a suggested exit.
-		if os.Getenv(reviewPiHostRelayContractEnvironment) != reviewPiHostRelayContract {
-			return policy
-		}
-		policy.Eligible = true
 	default:
 		return policy
 	}
@@ -188,8 +162,6 @@ func reviewImmutableRuntimeCapabilityChecking(agent model.AgentID, openCodeRunti
 		policy.Transport = reviewImmutableTransportOpenCodeProviderInjected
 	case model.AgentCodex:
 		policy.Transport = reviewImmutableTransportCodexAdvisoryScratchProcess
-	case model.AgentPi:
-		policy.Transport = reviewImmutableTransportPiHostRelay
 	}
 	return policy
 }
@@ -197,8 +169,7 @@ func reviewImmutableRuntimeCapabilityChecking(agent model.AgentID, openCodeRunti
 func (capability reviewImmutableRuntimePolicy) supportsImmutableReceiptReview() bool {
 	return capability.Transport == reviewImmutableTransportClaudePromptCarried ||
 		capability.Transport == reviewImmutableTransportOpenCodeProviderInjected ||
-		capability.Transport == reviewImmutableTransportCodexAdvisoryScratchProcess ||
-		capability.Transport == reviewImmutableTransportPiHostRelay
+		capability.Transport == reviewImmutableTransportCodexAdvisoryScratchProcess
 }
 
 // reviewTransportSupportedRuntimeIDs derives the actionable runtime list from
@@ -220,55 +191,6 @@ func reviewTransportRefusalExitGuidance() string {
 		strings.Join(reviewTransportSupportedRuntimeIDs(), ", ")
 }
 
-// reviewPiRelayHandshakeIsSoleMissingCondition reports whether Pi's refusal is
-// caused by nothing but the absent relay handshake: every other compiled
-// conjunct already holds, so declaring the exact contract is the single
-// remaining step. It decides which cause the operator reads and nothing else;
-// reviewImmutableRuntimeCapability stays the only admission authority, and no
-// runtime becomes eligible because of what this reports.
-func reviewPiRelayHandshakeIsSoleMissingCondition(agent model.AgentID) bool {
-	if agent != model.AgentPi {
-		return false
-	}
-	if os.Getenv(reviewPiHostRelayContractEnvironment) == reviewPiHostRelayContract {
-		return false
-	}
-	manifest, err := capabilitymanifest.ForAgent(agent)
-	return err == nil && manifest.Advertises(capabilitymanifest.ContractImmutableReviewExecutorV1)
-}
-
-// reviewPiRelayHandshakeGuidance names the one missing condition instead of
-// the kill switch. reviewTransportSupportedRuntimeIDs can never name `pi`
-// here, because it is computed by calling reviewImmutableRuntimeCapability in
-// this same process, under the exact condition that is failing. Offering
-// `review mode disable` is worse than unhelpful: leaving receipt-driven
-// review is a legitimate choice, but it is not the remedy for a runtime one
-// declared contract away from eligible, and a reader who follows it concludes
-// the runtime was dropped.
-//
-// The guidance spells the exact handshake out. This prose reaches the
-// operator only as the negotiated envelope's `cause`, which every refusal
-// crosses reviewScrubDefectReportField to reach; that gate now keeps the
-// product's own public identifiers (pinned by
-// TestPiRelayHandshakeGuidanceSurvivesTheFailureCausePrivacyGate), so the
-// cause can name the runnable exit instead of a variable whose value the
-// reader had to find in gentle-pi's source.
-func reviewPiRelayHandshakeGuidance() string {
-	return "; pi is eligible only while " + reviewPiHostRelayContractEnvironment + "=" + reviewPiHostRelayContract +
-		" is exported, which the gentle-pi host does on every invocation it relays; export it in this shell and re-run"
-}
-
-// reviewTransportRefusalGuidanceFor selects the guidance the refused runtime
-// can actually act on. Every runtime other than a handshake-less Pi keeps the
-// generic exit guidance unchanged, so the env-var remedy never leaks to a
-// runtime it cannot help.
-func reviewTransportRefusalGuidanceFor(agent model.AgentID) string {
-	if reviewPiRelayHandshakeIsSoleMissingCondition(agent) {
-		return reviewPiRelayHandshakeGuidance()
-	}
-	return reviewTransportRefusalExitGuidance()
-}
-
 // reviewRuntimeWithImmutableTransport accepts only the exact compiled runtime
 // identities. It never selects a substitute transport for an unsupported one.
 func reviewRuntimeWithImmutableTransport(agent string) (model.AgentID, error) {
@@ -283,68 +205,11 @@ func reviewRuntimeWithImmutableTransport(agent string) (model.AgentID, error) {
 	}
 	if !capability.Eligible {
 		// refusal:by-design world-action: runtimes outside the fixed RDD policy cannot receive immutable review authority
-		return "", fmt.Errorf("the active runtime is not eligible for immutable receipt review%s", reviewTransportRefusalGuidanceFor(identity))
+		return "", fmt.Errorf("the active runtime is not eligible for immutable receipt review%s", reviewTransportRefusalExitGuidance())
 	}
 	if !capability.supportsImmutableReceiptReview() {
 		// refusal:by-design world-action: unsupported transport cannot bind immutable evidence or capture an admissible result
-		return "", fmt.Errorf("the active runtime lacks immutable receipt-review transport%s", reviewTransportRefusalGuidanceFor(identity))
-	}
-	return identity, nil
-}
-
-// reviewCaptureBoundRuntimeCapability is reviewImmutableRuntimeCapability's
-// capture-time counterpart (issue #4256). Starting a new review lifecycle
-// through review start/status negotiation has no existing bound transaction,
-// so Pi's eligibility there still requires the exact
-// GENTLE_PI_REVIEW_RELAY_CONTRACT handshake as external proof the invocation
-// came from a real gentle-pi relay (#3440) -- reviewImmutableRuntimeCapability
-// is unchanged for that path. A capture command (capture-result,
-// capture-refuter, capture-validation) with --agent pi is different: by the
-// time this runs, the caller already supplied --lineage, --target,
-// --expected-revision, and the provider-issued --repository-context, and
-// resolving that exact binding against the frozen authority immediately
-// afterward refuses a forged or mismatched one on its own (with its own
-// `gentle-ai …` continuation). So Pi eligibility here derives from that bound
-// transaction plus the compiled --agent capability alone: an unrelayed shell
-// that holds a genuine binding is eligible, and the relay handshake env var
-// becomes, at most, an optional extra witness some hosts still export --
-// never the gate.
-func reviewCaptureBoundRuntimeCapability(agent model.AgentID) reviewImmutableRuntimePolicy {
-	if agent != model.AgentPi {
-		return reviewImmutableRuntimeCapability(agent)
-	}
-	policy := reviewImmutableRuntimePolicy{Eligible: true, Transport: reviewImmutableTransportUnsupported}
-	manifest, err := capabilitymanifest.ForAgent(agent)
-	if err != nil || !manifest.Advertises(capabilitymanifest.ContractImmutableReviewExecutorV1) {
-		return policy
-	}
-	policy.Transport = reviewImmutableTransportPiHostRelay
-	return policy
-}
-
-// reviewCaptureRuntimeWithBoundTransport is reviewRuntimeWithImmutableTransport's
-// capture-time counterpart: it accepts the same compiled runtime identities,
-// but decides eligibility from reviewCaptureBoundRuntimeCapability instead of
-// reviewImmutableRuntimeCapability (issue #4256), so a capture command never
-// requires the Pi relay handshake env var once it already carries its own
-// bound transaction.
-func reviewCaptureRuntimeWithBoundTransport(agent string) (model.AgentID, error) {
-	if strings.TrimSpace(agent) == "" || strings.TrimSpace(agent) != agent {
-		// refusal:by-design world-action: an unknown runtime cannot safely receive immutable review authority
-		return "", errors.New("the active review runtime is unknown")
-	}
-	identity := model.AgentID(agent)
-	capability := reviewCaptureBoundRuntimeCapability(identity)
-	if capability.Refusal != nil {
-		return "", capability.Refusal
-	}
-	if !capability.Eligible {
-		// refusal:by-design world-action: runtimes outside the fixed RDD policy cannot receive immutable review authority
-		return "", fmt.Errorf("the active runtime is not eligible for immutable receipt review%s", reviewTransportRefusalGuidanceFor(identity))
-	}
-	if !capability.supportsImmutableReceiptReview() {
-		// refusal:by-design world-action: unsupported transport cannot bind immutable evidence or capture an admissible result
-		return "", fmt.Errorf("the active runtime lacks immutable receipt-review transport%s", reviewTransportRefusalGuidanceFor(identity))
+		return "", fmt.Errorf("the active runtime lacks immutable receipt-review transport%s", reviewTransportRefusalExitGuidance())
 	}
 	return identity, nil
 }

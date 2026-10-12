@@ -167,37 +167,6 @@ func TestInstallNavigationRoundTrips(t *testing.T) {
 	}
 }
 
-func TestPiOnlyDependencyTreeBackReturnsToAgentSelection(t *testing.T) {
-	for _, tt := range []struct {
-		name string
-		back flowAction
-	}{
-		{"Enter on Back", flowAction{key: tea.KeyMsg{Type: tea.KeyEnter}, cursor: 1, setCursor: true}},
-		{"Esc", flowAction{key: tea.KeyMsg{Type: tea.KeyEsc}}},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			m := NewModel(system.DetectionResult{}, "dev")
-			m.Screen = ScreenAgents
-			m.Selection.Agents = []model.AgentID{model.AgentPi}
-			m.Selection.Components = componentsForPreset(model.PresetFullGentleman, model.PersonaGentleman)
-			m.Cursor = len(screens.AgentOptions())
-			state := applyFlowAction(t, m, flowAction{key: tea.KeyMsg{Type: tea.KeyEnter}})
-			if state.Screen != ScreenDependencyTree {
-				t.Fatalf("screen = %v, want DependencyTree", state.Screen)
-			}
-			state = applyFlowAction(t, state, tt.back)
-			if state.Screen != ScreenAgents {
-				t.Fatalf("back screen = %v, want Agents", state.Screen)
-			}
-			state.Cursor = len(screens.AgentOptions())
-			state = applyFlowAction(t, state, flowAction{key: tea.KeyMsg{Type: tea.KeyEnter}})
-			if state.Screen != ScreenDependencyTree {
-				t.Fatalf("round-trip screen = %v, want DependencyTree", state.Screen)
-			}
-		})
-	}
-}
-
 func TestCustomEngramRDDChoiceReviewBack(t *testing.T) {
 	m := installReviewModeStatusFixture(NewModel(system.DetectionResult{}, "dev"))
 	m.Screen, m.Selection.Preset = ScreenDependencyTree, model.PresetCustom

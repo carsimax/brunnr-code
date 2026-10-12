@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/legacyassets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
@@ -17,7 +16,7 @@ import (
 // uninstallSDDAgents are the runtimes the uninstall retirement tests remove.
 var uninstallSDDAgents = []model.AgentID{
 	model.AgentClaudeCode, model.AgentQwenCode, model.AgentCodex, model.AgentKimi,
-	model.AgentKiroIDE, model.AgentCursor, model.AgentOpenCode, model.AgentPi,
+	model.AgentKiroIDE, model.AgentCursor, model.AgentOpenCode,
 }
 
 func uninstallSDDTestHome(t *testing.T) string {
@@ -41,8 +40,7 @@ func openCodeSDDUninstallSettings(t *testing.T) []byte {
 // TestUninstallRetiresOwnedSDDInventoryForEveryRuntime covers #5157 for
 // uninstall: removing a runtime retires the SDD files, settings entries, and
 // prompt text releases installed for it with the inventory and ownership
-// proof install and sync use. User bytes are kept and reported, Pi files
-// are never touched, and the snapshot restores everything uninstall changed.
+// proof install and sync use. User bytes are kept and reported, and the snapshot restores everything uninstall changed.
 func TestUninstallRetiresOwnedSDDInventoryForEveryRuntime(t *testing.T) {
 	home := uninstallSDDTestHome(t)
 	owned, edited := seedRetiredSDDAssets(t, home)
@@ -60,12 +58,7 @@ func TestUninstallRetiresOwnedSDDInventoryForEveryRuntime(t *testing.T) {
 		filepath.Join(home, ".kiro", "agents", "sdd-verify.md"):            []byte("my own verifier\n"),
 		filepath.Join(prompts, "sdd-explore.md"):                           []byte("my own explore prompt\n"),
 	}
-	piHome := pi.AgentConfigPath(home)
-	untouched := map[string][]byte{
-		filepath.Join(piHome, "agents", "sdd-apply.md"):         releasedSDDRender(t, "claude-sdd-apply.md"),
-		filepath.Join(piHome, "skills", "sdd-init", "SKILL.md"): releasedSDDAsset(t, "v3.7.0", "skill-sdd-init.md"),
-	}
-	for _, group := range []map[string][]byte{owned, kept, untouched} {
+	for _, group := range []map[string][]byte{owned, kept} {
 		for path, data := range group {
 			mustWriteFile(t, path, data)
 		}
@@ -111,11 +104,6 @@ func TestUninstallRetiresOwnedSDDInventoryForEveryRuntime(t *testing.T) {
 			return strings.Contains(action, path) && strings.Contains(action, "move or delete it")
 		}) {
 			t.Errorf("preserved %s not reported: %v", path, result.ManualActions)
-		}
-	}
-	for path, data := range untouched {
-		if got, err := os.ReadFile(path); err != nil || string(got) != string(data) {
-			t.Errorf("uninstall touched Pi file %s: %v", path, err)
 		}
 	}
 	if got, _ := os.ReadFile(claudePrompt); string(got) != legacyCodexPromptUser {

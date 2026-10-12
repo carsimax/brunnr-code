@@ -111,7 +111,6 @@ func TestSurveyReviewStoreReportsEveryCategoryWithoutMutating(t *testing.T) {
 	root := storeResetGentleAIRoot(t, repo)
 	seedStoreResetLineage(t, repo, "review-settled", StateApproved)
 	writeStoreResetFile(t, filepath.Join(root, "candidate-views", "1a09d6f9", "README.md"), "checkout\n")
-	writeStoreResetFile(t, filepath.Join(root, "reviews", "IDENTITY"), "{}\n")
 	seedStoreResetKillSwitch(t, repo)
 
 	report, err := SurveyReviewStore(context.Background(), repo, StoreResetRequest{})
@@ -140,7 +139,6 @@ func TestSurveyReviewStoreReportsEveryCategoryWithoutMutating(t *testing.T) {
 	// Nothing moved.
 	for _, path := range []string{
 		filepath.Join(root, "candidate-views", "1a09d6f9", "README.md"),
-		filepath.Join(root, "reviews", "IDENTITY"),
 		filepath.Join(root, "review-transactions", "v2", "review-settled", "review-state.json"),
 	} {
 		if _, err := os.Stat(path); err != nil {
@@ -431,23 +429,23 @@ func TestResetReviewStoreReportsPartialFailureHonestly(t *testing.T) {
 	repo := initSnapshotRepo(t)
 	root := storeResetGentleAIRoot(t, repo)
 	seedStoreResetLineage(t, repo, "review-approved", StateApproved)
-	writeStoreResetFile(t, filepath.Join(root, "reviews", "IDENTITY"), "{}\n")
+	writeStoreResetFile(t, filepath.Join(root, "candidate-views", "view", "README.md"), "checkout\n")
 
 	stubStoreResetRename(t, func(oldpath, newpath string) error {
-		if filepath.Base(oldpath) == "reviews" {
+		if filepath.Base(oldpath) == "candidate-views" {
 			return errors.New("simulated rename failure")
 		}
 		return os.Rename(oldpath, newpath)
 	})
 
-	report, err := ResetReviewStore(context.Background(), repo, StoreResetRequest{IncludeAdapterReviews: true})
+	report, err := ResetReviewStore(context.Background(), repo, StoreResetRequest{})
 	if err == nil {
 		t.Fatal("a partial reset reported success")
 	}
 	if report.Complete {
 		t.Fatalf("a partial reset reported Complete: %#v", report)
 	}
-	failed := storeResetEntryByName(t, report.Removable, "reviews")
+	failed := storeResetEntryByName(t, report.Removable, "candidate-views")
 	if failed.Removed {
 		t.Fatalf("the failed category counted as removed: %#v", failed)
 	}
@@ -460,7 +458,7 @@ func TestResetReviewStoreReportsPartialFailureHonestly(t *testing.T) {
 	if !removed.Removed || report.RemovedBytes != removed.Bytes {
 		t.Fatalf("partial reset byte accounting = %d, want %d", report.RemovedBytes, removed.Bytes)
 	}
-	if _, err := os.Stat(filepath.Join(root, "reviews", "IDENTITY")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, "candidate-views", "view", "README.md")); err != nil {
 		t.Fatalf("the failed category was destroyed anyway: %v", err)
 	}
 }
@@ -882,99 +880,6 @@ func TestResetReviewStoreCountsWorktreeAdminBytesAsFreed(t *testing.T) {
 	if report.RemovedBytes != viewBytes+adminBytes {
 		t.Fatalf("freed bytes = %d, want %d (candidate view %d + its registration %d)",
 			report.RemovedBytes, viewBytes+adminBytes, viewBytes, adminBytes)
-	}
-}
-
-// TestSurveyReviewStoreWithholdsTheAdapterReviewStore is the coverage rule.
-//
-// reviews/ is written by the gentle-pi adapter, and neither guarantee this
-// command advertises reaches it: maintenanceLockPathForStoreLock returns no
-// lease path for anything under it, so the exclusive lease excludes no writer
-// there, and storeResetLineages reads only review-transactions/v2, so no review
-// living there can ever be listed as in flight. A default run removing it would
-// destroy a live review while reporting none open -- the exact failure the
-// lease ordering exists to prevent, arrived at from the other direction.
-func TestSurveyReviewStoreWithholdsTheAdapterReviewStore(t *testing.T) {
-	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
-	writeStoreResetFile(t, filepath.Join(root, "reviews", "IDENTITY"), "{}\n")
-
-	report, err := SurveyReviewStore(context.Background(), repo, StoreResetRequest{})
-	if err != nil {
-		t.Fatalf("survey: %v", err)
-	}
-	for _, entry := range report.Removable {
-		if entry.Name == "reviews" {
-			t.Fatalf("a default survey offers to remove the adapter review store: %#v", entry)
-		}
-	}
-	spared := storeResetEntryByName(t, report.Preserved, "reviews")
-	if !spared.Present || spared.Files == 0 {
-		t.Fatalf("the withheld category was not measured: %#v", spared)
-	}
-	// The reason has to name the way out, or the category is simply
-	// undeletable as far as the user can tell.
-	if !strings.Contains(spared.Reason, "--include-adapter-reviews") {
-		t.Fatalf("the withheld category does not name its override: %q", spared.Reason)
-	}
-
-	// The lease genuinely does not cover it. This is the claim the reason
-	// makes, checked rather than asserted in prose.
-	lease, err := maintenanceLockPathForStoreLock(filepath.Join(root, "reviews", "graph-v1", "objects", "aa"))
-	if err != nil {
-		t.Fatalf("resolve a lease path under the adapter review store: %v", err)
-	}
-	if lease != "" {
-		t.Fatalf("the maintenance lease covers %q after all; the withholding reason is stale", lease)
-	}
-}
-
-// TestResetReviewStoreSparesTheAdapterReviewStoreByDefault is the behavior that
-// rule buys: the bytes stay, and the run is still complete, because a spared
-// category is not a failed one.
-func TestResetReviewStoreSparesTheAdapterReviewStoreByDefault(t *testing.T) {
-	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
-	seedStoreResetLineage(t, repo, "review-approved", StateApproved)
-	identity := filepath.Join(root, "reviews", "IDENTITY")
-	writeStoreResetFile(t, identity, "{}\n")
-	graph := filepath.Join(root, "reviews", "graph-v1", "objects", "aa", "record.json")
-	writeStoreResetFile(t, graph, "{}\n")
-
-	report, err := ResetReviewStore(context.Background(), repo, StoreResetRequest{})
-	if err != nil {
-		t.Fatalf("reset: %v", err)
-	}
-	if !report.Complete {
-		t.Fatalf("sparing an opt-in category made the run incomplete: %#v", report)
-	}
-	for _, path := range []string{identity, graph} {
-		if _, err := os.Stat(path); err != nil {
-			t.Fatalf("a default reset destroyed the adapter review store at %s: %v", path, err)
-		}
-	}
-	if _, err := os.Lstat(filepath.Join(root, "review-transactions", "v2")); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("sparing reviews/ also spared the categories this command does cover: %v", err)
-	}
-}
-
-// TestResetReviewStoreRemovesTheAdapterReviewStoreWhenAsked keeps the exit
-// real. Withholding a category is only defensible while there is a way to say
-// yes to it.
-func TestResetReviewStoreRemovesTheAdapterReviewStoreWhenAsked(t *testing.T) {
-	repo := initSnapshotRepo(t)
-	root := storeResetGentleAIRoot(t, repo)
-	writeStoreResetFile(t, filepath.Join(root, "reviews", "IDENTITY"), "{}\n")
-
-	report, err := ResetReviewStore(context.Background(), repo, StoreResetRequest{IncludeAdapterReviews: true})
-	if err != nil {
-		t.Fatalf("opted-in reset: %v", err)
-	}
-	if entry := storeResetEntryByName(t, report.Removable, "reviews"); !entry.Removed {
-		t.Fatalf("the opted-in category was not removed: %#v", entry)
-	}
-	if _, err := os.Lstat(filepath.Join(root, "reviews")); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("the opted-in category survived: %v", err)
 	}
 }
 

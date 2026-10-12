@@ -437,47 +437,6 @@ func TestValidateAgentInstallPreflight(t *testing.T) {
 		errContains string
 	}{
 		{
-			name:    "pi missing binary returns actionable remediation",
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true},
-			agent:   model.AgentPi,
-			lookPath: func(file string) (string, error) {
-				if file == "pi" {
-					return "", fmt.Errorf("not found")
-				}
-				return "/usr/bin/" + file, nil
-			},
-			wantErr:     true,
-			errContains: "Pi requires the `pi` executable",
-		},
-		{
-			// Pi requires both `pi` and npm: InstallCommand always runs engramInitCommand()
-			// which executes `pnpm dlx` or `npm exec` (both need Node.js/npm).
-			name:    "pi with binary and npm present passes preflight",
-			profile: system.PlatformProfile{OS: "linux", PackageManager: "apt", Supported: true},
-			agent:   model.AgentPi,
-			lookPath: func(file string) (string, error) {
-				if file == "pi" || file == "npm" {
-					return "/usr/bin/" + file, nil
-				}
-				return "", fmt.Errorf("not found")
-			},
-			wantErr: false,
-		},
-		{
-			// Pi npm gate: pi present but npm absent must fail with Node.js remediation.
-			name:    "pi missing npm returns actionable remediation",
-			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget", Supported: true},
-			agent:   model.AgentPi,
-			lookPath: func(file string) (string, error) {
-				if file == "pi" {
-					return "/usr/local/bin/pi", nil
-				}
-				return "", fmt.Errorf("not found")
-			},
-			wantErr:     true,
-			errContains: "Node.js",
-		},
-		{
 			// ClaudeCode requires npm. This case verifies that npm being present is
 			// sufficient for the preflight to pass — uv absence is irrelevant.
 			name:    "npm agent does not require uv but does require npm (npm present)",

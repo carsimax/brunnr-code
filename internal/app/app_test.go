@@ -588,7 +588,7 @@ func TestTUIExecutePersistsConfiguredSelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}, Preset: model.PresetCustom, Components: []model.ComponentID{}, Skills: []model.SkillID{}, StrictTDD: true}
-	result := tuiExecuteWithBackground(selection, planner.ResolvedPlan{}, system.DetectionResult{}, "", "", "", "", nil)
+	result := tuiExecuteWithBackground(selection, planner.ResolvedPlan{}, system.DetectionResult{}, "", "", nil)
 	got, err := state.Read(home)
 	if result.Err != nil || err != nil || !got.SelectionConfigured || got.Preset != model.PresetCustom || got.StrictTDD || got.RDDMode != "off" || !slices.Equal(got.InstalledAgents, []string{string(model.AgentClaudeCode)}) || len(got.Components) != 0 || len(got.Skills) != 0 {
 		t.Fatalf("persisted selection = %#v, execute err = %v, read err = %v", got, result.Err, err)
@@ -622,7 +622,7 @@ func TestTUIExecuteWithBackgroundPublishesChoiceAndPreservesState(t *testing.T) 
 		Components: []model.ComponentID{},
 		Preset:     model.PresetCustom,
 	}
-	result := tuiExecuteWithBackground(selection, planner.ResolvedPlan{}, system.DetectionResult{}, model.OpenCodeBackgroundOn, model.OpenCodeBackgroundOn, "", "", nil)
+	result := tuiExecuteWithBackground(selection, planner.ResolvedPlan{}, system.DetectionResult{}, model.OpenCodeBackgroundOn, model.OpenCodeBackgroundOn, nil)
 	if result.Err != nil {
 		t.Fatalf("tuiExecuteWithBackground() error = %v", result.Err)
 	}
@@ -673,7 +673,7 @@ func TestTUIExecuteWithBackgroundPreservesConcurrentCLIStateMutation(t *testing.
 	}
 	resultCh := make(chan pipeline.ExecutionResult, 1)
 	go func() {
-		resultCh <- tuiExecuteWithBackground(selection, planner.ResolvedPlan{}, system.DetectionResult{}, model.OpenCodeBackgroundOn, model.OpenCodeBackgroundOn, "", "", nil)
+		resultCh <- tuiExecuteWithBackground(selection, planner.ResolvedPlan{}, system.DetectionResult{}, model.OpenCodeBackgroundOn, model.OpenCodeBackgroundOn, nil)
 	}()
 
 	select {
@@ -753,7 +753,7 @@ func TestTuiInstallOnThenSyncRefreshesCanonicalAndRefusesTamperedOpenCodeActivat
 
 	selection := model.Selection{Agents: []model.AgentID{model.AgentOpenCode}, Components: []model.ComponentID{model.ComponentPersona, model.ComponentSDD}, SDDMode: model.SDDModeSingle}
 	resolved := planner.ResolvedPlan{Agents: []model.AgentID{model.AgentOpenCode}, OrderedComponents: []model.ComponentID{model.ComponentPersona, model.ComponentSDD}}
-	installResult := tuiExecuteWithBackground(selection, resolved, system.DetectionResult{}, model.OpenCodeBackgroundOn, model.OpenCodeBackgroundOn, "", "", nil)
+	installResult := tuiExecuteWithBackground(selection, resolved, system.DetectionResult{}, model.OpenCodeBackgroundOn, model.OpenCodeBackgroundOn, nil)
 	if installResult.Err != nil {
 		t.Fatalf("TUI install error = %v", installResult.Err)
 	}
@@ -900,7 +900,7 @@ func TestTuiSyncPreservesClaudeBalancedPreset(t *testing.T) {
 
 func TestTuiSyncClaudeModelConfigWritesSelectedAssignments(t *testing.T) {
 	home := t.TempDir()
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{string(model.AgentPi)}}); err != nil {
+	if err := state.Write(home, state.InstallState{InstalledAgents: []string{string(model.AgentCodex)}}); err != nil {
 		t.Fatalf("state.Write: %v", err)
 	}
 
@@ -992,7 +992,7 @@ func TestTuiSyncModelConfigPropagatesAssignmentWriteFailure(t *testing.T) {
 
 func TestTuiSyncClaudePhaseAssignmentsPersistAndGenerateEffort(t *testing.T) {
 	home := t.TempDir()
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{string(model.AgentPi)}}); err != nil {
+	if err := state.Write(home, state.InstallState{InstalledAgents: []string{string(model.AgentCodex)}}); err != nil {
 		t.Fatalf("state.Write: %v", err)
 	}
 
@@ -1810,7 +1810,7 @@ func TestTUIExecuteReturnsStatePersistenceFailure(t *testing.T) {
 
 	selection := model.Selection{Agents: []model.AgentID{model.AgentOpenCode}, CommunityTools: []model.CommunityToolID{}}
 	resolved := planner.ResolvedPlan{Agents: []model.AgentID{model.AgentOpenCode}}
-	result := tuiExecuteWithBackground(selection, resolved, system.DetectionResult{}, model.OpenCodeBackgroundOn, model.OpenCodeBackgroundOn, "", "", nil)
+	result := tuiExecuteWithBackground(selection, resolved, system.DetectionResult{}, model.OpenCodeBackgroundOn, model.OpenCodeBackgroundOn, nil)
 	if result.Err == nil || !strings.Contains(result.Err.Error(), "persist install state") {
 		t.Fatalf("tuiExecute() error = %v, want state persistence failure", result.Err)
 	}
@@ -1846,7 +1846,7 @@ func TestTUIExecuteRollsBackOnMalformedState(t *testing.T) {
 
 	selection := model.Selection{Agents: []model.AgentID{model.AgentOpenCode}, CommunityTools: []model.CommunityToolID{}}
 	resolved := planner.ResolvedPlan{Agents: []model.AgentID{model.AgentOpenCode}}
-	result := tuiExecuteWithBackground(selection, resolved, system.DetectionResult{}, model.OpenCodeBackgroundOn, model.OpenCodeBackgroundOn, "", "", nil)
+	result := tuiExecuteWithBackground(selection, resolved, system.DetectionResult{}, model.OpenCodeBackgroundOn, model.OpenCodeBackgroundOn, nil)
 	if result.Err == nil || !strings.Contains(result.Err.Error(), "read persisted install state") {
 		t.Fatalf("tuiExecute() error = %v, want state read failure", result.Err)
 	}
@@ -2726,7 +2726,7 @@ func codexServiceTierInstall(t *testing.T, home string, components []model.Compo
 	t.Helper()
 	selection := model.Selection{Agents: []model.AgentID{model.AgentCodex}, Components: components, CodexServiceTier: desired, CodexManagedServiceTier: managed}
 	resolved := planner.ResolvedPlan{Agents: selection.Agents, OrderedComponents: components}
-	if result := tuiExecuteWithBackground(selection, resolved, system.DetectionResult{}, "", "", "", "", nil); result.Err != nil {
+	if result := tuiExecuteWithBackground(selection, resolved, system.DetectionResult{}, "", "", nil); result.Err != nil {
 		t.Fatalf("TUI install error = %v", result.Err)
 	}
 }

@@ -36,10 +36,8 @@ func renderPresetPlan(plan planner.ResolvedPlan, selection model.Selection, curs
 	b.WriteString("\n\n")
 
 	if len(plan.OrderedComponents) == 0 {
-		if !hasPiAgentInInstallPlan(plan, selection) {
-			b.WriteString(styles.WarningStyle.Render("No components selected yet."))
-			b.WriteString("\n")
-		}
+		b.WriteString(styles.WarningStyle.Render("No components selected yet."))
+		b.WriteString("\n")
 		b.WriteString("\n\n")
 	} else {
 		b.WriteString(styles.HeadingStyle.Render("Components to install"))
@@ -67,53 +65,10 @@ func renderPresetPlan(plan planner.ResolvedPlan, selection model.Selection, curs
 		b.WriteString("\n")
 	}
 
-	if hasPiAgentInInstallPlan(plan, selection) {
-		b.WriteString(renderPiInstallPlan())
-		b.WriteString("\n")
-	}
-
 	b.WriteString(renderOptions(DependencyTreeOptions(), cursor))
 	b.WriteString("\n")
 	b.WriteString(styles.HelpStyle.Render("j/k: navigate • enter: select • esc: back"))
 
-	return b.String()
-}
-
-func hasPiAgentInInstallPlan(plan planner.ResolvedPlan, selection model.Selection) bool {
-	agents := selection.Agents
-	if len(agents) == 0 {
-		agents = plan.Agents
-	}
-
-	for _, agent := range agents {
-		if agent == model.AgentPi {
-			return true
-		}
-	}
-	return false
-}
-
-func piInstallCommands() []string {
-	return []string{
-		"pi install npm:gentle-pi",
-		"pi install npm:gentle-engram",
-		"pi install npm:pi-web-access",
-		"pi install npm:pi-btw",
-	}
-}
-
-func renderPiInstallPlan() string {
-	var b strings.Builder
-	b.WriteString(styles.SuccessStyle.Render("Pi agent support will be installed."))
-	b.WriteString("\n")
-	b.WriteString(styles.SubtextStyle.Render("  • Engram component will be installed/provisioned."))
-	b.WriteString("\n")
-	b.WriteString(styles.SubtextStyle.Render("  • Pi package stack will be installed:"))
-	b.WriteString("\n")
-	for _, command := range piInstallCommands() {
-		b.WriteString(styles.SubtextStyle.Render(fmt.Sprintf("    - %s", command)))
-		b.WriteString("\n")
-	}
 	return b.String()
 }
 

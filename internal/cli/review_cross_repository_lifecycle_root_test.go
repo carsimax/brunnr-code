@@ -23,7 +23,6 @@ func TestCrossRepositoryLifecycleRootConformance(t *testing.T) {
 		{name: "Claude Code", runtime: model.AgentClaudeCode, supported: true},
 		{name: "Codex", runtime: model.AgentCodex, supported: true},
 		{name: "OpenCode", runtime: model.AgentOpenCode, supported: true},
-		{name: "Pi", runtime: model.AgentPi, supported: true},
 	}
 
 	supported := 0
@@ -33,10 +32,6 @@ func TestCrossRepositoryLifecycleRootConformance(t *testing.T) {
 		}
 		t.Run(testCase.name, func(t *testing.T) {
 			reviewEnabledHome(t)
-			if testCase.runtime == model.AgentPi {
-				t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-			}
-
 			sessionRoot := initReviewCLIRepo(t)
 			targetRoot := initReviewCLIRepo(t)
 			targetNested := filepath.Join(targetRoot, "nested", "requested")
@@ -130,8 +125,8 @@ func TestCrossRepositoryLifecycleRootConformance(t *testing.T) {
 			}
 		})
 	}
-	if supported != 4 {
-		t.Fatalf("supported runtime rows = %d, want 4", supported)
+	if supported != 3 {
+		t.Fatalf("supported runtime rows = %d, want 3", supported)
 	}
 }
 

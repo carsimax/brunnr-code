@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gentleman-programming/gentle-ai/v4/internal/components/reviewassets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewerprovider"
 )
@@ -42,7 +43,7 @@ const (
 	// canonical inventory is known: the fixed files plus one entry per closed
 	// orchestration runtime. It must grow only alongside
 	// orchestrationRuntimeIdentities.
-	maxBundleFileCount = bundleFixedFileCount + 1
+	maxBundleFileCount = bundleFixedFileCount
 )
 
 var bundleTimestamp = time.Unix(0, 0).UTC()
@@ -147,10 +148,10 @@ type manifest struct {
 // here only once it has no other delivery channel for the review execution
 // contract inside Gentle AI's own installer (no system prompt, skill, or
 // file-subagent surface to splice generic SDD composition into), so this
-// bundle becomes that runtime's sole channel. Pi is first: its capability
-// manifest advertises MCP only, so its contract does not reach gentle-pi
-// through an installed system prompt (issue #4056).
-var orchestrationRuntimeIdentities = []string{"pi"}
+// bundle becomes that runtime's sole channel. Every supported runtime
+// currently receives the contract through its installed system prompt, so the
+// list is empty and the manifest's orchestration inventory stays empty.
+var orchestrationRuntimeIdentities = []string{}
 
 // orchestrationEntry is one closed runtime's bound review execution contract,
 // materialized once so Generate and Verify read the exact same bytes.
@@ -175,48 +176,20 @@ func canonicalOrchestrationEntries() ([]orchestrationEntry, error) {
 		if !reviewerprovider.RegisteredRuntime(agent) {
 			return nil, fmt.Errorf("%w: orchestration runtime %q is not a registered review runtime", errInvalidBundle, runtime)
 		}
-		content, err := reviewExecutionContractFor(agent)
+		content, err := reviewassets.ReviewExecutionContractFor(agent)
 		if err != nil {
 			return nil, fmt.Errorf("%w: orchestration runtime %q: %v", errInvalidBundle, runtime, err)
 		}
 		if strings.Contains(content, "{{GENTLE_AI_RUNTIME_AGENT_ID}}") {
 			return nil, fmt.Errorf("%w: orchestration runtime %q left the runtime identity placeholder unbound", errInvalidBundle, runtime)
 		}
-		if runtime == string(model.AgentPi) {
-			if !validPiFacadeLifecycle(content) {
-				return nil, fmt.Errorf("%w: orchestration runtime %q does not use the complete facade-only lifecycle", errInvalidBundle, runtime)
-			}
-		} else {
-			wantCommand := "--agent " + runtime
-			if count := strings.Count(content, wantCommand); count != 1 {
-				return nil, fmt.Errorf("%w: orchestration runtime %q contract names %q %d times, want 1", errInvalidBundle, runtime, wantCommand, count)
-			}
+		wantCommand := "--agent " + runtime
+		if count := strings.Count(content, wantCommand); count != 1 {
+			return nil, fmt.Errorf("%w: orchestration runtime %q contract names %q %d times, want 1", errInvalidBundle, runtime, wantCommand, count)
 		}
 		entries = append(entries, orchestrationEntry{runtime: runtime, content: []byte(strings.TrimSpace(content) + "\n")})
 	}
 	return entries, nil
-}
-
-func validPiFacadeLifecycle(content string) bool {
-	for _, required := range []string{
-		"`gentle_review` with {\"operation\":\"inspect\"}",
-		"`gentle_review` with operation `status`, the exact retained `lineageId`, and `workspaceRoot` only when needed",
-		"`gentle_review_capture` for one current returned slot",
-		"`gentle_review_capture_group` for the complete current reviewer group",
-		"On `approved`, use bound facade STATUS to obtain or replay the exact provider-issued `acknowledge-approved` continuation, then execute it unchanged.",
-		"Only the exact provider-issued acknowledgement continuation burns approved authority.",
-		"`gentle_review` with operation `answer-consent` and the exact `consentBinding`",
-		"resubmit the same exact binding with `reviewerRunAcknowledged: true`",
-	} {
-		if !strings.Contains(content, required) {
-			return false
-		}
-	}
-	// The user-owned kill switch (`gentle-ai review mode ...`) is ordinary CLI
-	// with no facade operation, so the contract may legitimately name it; every
-	// other raw "gentle-ai review " lifecycle route is still forbidden.
-	stripped := strings.ReplaceAll(content, "gentle-ai review mode ", "")
-	return !strings.Contains(stripped, "gentle-ai review ")
 }
 
 var bundleREADME = []byte(`# Gentle AI review provider contract

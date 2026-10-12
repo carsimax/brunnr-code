@@ -60,7 +60,6 @@ var adapterForbiddenConstructionPatterns = []struct {
 // adapter dispatch surfaces this guard covers.
 var adapterForbiddenConstructionPackageDirs = []string{
 	filepath.Join("opencode"),
-	filepath.Join("pi"),
 	filepath.Join("claude"),
 }
 

@@ -32,13 +32,9 @@ type SDDPromptFile struct{ Root, Path, Active string }
 
 // RetiredSDDInventory resolves the inventory of adapter under root, the home
 // or workspace directory releases resolved its config from. Workflows and
-// scope-specific prompt files are the caller's to add. Pi has none: gentle-pi
-// owns its home (#5219), so nothing there is ever inspected.
+// scope-specific prompt files are the caller's to add.
 func RetiredSDDInventory(adapter agents.Adapter, root string) SDDInventory {
 	inv := SDDInventory{Agent: adapter.Agent()}
-	if adapter.Agent() == model.AgentPi {
-		return inv
-	}
 	if adapter.SupportsSkills() {
 		inv.Dirs.Skills = adapter.SkillsDir(root)
 	}

@@ -122,14 +122,11 @@ var (
 	reviewDefectReportEnvAssignmentRegexp = regexp.MustCompile(`\b[A-Z][A-Z0-9_]{2,}=\S+`)
 	// reviewDefectReportPublicIdentifierRegexp matches the product's own
 	// public identifiers: contract and schema ids such as
-	// gentle-ai.review-integration/v2, gentle-ai.review-integration.status/v7,
-	// or gentle-pi.review-relay/v1, plus the one exact relay handshake
-	// assignment. None of them describe a filesystem or a secret, and a
-	// report that hides them tells the reader to run a command that does not
-	// exist (#3443). Every other KEY=VALUE token and every path still redact.
-	reviewDefectReportPublicIdentifierRegexp = regexp.MustCompile(
-		regexp.QuoteMeta(reviewPiHostRelayContractEnvironment+"="+reviewPiHostRelayContract) +
-			`|gentle-(?:ai|pi)\.[A-Za-z0-9.-]+/v[0-9]+`)
+	// gentle-ai.review-integration/v2 or gentle-ai.review-integration.status/v7.
+	// None of them describe a filesystem or a secret, and a report that hides
+	// them tells the reader to run a command that does not exist (#3443).
+	// Every KEY=VALUE token and every path still redact.
+	reviewDefectReportPublicIdentifierRegexp = regexp.MustCompile(`gentle-ai\.[A-Za-z0-9.-]+/v[0-9]+`)
 )
 
 // reviewDefectReportPlaceholder is the shape a protected public identifier

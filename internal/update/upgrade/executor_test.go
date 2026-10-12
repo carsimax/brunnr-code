@@ -1053,46 +1053,6 @@ func TestEnumerateFilesInDir_NilExcludesWalksEverything(t *testing.T) {
 	}
 }
 
-// TestConfigPathsForBackup_ExcludesPiSessionRuntimeFile verifies that upgrade
-// backups preserve managed Pi config without capturing session data.
-func TestConfigPathsForBackup_ExcludesPiSessionRuntimeFile(t *testing.T) {
-	t.Setenv("PI_CODING_AGENT_DIR", "")
-	homeDir := t.TempDir()
-
-	managedPiSettings := filepath.Join(homeDir, ".pi", "agent", "settings.json")
-	managedPiMCP := filepath.Join(homeDir, ".pi", "agent", "mcp.json")
-	runtimeSession := filepath.Join(homeDir, ".pi", "agent", "sessions", "session.jsonl")
-	for _, path := range []string{managedPiSettings, managedPiMCP, runtimeSession} {
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("MkdirAll %s: %v", path, err)
-		}
-		if err := os.WriteFile(path, []byte("data"), 0o644); err != nil {
-			t.Fatalf("WriteFile %s: %v", path, err)
-		}
-	}
-
-	if err := state.Write(homeDir, state.InstallState{
-		InstalledAgents: []string{string(model.AgentPi)},
-	}); err != nil {
-		t.Fatalf("state.Write: %v", err)
-	}
-
-	paths := configPathsForBackup(homeDir)
-	pathSet := make(map[string]struct{}, len(paths))
-	for _, p := range paths {
-		pathSet[p] = struct{}{}
-	}
-
-	for _, managed := range []string{managedPiSettings, managedPiMCP} {
-		if _, ok := pathSet[managed]; !ok {
-			t.Errorf("configPathsForBackup missing Pi managed file %q", managed)
-		}
-	}
-	if _, ok := pathSet[runtimeSession]; ok {
-		t.Errorf("configPathsForBackup included Pi session runtime file %q", runtimeSession)
-	}
-}
-
 func TestConfigPathsForBackup_ExcludesRuntimeDirs(t *testing.T) {
 	homeDir := t.TempDir()
 

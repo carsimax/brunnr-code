@@ -81,8 +81,7 @@ func TestInstallerFailureRollbackReturnsControl(t *testing.T) {
 	}
 	// Keep an executor configured to disable the manual development fallback.
 	m.ExecuteFn = func(model.Selection, planner.ResolvedPlan, system.DetectionResult,
-		model.OpenCodeBackgroundIntent, model.OpenCodeBackgroundIntent,
-		model.PiBackgroundIntent, model.PiBackgroundIntent, pipeline.ProgressFunc,
+		model.OpenCodeBackgroundIntent, model.OpenCodeBackgroundIntent, pipeline.ProgressFunc,
 	) pipeline.ExecutionResult {
 		panic("executor must not restart after completion")
 	}

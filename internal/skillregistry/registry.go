@@ -58,11 +58,9 @@ type cacheFile struct {
 	Fingerprint string `json:"fingerprint"`
 }
 
-// Keep these source roots in sync with the gentle-pi skill-registry extension.
 func UserSkillDirs(home string) []string {
 	return []string{
-		// Gentle AI/Pi and generic Agent Skills locations.
-		filepath.Join(home, ".pi", "agent", "skills"),
+		// Generic Agent Skills locations.
 		filepath.Join(home, ".config", "agents", "skills"),
 		filepath.Join(home, ".agents", "skills"),
 		filepath.Join(home, ".kimi-code", "skills"),

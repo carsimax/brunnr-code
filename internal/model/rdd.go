@@ -7,13 +7,11 @@ package model
 //
 // It is the single source of truth for that gate and must equal the runtimes
 // whose capability manifest advertises the review transport; a parity test in
-// agentguidance fails when the two drift. Pi is listed because it advertises
-// the transport, but its prompt and agents are owned by Gentle Shell.
+// agentguidance fails when the two drift.
 var receiptDrivenDevelopmentAgents = []AgentID{
 	AgentClaudeCode,
 	AgentCodex,
 	AgentOpenCode,
-	AgentPi,
 }
 
 // SupportsReceiptDrivenDevelopment reports whether agent receives

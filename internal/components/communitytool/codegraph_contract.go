@@ -36,7 +36,6 @@ var codeGraphCompatibilityTable = map[model.AgentID]codeGraphCompatibility{
 	model.AgentClaudeCode: nativeCompatibility(model.AgentClaudeCode, "claude"),
 	model.AgentOpenCode:   reconciledCompatibility(model.AgentOpenCode, "opencode"),
 	model.AgentCodex:      nativeCompatibility(model.AgentCodex, "codex"),
-	model.AgentPi:         reconciledCompatibility(model.AgentPi, ""),
 }
 
 func nativeCompatibility(id model.AgentID, target string) codeGraphCompatibility {
@@ -63,7 +62,7 @@ func isCodeGraphCompatibleAgent(id model.AgentID) bool {
 
 func codeGraphOwnedPaths(homeDir string, adapter agents.Adapter) []string {
 	paths := codeGraphToolWiringPaths(homeDir, adapter)
-	if adapter.SupportsSystemPrompt() && adapter.Agent() != model.AgentPi {
+	if adapter.SupportsSystemPrompt() {
 		paths = append(paths, adapter.SystemPromptFile(homeDir))
 	}
 	return paths

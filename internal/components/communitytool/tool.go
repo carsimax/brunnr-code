@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
-	piagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/catalog"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
@@ -47,7 +46,6 @@ type Result struct {
 	ManualActions []string
 	StatusBefore  *Status
 	StatusAfter   *Status
-	PiCodeGraph   *PiCodeGraphResult
 }
 
 type Status struct {
@@ -66,7 +64,6 @@ type AgentStatus struct {
 	Configured bool
 	Path       string
 	Reason     string
-	Children   []PiCodeGraphChild
 }
 
 type Detector interface {
@@ -159,29 +156,12 @@ func InstallWithHome(id model.CommunityToolID, workspaceDir string, homeDir stri
 		if err != nil {
 			return rollback(err)
 		}
-		piResult, err := reconcileDetectedPiCodeGraph(homeDir, workspaceDir)
-		if err != nil {
-			return rollback(err)
-		}
-		result.PiCodeGraph = piResult
-		if piResult != nil {
-			result.ManualActions = append(result.ManualActions, piResult.ManualActions...)
-		}
 		after := DetectStatus(id, homeDir, detector)
 		result.StatusAfter = &after
 		if err := validateCodeGraphInstallStatus(after); err != nil {
 			return rollback(err)
 		}
-		piPending := false
-		for _, agent := range after.Agents {
-			if agent.Agent == model.AgentPi && agent.Status == AgentStatusPending {
-				piPending = true
-				break
-			}
-		}
-		if piPending {
-			result.ManualActions = append(result.ManualActions, "CodeGraph configuration is reconciled for all detected supported agents. Pi activation health remains pending.")
-		} else if openCodeResult.Changed || guidanceResult.Changed {
+		if openCodeResult.Changed || guidanceResult.Changed {
 			result.ManualActions = append(result.ManualActions, "CodeGraph is already available and MCP-configured. Agent guidance was updated so enabled agents lazily initialize project indexes when needed.")
 		} else {
 			result.ManualActions = append(result.ManualActions, "CodeGraph is already available and configured for all detected supported agents. No changes were needed.")
@@ -247,14 +227,6 @@ func InstallWithHome(id model.CommunityToolID, workspaceDir string, homeDir stri
 	if _, err := InjectCodeGraphGuidanceIfSelected(homeDir, []model.CommunityToolID{id}); err != nil {
 		return rollback(err)
 	}
-	piResult, err := reconcileDetectedPiCodeGraph(homeDir, workspaceDir)
-	if err != nil {
-		return rollback(err)
-	}
-	result.PiCodeGraph = piResult
-	if piResult != nil {
-		result.ManualActions = append(result.ManualActions, piResult.ManualActions...)
-	}
 	after := DetectStatus(id, homeDir, detector)
 	result.StatusAfter = &after
 	if err := validateCodeGraphInstallStatus(after); err != nil {
@@ -274,7 +246,7 @@ func codeGraphCanRepairWithoutFullInstall(homeDir string, status Status) bool {
 	}
 	foundMissing := false
 	for _, agent := range status.Agents {
-		if !agent.Detected || agent.Configured || agent.Agent == model.AgentPi {
+		if !agent.Detected || agent.Configured {
 			continue
 		}
 		foundMissing = true
@@ -292,18 +264,6 @@ func codeGraphCanRepairWithoutFullInstall(homeDir string, status Status) bool {
 	return foundMissing
 }
 
-func reconcileDetectedPiCodeGraph(homeDir, workspaceDir string) (*PiCodeGraphResult, error) {
-	paths := piagent.CodeGraphPaths(homeDir)
-	if _, err := os.Stat(paths.AgentDir); os.IsNotExist(err) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
-	result, err := ReconcilePiCodeGraph(PiCodeGraphOptions{HomeDir: homeDir, WorkspaceDir: workspaceDir, Selected: true})
-	result, err = PreservePiCodeGraphPending(result, err)
-	return &result, err
-}
-
 func validateCodeGraphInstallStatus(status Status) error {
 	if status.Tool != model.CommunityToolCodeGraph {
 		return nil
@@ -313,9 +273,6 @@ func validateCodeGraphInstallStatus(status Status) error {
 	}
 	missing := make([]string, 0)
 	for _, agent := range status.Agents {
-		if agent.Agent == model.AgentPi {
-			continue
-		}
 		if agent.Detected && !agent.Configured {
 			missing = append(missing, agent.Name)
 		}
@@ -381,11 +338,6 @@ func (s Status) CodeGraphReconcileSatisfied() bool {
 		return false
 	}
 	for _, agent := range s.Agents {
-		// Validated Pi capability is reconciled even when activation health
-		// remains unverifiable. Genuine Pi failures still block this shortcut.
-		if agent.Agent == model.AgentPi && agent.Status == AgentStatusPending {
-			continue
-		}
 		if agent.Detected && !agent.Configured {
 			return false
 		}
@@ -438,10 +390,7 @@ func detectCodeGraphAgents(homeDir string) []AgentStatus {
 		}
 		if detected {
 			configured, markerPath, reason := hasCodeGraphWiring(homeDir, adapter)
-			if id == model.AgentPi {
-				state.Status, reason, state.Children = inspectPiCodeGraph(homeDir, "")
-				configured = state.Status == AgentStatusConfigured
-			} else if configured {
+			if configured {
 				state.Status = AgentStatusConfigured
 			} else {
 				state.Status = AgentStatusMissing
@@ -467,11 +416,6 @@ func codeGraphSupportedAgents() []model.AgentID {
 
 func hasCodeGraphWiring(homeDir string, adapter agents.Adapter) (bool, string, string) {
 	guidancePath := codeGraphGuidancePath(homeDir, adapter)
-	if adapter.Agent() == model.AgentPi {
-		configured, reason := PiCodeGraphConfigured(homeDir, "")
-		return configured, piCodeGraphStatusPath(homeDir), reason
-	}
-
 	toolPath, hasToolWiring := hasCodeGraphToolWiring(homeDir, adapter)
 	if adapter.SupportsSystemPrompt() {
 		if !hasCodeGraphGuidance(guidancePath) {
@@ -486,15 +430,6 @@ func hasCodeGraphWiring(homeDir string, adapter agents.Adapter) (bool, string, s
 		return true, toolPath, "found CodeGraph tool wiring marker"
 	}
 	return false, adapter.GlobalConfigDir(homeDir), "detected agent but no CodeGraph MCP or instruction marker was found"
-}
-
-// PiCodeGraphManifestPath returns the effective CodeGraph manifest path for Pi.
-func PiCodeGraphManifestPath(homeDir string) string {
-	return piagent.CodeGraphPaths(homeDir).Manifest
-}
-
-func piCodeGraphStatusPath(homeDir string) string {
-	return PiCodeGraphManifestPath(homeDir)
 }
 
 func hasDetectedCodeGraphToolWiring(homeDir string) bool {

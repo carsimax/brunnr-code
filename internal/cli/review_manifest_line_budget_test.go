@@ -112,7 +112,7 @@ func TestCapturePreflightBoundsChangedPathManifestLineCost(t *testing.T) {
 }
 
 // TestNegotiatedStatusOmitsChangedPathManifestPerLens proves the fix for
-// issue #3922 / #4199 / gentle-pi#543: the negotiated collection transition
+// issue #3922 / #4199: the negotiated collection transition
 // used to repeat the identical manifest once per uncaptured lens, turning a
 // 200-file candidate into a ~46 KB STATUS the host had to echo back on every
 // poll. Each collect input already commits to the manifest through

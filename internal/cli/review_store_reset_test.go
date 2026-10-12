@@ -235,7 +235,7 @@ func TestReviewStoreResetReportsPartialFailureWithoutClaimingSuccess(t *testing.
 	repo := initReviewCLIRepo(t)
 	storeResetSeedLineage(t, repo, "review-approved", reviewtransaction.StateApproved)
 	root := storeResetStoreRoot(t, repo)
-	reviews := filepath.Join(root, "reviews")
+	reviews := filepath.Join(root, "review-transactions", "quarantine")
 	if err := os.MkdirAll(reviews, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +251,7 @@ func TestReviewStoreResetReportsPartialFailureWithoutClaimingSuccess(t *testing.
 	t.Cleanup(func() { _ = os.Chmod(reviews, 0o755) })
 
 	var output bytes.Buffer
-	err := RunReview([]string{"store-reset", "--cwd", repo, "--confirm", "--include-adapter-reviews", "--json"}, &output)
+	err := RunReview([]string{"store-reset", "--cwd", repo, "--confirm", "--json"}, &output)
 	if err == nil {
 		t.Fatalf("a partial reset exited zero\n%s", output.String())
 	}
@@ -264,14 +264,14 @@ func TestReviewStoreResetReportsPartialFailureWithoutClaimingSuccess(t *testing.
 	}
 	var failed reviewtransaction.StoreResetEntry
 	for _, entry := range result.Report.Removable {
-		if entry.Name == "reviews" {
+		if entry.Name == "review-transactions/quarantine" {
 			failed = entry
 		}
 	}
 	if failed.Removed || failed.Skipped == "" {
 		t.Fatalf("the failed category = %#v", failed)
 	}
-	if _, statErr := os.Stat(filepath.Join(root, "reviews", "IDENTITY")); statErr != nil {
+	if _, statErr := os.Stat(filepath.Join(reviews, "IDENTITY")); statErr != nil {
 		t.Fatalf("the failed category was destroyed anyway: %v", statErr)
 	}
 }
@@ -363,49 +363,5 @@ func TestReviewStoreResetKeepsTheUntouchedPromiseForAnOrdinaryPartialRun(t *test
 	}
 	if !strings.Contains(output.String(), "nothing above marked SKIPPED was removed") {
 		t.Fatalf("an ordinary partial run lost its reassurance:\n%s", output.String())
-	}
-}
-
-// TestReviewStoreResetSparesTheAdapterReviewStoreByDefault is the coverage rule
-// at the surface the user types. reviews/ is written by the gentle-pi adapter,
-// which this command's maintenance lease does not exclude and whose reviews its
-// in-flight refusal cannot see, so a default run has to leave it alone and say
-// why.
-func TestReviewStoreResetSparesTheAdapterReviewStoreByDefault(t *testing.T) {
-	reviewModeHome(t)
-	repo := initReviewCLIRepo(t)
-	storeResetSeedLineage(t, repo, "review-approved", reviewtransaction.StateApproved)
-	root := storeResetStoreRoot(t, repo)
-	identity := filepath.Join(root, "reviews", "IDENTITY")
-	if err := os.MkdirAll(filepath.Dir(identity), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(identity, []byte("{}\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	var output bytes.Buffer
-	if err := RunReview([]string{"store-reset", "--cwd", repo, "--confirm", "--json"}, &output); err != nil {
-		t.Fatalf("reset: %v\n%s", err, output.String())
-	}
-	var result ReviewStoreResetResult
-	decodeStrictReviewJSON(t, output.Bytes(), &result)
-	for _, entry := range result.Report.Removable {
-		if entry.Name == "reviews" {
-			t.Fatalf("a default run offered to remove the adapter review store: %#v", entry)
-		}
-	}
-	if _, err := os.Stat(identity); err != nil {
-		t.Fatalf("a default run destroyed the adapter review store: %v", err)
-	}
-
-	// And the override actually removes it, so the withholding is a decision
-	// rather than a dead end.
-	output.Reset()
-	if err := RunReview([]string{"store-reset", "--cwd", repo, "--confirm", "--include-adapter-reviews"}, &output); err != nil {
-		t.Fatalf("opted-in reset: %v\n%s", err, output.String())
-	}
-	if _, err := os.Lstat(filepath.Join(root, "reviews")); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("the override did not remove the adapter review store: %v", err)
 	}
 }

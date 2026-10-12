@@ -147,11 +147,6 @@ type InstallState struct {
 
 	BackgroundIntent model.OpenCodeBackgroundIntent `json:"opencode_background_subagents,omitempty"`
 
-	// PiBackgroundIntent is the managed Pi background-subagent choice. It is
-	// persisted separately from the OpenCode field because each key is part of
-	// an independent state contract.
-	PiBackgroundIntent model.PiBackgroundIntent `json:"pi_background_subagents,omitempty"`
-
 	// LastSyncedAt records when this home directory last completed a
 	// successful sync. Nil for state files written before this field was added.
 	LastSyncedAt *time.Time `json:"last_synced_at,omitempty"`
@@ -320,9 +315,8 @@ func MergeAgents(existing InstallState, newAgents []string) InstallState {
 		RDDMode:                     existing.RDDMode,
 		RDDModeRecordedAt:           existing.RDDModeRecordedAt,
 
-		BackgroundIntent:   existing.BackgroundIntent,
-		PiBackgroundIntent: existing.PiBackgroundIntent,
-		LastSyncedAt:       existing.LastSyncedAt,
+		BackgroundIntent: existing.BackgroundIntent,
+		LastSyncedAt:     existing.LastSyncedAt,
 	}
 }
 

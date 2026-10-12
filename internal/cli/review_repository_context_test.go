@@ -193,7 +193,6 @@ func TestNativeNextTransitionCarriesRepositoryContextCaptureBinding(t *testing.T
 
 func TestNegotiatedStatusReturnsProviderOwnedTargetedValidationRequest(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	repo := initReviewCLIRepo(t)
 	writeReviewStartCandidate(t, repo, "candidate.go", "package candidate\n\nfunc corrected() int { return 1 }\n", 0o644)
 	started := runNegotiatedReviewStart(t, repo, "typed-validation-request")
@@ -220,7 +219,7 @@ func TestNegotiatedStatusReturnsProviderOwnedTargetedValidationRequest(t *testin
 	var statusOutput bytes.Buffer
 	if err := RunReview([]string{
 		"status", "--cwd", repo, "--contract", ReviewIntegrationContractV2,
-		"--lineage", started.LineageID, "--agent", "pi", "--next-transition",
+		"--lineage", started.LineageID, "--agent", "claude-code", "--next-transition",
 	}, &statusOutput); err != nil {
 		t.Fatalf("status after correction: %v\n%s", err, statusOutput.String())
 	}
@@ -275,20 +274,13 @@ func TestNegotiatedStatusReturnsProviderOwnedTargetedValidationRequest(t *testin
 		t.Fatalf("validation transition = %#v", status.NextTransition)
 	}
 
-	// The pi host relay submits through its rendered submission descriptor
-	// instead of --execute (#4611): Go never spawns anything here either.
-	submission := status.NextTransition.Collect.Inputs[0].Submission
-	if submission == nil {
-		t.Fatal("pi host relay validation transition rendered no submission descriptor")
-	}
-	captureArgs := append([]string{submission.OperationToken, "--cwd", repo}, submission.ArgumentTokens...)
+	// The compiled runtime returns the canned raw result through the rendered
+	// --execute collect input.
+	stubCompiledProviderRawForTest(t, providerTargetedValidationPayload(t, *request))
+	captureArgs := append([]string{"capture-validation", "--cwd", repo}, collectInputArgumentTokensForTest(status.NextTransition.Collect.Inputs[0])...)
 	captureArgs = replaceReviewContextToken(t, captureArgs, rctx2ReviewRepositoryContextForTest(t, repo, reviewtransaction.ReviewRepositoryContextBinding{
 		LineageID: started.LineageID, TargetIdentity: request.CorrectionTargetIdentity, Revision: request.ExpectedRevision,
 	}))
-	resultFile := writeReviewCLIRawInput(t, providerTargetedValidationPayload(t, *request))
-	for index := range captureArgs {
-		captureArgs[index] = strings.ReplaceAll(captureArgs[index], reviewSubmissionValuePlaceholder, resultFile)
-	}
 	var output bytes.Buffer
 	if err := RunReview(captureArgs, &output); err != nil {
 		t.Fatalf("capture exact targeted-validator transition: %v\n%s", err, output.String())

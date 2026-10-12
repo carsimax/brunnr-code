@@ -3,8 +3,6 @@ package cli
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
@@ -12,7 +10,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1176,177 +1173,6 @@ func TestComponentSyncStepRunsPersonaInjectForSync(t *testing.T) {
 	}
 }
 
-func TestComponentSyncStepWritesPiPersonaToHomeAndReportsChangedFile(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-	path := filepath.Join(home, ".pi", "gentle-ai", "persona.json")
-	var changed []string
-	step := componentSyncStep{
-		id:           "sync:persona",
-		component:    model.ComponentPersona,
-		homeDir:      home,
-		workspaceDir: workspace,
-		agents:       []model.AgentID{model.AgentPi},
-		selection:    model.Selection{Persona: model.PersonaNeutral},
-		changedFiles: &changed,
-	}
-
-	if err := step.Run(); err != nil {
-		t.Fatalf("first Pi persona sync error = %v", err)
-	}
-	if !containsPath(changed, path) {
-		t.Fatalf("first Pi persona sync changed files = %v, missing %q", changed, path)
-	}
-	if _, err := os.Stat(filepath.Join(workspace, ".pi", "gentle-ai", "persona.json")); !os.IsNotExist(err) {
-		t.Fatalf("Pi sync wrote a workspace persona config; stat err = %v", err)
-	}
-	if got := readTextFile(t, path); got != "{\n  \"mode\": \"neutral\"\n}\n" {
-		t.Fatalf("Pi persona config = %q, want neutral mode", got)
-	}
-
-	changed = nil
-	if err := step.Run(); err != nil {
-		t.Fatalf("second Pi persona sync error = %v", err)
-	}
-	if len(changed) != 0 {
-		t.Fatalf("second Pi persona sync changed files = %v, want none", changed)
-	}
-}
-
-func TestSyncPersonaPathsAndBackupTargetsTrackOnlyPiGlobalConfig(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-	selection := model.Selection{
-		Agents:     []model.AgentID{model.AgentPi},
-		Components: []model.ComponentID{model.ComponentPersona},
-		Persona:    model.PersonaNeutral,
-	}
-	adapters := resolveAdapters(selection.Agents)
-	want := filepath.Join(home, ".pi", "gentle-ai", "persona.json")
-	unwanted := filepath.Join(workspace, ".pi", "gentle-ai", "persona.json")
-	prompt := systemPromptFileFor(t, home, model.AgentPi)
-
-	paths := syncPersonaPathsWithWorkspaceScoped(home, workspace, ScopeGlobal, selection, adapters)
-	if !containsPath(paths, want) || containsPath(paths, unwanted) {
-		t.Fatalf("sync persona paths = %v, want only global Pi config %q", paths, want)
-	}
-	targets, err := syncBackupTargetsScoped(home, workspace, ScopeGlobal, selection, adapters)
-	if err != nil {
-		t.Fatalf("syncBackupTargets() error = %v", err)
-	}
-	if !containsPath(targets, want) || !containsPath(targets, prompt) || containsPath(targets, unwanted) {
-		t.Fatalf("sync backup targets = %v, want global Pi config %q and cleanup path %q", targets, want, prompt)
-	}
-
-	selection.Persona = model.PersonaCustom
-	if paths := syncPersonaPathsWithWorkspaceScoped(home, workspace, ScopeGlobal, selection, adapters); len(paths) != 0 {
-		t.Fatalf("custom sync persona paths = %v, want none", paths)
-	}
-}
-
-func TestSyncRoutingCleanupReportsPiPromptForNormalAndExplicitSync(t *testing.T) {
-	for _, components := range [][]model.ComponentID{nil, {model.ComponentPersona}} {
-		home := t.TempDir()
-		path := systemPromptFileFor(t, home, model.AgentPi)
-		mustWriteFile(t, path, []byte("user\n<!-- gentle-ai:agent-routing -->\nstale\n<!-- /gentle-ai:agent-routing -->\n"))
-		changed := runSyncInjectionSteps(t, home, model.Selection{Agents: []model.AgentID{model.AgentPi}, Components: components, Persona: model.PersonaNeutral})
-		if !containsPath(changed, path) || strings.Contains(readTextFile(t, path), "gentle-ai:agent-routing") {
-			t.Fatalf("sync components %v changed=%v prompt=%q", components, changed, path)
-		}
-	}
-}
-
-func TestRunSyncExplicitPiRetiresStaleRoutingAndReportsIt(t *testing.T) {
-	home := t.TempDir()
-	previous := osUserHomeDir
-	osUserHomeDir = func() (string, error) { return home, nil }
-	t.Cleanup(func() { osUserHomeDir = previous })
-	path := systemPromptFileFor(t, home, model.AgentPi)
-	mustWriteFile(t, path, []byte("user\n<!-- gentle-ai:agent-routing -->\nstale\n<!-- /gentle-ai:agent-routing -->\n"))
-	result, err := RunSync([]string{"--agent", "pi"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !containsPath(result.ChangedFiles, path) || strings.Contains(readTextFile(t, path), "gentle-ai:agent-routing") {
-		t.Fatalf("explicit sync changed=%v prompt=%q", result.ChangedFiles, path)
-	}
-}
-
-func TestPiPersonaSyncSnapshotRestoresGlobalConfig(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-	path := filepath.Join(home, ".pi", "gentle-ai", "persona.json")
-	mustWriteFile(t, path, []byte("{\n  \"mode\": \"gentleman\"\n}\n"))
-
-	selection := model.Selection{
-		Agents:     []model.AgentID{model.AgentPi},
-		Components: []model.ComponentID{model.ComponentPersona},
-		Persona:    model.PersonaNeutral,
-	}
-	targets, err := syncBackupTargetsScoped(home, workspace, ScopeGlobal, selection, resolveAdapters(selection.Agents))
-	if err != nil {
-		t.Fatalf("syncBackupTargets() error = %v", err)
-	}
-	before, err := snapshotSyncFiles(targets)
-	if err != nil {
-		t.Fatalf("snapshotSyncFiles() error = %v", err)
-	}
-	step := componentSyncStep{
-		component:    model.ComponentPersona,
-		homeDir:      home,
-		workspaceDir: workspace,
-		agents:       selection.Agents,
-		selection:    selection,
-	}
-	if err := step.Run(); err != nil {
-		t.Fatalf("Pi persona sync error = %v", err)
-	}
-	if got := readTextFile(t, path); got == "{\n  \"mode\": \"gentleman\"\n}\n" {
-		t.Fatal("Pi persona sync did not change the global config before rollback")
-	}
-	if err := restoreSyncFiles(before); err != nil {
-		t.Fatalf("restoreSyncFiles() error = %v", err)
-	}
-	if got, want := readTextFile(t, path), "{\n  \"mode\": \"gentleman\"\n}\n"; got != want {
-		t.Fatalf("restored Pi persona config = %q, want %q", got, want)
-	}
-}
-
-func TestSyncPersonaRollbackRestoresPiSystemPromptFile(t *testing.T) {
-	home := t.TempDir()
-	appendSystemPath := systemPromptFileFor(t, home, model.AgentPi)
-	before := []byte("user text before\n\n<!-- gentle-ai:persona -->\nstale persona\n<!-- /gentle-ai:persona -->\n\nuser text after\n")
-	mustWriteFile(t, appendSystemPath, before)
-	mustWriteFile(t, state.Path(home), []byte(`{"installed_agents":["pi"]}`))
-
-	selection := model.Selection{
-		Agents:     []model.AgentID{model.AgentPi},
-		Components: []model.ComponentID{model.ComponentPersona, model.ComponentID("later-failure")},
-		Persona:    model.PersonaNeutral,
-	}
-	targets, err := syncBackupTargetsScoped(home, "", ScopeGlobal, selection, resolveAdapters(selection.Agents))
-	if err != nil {
-		t.Fatalf("syncBackupTargets() error = %v", err)
-	}
-	if !containsPath(targets, appendSystemPath) {
-		t.Fatalf("sync backup targets omit Pi system prompt file: %v", targets)
-	}
-	if containsPath(syncPersonaPathsWithWorkspaceScoped(home, "", ScopeGlobal, selection, resolveAdapters(selection.Agents)), appendSystemPath) {
-		t.Fatalf("sync persona paths include backup-only Pi system prompt file")
-	}
-
-	if _, err := RunSyncWithSelection(home, selection); err == nil {
-		t.Fatal("RunSyncWithSelection() error = nil, want later pipeline failure")
-	}
-	after, err := os.ReadFile(appendSystemPath)
-	if err != nil {
-		t.Fatalf("ReadFile(Pi system prompt) error = %v", err)
-	}
-	if !bytes.Equal(after, before) {
-		t.Fatalf("Pi system prompt after rollback = %q, want exact before-image %q", after, before)
-	}
-}
-
 func TestRestoreOpenCodeModelAssignmentsDoesNotRestoreExplicitClearOnGeneratedAgent(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
@@ -1528,7 +1354,6 @@ func TestSyncPersonaOnlyRollbackRestoresOpenCodeSettingsAfterGentlemanCleanup(t 
 	setOpenCodeTestHome(t, home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("OPENCODE_CONFIG_DIR", "")
-	t.Setenv("PI_CODING_AGENT_DIR", filepath.Join(home, ".pi", "agent"))
 	settingsPath := filepath.Join(home, ".config", "opencode", "opencode.json")
 	before := []byte("// preserve exact JSONC bytes\n{\"agent\":{\"gentleman\":{\"tools\":{\"write\":true},\"description\":\"keep\"},\"user-owned\":{\"tools\":{\"custom\":true}}}}\n")
 	mustWriteFile(t, settingsPath, before)
@@ -2617,9 +2442,6 @@ func TestSyncRuntimeAddsCodeGraphStepsOnlyWhenSelected(t *testing.T) {
 	if !hasStepID(plan.Apply, "sync:community-tool:codegraph-guidance") {
 		t.Fatal("sync plan missing selected CodeGraph guidance step")
 	}
-	if !hasStepID(plan.Apply, "sync:community-tool:pi-codegraph") {
-		t.Fatal("sync plan missing selected Pi CodeGraph step")
-	}
 
 	rt, err = newSyncRuntimeWithScope(home, model.Selection{Agents: []model.AgentID{model.AgentOpenCode}}, ScopeGlobal)
 	if err != nil {
@@ -2628,9 +2450,6 @@ func TestSyncRuntimeAddsCodeGraphStepsOnlyWhenSelected(t *testing.T) {
 	plan = rt.stagePlan()
 	if hasStepID(plan.Apply, "sync:community-tool:codegraph-guidance") {
 		t.Fatal("sync plan included CodeGraph guidance without explicit selection")
-	}
-	if hasStepID(plan.Apply, "sync:community-tool:pi-codegraph") {
-		t.Fatal("sync plan included Pi CodeGraph without explicit selection")
 	}
 
 	paths, err := syncBackupTargetsScoped(home, "", ScopeGlobal, selected, resolveAdapters([]model.AgentID{model.AgentOpenCode}))
@@ -2711,7 +2530,6 @@ func TestRestorePersistedCommunityToolsRequiresInstallerSelection(t *testing.T) 
 func TestRestorePersistedCommunityToolsDoesNotAdoptExternalWiring(t *testing.T) {
 	home := t.TempDir()
 	mustWriteFile(t, filepath.Join(home, ".config", "opencode", "opencode.json"), []byte(`{"mcp":{"codegraph":{"type":"local","command":["codegraph","serve","--mcp"],"enabled":true}}}`))
-	mustWriteFile(t, filepath.Join(home, ".pi", "agent", "mcp.json"), []byte(`{"mcpServers":{"codegraph":{"command":"codegraph"}}}`))
 
 	selection := model.Selection{}
 	restorePersistedCommunityTools(home, &selection, state.InstallState{})
@@ -2745,192 +2563,6 @@ func TestRunSyncMigratesLegacyManagedCodeGraphSelection(t *testing.T) {
 	}
 	if !persisted.CommunityToolsConfigured || !reflect.DeepEqual(persisted.CommunityTools, []string{"codegraph"}) {
 		t.Fatalf("persisted community tools = (%v, %t), want migrated CodeGraph selection", persisted.CommunityTools, persisted.CommunityToolsConfigured)
-	}
-}
-
-func TestRunSyncMigratesLegacyManagedPiCodeGraphSelection(t *testing.T) {
-	home := t.TempDir()
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"opencode"}, Persona: "neutral"}); err != nil {
-		t.Fatal(err)
-	}
-	writeManagedPiCodeGraphManifest(t, home)
-
-	previousRefresh := refreshPiCodeGraphIfConfigured
-	refreshed := false
-	refreshPiCodeGraphIfConfigured = func(string, string) (communitytool.PiCodeGraphResult, bool, error) {
-		refreshed = true
-		return communitytool.PiCodeGraphResult{}, true, nil
-	}
-	t.Cleanup(func() { refreshPiCodeGraphIfConfigured = previousRefresh })
-
-	result, err := RunSyncWithSelection(home, model.Selection{Agents: []model.AgentID{model.AgentOpenCode}, Persona: model.PersonaNeutral})
-	if err != nil {
-		t.Fatalf("RunSyncWithSelection() error = %v", err)
-	}
-	if !result.Selection.HasCommunityTool(model.CommunityToolCodeGraph) || !refreshed {
-		t.Fatalf("legacy Pi selection = %v, refreshed = %t; want selected and reconciled", result.Selection.CommunityTools, refreshed)
-	}
-	persisted, err := state.Read(home)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !persisted.CommunityToolsConfigured || !reflect.DeepEqual(persisted.CommunityTools, []string{"codegraph"}) {
-		t.Fatalf("persisted community tools = (%v, %t), want migrated CodeGraph selection", persisted.CommunityTools, persisted.CommunityToolsConfigured)
-	}
-}
-
-// Issue #5219: sync must not recreate retired Pi SDD agents recorded in the
-// CodeGraph manifest, and undoing an overlay stays inside the sync backup.
-func TestRunSyncReleasesRetiredPiSDDAgentsFromCodeGraphManifest(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("PI_CODING_AGENT_DIR", "")
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"opencode"}, Persona: "neutral"}); err != nil {
-		t.Fatal(err)
-	}
-	probe := func(string) (communitytool.PiCodeGraphMCPProbeResult, error) {
-		return communitytool.PiCodeGraphMCPProbeResult{AdapterAvailable: true, Initialized: true, Tools: []communitytool.PiCodeGraphMCPTool{{
-			Name: "codegraph_explore",
-			InputSchema: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"query":       map[string]any{"type": "string"},
-					"maxFiles":    map[string]any{"type": "integer"},
-					"projectPath": map[string]any{"type": "string"},
-				},
-				"required": []any{"query"},
-			},
-		}}}, nil
-	}
-	if _, err := communitytool.ReconcilePiCodeGraph(communitytool.PiCodeGraphOptions{HomeDir: home, Selected: true, EffectiveMCPProbe: probe}); err != nil {
-		t.Fatal(err)
-	}
-
-	agentsDir := filepath.Join(home, ".pi", "agent", "agents")
-	missing, overlaid := filepath.Join(agentsDir, "sdd-apply.md"), filepath.Join(agentsDir, "sdd-verify.md")
-	before := "---\ntools: read, bash\n---\npackage sdd agent\n"
-	after := before + "\n<!-- gentle-ai:pi-codegraph-guidance -->\nguidance\n<!-- /gentle-ai:pi-codegraph -->\n"
-	sum := sha256.Sum256([]byte(after))
-	owned := map[string]any{"before": before, "after": after, "afterHash": hex.EncodeToString(sum[:]), "mode": 0o644}
-	manifestPath := filepath.Join(home, ".gentle-ai", "pi-codegraph.json")
-	var manifest map[string]any
-	if err := json.Unmarshal([]byte(readTextFile(t, manifestPath)), &manifest); err != nil {
-		t.Fatal(err)
-	}
-	children := manifest["children"].(map[string]any)
-	children[missing], children[overlaid] = owned, owned
-	encoded, err := json.Marshal(manifest)
-	if err != nil {
-		t.Fatal(err)
-	}
-	mustWriteFile(t, manifestPath, encoded)
-	if err := os.Chmod(manifestPath, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	mustWriteFile(t, overlaid, []byte(after))
-
-	codeGraph := model.Selection{Agents: []model.AgentID{model.AgentOpenCode}, CommunityTools: []model.CommunityToolID{model.CommunityToolCodeGraph}}
-	targets, err := syncBackupTargetsScoped(home, "", ScopeGlobal, codeGraph, resolveAdapters(codeGraph.Agents))
-	if err != nil || !containsPath(targets, overlaid) {
-		t.Fatalf("retired Pi child release lacks a sync snapshot: %v, %v", targets, err)
-	}
-
-	previousRefresh := refreshPiCodeGraphIfConfigured
-	refreshPiCodeGraphIfConfigured = func(homeDir, workspaceDir string) (communitytool.PiCodeGraphResult, bool, error) {
-		result, err := communitytool.ReconcilePiCodeGraph(communitytool.PiCodeGraphOptions{HomeDir: homeDir, WorkspaceDir: workspaceDir, Selected: true, EffectiveMCPProbe: probe})
-		return result, true, err
-	}
-	t.Cleanup(func() { refreshPiCodeGraphIfConfigured = previousRefresh })
-
-	result, err := RunSyncWithSelection(home, model.Selection{Agents: []model.AgentID{model.AgentOpenCode}, Persona: model.PersonaNeutral})
-	if err != nil {
-		t.Fatalf("RunSyncWithSelection() error = %v", err)
-	}
-	if _, err := os.Stat(missing); !os.IsNotExist(err) {
-		t.Fatalf("sync recreated retired Pi SDD agent: %v", err)
-	}
-	if got := readTextFile(t, overlaid); got != before {
-		t.Fatalf("retired Pi SDD agent = %q, want before-image %q", got, before)
-	}
-	if !containsPath(result.ChangedFiles, overlaid) || containsPath(result.ChangedFiles, missing) {
-		t.Fatalf("changed files = %v, want only the released overlay", result.ChangedFiles)
-	}
-	if text := readTextFile(t, manifestPath); strings.Contains(text, "sdd-apply.md") || strings.Contains(text, "sdd-verify.md") {
-		t.Fatalf("manifest still owns retired Pi SDD agents:\n%s", text)
-	}
-}
-
-// TestRunSyncReportsLegacySelectionMigrationPersistenceFailure verifies that
-// failed legacy migration persistence restores both managed assets and state.
-func TestRunSyncReportsLegacySelectionMigrationPersistenceFailure(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
-	original := state.InstallState{InstalledAgents: []string{"opencode"}, Persona: "neutral"}
-	if err := state.Write(home, original); err != nil {
-		t.Fatal(err)
-	}
-	originalState, readErr := os.ReadFile(state.Path(home))
-	if readErr != nil {
-		t.Fatal(readErr)
-	}
-	opencodeConfig := filepath.Join(home, ".config", "opencode", "opencode.json")
-	piMCP := filepath.Join(home, ".pi", "agent", "mcp.json")
-	statePath := state.Path(home)
-	stateTarget := filepath.Join(home, ".gentle-ai", "persisted-state.json")
-	if err := os.Rename(statePath, stateTarget); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(stateTarget, statePath); err != nil {
-		t.Skipf("state symlink unavailable: %v", err)
-	}
-	writeManagedPiCodeGraphManifest(t, home)
-
-	previousRefresh := refreshPiCodeGraphIfConfigured
-	previousLookPath := cmdLookPath
-	refreshPiCodeGraphIfConfigured = func(string, string) (communitytool.PiCodeGraphResult, bool, error) {
-		return communitytool.PiCodeGraphResult{}, true, nil
-	}
-	cmdLookPath = func(string) (string, error) { return "", os.ErrNotExist }
-	t.Cleanup(func() {
-		refreshPiCodeGraphIfConfigured = previousRefresh
-		cmdLookPath = previousLookPath
-	})
-
-	result, err := RunSyncWithSelection(home, model.Selection{Agents: []model.AgentID{model.AgentOpenCode}, Persona: model.PersonaNeutral})
-	if err == nil || !strings.Contains(err.Error(), "persist managed asset provenance") {
-		t.Fatalf("RunSyncWithSelection() error = %v, want migration persistence failure", err)
-	}
-	if !result.Selection.HasCommunityTool(model.CommunityToolCodeGraph) {
-		t.Fatal("failed migration did not retain the attempted CodeGraph selection in the result")
-	}
-	persisted, readErr := state.Read(home)
-	if readErr != nil {
-		t.Fatal(readErr)
-	}
-	if persisted.CommunityToolsConfigured || persisted.CommunityTools != nil || !reflect.DeepEqual(persisted.InstalledAgents, original.InstalledAgents) {
-		t.Fatalf("state changed after failed persistence: %#v", persisted)
-	}
-	finalState, readErr := os.ReadFile(stateTarget)
-	if readErr != nil {
-		t.Fatal(readErr)
-	}
-	if string(finalState) != string(originalState) {
-		t.Fatalf("state bytes after failed migration changed:\n got %s\nwant %s", finalState, originalState)
-	}
-	for _, path := range []string{opencodeConfig, piMCP} {
-		if _, assetErr := os.ReadFile(path); !os.IsNotExist(assetErr) {
-			t.Fatalf("asset %q after failed migration read error = %v, want absent", path, assetErr)
-		}
-	}
-}
-
-func writeManagedPiCodeGraphManifest(t *testing.T, home string) {
-	t.Helper()
-	manifestPath := filepath.Join(home, ".gentle-ai", "pi-codegraph.json")
-	mcpPath := filepath.Join(home, ".pi", "agent", "mcp.json")
-	mustWriteFile(t, manifestPath, []byte(`{"mcpPath":`+strconv.Quote(mcpPath)+`,"mcp":{"afterHash":"managed"},"children":{}}`))
-	if err := os.Chmod(manifestPath, 0o600); err != nil {
-		t.Fatal(err)
 	}
 }
 
@@ -4854,200 +4486,6 @@ func TestRunSyncFallsBackToNeutralWhenStateLacksPersona(t *testing.T) {
 	}
 }
 
-func TestRunSyncWithSelectionPiUsesNeutralForMissingPersonaField(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-	t.Chdir(workspace)
-	piPath := filepath.Join(workspace, ".pi", "gentle-ai", "persona.json")
-	mustWriteFile(t, piPath, []byte("{\n  \"mode\": \"gentleman\"\n}\n"))
-	mustWriteFile(t, state.Path(home), []byte(`{"installed_agents":["pi"]}`))
-
-	result, err := RunSyncWithSelection(home, model.Selection{
-		Agents:     []model.AgentID{model.AgentPi},
-		Components: []model.ComponentID{model.ComponentPersona},
-	})
-	if err != nil {
-		t.Fatalf("RunSyncWithSelection() error = %v", err)
-	}
-	if got, want := result.Selection.Persona, model.PersonaNeutral; got != want {
-		t.Fatalf("Selection.Persona = %q, want %q", got, want)
-	}
-	homePiPath := filepath.Join(home, ".pi", "gentle-ai", "persona.json")
-	if got, want := readTextFile(t, homePiPath), "{\n  \"mode\": \"neutral\"\n}\n"; got != want {
-		t.Fatalf("global Pi persona config = %q, want %q", got, want)
-	}
-	if got, want := readTextFile(t, piPath), "{\n  \"mode\": \"gentleman\"\n}\n"; got != want {
-		t.Fatalf("workspace Pi persona config changed = %q, want %q", got, want)
-	}
-}
-
-func TestRunSyncWithSelectionPiRejectsInvalidPersistedPersonaWithoutMutation(t *testing.T) {
-	tests := []struct {
-		name       string
-		stateJSON  string
-		stateAsDir bool
-		wantErr    string
-	}{
-		{name: "malformed JSON", stateJSON: `{"installed_agents":["pi"],"persona":`, wantErr: "read persisted installation state"},
-		{name: "unreadable state", stateAsDir: true, wantErr: "read persisted installation state"},
-		{name: "unsupported persona", stateJSON: `{"installed_agents":["pi"],"persona":"unknown"}`, wantErr: `unsupported persona "unknown"`},
-		{name: "explicit empty persona", stateJSON: `{"installed_agents":["pi"],"persona":""}`, wantErr: "explicitly empty persona"},
-		{name: "whitespace-only persona", stateJSON: `{"installed_agents":["pi"],"persona":" \t "}`, wantErr: "whitespace-only persona"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			home := t.TempDir()
-			workspace := t.TempDir()
-			t.Chdir(workspace)
-			piPath := filepath.Join(workspace, ".pi", "gentle-ai", "persona.json")
-			originalPi := []byte("{\n  \"mode\": \"gentleman\"\n}\n")
-			mustWriteFile(t, piPath, originalPi)
-
-			if tt.stateAsDir {
-				if err := os.MkdirAll(state.Path(home), 0o755); err != nil {
-					t.Fatalf("MkdirAll(state path) error = %v", err)
-				}
-			} else {
-				mustWriteFile(t, state.Path(home), []byte(tt.stateJSON))
-			}
-
-			result, err := RunSyncWithSelection(home, model.Selection{
-				Agents:     []model.AgentID{model.AgentPi},
-				Components: []model.ComponentID{model.ComponentPersona},
-			})
-			if err == nil {
-				t.Fatal("RunSyncWithSelection() error = nil, want persisted persona validation error")
-			}
-			if !strings.Contains(err.Error(), tt.wantErr) {
-				t.Fatalf("RunSyncWithSelection() error = %q, want %q", err, tt.wantErr)
-			}
-			if result.Selection.Persona != "" {
-				t.Fatalf("Selection.Persona = %q, want unchanged empty persona", result.Selection.Persona)
-			}
-			if got := readTextFile(t, piPath); got != string(originalPi) {
-				t.Fatalf("Pi persona config mutated after rejected sync: got %q, want %q", got, originalPi)
-			}
-		})
-	}
-}
-
-// Ambiguous persisted state must stop sync before the global Pi persona or
-// the state file is rewritten (#1677).
-func TestRunSyncWithSelectionPiRejectsAmbiguousPersistedStateWithoutMutation(t *testing.T) {
-	for _, tc := range []struct {
-		name      string
-		stateJSON string
-	}{
-		{name: "null document", stateJSON: "null"},
-		{name: "case variant empty persona", stateJSON: `{"installed_agents":["pi"],"Persona":""}`},
-		{name: "duplicate unknown then neutral", stateJSON: `{"installed_agents":["pi"],"persona":"unknown","persona":"neutral"}`},
-		{name: "duplicate neutral then unknown", stateJSON: `{"installed_agents":["pi"],"persona":"neutral","persona":"unknown"}`},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			home := t.TempDir()
-			setSyncTestHome(t, home)
-			t.Chdir(t.TempDir())
-			piPath := filepath.Join(home, ".pi", "gentle-ai", "persona.json")
-			originalPi := "{\n  \"mode\": \"gentleman\"\n}\n"
-			mustWriteFile(t, piPath, []byte(originalPi))
-			mustWriteFile(t, state.Path(home), []byte(tc.stateJSON))
-
-			result, err := RunSyncWithSelection(home, model.Selection{
-				Agents:     []model.AgentID{model.AgentPi},
-				Components: []model.ComponentID{model.ComponentPersona},
-			})
-			if err == nil || !strings.Contains(err.Error(), "read persisted installation state") {
-				t.Fatalf("RunSyncWithSelection() error = %v, want persisted state read error", err)
-			}
-			if result.Selection.Persona != "" {
-				t.Fatalf("Selection.Persona = %q, want unchanged empty persona", result.Selection.Persona)
-			}
-			if got := readTextFile(t, piPath); got != originalPi {
-				t.Fatalf("global Pi persona config mutated after rejected sync: got %q, want %q", got, originalPi)
-			}
-			if got := readTextFile(t, state.Path(home)); got != tc.stateJSON {
-				t.Fatalf("state file mutated after rejected sync: got %q, want %q", got, tc.stateJSON)
-			}
-		})
-	}
-}
-
-// An explicit programmatic persona must be validated before the alias
-// migration or any persona/state write; whitespace is not an omission (#1677).
-func TestRunSyncWithSelectionScopePiRejectsInvalidExplicitPersonaWithoutMutation(t *testing.T) {
-	for _, tc := range []struct {
-		name, persona, stateJSON, wantErr string
-		scope                             InstallScope
-	}{
-		{name: "unknown", persona: "unknown", stateJSON: `{"installed_agents":["pi"],"persona":"gentleman"}`, wantErr: `unsupported persona "unknown"`, scope: ScopeGlobal},
-		{name: "whitespace", persona: " \t ", stateJSON: `{"installed_agents":["pi"],"persona":"gentleman"}`, wantErr: "whitespace-only persona", scope: ScopeGlobal},
-		{name: "unknown with persisted alias", persona: "unknown", stateJSON: `{"installed_agents":["pi"],"persona":"gentleman-neutral-artifacts"}`, wantErr: `unsupported persona "unknown"`, scope: ScopeGlobal},
-		{name: "unknown workspace", persona: "unknown", stateJSON: `{"installed_agents":["pi"],"persona":"gentleman"}`, wantErr: `unsupported persona "unknown"`, scope: ScopeWorkspace},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			home := t.TempDir()
-			setSyncTestHome(t, home)
-			workspace := t.TempDir()
-			t.Chdir(workspace)
-			originalPi := "{\n  \"mode\": \"gentleman\"\n}\n"
-			piPaths := []string{filepath.Join(home, ".pi", "gentle-ai", "persona.json"), filepath.Join(workspace, ".pi", "gentle-ai", "persona.json")}
-			for _, path := range piPaths {
-				mustWriteFile(t, path, []byte(originalPi))
-			}
-			mustWriteFile(t, state.Path(home), []byte(tc.stateJSON))
-
-			_, err := RunSyncWithSelectionScope(home, model.Selection{
-				Agents:     []model.AgentID{model.AgentPi},
-				Components: []model.ComponentID{model.ComponentPersona},
-				Persona:    model.PersonaID(tc.persona),
-			}, tc.scope)
-			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
-				t.Fatalf("RunSyncWithSelectionScope() error = %v, want %q", err, tc.wantErr)
-			}
-			for _, path := range piPaths {
-				if got := readTextFile(t, path); got != originalPi {
-					t.Fatalf("Pi persona config %s mutated after rejected sync: got %q", path, got)
-				}
-			}
-			if got := readTextFile(t, state.Path(home)); got != tc.stateJSON {
-				t.Fatalf("state file mutated after rejected sync: got %q, want %q", got, tc.stateJSON)
-			}
-		})
-	}
-}
-
-func TestRunSyncWithSelectionPiNormalizesValidExplicitPersona(t *testing.T) {
-	for _, tc := range []struct{ persona, want string }{
-		{persona: "neutral", want: "neutral"},
-		{persona: "gentleman", want: "gentleman"},
-		{persona: "gentleman-neutral-artifacts", want: "neutral"},
-	} {
-		t.Run(tc.persona, func(t *testing.T) {
-			home := t.TempDir()
-			setSyncTestHome(t, home)
-			t.Chdir(t.TempDir())
-			mustWriteFile(t, state.Path(home), []byte(`{"installed_agents":["pi"],"persona":"custom"}`))
-
-			result, err := RunSyncWithSelection(home, model.Selection{
-				Agents:     []model.AgentID{model.AgentPi},
-				Components: []model.ComponentID{model.ComponentPersona},
-				Persona:    model.PersonaID(tc.persona),
-			})
-			if err != nil {
-				t.Fatalf("RunSyncWithSelection() error = %v", err)
-			}
-			if got := string(result.Selection.Persona); got != tc.want {
-				t.Fatalf("Selection.Persona = %q, want %q", got, tc.want)
-			}
-			piPath := filepath.Join(home, ".pi", "gentle-ai", "persona.json")
-			if got, want := readTextFile(t, piPath), "{\n  \"mode\": \""+tc.want+"\"\n}\n"; got != want {
-				t.Fatalf("global Pi persona config = %q, want %q", got, want)
-			}
-		})
-	}
-}
-
 // The inner sync must resolve persona from the caller's preflight snapshot,
 // not a second read; the alias migration keeps its own locked re-read (#1677).
 func TestRunSyncWithSelectionScopeUsesCapturedPersistedState(t *testing.T) {
@@ -5067,7 +4505,7 @@ func TestRunSyncWithSelectionScopeUsesCapturedPersistedState(t *testing.T) {
 			captured, capturedErr := state.Read(home)
 			mustWriteFile(t, state.Path(home), []byte(tc.later))
 
-			result, err := runSyncWithSelectionScope(home, model.Selection{}, tc.scope, captured, capturedErr, OpenCodeBackgroundResolution{}, PiBackgroundResolution{})
+			result, err := runSyncWithSelectionScope(home, model.Selection{}, tc.scope, captured, capturedErr, OpenCodeBackgroundResolution{})
 			if err != nil {
 				t.Fatalf("runSyncWithSelectionScope() error = %v", err)
 			}
@@ -5089,179 +4527,12 @@ func TestRunSyncWithSelectionScopeKeepsCapturedReadError(t *testing.T) {
 	later := `{"persona":"neutral"}`
 	mustWriteFile(t, state.Path(home), []byte(later))
 
-	_, err := runSyncWithSelectionScope(home, model.Selection{}, ScopeGlobal, captured, capturedErr, OpenCodeBackgroundResolution{}, PiBackgroundResolution{})
+	_, err := runSyncWithSelectionScope(home, model.Selection{}, ScopeGlobal, captured, capturedErr, OpenCodeBackgroundResolution{})
 	if err == nil || !strings.Contains(err.Error(), "read persisted installation state") {
 		t.Fatalf("runSyncWithSelectionScope() error = %v, want captured read error", err)
 	}
 	if got := readTextFile(t, state.Path(home)); got != later {
 		t.Fatalf("state file = %q, want %q untouched", got, later)
-	}
-}
-
-func TestRunSyncPiRejectsUnsupportedPersistedPersonaBeforeMutation(t *testing.T) {
-	home := t.TempDir()
-	setSyncTestHome(t, home)
-	workspace := t.TempDir()
-	t.Chdir(workspace)
-	piPath := filepath.Join(workspace, ".pi", "gentle-ai", "persona.json")
-	originalPi := []byte("{\n  \"mode\": \"gentleman\"\n}\n")
-	mustWriteFile(t, piPath, originalPi)
-	mustWriteFile(t, state.Path(home), []byte(`{"installed_agents":["pi"],"persona":"unknown"}`))
-
-	result, err := RunSync([]string{"--agents", "pi"})
-	if err == nil {
-		t.Fatal("RunSync() error = nil, want unsupported persisted persona error")
-	}
-	if !strings.Contains(err.Error(), `unsupported persona "unknown"`) {
-		t.Fatalf("RunSync() error = %q, want unsupported persona", err)
-	}
-	if result.Selection.Persona != "" {
-		t.Fatalf("Selection.Persona = %q, want unchanged empty persona", result.Selection.Persona)
-	}
-	if got := readTextFile(t, piPath); got != string(originalPi) {
-		t.Fatalf("Pi persona config mutated after rejected sync: got %q, want %q", got, originalPi)
-	}
-}
-
-func TestRunSyncWithSelectionPiCustomPersistedPersonaIsByteStable(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-	t.Chdir(workspace)
-	piPath := filepath.Join(workspace, ".pi", "gentle-ai", "persona.json")
-	originalPi := []byte("user-owned Pi persona bytes\n")
-	mustWriteFile(t, piPath, originalPi)
-	mustWriteFile(t, state.Path(home), []byte(`{"installed_agents":["pi"],"persona":"custom"}`))
-
-	result, err := RunSyncWithSelection(home, model.Selection{
-		Agents:     []model.AgentID{model.AgentPi},
-		Components: []model.ComponentID{model.ComponentPersona},
-	})
-	if err != nil {
-		t.Fatalf("RunSyncWithSelection() error = %v", err)
-	}
-	if got, want := result.Selection.Persona, model.PersonaCustom; got != want {
-		t.Fatalf("Selection.Persona = %q, want %q", got, want)
-	}
-	if got := readTextFile(t, piPath); got != string(originalPi) {
-		t.Fatalf("custom Pi persona config changed: got %q, want %q", got, originalPi)
-	}
-}
-
-// TestRunSyncWithSelectionPiRetiresStaleSystemPromptBlocks covers issue #4057:
-// a Pi install made before the capability manifest flipped
-// SupportsSystemPrompt()==false for Pi left gentle-ai managed blocks in
-// ~/.pi/agent/APPEND_SYSTEM.md. Nothing reads or rewrites that file for Pi
-// anymore, so sync must retire those stale blocks directly.
-func TestRunSyncWithSelectionPiRetiresStaleSystemPromptBlocks(t *testing.T) {
-	home := t.TempDir()
-	appendSystemPath := systemPromptFileFor(t, home, model.AgentPi)
-	stale := "user text before\n" +
-		"\n" +
-		"<!-- gentle-ai:sdd-orchestrator -->\n" +
-		"SDD body\n" +
-		"<!-- /gentle-ai:sdd-orchestrator -->\n" +
-		"\n" +
-		"<!-- gentle-ai:persona -->\n" +
-		"persona body\n" +
-		"<!-- /gentle-ai:persona -->\n" +
-		"\n" +
-		"user text after\n"
-	mustWriteFile(t, appendSystemPath, []byte(stale))
-	mustWriteFile(t, state.Path(home), []byte(`{"installed_agents":["pi"]}`))
-
-	result, err := RunSyncWithSelection(home, model.Selection{
-		Agents:     []model.AgentID{model.AgentPi},
-		Components: []model.ComponentID{model.ComponentPersona},
-	})
-	if err != nil {
-		t.Fatalf("RunSyncWithSelection() error = %v", err)
-	}
-
-	// Routing cleanup removes only paired markers; Pi still never receives a
-	// newly injected agent-routing block.
-	want := "user text before\n\n\n\n\n\nuser text after\n"
-	got := readTextFile(t, appendSystemPath)
-	if got != want {
-		t.Fatalf("APPEND_SYSTEM.md = %q, want %q", got, want)
-	}
-	if strings.Contains(got, "sdd-orchestrator") || strings.Contains(got, "gentle-ai:persona") {
-		t.Fatalf("APPEND_SYSTEM.md still carries a stale managed block: %q", got)
-	}
-	if result.FilesChanged < 1 {
-		t.Fatalf("FilesChanged = %d, want >= 1", result.FilesChanged)
-	}
-}
-
-// TestRunSyncWithSelectionPiRoutingGuidanceIsNotRewritten covers issue #4063:
-// a sync with Pi selected must not write, or leave behind, a
-// gentle-ai:agent-routing block in ~/.pi/agent/APPEND_SYSTEM.md. Before the
-// fix, agentRoutingGuidanceStep ran for every agent unconditionally, so a
-// pre-existing agent-routing block was rewritten instead of stripped and
-// left alone.
-func TestRunSyncWithSelectionPiRoutingGuidanceIsNotRewritten(t *testing.T) {
-	home := t.TempDir()
-	appendSystemPath := systemPromptFileFor(t, home, model.AgentPi)
-	stale := "user text before\n" +
-		"\n" +
-		"<!-- gentle-ai:agent-routing -->\n" +
-		"stale routing body\n" +
-		"<!-- /gentle-ai:agent-routing -->\n" +
-		"\n" +
-		"user text after\n"
-	mustWriteFile(t, appendSystemPath, []byte(stale))
-	mustWriteFile(t, state.Path(home), []byte(`{"installed_agents":["pi"]}`))
-
-	if _, err := RunSyncWithSelection(home, model.Selection{
-		Agents:     []model.AgentID{model.AgentPi},
-		Components: []model.ComponentID{model.ComponentPersona},
-	}); err != nil {
-		t.Fatalf("RunSyncWithSelection() error = %v", err)
-	}
-
-	got := readTextFile(t, appendSystemPath)
-	if strings.Contains(got, "gentle-ai:agent-routing") {
-		t.Fatalf("APPEND_SYSTEM.md still carries an agent-routing block: %q", got)
-	}
-	want := "user text before\n\n\n\nuser text after\n"
-	if got != want {
-		t.Fatalf("APPEND_SYSTEM.md = %q, want %q", got, want)
-	}
-}
-
-// TestRunSyncWithSelectionPiRetirementDoesNotTouchOtherAgents guards against
-// the Pi-only stale-block cleanup leaking to other agents' prompt files
-// selected in the same sync run.
-func TestRunSyncWithSelectionPiRetirementDoesNotTouchOtherAgents(t *testing.T) {
-	home := t.TempDir()
-	appendSystemPath := systemPromptFileFor(t, home, model.AgentPi)
-	mustWriteFile(t, appendSystemPath, []byte(
-		"<!-- gentle-ai:sdd-orchestrator -->\nSDD body\n<!-- /gentle-ai:sdd-orchestrator -->\n"))
-
-	// The legacy Claude block is Gentle AI-owned and is converted to the
-	// current orchestrator; the Pi cleanup must leave user text alone.
-	claudePath := systemPromptFileFor(t, home, model.AgentClaudeCode)
-	claudeContent := "KEEP-CLAUDE-USER preamble\n\n" +
-		"<!-- gentle-ai:sdd-orchestrator -->\nlegacy SDD body\n<!-- /gentle-ai:sdd-orchestrator -->\n"
-	mustWriteFile(t, claudePath, []byte(claudeContent))
-
-	mustWriteFile(t, state.Path(home), []byte(`{"installed_agents":["pi","claude-code"]}`))
-
-	if _, err := RunSyncWithSelection(home, model.Selection{
-		Agents:     []model.AgentID{model.AgentPi, model.AgentClaudeCode},
-		Components: []model.ComponentID{model.ComponentPersona},
-	}); err != nil {
-		t.Fatalf("RunSyncWithSelection() error = %v", err)
-	}
-
-	if _, err := os.Lstat(appendSystemPath); !os.IsNotExist(err) {
-		t.Fatalf("Pi APPEND_SYSTEM.md remains after owned-only cleanup: %v", err)
-	}
-	got := readTextFile(t, claudePath)
-	if !strings.HasPrefix(got, "KEEP-CLAUDE-USER preamble\n") {
-		t.Fatalf("Claude system prompt lost unrelated content: %q", got)
-	}
-	if strings.Contains(got, "gentle-ai:sdd-orchestrator") || strings.Count(got, "<!-- gentle-ai:orchestrator -->") != 1 {
-		t.Fatalf("Claude legacy orchestrator was not converted to exactly one current block: %q", got)
 	}
 }
 

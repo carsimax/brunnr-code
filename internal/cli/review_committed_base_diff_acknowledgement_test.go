@@ -10,7 +10,7 @@ import (
 )
 
 // TestSelectorlessStatusResumesCommittedRangeApprovedAcknowledgement pins
-// gentle-pi#569: a committed-range (base-diff, committed-only) review that
+// a committed-range (base-diff, committed-only) review that
 // reaches approved must still offer its exact `review.acknowledge-approved`
 // continuation when STATUS is queried selector-free (no --base-ref, no
 // --committed-only) — the shape the public acknowledgement operation actually
@@ -20,7 +20,6 @@ import (
 // approved lineage as unrelated instead of offering its acknowledgement.
 func TestSelectorlessStatusResumesCommittedRangeApprovedAcknowledgement(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	repo := initReviewCLIRepo(t)
 	const baseRef = "frozen-base"
 	const lineage = "committed-range-approved-acknowledgement"

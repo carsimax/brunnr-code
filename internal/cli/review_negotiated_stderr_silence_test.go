@@ -47,7 +47,7 @@ func captureReviewProcessStderr(t *testing.T) func() string {
 // TestNegotiatedStatusSuccessIsByteSilentOnStderr pins the pi compatibility
 // contract: a successful negotiated STATUS (exit 0, valid JSON on stdout)
 // writes zero bytes to stderr. The forecast is carried structurally in the
-// JSON `forecast` field, never narrated (gentle-pi fails closed with
+// JSON `forecast` field, never narrated (machine callers fail closed with
 // UNEXPECTED_STDERR on any stderr byte a successful operation writes).
 func TestNegotiatedStatusSuccessIsByteSilentOnStderr(t *testing.T) {
 	reviewModeHome(t)
@@ -179,7 +179,7 @@ func TestNegotiatedStartConsentAnswersStayByteSilentOnStderr(t *testing.T) {
 // TestNegotiatedLifecycleOperationsAreByteSilentOnStderr walks a complete
 // low-risk negotiated lifecycle — STATUS, terminal START, unmanaged VALIDATE —
 // and requires zero stderr bytes from every successful operation, the exact
-// sequence gentle-pi drives fail-closed.
+// sequence machine callers drive fail-closed.
 func TestNegotiatedLifecycleOperationsAreByteSilentOnStderr(t *testing.T) {
 	reviewEnabledHome(t)
 	repo := initReviewCLIRepo(t)

@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
 )
 
@@ -26,22 +25,5 @@ func TestCorrectionPlanDescriptorBindsOnlyCurrentCapture(t *testing.T) {
 	}
 	if err := descriptor.validateCorrectionPlan(); err != nil {
 		t.Fatalf("current correction-plan descriptor = %v", err)
-	}
-}
-
-func TestReviewerCaptureDescriptorUsesCaptureResult(t *testing.T) {
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-	binding := ReviewTransitionBinding{
-		LineageID: "descriptor-reviewer", Revision: descriptorTestSHA("a"), TargetIdentity: descriptorTestSHA("b"),
-		RepositoryContext: "rctx1_" + strings.Repeat("c", 64),
-	}
-	input := reviewCaptureInput(binding, reviewtransaction.LensReliability, 0, nil, model.AgentPi)
-	if input.CaptureOperation != reviewCaptureResultCaptureOperation || input.Submission == nil ||
-		input.Submission.OperationToken != "capture-result" || input.Submission.Value == nil ||
-		input.Submission.Value.Slot != "reviewer_result" {
-		t.Fatalf("reviewer capture descriptor = %#v", input)
-	}
-	if err := input.Submission.validateCaptureResult(); err != nil {
-		t.Fatalf("current reviewer capture descriptor = %v", err)
 	}
 }

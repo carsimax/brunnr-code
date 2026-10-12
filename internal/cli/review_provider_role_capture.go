@@ -27,17 +27,16 @@ type reviewProviderRoleCaptureArtifact struct {
 }
 
 // reviewProviderRoleCaptureTimeout bounds one role capture operation so a full
-// Go-owned adversarial pi run fits while a stalled provider cannot hang --execute
+// Go-owned adversarial compiled reviewer run fits while a stalled provider cannot hang --execute
 // forever: on expiry the adapter surfaces its typed transport refusal,
 // nothing is captured, and STATUS reoffers the same collection input. A var
 // only as the test seam.
 var reviewProviderRoleCaptureTimeout = 600 * time.Second
 
-// reviewProviderRoleCaptureBinding is the parsed, mode-validated invocation of
-// one non-lens provider role capture command. Both commands share exactly two
-// modes: --materialize (read-only) prints the Go-materialized opaque role
-// prompt, and --execute runs a fresh Go-owned locked-down pi process on that
-// exact request and admits its raw bytes into the compact slot, so the
+// reviewProviderRoleCaptureBinding is the parsed invocation of one non-lens
+// provider role capture command. Both commands run a fresh Go-owned
+// locked-down compiled reviewer process on the Go-materialized request
+// (--execute) and admit its raw bytes into the compact slot, so the
 // adversarial verdict is never caller-authored.
 type reviewProviderRoleCaptureBinding struct {
 	command           string
@@ -47,20 +46,16 @@ type reviewProviderRoleCaptureBinding struct {
 	revision          string
 	requestHash       string
 	runtime           model.AgentID
-	materialize       bool
 	execute           bool
-	input             string
 	root              string
 }
 
 // parseReviewProviderRoleCapture owns the complete refusal matrix shared by
 // `review capture-refuter` and `review capture-validation`. Compiled runtimes
 // materialize and execute their refuter and validator requests through the same
-// Go-owned capture closure; a host-relay runtime that ran the provider itself
-// submits the raw result through --input instead, exactly as the lens path's
-// `review capture-result --input` already does.
+// Go-owned capture closure.
 func parseReviewProviderRoleCapture(command string, args []string, stdout io.Writer, withRequestHash bool) (*reviewProviderRoleCaptureBinding, error) {
-	flags := newReviewFlagSet("review "+command, stdout, "Materialize, capture, or submit one Go-issued non-lens provider role result bound to compact review authority.")
+	flags := newReviewFlagSet("review "+command, stdout, "Capture one Go-issued non-lens provider role result bound to compact review authority.")
 	cwd := flags.String("cwd", ".", "repository path")
 	repositoryContext := flags.String("repository-context", "", "opaque provider-issued repository context; supplied by the collect transition and verified against --cwd")
 	lineage := flags.String("lineage", "", "exact review lineage identifier")
@@ -70,10 +65,8 @@ func parseReviewProviderRoleCapture(command string, args []string, stdout io.Wri
 	if withRequestHash {
 		requestHash = flags.String("request-hash", "", "provider-issued frozen targeted validation request hash")
 	}
-	runtimeAgent := flags.String("agent", "", "host-relay runtime identity, required for --materialize, --execute, and --input")
-	materialize := flags.Bool("materialize", false, "print the exact Go-materialized opaque provider role task without capturing anything; mutually exclusive with --execute and --input")
-	execute := flags.Bool("execute", false, "run the Go-owned locked-down pi process on the Go-materialized role request and capture its raw result; mutually exclusive with --materialize and --input")
-	input := flags.String("input", "", "raw provider role result JSON file or - for stdin, submitted by a host-relay runtime that materialized and ran this role itself; mutually exclusive with --materialize and --execute")
+	runtimeAgent := flags.String("agent", "", "compiled reviewer runtime identity, required for --execute")
+	execute := flags.Bool("execute", false, "run the Go-owned locked-down compiled reviewer process on the Go-materialized role request and capture its raw result")
 	if err := parseReviewFlags(flags, args); err != nil {
 		return nil, err
 	}
@@ -83,60 +76,27 @@ func parseReviewProviderRoleCapture(command string, args []string, stdout io.Wri
 	binding := &reviewProviderRoleCaptureBinding{
 		command: command, repositoryContext: strings.TrimSpace(*repositoryContext),
 		lineage: strings.TrimSpace(*lineage), target: strings.TrimSpace(*target), revision: strings.TrimSpace(*revision),
-		runtime: model.AgentID(strings.TrimSpace(*runtimeAgent)), materialize: *materialize, execute: *execute,
-		input: strings.TrimSpace(*input),
+		runtime: model.AgentID(strings.TrimSpace(*runtimeAgent)), execute: *execute,
 	}
 	if requestHash != nil {
 		binding.requestHash = strings.TrimSpace(*requestHash)
 	}
-	if binding.materialize && binding.execute {
-		return nil, reviewPreflightError(fmt.Errorf("review %s --materialize only prints the Go-materialized provider task and cannot be combined with --execute", command)) // refusal:by-design world-action: materialization is read-only and never authors or admits provider role output
-	}
-	if binding.materialize && binding.input != "" {
-		return nil, reviewPreflightError(fmt.Errorf("review %s --materialize only prints the Go-materialized provider task and cannot be combined with --input", command)) // refusal:by-design world-action: materialization is read-only and never authors or admits provider role output
-	}
-	if binding.execute && binding.input != "" {
-		return nil, reviewPreflightError(fmt.Errorf("review %s --execute runs the Go-owned locked-down pi process itself and cannot be combined with --input, which submits an already-run host result instead", command)) // refusal:by-design world-action: exactly one submission path may produce and admit one capture
-	}
-	if flags.NArg() != 0 || binding.lineage == "" || binding.target == "" || binding.revision == "" ||
-		(!binding.materialize && !binding.execute && binding.input == "") {
-		return nil, reviewPreflightError(fmt.Errorf("review %s requires --lineage, --target, --expected-revision, --agent, and either --materialize, --execute, or --input; `gentle-ai review status --contract %s --next-transition` prints the exact bindings", command, ReviewIntegrationContractV2))
+	if flags.NArg() != 0 || binding.lineage == "" || binding.target == "" || binding.revision == "" || !binding.execute {
+		return nil, reviewPreflightError(fmt.Errorf("review %s requires --lineage, --target, --expected-revision, --agent, and --execute; `gentle-ai review status --contract %s --next-transition` prints the exact bindings", command, ReviewIntegrationContractV2))
 	}
 	if binding.runtime == "" {
-		// Every mode requires the identified host-relay runtime: a raw
-		// provider verdict is only admissible from the runtime the negotiated
-		// transition bound, never from an unidentified caller.
-		return nil, reviewPreflightError(fmt.Errorf("review %s requires --agent naming the host-relay runtime", command)) // refusal:by-design operator-knowledge: only a compiled host-relay runtime identity selects the materialize, execute, and input forms
+		// A raw provider verdict is only admissible from the runtime the
+		// negotiated transition bound, never from an unidentified caller.
+		return nil, reviewPreflightError(fmt.Errorf("review %s requires --agent naming the compiled reviewer runtime", command)) // refusal:by-design operator-knowledge: only a compiled runtime identity selects the execute form
 	}
 	if withRequestHash && binding.requestHash == "" {
 		return nil, reviewPreflightError(fmt.Errorf("review %s requires --request-hash binding the frozen targeted validation request", command)) // refusal:by-design operator-knowledge: the validator result applies only to one exact frozen correction request
 	}
-	if binding.materialize && binding.repositoryContext == "" {
-		return nil, reviewPreflightError(fmt.Errorf("review %s --materialize requires the provider-issued --repository-context", command)) // refusal:by-design operator-knowledge: materialization must use the negotiated opaque context
-	}
-	// The runtime gate is symmetric across every mode: materialization and
-	// submission are two halves of the same host-relay transaction, so a
-	// runtime that may not receive the prompt may not return its verdict.
-	// Eligibility is decided by reviewCaptureRuntimeWithBoundTransport, not
-	// reviewRuntimeWithImmutableTransport (issue #4256): this binding already
-	// carries --lineage, --target, and --expected-revision (checked above),
-	// so Pi's eligibility derives from that bound transaction and the
-	// compiled --agent capability instead of the host-relay handshake env
-	// var that review start/status negotiation still requires.
-	if _, err := reviewCaptureRuntimeWithBoundTransport(string(binding.runtime)); err != nil {
+	if _, err := reviewRuntimeWithImmutableTransport(string(binding.runtime)); err != nil {
 		return nil, reviewPreflightError(err)
 	}
-	if reviewProviderCaptureRuntime(binding.runtime) && binding.materialize {
-		return nil, reviewPreflightError(fmt.Errorf("review %s --materialize is unavailable for %q: its compiled Go adapter executes the provider contract directly; rerun `gentle-ai review %s` with the same binding and --execute", command, binding.runtime, command))
-	}
-	if reviewProviderCaptureRuntime(binding.runtime) && binding.input != "" {
-		return nil, reviewPreflightError(fmt.Errorf("review %s --input is unavailable for %q: its compiled Go adapter executes the provider contract directly; rerun `gentle-ai review %s` with the same binding and --execute", command, binding.runtime, command))
-	}
-	if reviewProviderHostRelayMaterializeRuntime(binding.runtime) && binding.execute {
-		return nil, reviewPreflightError(fmt.Errorf("review %s --execute is unavailable for %q: it is host-mediated; run the STATUS-issued `--materialize` operation and submit the host result through `--input`", command, binding.runtime)) // refusal:by-design world-action: Go never spawns a process for a host-relay runtime; the host materializes, runs its own reviewer, and submits the raw result
-	}
-	if !reviewProviderCaptureRuntime(binding.runtime) && reviewCaptureBoundRuntimeCapability(binding.runtime).Transport != reviewImmutableTransportPiHostRelay {
-		return nil, reviewPreflightError(fmt.Errorf("review %s provider runtime %q has no Go-owned role capture contract", command, binding.runtime)) // refusal:by-design world-action: only compiled adapters and the Pi host relay collect non-lens provider roles
+	if !reviewProviderCaptureRuntime(binding.runtime) {
+		return nil, reviewPreflightError(fmt.Errorf("review %s provider runtime %q has no Go-owned role capture contract", command, binding.runtime)) // refusal:by-design world-action: only compiled adapters collect non-lens provider roles
 	}
 	ctx := context.Background()
 	var err error
@@ -153,12 +113,9 @@ func parseReviewProviderRoleCapture(command string, args []string, stdout io.Wri
 			return nil, fmt.Errorf("resolve review repository root: %w", err)
 		}
 	}
-	// --materialize is read-only and stays reachable under a frozen switch;
-	// an execution publishes provider role bytes into the store.
-	if !binding.materialize {
-		if err := authorizeReviewAuthorityMutation(ctx, binding.root); err != nil {
-			return nil, err
-		}
+	// An execution publishes provider role bytes into the store.
+	if err := authorizeReviewAuthorityMutation(ctx, binding.root); err != nil {
+		return nil, err
 	}
 	return binding, nil
 }
@@ -177,11 +134,10 @@ func (binding *reviewProviderRoleCaptureBinding) discover(ctx context.Context) (
 	return store, record, nil
 }
 
-// RunReviewCaptureRefuter materializes or executes the one transaction-wide
-// provider refuter batch. --materialize prints the Go-materialized opaque
-// prompt raw; --execute runs a fresh Go-owned locked-down pi process on that
-// exact request and admits its raw bytes, so adversarial provenance mirrors
-// the compiled claude/codex path; admission and canonicalization stay in Go.
+// RunReviewCaptureRefuter executes the one transaction-wide provider refuter
+// batch: --execute runs a fresh Go-owned locked-down compiled reviewer process
+// on the Go-materialized request and admits its raw bytes; admission and
+// canonicalization stay in Go.
 func RunReviewCaptureRefuter(args []string, stdout io.Writer) error {
 	binding, err := parseReviewProviderRoleCapture("capture-refuter", args, stdout, false)
 	if err != nil || binding == nil {
@@ -201,38 +157,12 @@ func RunReviewCaptureRefuter(args []string, stdout io.Writer) error {
 	if err != nil {
 		return reviewProviderCaptureBudgetRefusal(err)
 	}
-	if binding.materialize {
-		// Raw bytes: no JSON envelope, no trailing newline, nothing captured.
-		if _, err := stdout.Write(request.Invocation.Prompt()); err != nil {
-			return fmt.Errorf("write materialized provider refuter task: %w", err)
-		}
-		return nil
+	adapter, adapterErr := reviewProviderAdapter(reviewProviderRoleRefuter, binding.runtime)
+	if adapterErr != nil {
+		return reviewPreflightError(adapterErr)
 	}
-	if reviewProviderCaptureRuntime(binding.runtime) {
-		adapter, adapterErr := reviewProviderAdapter(reviewProviderRoleRefuter, binding.runtime)
-		if adapterErr != nil {
-			return reviewPreflightError(adapterErr)
-		}
-		if err := reviewProviderCaptureRefuterWithOneCorrection(ctx, binding, adapter, store, state, request); err != nil {
-			return err
-		}
-	} else {
-		// binding.input is guaranteed non-empty here: --execute is refused for
-		// every host-relay runtime at parse time
-		// (parseReviewProviderRoleCapture), and reviewProviderCaptureRuntime
-		// already routed every compiled runtime through the branch above. Go
-		// never spawns a process for this role (#4611): the host already
-		// materialized this exact request, ran its own reviewer on it out of
-		// process, and hands back only the raw result. Unadmittable bytes are
-		// a typed refusal that leaves the slot open for STATUS to reoffer,
-		// exactly like a malformed in-process capture.
-		raw, readErr := readFacadeBytes(binding.input)
-		if readErr != nil {
-			return reviewPreflightError(fmt.Errorf("read provider refuter result: %w", readErr))
-		}
-		if _, err := reviewProviderCaptureRefuterRaw(ctx, binding.root, store, state, state.CapturePhaseRevision, raw); err != nil {
-			return reviewPreflightError(err)
-		}
+	if err := reviewProviderCaptureRefuterWithOneCorrection(ctx, binding, adapter, store, state, request); err != nil {
+		return err
 	}
 	currentRecord, currentErr := store.LoadContext(ctx)
 	if currentErr != nil {
@@ -252,9 +182,9 @@ func RunReviewCaptureRefuter(args []string, stdout io.Writer) error {
 	})
 }
 
-// RunReviewCaptureValidation materializes or captures the correction-bound
-// provider targeted-validator result, binding the frozen validation request
-// hash in both modes so the verdict can never drift to another correction.
+// RunReviewCaptureValidation captures the correction-bound provider
+// targeted-validator result, binding the frozen validation request hash so the
+// verdict can never drift to another correction.
 func RunReviewCaptureValidation(args []string, stdout io.Writer) error {
 	binding, err := parseReviewProviderRoleCapture("capture-validation", args, stdout, true)
 	if err != nil || binding == nil {
@@ -281,39 +211,13 @@ func RunReviewCaptureValidation(args []string, stdout io.Writer) error {
 	if request.ValidationRequest.RequestHash != binding.requestHash {
 		return reviewPreflightRefusal(reviewPreflightCaptureBindingMismatchReason, errors.New("review capture-validation request hash does not match the frozen targeted validation request; refresh the binding with gentle-ai review status --cwd <repo> --contract gentle-ai.review-integration/v2 --next-transition"))
 	}
-	if binding.materialize {
-		// Raw prompt bytes, exactly as for the refuter above.
-		if _, err := stdout.Write(request.Invocation.Prompt()); err != nil {
-			return fmt.Errorf("write materialized provider targeted validator task: %w", err)
-		}
-		return nil
+	adapter, adapterErr := reviewProviderAdapter(reviewProviderRoleTargetedValidator, binding.runtime)
+	if adapterErr != nil {
+		return reviewPreflightError(adapterErr)
 	}
-	if reviewProviderCaptureRuntime(binding.runtime) {
-		adapter, adapterErr := reviewProviderAdapter(reviewProviderRoleTargetedValidator, binding.runtime)
-		if adapterErr != nil {
-			return reviewPreflightError(adapterErr)
-		}
-		closure, err := reviewProviderCaptureValidationWithOneCorrection(ctx, binding, adapter, store, state, correction, request)
-		if err != nil {
-			return err
-		}
-		return encodeReviewJSON(stdout, closure)
-	}
-	// binding.input is guaranteed non-empty here: --execute is refused for
-	// every host-relay runtime at parse time (parseReviewProviderRoleCapture),
-	// and reviewProviderCaptureRuntime already routed every compiled runtime
-	// through the branch above. Go never spawns a process for this role
-	// (#4611): the host already materialized this exact request, ran its own
-	// reviewer on it out of process, and hands back only the raw result.
-	// Unadmittable bytes are a typed refusal that leaves the slot open for
-	// STATUS to reoffer, exactly like a malformed in-process capture.
-	raw, readErr := readFacadeBytes(binding.input)
-	if readErr != nil {
-		return reviewPreflightError(fmt.Errorf("read provider targeted validator result: %w", readErr))
-	}
-	_, _, closure, err := reviewProviderCloseTargetedValidatorRaw(ctx, binding.root, store, state, state.CapturePhaseRevision, raw)
+	closure, err := reviewProviderCaptureValidationWithOneCorrection(ctx, binding, adapter, store, state, correction, request)
 	if err != nil {
-		return reviewPreflightError(err)
+		return err
 	}
 	return encodeReviewJSON(stdout, closure)
 }
@@ -328,8 +232,7 @@ type reviewProviderCaptureRefuterAdmission struct {
 // reviewProviderCaptureRefuterWithOneCorrection grants the compiled runtime
 // (claude, codex) the same single corrective re-invocation the lens role
 // already had (issue #4061): a malformed refuter document is retried once
-// with the exact admission error before it is durably captured. The Pi host
-// relay keeps its own reviewer process and is not routed through this path.
+// with the exact admission error before it is durably captured.
 func reviewProviderCaptureRefuterWithOneCorrection(ctx context.Context, binding *reviewProviderRoleCaptureBinding, adapter reviewerprovider.Adapter, store reviewtransaction.CompactStore, state reviewtransaction.CompactState, request reviewProviderRefuterRequest) error {
 	admit := func(_ context.Context, raw []byte) (reviewProviderCaptureRefuterAdmission, error) {
 		result, err := reviewProviderAdmitRefuterRaw(request, raw)

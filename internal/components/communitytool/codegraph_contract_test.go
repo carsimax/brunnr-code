@@ -48,7 +48,7 @@ func TestCodeGraphCompatibilityStrategies(t *testing.T) {
 		strategy codeGraphStrategy
 		agents   []model.AgentID
 	}{
-		{codeGraphReconciled, []model.AgentID{model.AgentOpenCode, model.AgentPi}},
+		{codeGraphReconciled, []model.AgentID{model.AgentOpenCode}},
 	}
 	for _, tt := range tests {
 		for _, id := range tt.agents {

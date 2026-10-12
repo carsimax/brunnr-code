@@ -1843,8 +1843,13 @@ func (fake organicProviderCaptureFake) assertInvoked(t *testing.T) {
 	}
 }
 
+// organicCorroborateRefuterPayload makes the provider capture fake answer the
+// refuter request it reads on stdin with a batch corroborating every claim.
+const organicCorroborateRefuterPayload = "corroborate-refuter"
+
 func runOrganicProviderCaptureFake(agent string) int {
-	if _, err := io.Copy(io.Discard, os.Stdin); err != nil {
+	prompt, err := io.ReadAll(os.Stdin)
+	if err != nil {
 		return 1
 	}
 	invocation := organicProviderCaptureFakeInvocation{
@@ -1852,6 +1857,13 @@ func runOrganicProviderCaptureFake(agent string) int {
 		Failure:   os.Getenv(organicProviderCaptureFakeFailureEnvironment) == "true",
 		Payload:   os.Getenv(organicProviderCaptureFakePayloadEnvironment),
 		Arguments: os.Args[1:],
+	}
+	if invocation.Payload == organicCorroborateRefuterPayload {
+		corroborated, ok := organicCorroboratingRefuterBatch(prompt)
+		if !ok {
+			return 1
+		}
+		invocation.Payload = corroborated
 	}
 	for index, argument := range invocation.Arguments {
 		if argument == "--output-last-message" && index+1 < len(invocation.Arguments) {
@@ -3262,17 +3274,17 @@ func (harness *organicHarness) captureReviewerResult(lineage string, started org
 // corroborateRefuter submits the one refuter batch a severe candidate-caused
 // finding requires once every lens is captured (L20: deterministic findings
 // reach the refuter too). It follows only public routes: the provider STATUS
-// issues the refuter binding, `capture-refuter --materialize` prints the exact
-// request, and the host relay submits a batch corroborating every issued
-// claim. It returns the raw terminal closure the refuter capture prints.
+// issues the refuter binding and the compiled claude-code capture runs a fake
+// provider that corroborates every claim of the exact Go-issued request. It
+// returns the raw terminal closure the refuter capture prints.
 func (harness *organicHarness) corroborateRefuter(lineage string) string {
 	harness.t.Helper()
-	status := organicProviderStatus(harness.t, harness, lineage, "codex")
+	status := organicProviderStatus(harness.t, harness, lineage, "claude-code")
 	if status.NextTransition == nil || status.NextTransition.ReasonCode != "provider_refuter_required" ||
 		status.NextTransition.Collect == nil || len(status.NextTransition.Collect.Inputs) != 1 {
 		harness.t.Fatalf("refuter STATUS = %#v, want one provider_refuter_required input", status.NextTransition)
 	}
-	binding := []string{"review", "capture-refuter", "--cwd", harness.repo.worktree, "--agent", "pi"}
+	binding := []string{"review", "capture-refuter", "--cwd", harness.repo.worktree, "--agent", "claude-code", "--execute=true"}
 	arguments := map[string]string{}
 	for _, argument := range status.NextTransition.Collect.Inputs[0].Arguments {
 		arguments[argument.Name] = argument.Value
@@ -3283,7 +3295,24 @@ func (harness *organicHarness) corroborateRefuter(lineage string) string {
 		}
 		binding = append(binding, "--"+name, arguments[name])
 	}
-	prompt := harness.gentle(append(binding, "--materialize")...)
+	bin := harness.t.TempDir()
+	fake := organicWriteProviderCaptureFake(harness.t, bin, "claude", "claude-code", map[string]string{}, nil)
+	environment := append(harness.environment(), fake.environment...)
+	for index, entry := range environment {
+		if strings.HasPrefix(entry, organicProviderCaptureFakePayloadEnvironment+"=") {
+			environment[index] = organicProviderCaptureFakePayloadEnvironment + "=" + organicCorroborateRefuterPayload
+		}
+	}
+	stdout, stderr, err := runOrganicCommand(harness.t, organicBinary, harness.repo.worktree, environment, binding...)
+	if err != nil {
+		harness.t.Fatalf("gentle-ai %v: %v\nstdout:\n%s\nstderr:\n%s", binding, err, stdout, stderr)
+	}
+	return stdout
+}
+
+// organicCorroboratingRefuterBatch answers the refuter request embedded in a
+// Go-issued role prompt with a batch corroborating every claim.
+func organicCorroboratingRefuterBatch(prompt []byte) (string, bool) {
 	_, input, found := bytes.Cut(prompt, []byte("\n\nInput:\n"))
 	if found {
 		input, _, found = bytes.Cut(input, []byte("\n\nOutput schema:\n"))
@@ -3295,7 +3324,7 @@ func (harness *organicHarness) corroborateRefuter(lineage string) string {
 		} `json:"claims"`
 	}
 	if !found || json.Unmarshal(input, &request) != nil || request.RequestHash == "" || len(request.Claims) == 0 {
-		harness.t.Fatalf("materialized refuter request carries no claims:\n%s", prompt)
+		return "", false
 	}
 	type outcome struct {
 		FindingID string   `json:"finding_id"`
@@ -3306,11 +3335,14 @@ func (harness *organicHarness) corroborateRefuter(lineage string) string {
 	for _, claim := range request.Claims {
 		results = append(results, outcome{FindingID: claim.FindingID, Outcome: "corroborated", ProofRefs: []string{"independent reproduction of " + claim.FindingID}})
 	}
-	result := harness.writeJSON("refuter.json", struct {
+	encoded, err := json.Marshal(struct {
 		RequestHash string    `json:"refuter_request_hash"`
 		Results     []outcome `json:"results"`
 	}{request.RequestHash, results})
-	return string(harness.gentle(append(binding, "--input", result)...))
+	if err != nil {
+		return "", false
+	}
+	return string(encoded), true
 }
 
 // captureReviewerResultOrFail is captureReviewerResult for the callers that

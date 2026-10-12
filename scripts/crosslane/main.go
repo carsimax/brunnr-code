@@ -45,7 +45,7 @@ var semverVersionLine = regexp.MustCompile(`(?m)^gentle-ai\s+\d+\.\d+\.\d+(?:-[0
 func run() int {
 	binary := flag.String("binary", "", "path to the gentle-ai binary under test (required)")
 	withModel := flag.Bool("with-model", false, "reserved; live Claude model proof remains intentionally disabled")
-	withHost := flag.Bool("with-host", false, "spawn REAL host applications (codex exec, pi print mode, an opencode session) end to end (uses the dev subscription)")
+	withHost := flag.Bool("with-host", false, "spawn REAL host applications (codex exec, an opencode session) end to end (uses the dev subscription)")
 	keepWork := flag.Bool("keep-work", false, "keep the scratch working directory for inspection")
 	flag.Parse()
 
@@ -68,9 +68,6 @@ func run() int {
 		fmt.Fprintf(os.Stderr, "crosslane: binary %q must report a semver version (got %q); build it with -ldflags \"-X main.version=$(git describe --tags --abbrev=0 | sed s/^v//)-dev\" (see CONTRIBUTING.md)\n", *binary, strings.TrimSpace(string(output)))
 		return 2
 	}
-	operatorHome := os.Getenv("HOME")
-	operatorPath := os.Getenv("PATH")
-	piEnvironment, piEnvironmentErr := piReviewEnvironment(operatorHome, operatorPath)
 	repoRoot, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "crosslane: %v\n", err)
@@ -83,15 +80,13 @@ func run() int {
 	}
 
 	b := &battery{
-		binary:           resolved,
-		repoRoot:         repoRoot,
-		workRoot:         workRoot,
-		withModel:        *withModel,
-		withHost:         *withHost,
-		piEnvironment:    piEnvironment,
-		piEnvironmentErr: piEnvironmentErr,
-		sandboxHome:      filepath.Join(workRoot, "home"),
-		lineages:         map[string]lineageScope{},
+		binary:      resolved,
+		repoRoot:    repoRoot,
+		workRoot:    workRoot,
+		withModel:   *withModel,
+		withHost:    *withHost,
+		sandboxHome: filepath.Join(workRoot, "home"),
+		lineages:    map[string]lineageScope{},
 	}
 	if !*keepWork {
 		defer os.RemoveAll(workRoot)

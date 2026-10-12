@@ -379,18 +379,18 @@ func requestContextRefuterReview(t *testing.T, lineage string, extra ...string) 
 	handle := rctx2ReviewRepositoryContextForTest(t, repo, reviewtransaction.ReviewRepositoryContextBinding{
 		LineageID: record.State.LineageID, TargetIdentity: record.State.InitialSnapshot.Identity, Revision: record.State.CapturePhaseRevision,
 	})
-	return repo, store, record, piRefuterBinding(repo, record, handle)
+	return repo, store, record, roleRefuterBindingForTest(repo, record, handle)
 }
 
-// materializeRequestContextRefuter prints the refuter provider task through
-// the public capture-refuter materialize mode, which writes nothing.
-func materializeRequestContextRefuter(t *testing.T, binding []string) string {
+// materializeRequestContextRefuter renders the refuter provider task the
+// Go-owned capture path hands its provider, which writes nothing.
+func materializeRequestContextRefuter(t *testing.T, repo string, store reviewtransaction.CompactStore, record reviewtransaction.CompactRecord) string {
 	t.Helper()
-	var output bytes.Buffer
-	if err := RunReview(append(append([]string{"capture-refuter"}, binding...), "--agent", string(model.AgentPi), "--materialize=true"), &output); err != nil {
-		t.Fatalf("materialize refuter: %v\n%s", err, output.String())
+	request, err := reviewProviderNewRefuterRequest(t.Context(), repo, store.Dir, record.State, record.State.CapturePhaseRevision)
+	if err != nil {
+		t.Fatalf("materialize refuter: %v", err)
 	}
-	return output.String()
+	return string(request.Invocation.Prompt())
 }
 
 // refuterRequestPreimageHash recomputes the refuter request hash from the
@@ -412,11 +412,10 @@ func refuterRequestPreimageHash(request reviewProviderRefuterRequest) string {
 // corrective retry repeats the same section.
 func TestReviewRefuterPromptCarriesFrozenRequestContext(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	request := writeRequestContextFile(t, requestContextFixture)
-	repo, store, record, binding := requestContextRefuterReview(t, "request-context-refuter", "--request-context", request)
+	repo, store, record, _ := requestContextRefuterReview(t, "request-context-refuter", "--request-context", request)
 
-	prompt := materializeRequestContextRefuter(t, binding)
+	prompt := materializeRequestContextRefuter(t, repo, store, record)
 	native, err := reviewProviderNewRefuterRequest(t.Context(), repo, store.Dir, record.State, record.State.CapturePhaseRevision)
 	if err != nil {
 		t.Fatal(err)
@@ -467,11 +466,10 @@ func TestReviewRefuterPromptCarriesFrozenRequestContext(t *testing.T) {
 // reaches its prompt (verify-always-rdd-high S5).
 func TestReviewRefuterPromptExcludesVerifyEvidence(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	request := writeRequestContextFile(t, requestContextVerifyPassFixture)
-	_, _, _, binding := requestContextRefuterReview(t, "request-context-refuter-verify", "--request-context", request)
+	repo, store, record, _ := requestContextRefuterReview(t, "request-context-refuter-verify", "--request-context", request)
 
-	prompt := materializeRequestContextRefuter(t, binding)
+	prompt := materializeRequestContextRefuter(t, repo, store, record)
 	section := reviewLensContextRequestContext + "\n" + strings.TrimSpace(requestContextFixture) + "\n" + reviewLensContextRequestContext + "_END"
 	if !strings.Contains(prompt, section) {
 		t.Fatalf("refuter prompt must carry the request without its verify section:\n%s", prompt)
@@ -487,10 +485,9 @@ func TestReviewRefuterPromptExcludesVerifyEvidence(t *testing.T) {
 // request JSON, and result schema, with no request paragraph or section.
 func TestReviewRefuterPromptWithoutRequestContextIsUnchanged(t *testing.T) {
 	reviewEnabledHome(t)
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-	repo, store, record, binding := requestContextRefuterReview(t, "request-context-refuter-absent")
+	repo, store, record, _ := requestContextRefuterReview(t, "request-context-refuter-absent")
 
-	prompt := materializeRequestContextRefuter(t, binding)
+	prompt := materializeRequestContextRefuter(t, repo, store, record)
 	native, err := reviewProviderNewRefuterRequest(t.Context(), repo, store.Dir, record.State, record.State.CapturePhaseRevision)
 	if err != nil {
 		t.Fatal(err)

@@ -156,7 +156,7 @@ func ForAgent(agent model.AgentID) (AgentCapabilityManifest, error) {
 
 // reviewTransportExposureByAgent is the closed set of runtimes that can
 // carry the review protocol. Every supported agent is explicitly dormant
-// first, then only the four runtimes with the required native transport and
+// first, then only the runtimes with the required native transport and
 // immutable reviewer boundary advertise receipt-driven review. A map miss
 // (an unknown agent) remains fail-closed.
 var reviewTransportExposureByAgent = func() map[model.AgentID]ContractExposure {
@@ -167,7 +167,6 @@ var reviewTransportExposureByAgent = func() map[model.AgentID]ContractExposure {
 	exposure[model.AgentClaudeCode] = ContractExposureAdvertised
 	exposure[model.AgentOpenCode] = ContractExposureAdvertised
 	exposure[model.AgentCodex] = ContractExposureAdvertised
-	exposure[model.AgentPi] = ContractExposureAdvertised
 	return exposure
 }()
 
@@ -180,13 +179,8 @@ var reviewTransportExposureByAgent = func() map[model.AgentID]ContractExposure {
 // user-visible session, or `OPENCODE_DISABLE_*` variable (rdd-advisory-
 // transport SKILL.md). Capability advertisement records the provider contract
 // that can reach Go-owned admission; organic runtime proof is recorded by the
-// provider's own execution tests. Pi advertises through gentle-pi's host
-// relay: the launcher reads the negotiated collection input, spawns a
-// brand-new print-mode pi subprocess in an empty scratch directory with
-// every discovery surface disabled, forwards the Go-issued opaque prompt
-// untouched, and returns raw final bytes (gentle-pi#311, gentle-ai#3249).
-// Kilo and every other runtime remain explicitly dormant until they own an
-// equivalent native boundary.
+// provider's own execution tests. Every other runtime remains explicitly
+// dormant until it owns an equivalent native boundary.
 var immutableReviewExecutorExposureByAgent = func() map[model.AgentID]ContractExposure {
 	exposure := make(map[model.AgentID]ContractExposure, len(featureClaimsByAgent))
 	for agent := range featureClaimsByAgent {
@@ -195,7 +189,6 @@ var immutableReviewExecutorExposureByAgent = func() map[model.AgentID]ContractEx
 	exposure[model.AgentClaudeCode] = ContractExposureAdvertised
 	exposure[model.AgentOpenCode] = ContractExposureAdvertised
 	exposure[model.AgentCodex] = ContractExposureAdvertised
-	exposure[model.AgentPi] = ContractExposureAdvertised
 	return exposure
 }()
 
@@ -317,8 +310,5 @@ var featureClaimsByAgent = map[model.AgentID]AgentFeatureClaims{
 	},
 	model.AgentOpenCode: {
 		SlashCommands: true, Skills: true, SystemPrompt: true, MCP: true,
-	},
-	model.AgentPi: {
-		SystemPrompt: false, MCP: true,
 	},
 }

@@ -7,9 +7,9 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
 
-// gentleShellParityHeadings lists every orchestrator section each non-Pi
+// gentleShellParityHeadings lists every orchestrator section each
 // runtime must install exactly once. It mirrors the runtime-agnostic contract
-// of Gentle Shell's orchestrator prompt (gentle-pi `assets/orchestrator.md`,
+// of Gentle Shell's orchestrator prompt (`assets/orchestrator.md`,
 // `assets/orchestrator-delegation.md`, `assets/orchestrator-memory.md`, and
 // `assets/orchestrator-skills.md` at 89b8de3b5). When Gentle Shell adds a
 // runtime-agnostic section, port it into
@@ -46,7 +46,7 @@ var gentleShellParityHeadings = []string{
 	"Intent-Driven Skill Discovery",
 }
 
-// gentleShellOnlyContent must never reach a non-Pi runtime: Pi tool names and
+// gentleShellOnlyContent must never reach a runtime: Gentle Shell tool names and
 // the Judgment Day correction-batch contract.
 var gentleShellOnlyContent = []string{
 	"gentle_odd_phase",
@@ -65,9 +65,8 @@ var gentleShellOnlyContent = []string{
 	"Pi Runtime Overlays",
 }
 
-// Exercises the real installation carrier for every non-Pi runtime, then
-// syncs it again. Pi routing is covered by the renderer; its orchestrator is
-// owned by Gentle Shell and must not be copied here.
+// Exercises the real installation carrier for every runtime, then syncs it
+// again.
 func TestInstalledEvidenceBudgetGuidance(t *testing.T) {
 	for _, agent := range orchestratorRuntimes(t) {
 		t.Run(string(agent), func(t *testing.T) {

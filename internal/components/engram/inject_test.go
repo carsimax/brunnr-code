@@ -17,7 +17,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/claude"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/opencode"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
@@ -384,8 +383,6 @@ func validCodexRuntime(t *testing.T) {
 	t.Cleanup(codex.SetRuntimeVersionCommandForTest("codex-cli 0.144.0", nil))
 }
 
-func piAdapter() agents.Adapter { return pi.NewAdapter() }
-
 // assertArgsHaveToolsAgent is a shared helper that validates a JSON file
 // contains the MCP "engram" entry with --tools=agent in args.
 func assertArgsHaveToolsAgent(t *testing.T, path string) {
@@ -599,93 +596,6 @@ func TestInjectOpenCodeIsIdempotent(t *testing.T) {
 	if second.Changed {
 		t.Fatalf("Inject() second changed = true")
 	}
-}
-
-func TestInjectPiProvisioningWritesNothingOnFreshHome(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := Inject(home, piAdapter())
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-	if result.Changed || len(result.Files) != 0 {
-		t.Fatalf("Inject() = (changed %v, files %v), want no writes (Pi Engram is native-only, not MCP)", result.Changed, result.Files)
-	}
-	for _, path := range []string{
-		filepath.Join(home, ".pi", "agent", "settings.json"),
-		filepath.Join(home, ".pi", "agent", "npm", "package.json"),
-		filepath.Join(home, ".pi", "agent", "mcp.json"),
-		filepath.Join(home, ".pi", "agent", "mcp-adapter.json"),
-	} {
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			t.Fatalf("stat %q err = %v, want IsNotExist", path, err)
-		}
-	}
-}
-
-func TestInjectPiProvisioningMigratesMCPAdapterServersWithoutEngram(t *testing.T) {
-	home := t.TempDir()
-	mcpPath := filepath.Join(home, ".pi", "agent", "mcp.json")
-	writeFile(t, filepath.Join(home, ".pi", "agent", "mcp-adapter.json"), `{"mcpServers":{"context7":{"command":"npx"}}}`)
-
-	result, err := Inject(home, piAdapter())
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-	if !result.Changed || len(result.Files) != 1 || result.Files[0] != mcpPath {
-		t.Fatalf("Inject() = (changed %v, files %v), want only %q written", result.Changed, result.Files, mcpPath)
-	}
-	config := readJSONFile(t, mcpPath)
-	assertNestedString(t, config, "npx", "mcpServers", "context7", "command")
-	if servers, _ := config["mcpServers"].(map[string]any); servers["engram"] != nil {
-		t.Fatalf("mcp.json servers = %#v, want no engram server (Pi Engram is native-only)", servers)
-	}
-}
-
-func TestInjectPiProvisioningRetiresMCPAdapterAndPreservesUnrelatedContent(t *testing.T) {
-	home := t.TempDir()
-	writeFile(t, filepath.Join(home, ".pi", "agent", "settings.json"), `{"theme":"kanagawa","packages":["npm:other@1.0.0","npm:pi-mcp-adapter@2.0.0"]}`)
-	writeFile(t, filepath.Join(home, ".pi", "agent", "npm", "package.json"), `{"name":"pi-user","dependencies":{"left-pad":"^1.0.0","pi-mcp-adapter":"^2.6.0"},"devDependencies":{"vitest":"^1.0.0"}}`)
-
-	first, err := Inject(home, piAdapter())
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-	if !first.Changed {
-		t.Fatalf("Inject() changed = false, want the adapter retired")
-	}
-
-	settings := readJSONFile(t, filepath.Join(home, ".pi", "agent", "settings.json"))
-	assertNestedString(t, settings, "kanagawa", "theme")
-	assertNestedStrings(t, settings, []string{"npm:other@1.0.0"}, "packages")
-
-	npmPackage := readJSONFile(t, filepath.Join(home, ".pi", "agent", "npm", "package.json"))
-	assertNestedString(t, npmPackage, "pi-user", "name")
-	assertNestedString(t, npmPackage, "^1.0.0", "dependencies", "left-pad")
-	assertNestedMissing(t, npmPackage, "dependencies", "pi-mcp-adapter")
-	assertNestedString(t, npmPackage, "^1.0.0", "devDependencies", "vitest")
-
-	second, err := Inject(home, piAdapter())
-	if err != nil {
-		t.Fatalf("Inject() second error = %v", err)
-	}
-	if second.Changed {
-		t.Fatalf("Inject() second changed = true, want idempotent no-op")
-	}
-}
-
-func TestInjectPiProvisioningMigratesLegacyObjectPackages(t *testing.T) {
-	home := t.TempDir()
-	writeFile(t, filepath.Join(home, ".pi", "agent", "settings.json"), `{"theme":"kanagawa","packages":{"npm:other":"1.0.0","npm:pi-mcp-adapter":"2.0.0"}}`)
-
-	_, err := Inject(home, piAdapter())
-	if err != nil {
-		t.Fatalf("Inject() error = %v", err)
-	}
-
-	settings := readJSONFile(t, filepath.Join(home, ".pi", "agent", "settings.json"))
-	assertNestedString(t, settings, "kanagawa", "theme")
-	assertNestedStrings(t, settings, []string{"npm:other@1.0.0"}, "packages")
 }
 
 // TestInjectOpenCodeMigratesFromOldFormat verifies that when a user's
@@ -2006,29 +1916,6 @@ func TestProtocolForSelectsSlimOrFullPerDecision1Matrix(t *testing.T) {
 				t.Fatalf("protocolFor(%s, above-floor version) = %s section, want %s section", tt.agent, gotKind, wantKind)
 			}
 		})
-	}
-}
-
-// TestProtocolForPiRendersNoProtocolText asserts the existing MCP-only
-// precedent: Pi never writes protocol text via Inject(), regardless of
-// version, because piEngramProvisioner short-circuits before protocolFor is
-// ever consulted.
-func TestProtocolForPiRendersNoProtocolText(t *testing.T) {
-	home := t.TempDir()
-
-	result, err := InjectWithOptions(home, piAdapter(), InjectOptions{Version: aboveFloorVersion})
-	if err != nil {
-		t.Fatalf("InjectWithOptions(pi) error = %v", err)
-	}
-
-	for _, path := range result.Files {
-		content, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatalf("ReadFile(%q) error = %v", path, err)
-		}
-		if strings.Contains(string(content), "mem_save") || strings.Contains(string(content), "Engram Persistent Memory") {
-			t.Fatalf("Pi file %q unexpectedly contains protocol text; got:\n%s", path, content)
-		}
 	}
 }
 

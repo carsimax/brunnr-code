@@ -1012,7 +1012,7 @@ func TestReviewProviderRefuterRolePromptRequiresObservableHarm(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, runtime := range []model.AgentID{model.AgentCodex, model.AgentClaudeCode, model.AgentPi, model.AgentOpenCode} {
+	for _, runtime := range []model.AgentID{model.AgentCodex, model.AgentClaudeCode, model.AgentOpenCode} {
 		prompt, err := reviewProviderRolePrompt(refuter, runtimeBudgetRolePromptRequest(""), string(runtime))
 		if err != nil {
 			t.Fatal(err)

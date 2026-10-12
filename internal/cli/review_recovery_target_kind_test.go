@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/reviewtransaction"
 )
 
@@ -247,14 +248,12 @@ func escalatedCurrentChangesRecoveryFixture(t *testing.T, lineage string) (strin
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	failedResultFile := writeReviewCLIRawInput(t, failedPayload)
+	// The compiled runtime returns the canned raw result through --execute.
+	stubCompiledProviderRawForTest(t, failedPayload)
 	if err := RunReviewCaptureValidation([]string{
 		"--cwd", repo, "--lineage", lineage, "--target", request.CorrectionTargetIdentity,
 		"--expected-revision", open.State.CapturePhaseRevision, "--request-hash", request.RequestHash,
-		"--agent", "pi", "--input", failedResultFile,
+		"--agent", string(model.AgentClaudeCode), "--execute=true",
 	}, io.Discard); err != nil {
 		t.Fatalf("capture rejected targeted validator: %v", err)
 	}
@@ -320,14 +319,12 @@ func escalatedBaseDiffRecoveryFixture(t *testing.T, repo, lineage, baseRef strin
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-	// The pi host relay submits its own raw result through --input (#4611):
-	// Go never spawns anything for this capture.
-	failedResultFile := writeReviewCLIRawInput(t, failedPayload)
+	// The compiled runtime returns the canned raw result through --execute.
+	stubCompiledProviderRawForTest(t, failedPayload)
 	if err := RunReviewCaptureValidation([]string{
 		"--cwd", repo, "--lineage", lineage, "--target", request.CorrectionTargetIdentity,
 		"--expected-revision", open.State.CapturePhaseRevision, "--request-hash", request.RequestHash,
-		"--agent", "pi", "--input", failedResultFile,
+		"--agent", string(model.AgentClaudeCode), "--execute=true",
 	}, io.Discard); err != nil {
 		t.Fatalf("capture rejected targeted validator: %v", err)
 	}

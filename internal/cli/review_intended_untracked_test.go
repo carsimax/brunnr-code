@@ -135,7 +135,6 @@ func TestNegotiatedStatusUnbornUntrackedRequiresSelectionBeforeSnapshot(t *testi
 }
 
 func TestIntendedUntrackedSelectionSubmissionExecutesSelectedStatusThenPrintedStart(t *testing.T) {
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	reviewEnabledHome(t)
 	repo := initReviewCLIRepo(t)
 	writeUndeclaredWorkspaceFile(t, repo, "docs/chosen, file.md", "# Chosen\n", 0o644)
@@ -145,7 +144,7 @@ func TestIntendedUntrackedSelectionSubmissionExecutesSelectedStatusThenPrintedSt
 	writeUndeclaredWorkspaceFile(t, repo, ".gitignore", "ignored.txt\n", 0o644)
 	writeReviewStartCandidate(t, repo, "docs/tracked.md", "# Tracked\n", 0o644)
 
-	status := intendedUntrackedStatus(t, repo, "--agent", "pi")
+	status := intendedUntrackedStatus(t, repo, "--agent", "claude-code")
 	if status.NextTransition == nil || status.NextTransition.Kind != reviewNextTransitionCollect || status.NextTransition.Collect == nil || len(status.NextTransition.Collect.Inputs) != 1 {
 		t.Fatalf("selection transition = %#v", status.NextTransition)
 	}
@@ -157,7 +156,7 @@ func TestIntendedUntrackedSelectionSubmissionExecutesSelectedStatusThenPrintedSt
 		t.Fatal("initial intended-untracked selection lacks its provider-owned selected-STATUS submission")
 	}
 	submission := input.Submission
-	if submission.OperationToken != "status" || submission.Value == nil || submission.Value.Schema != reviewIntendedUntrackedSelectionSchema || submission.Value.SubstitutionLocation != 4 || submission.ArgumentTokens[2] != "--agent=pi" {
+	if submission.OperationToken != "status" || submission.Value == nil || submission.Value.Schema != reviewIntendedUntrackedSelectionSchema || submission.Value.SubstitutionLocation != 4 || submission.ArgumentTokens[2] != "--agent=claude-code" {
 		t.Fatalf("selection submission = %#v", submission)
 	}
 	arguments, err := reviewTransitionArgumentMap(input.Arguments)

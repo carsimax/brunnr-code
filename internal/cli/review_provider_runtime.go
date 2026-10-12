@@ -120,8 +120,6 @@ var reviewProviderAdapterFor = func(contract reviewerprovider.Contract, agent mo
 		return reviewerprovider.NewCodexAdapter(), nil
 	case model.AgentOpenCode:
 		return nil, fmt.Errorf("reviewer provider runtime %q is host-mediated; launch the provider-issued OpenCode reviewer task", agent) // refusal:by-design world-action: OpenCode must relay through its ordinary managed host
-	case model.AgentPi:
-		return nil, fmt.Errorf("reviewer provider runtime %q is host-mediated; launch the provider-issued Pi reviewer task", agent) // refusal:by-design world-action: Pi's launcher lives in gentle-pi and relays the Go-issued opaque task
 	default:
 		return nil, fmt.Errorf("reviewer provider runtime %q has no registered adapter", agent) // refusal:by-design world-action: immutable reviewer execution requires a compiled adapter binding
 	}
@@ -134,16 +132,4 @@ var reviewProviderAdapterFor = func(contract reviewerprovider.Contract, agent mo
 // (issue #3825).
 func reviewProviderCaptureRuntime(agent model.AgentID) bool {
 	return reviewerprovider.CapturesInProcess(agent)
-}
-
-// reviewProviderHostRelayMaterializeRuntime reports whether the runtime's
-// compiled immutable transport is the Pi host relay: the one transport whose
-// host first prints the exact Go-materialized opaque provider task
-// (`review capture-result ... --agent=pi --materialize=true`), runs its own
-// fresh locked-down reviewer subprocess on those bytes, and then submits the
-// raw result through the existing --input path with the same binding. The
-// answer stays false without the exact relay handshake, so materialization is
-// never offered to a Pi installation whose launcher cannot collect it.
-func reviewProviderHostRelayMaterializeRuntime(agent model.AgentID) bool {
-	return reviewImmutableRuntimeCapability(agent).Transport == reviewImmutableTransportPiHostRelay
 }

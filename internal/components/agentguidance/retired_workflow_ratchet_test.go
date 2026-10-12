@@ -74,16 +74,14 @@ func TestRenderedGuidanceHasNoRetiredWorkflowReferences(t *testing.T) {
 					}
 				}
 				assertRenderedFilesClean(t, files)
-				if agent.ID != model.AgentPi {
-					rendered, err := agentguidance.RenderOrchestratorWithSource(agent.ID, reviewassets.ReviewExecutionContractFor, capability)
-					if err != nil {
-						t.Fatalf("RenderOrchestratorWithSource(capability=%q): %v", capability, err)
-					}
-					assertNoRetiredWorkflowReference(t, "orchestrator capability="+capability, rendered)
-					// Shared-section markers bind the composer only; they never ship.
-					if strings.Contains(rendered, "orchestrator-section:") {
-						t.Errorf("orchestrator capability=%q leaks a shared-section marker", capability)
-					}
+				rendered, err := agentguidance.RenderOrchestratorWithSource(agent.ID, reviewassets.ReviewExecutionContractFor, capability)
+				if err != nil {
+					t.Fatalf("RenderOrchestratorWithSource(capability=%q): %v", capability, err)
+				}
+				assertNoRetiredWorkflowReference(t, "orchestrator capability="+capability, rendered)
+				// Shared-section markers bind the composer only; they never ship.
+				if strings.Contains(rendered, "orchestrator-section:") {
+					t.Errorf("orchestrator capability=%q leaks a shared-section marker", capability)
 				}
 			}
 

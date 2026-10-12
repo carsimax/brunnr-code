@@ -767,8 +767,8 @@ func authorizeReviewStart(ctx context.Context, repo string, assessment reviewtra
 	if negotiated && !console.Interactive {
 		// A non-interactive negotiated invocation is machine-readable end to
 		// end: stdout carries the typed envelope and a successful operation
-		// writes zero bytes to stderr (gentle-pi fails closed on any stderr a
-		// successful START writes), and machine listeners only ever spawn
+		// writes zero bytes to stderr (machine callers fail closed on any
+		// stderr a successful START writes), and machine listeners only ever spawn
 		// non-interactive processes. Negotiated consent is carried by the
 		// typed consent envelope (--consent relay/granted/declined), so this
 		// route returns before the latch read: neither the one-time consent

@@ -198,7 +198,7 @@ func reviewProviderNewRefuterRequest(ctx context.Context, repo, storeDir string,
 // manual_intervention_required.
 func reviewProviderRefutesDeterministic(runtime string) bool {
 	agent := model.AgentID(runtime)
-	return agent == model.AgentPi || agent == model.AgentOpenCode || reviewProviderCaptureRuntime(agent)
+	return agent == model.AgentOpenCode || reviewProviderCaptureRuntime(agent)
 }
 
 func reviewProviderRefuterClaims(snapshot string, input reviewtransaction.CompactReviewInput, runtime string) ([]reviewtransaction.RefuterClaim, error) {

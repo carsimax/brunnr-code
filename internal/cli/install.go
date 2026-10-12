@@ -21,9 +21,6 @@ type InstallFlags struct {
 	OpenCodeBackgroundSubagents    string
 	OpenCodeBackgroundSubagentsSet bool
 
-	PiBackgroundSubagents    string
-	PiBackgroundSubagentsSet bool
-
 	ClaudeOrchestratorModules bool
 }
 
@@ -44,9 +41,6 @@ FLAGS
   --opencode-background-subagents=auto|on|off
                                      Resolve OpenCode capability and manage a launcher when eligible; env: GENTLE_AI_OPENCODE_BACKGROUND_SUBAGENTS
                                      auto inherits managed on/off, unsupported/unknown stays foreground, off removes only owned launchers
-  --pi-background-subagents=auto|on|off
-                                     Project the resolved Pi background-subagent policy for gentle-pi; env: GENTLE_AI_PI_BACKGROUND_SUBAGENTS
-                                     auto inherits managed on/off and never enables by itself; only managed policy files are ever overwritten
   --claude-orchestrator-modules      Global Claude only: install the orchestrator as a core plus on-demand modules
                                      under ~/.claude/gentle-ai/orchestrator/ (default off; see docs/rollback.md)
   --dry-run                          Preview plan without executing
@@ -54,8 +48,6 @@ FLAGS
 
 ISOLATED INSTALLS (absolute paths; all unset by default)
   GENTLE_AI_HOME=<dir>               Gentle AI state, backups and telemetry state instead of ~/.gentle-ai
-  GENTLE_AI_PI_CONFIG_DIR=<dir>      gentle-pi config folder for persona.json and background-subagents.json
-                                     instead of ~/.pi/gentle-ai (same folder as gentle-pi's GENTLE_PI_CONFIG_HOME)
   GENTLE_AI_ENGRAM_BIN=<file>        Use this Engram executable: no brew, download, go install or PATH change,
                                      and dependency detection runs no git, curl, node, npm, brew or go command
 
@@ -81,7 +73,6 @@ func ParseInstallFlags(args []string) (InstallFlags, error) {
 	fs.StringVar(&opts.Scope, "scope", "", "install scope: global (default) or workspace — env: GENTLE_AI_INSTALL_SCOPE")
 	fs.StringVar(&opts.Channel, "channel", "", installChannelHelp)
 	fs.StringVar(&opts.OpenCodeBackgroundSubagents, "opencode-background-subagents", "", "--opencode-background-subagents=auto|on|off; env: GENTLE_AI_OPENCODE_BACKGROUND_SUBAGENTS; eligible versions use a managed launcher")
-	fs.StringVar(&opts.PiBackgroundSubagents, "pi-background-subagents", "", "--pi-background-subagents=auto|on|off; env: GENTLE_AI_PI_BACKGROUND_SUBAGENTS; the resolved policy is projected for gentle-pi")
 	fs.BoolVar(&opts.ClaudeOrchestratorModules, "claude-orchestrator-modules", false, "global Claude only: install the orchestrator as a core plus on-demand modules")
 	fs.BoolVar(&opts.DryRun, "dry-run", false, "preview plan without executing")
 
@@ -96,8 +87,6 @@ func ParseInstallFlags(args []string) (InstallFlags, error) {
 		switch f.Name {
 		case "opencode-background-subagents":
 			opts.OpenCodeBackgroundSubagentsSet = true
-		case "pi-background-subagents":
-			opts.PiBackgroundSubagentsSet = true
 		}
 	})
 

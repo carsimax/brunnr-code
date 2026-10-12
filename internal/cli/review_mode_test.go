@@ -985,7 +985,7 @@ func decodeReviewModeResult(t *testing.T, payload []byte) ReviewModeResult {
 }
 
 // A no-op clone enable inherits default ON without persisting either opinion
-// or extending the status schema consumed by gentle-pi.
+// or extending the status schema consumed by external hosts.
 func TestReviewModeCloneScopeEnableInheritsDefaultOnWhileGlobalUnset(t *testing.T) {
 	reviewModeHome(t)
 	repo := initReviewCLIRepo(t)
@@ -1023,7 +1023,7 @@ func TestReviewModeCloneScopeEnableInheritsDefaultOnWhileGlobalUnset(t *testing.
 		switch key {
 		case "schema", "global", "clone_local", "effective", "source", "revision", "reach":
 		default:
-			t.Fatalf("status envelope grew a field %q; gentle-pi decodes gentle-ai.rdd-mode-status/v1 as an exact object", key)
+			t.Fatalf("status envelope grew a field %q; hosts decode gentle-ai.rdd-mode-status/v1 as an exact object", key)
 		}
 	}
 	if strings.Contains(output.String(), "--scope global") {

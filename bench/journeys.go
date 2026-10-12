@@ -62,6 +62,10 @@ type statusEnvelope struct {
 				ChangedPathManifest []struct {
 					Path string `json:"path"`
 				} `json:"changed_path_manifest"`
+				ProviderTask *struct {
+					Prompt string `json:"prompt"`
+					Role   string `json:"role"`
+				} `json:"provider_task"`
 			} `json:"inputs"`
 		} `json:"collect"`
 		Execute struct {

@@ -23,15 +23,12 @@ const (
 )
 
 // orchestratorRuntimes lists every agent whose installed prompt carries the
-// orchestrator. Pi is excluded because its prompt is owned by Gentle Shell.
+// orchestrator.
 func orchestratorRuntimes(t *testing.T) []model.AgentID {
 	t.Helper()
 
 	var selected []model.AgentID
 	for _, agent := range catalog.AllAgents() {
-		if agent.ID == model.AgentPi {
-			continue
-		}
 		adapter, err := agents.NewAdapter(agent.ID)
 		if err != nil {
 			t.Fatalf("NewAdapter(%q) error = %v", agent.ID, err)
@@ -41,8 +38,8 @@ func orchestratorRuntimes(t *testing.T) []model.AgentID {
 		}
 		selected = append(selected, agent.ID)
 	}
-	if len(selected) != supportedAgentCount-1 {
-		t.Fatalf("selected %d orchestrator runtimes, want %d", len(selected), supportedAgentCount-1)
+	if len(selected) != supportedAgentCount {
+		t.Fatalf("selected %d orchestrator runtimes, want %d", len(selected), supportedAgentCount)
 	}
 	return selected
 }
@@ -244,11 +241,6 @@ func TestInjectRoutingReplacesLegacySDDOrchestratorBlockInPlace(t *testing.T) {
 	t.Parallel()
 
 	for _, agent := range markdownSectionAgents(t) {
-		if agent == model.AgentPi {
-			// Pi resolves its prompt outside targetDir and never receives
-			// the orchestrator; its retirement has its own coverage.
-			continue
-		}
 		t.Run(string(agent), func(t *testing.T) {
 			t.Parallel()
 
@@ -327,14 +319,6 @@ func TestInjectRoutingDropsLegacyOrchestratorBesideCurrentBlock(t *testing.T) {
 	}
 	if count := strings.Count(got, orchestratorOpenMarker); count != 1 || !strings.HasPrefix(got, "USER\n") {
 		t.Fatalf("want one orchestrator block after user text, got %d:\n%s", count, got)
-	}
-}
-
-func TestRenderOrchestratorRejectsPi(t *testing.T) {
-	t.Parallel()
-
-	if _, err := RenderOrchestrator(model.AgentPi); err == nil {
-		t.Fatal("RenderOrchestrator(pi) error = nil; Pi's prompt is owned by Gentle Shell")
 	}
 }
 

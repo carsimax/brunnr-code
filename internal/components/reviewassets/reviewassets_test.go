@@ -13,7 +13,6 @@ func TestRuntimeContracts(t *testing.T) {
 		agent              model.AgentID
 		required, excluded string
 	}{
-		{model.AgentPi, "`gentle_review_capture_group`", "gentle-ai review status"},
 		{model.AgentClaudeCode, "gentle-ai review status --cwd <repo> --contract gentle-ai.review-integration/v2 --agent claude-code --next-transition", "gentle_review_capture_group"},
 		{model.AgentOpenCode, "### OpenCode Concurrent Reviewer Group", "gentle_review_capture_group"},
 	} {

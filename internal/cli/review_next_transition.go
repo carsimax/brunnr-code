@@ -447,8 +447,8 @@ func resolveReviewNextTransition(status ReviewTargetStatusResult, selectedLenses
 
 // reviewProviderRoleInputName renders the published collection-input name for
 // one provider role. Input names are contract identifiers, not role tokens:
-// the published transition_input schema (status-v5.schema.json) and gentle-pi's
-// runtime decoder both pin them to ^[a-z0-9_]+$, so the hyphen the
+// the published transition_input schema (status-v5.schema.json) pins them to
+// ^[a-z0-9_]+$, so the hyphen the
 // targeted-validator role token carries must project to an underscore here
 // (cross-lane battery finding; the completed-input echo already published
 // "provider_targeted_validator").
@@ -457,17 +457,7 @@ func reviewProviderRoleInputName(role reviewProviderRole) string {
 }
 
 func reviewProviderRoleTransition(reason string, binding ReviewTransitionBinding, role reviewProviderRole, runtime model.AgentID, validation *reviewtransaction.TargetedValidationRequest) ReviewNextTransition {
-	switch {
-	case reviewProviderHostRelayMaterializeRuntime(runtime):
-		// The pi host relay never receives a Go-owned spawn (#4611): it
-		// materializes the opaque prompt itself and submits its own
-		// reviewer's raw result back through the submission descriptor.
-		input, err := reviewProviderRoleMaterializeSubmissionInput(binding, role, runtime, validation)
-		if err != nil {
-			return reviewStopTransition("captured_artifacts_unverifiable")
-		}
-		return reviewCollectTransition(reason, input)
-	case reviewProviderCaptureRuntime(runtime):
+	if reviewProviderCaptureRuntime(runtime) {
 		input, err := reviewProviderCompiledRoleExecuteInput(binding, role, runtime, validation)
 		if err != nil {
 			return reviewStopTransition("captured_artifacts_unverifiable")
@@ -548,45 +538,6 @@ func reviewProviderCompiledRoleExecuteInput(binding ReviewTransitionBinding, rol
 	return input, nil
 }
 
-// reviewProviderRoleMaterializeSubmissionInput renders the one pi host-relay
-// collection input for a Go-issued non-lens provider role, mirroring
-// reviewCaptureInput's host-relay lens shape exactly: the materialize
-// arguments are only the prelude that prints the Go-materialized opaque role
-// prompt, and the submission descriptor -- the same binding tokens with the
-// raw provider result substituted into --input -- is what actually advances
-// authority. Go never spawns a process for this role (#4611): the host
-// materializes, runs its own reviewer out of process, and submits the raw
-// bytes back through --input, admitted by the same raw admitters --execute
-// used to feed.
-func reviewProviderRoleMaterializeSubmissionInput(binding ReviewTransitionBinding, role reviewProviderRole, runtime model.AgentID, validation *reviewtransaction.TargetedValidationRequest) (ReviewTransitionInput, error) {
-	arguments, input, err := reviewProviderRoleBindingArguments(binding, role, validation)
-	if err != nil {
-		return ReviewTransitionInput{}, err
-	}
-	// The submission repeats every binding token INCLUDING --agent -- the raw
-	// verdict is only admissible from the identified host-relay runtime -- and
-	// drops only the read-only --materialize prelude selector.
-	tokens := make([]string, 0, len(arguments)+2)
-	for _, argument := range arguments {
-		tokens = append(tokens, reviewTransitionArgumentToken(argument))
-	}
-	tokens = append(tokens,
-		reviewTransitionArgumentToken(ReviewTransitionArgument{Name: "agent", Value: string(runtime)}),
-		"--input="+reviewSubmissionValuePlaceholder)
-	verb, _ := reviewNativeCaptureVerb(input.CaptureOperation)
-	input.Submission = &ReviewTransitionSubmission{
-		OperationToken: verb, ArgumentTokens: tokens,
-		Value: &ReviewTransitionSubmissionValue{
-			Slot: input.Name, Domain: "artifact_path_or_stdin", Schema: input.Schema,
-			SubstitutionLocation: len(tokens) - 1,
-		},
-	}
-	input.Arguments = append(arguments,
-		ReviewTransitionArgument{Name: "agent", Value: string(runtime)},
-		ReviewTransitionArgument{Name: "materialize", Value: "true"})
-	return input, nil
-}
-
 // reviewRootActionForTransition keeps the envelope's root `action` in
 // agreement with `next_transition`: a stop that still mandates a collect or
 // an execute is not a stop (#3928). Every other action is left as native
@@ -608,7 +559,7 @@ func reviewRootActionForTransition(action reviewtransaction.TargetStatusAction, 
 
 func reviewMissingCaptureTransition(binding ReviewTransitionBinding, selectedLenses []string, artifacts []ReviewTransitionArtifact, context *reviewCaptureContext, unachievable []reviewtransaction.CompactUnachievableLensAttempt, runtime ...model.AgentID) ReviewNextTransition {
 	providerRuntime := model.AgentID("")
-	if len(runtime) > 0 && (runtime[0] == model.AgentOpenCode || reviewProviderCaptureRuntime(runtime[0]) || reviewProviderHostRelayMaterializeRuntime(runtime[0])) {
+	if len(runtime) > 0 && (runtime[0] == model.AgentOpenCode || reviewProviderCaptureRuntime(runtime[0])) {
 		providerRuntime = runtime[0]
 	}
 	captured := make(map[int]bool, len(artifacts))
@@ -746,7 +697,7 @@ func reviewCaptureInput(binding ReviewTransitionBinding, lens string, order int,
 			diff := *context.FrozenContext.LegacyCandidateDiff
 			input.CandidateDiff = &diff
 		} else {
-			// issue #3922 / #4199 / gentle-pi#543: the native-git transport
+			// issue #3922 / #4199: the native-git transport
 			// already commits to the manifest through
 			// artifact_subject.changed_path_manifest_sha256, so this per-lens
 			// collect input stops inlining a full copy of it -- a 200-file
@@ -757,40 +708,8 @@ func reviewCaptureInput(binding ReviewTransitionBinding, lens string, order int,
 			input.BaseTree, input.CandidateTree = context.FrozenContext.BaseTree, context.FrozenContext.CandidateTree
 		}
 	}
-	if len(runtime) > 0 {
-		switch {
-		case reviewProviderCaptureRuntime(runtime[0]):
-			input.Arguments = append(input.Arguments, ReviewTransitionArgument{Name: "agent", Value: string(runtime[0])})
-		case reviewProviderHostRelayMaterializeRuntime(runtime[0]):
-			// The Pi host relay learns the whole flow from this one input: the
-			// materialize arguments are only the prelude that prints the
-			// Go-issued opaque prompt bytes for its fresh locked-down reviewer
-			// subprocess, and the submission descriptor -- the same binding and
-			// runtime tokens with the raw result substituted into --input -- is
-			// what actually advances reviewing authority. Keeping the runtime in
-			// the provider-owned submission lets a terminal closure issue its exact
-			// runtime-bound STATUS continuation without host reconstruction.
-			// Snapshot only the binding arguments; runtime and materialize are appended after the submission is complete.
-			bindingArguments := input.Arguments
-			tokens := make([]string, 0, len(bindingArguments)+2)
-			for _, argument := range bindingArguments {
-				tokens = append(tokens, reviewTransitionArgumentToken(argument))
-			}
-			tokens = append(tokens,
-				reviewTransitionArgumentToken(ReviewTransitionArgument{Name: "agent", Value: string(runtime[0])}),
-				"--input="+reviewSubmissionValuePlaceholder,
-			)
-			input.Submission = &ReviewTransitionSubmission{
-				OperationToken: "capture-result", ArgumentTokens: tokens,
-				Value: &ReviewTransitionSubmissionValue{
-					Slot: "reviewer_result", Domain: "artifact_path_or_stdin", Schema: reviewReviewerSchemaID,
-					SubstitutionLocation: len(tokens) - 1,
-				},
-			}
-			input.Arguments = append(input.Arguments,
-				ReviewTransitionArgument{Name: "agent", Value: string(runtime[0])},
-				ReviewTransitionArgument{Name: "materialize", Value: "true"})
-		}
+	if len(runtime) > 0 && reviewProviderCaptureRuntime(runtime[0]) {
+		input.Arguments = append(input.Arguments, ReviewTransitionArgument{Name: "agent", Value: string(runtime[0])})
 	}
 	return input
 }

@@ -10,9 +10,9 @@ import (
 // TestReviewContractsTellTheAgentToSelectItsLenses is verify-always-rdd-high
 // S8: every rendered review contract tells the agent to pick the pertinent 4R
 // lenses by what it touched and how, defines each lens by consequence, and
-// shows where the selection travels (STATUS flags, or the Pi facade input).
+// shows where the selection travels (STATUS flags).
 func TestReviewContractsTellTheAgentToSelectItsLenses(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex, model.AgentOpenCode, model.AgentPi} {
+	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex, model.AgentOpenCode} {
 		t.Run(string(agent), func(t *testing.T) {
 			contract := ContractFor(agent)
 			required := []string{
@@ -24,11 +24,7 @@ func TestReviewContractsTellTheAgentToSelectItsLenses(t *testing.T) {
 				"`reliability` when it changes logic or observable behavior",
 				"Requirement compliance is verify's job before review",
 			}
-			if agent == model.AgentPi {
-				required = append(required, `"lenses":[...],"lensesReason":"<what you touched and how>"`)
-			} else {
-				required = append(required, `--next-transition --lenses <r,...> --lenses-reason "<what you touched and how>"`, "`start_lens_selection`")
-			}
+			required = append(required, `--next-transition --lenses <r,...> --lenses-reason "<what you touched and how>"`, "`start_lens_selection`")
 			for _, want := range required {
 				if !strings.Contains(contract, want) {
 					t.Fatalf("%s review contract omits %q", agent, want)
@@ -45,7 +41,7 @@ func TestReviewContractsTellTheAgentToSelectItsLenses(t *testing.T) {
 // rendered entry rule starts a review only for a review_due (high-risk)
 // candidate or an explicit user request, never once per candidate.
 func TestReviewContractsEnterReviewOnlyWhenDue(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex, model.AgentOpenCode, model.AgentPi} {
+	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex, model.AgentOpenCode} {
 		t.Run(string(agent), func(t *testing.T) {
 			contract := ContractFor(agent)
 			for _, want := range []string{

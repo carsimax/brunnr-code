@@ -141,7 +141,7 @@ func InjectRoutingWithOptions(targetDir string, agent model.AgentID, options Rou
 			return Result{}, err
 		}
 		orchestrator, modules = bundle.core, bundle.modules
-	case agent != model.AgentPi:
+	default:
 		orchestrator, err = RenderOrchestratorWithSource(agent, options.ReviewContract, options.OrchestratorCapability)
 		if err != nil {
 			return Result{}, err

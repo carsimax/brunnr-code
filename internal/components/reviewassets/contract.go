@@ -44,9 +44,6 @@ func ReviewExecutionContractFor(agent model.AgentID) (string, error) {
 
 // ContractFor renders the shared review contract for an agent's transport.
 func ContractFor(agent model.AgentID) string {
-	if agent == model.AgentPi {
-		return strings.TrimSpace(assets.MustRead("skills/_shared/review-ledger-contract-pi.md"))
-	}
 	contract := selectTransport(strings.TrimSpace(assets.MustRead("skills/_shared/review-ledger-contract.md")), agent)
 	switch {
 	case agent == model.AgentOpenCode:

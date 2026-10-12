@@ -53,10 +53,6 @@ func TestOpenCodeRuntimeProbeRunsOncePerProcess(t *testing.T) {
 				if (err == nil) != test.admitted {
 					t.Fatalf("START/STATUS gate admitted = %t, want %t: %v", err == nil, test.admitted, err)
 				}
-				_, err = reviewCaptureRuntimeWithBoundTransport(string(model.AgentOpenCode))
-				if (err == nil) != test.admitted {
-					t.Fatalf("capture gate admitted = %t, want %t: %v", err == nil, test.admitted, err)
-				}
 				if got := reviewImmutableRuntimeCapability(model.AgentOpenCode).supportsImmutableReceiptReview(); got != test.admitted {
 					t.Fatalf("relay/consent gate admitted = %t, want %t", got, test.admitted)
 				}
@@ -132,9 +128,6 @@ func TestOpenCodeRuntimeProbeTimeoutIsReportedDistinctly(t *testing.T) {
 // lineage START froze to OpenCode, and a STATUS that omits --agent must still
 // issue each lens slot's provider task instead of an unlaunchable slot.
 func TestOpenCodeLensSlotsInheritFrozenRuntimeWithoutAgent(t *testing.T) {
-	// Inheritance applies only without the Pi relay handshake; a Pi host
-	// running this test must not turn the STATUS into a Pi-driven one.
-	t.Setenv(reviewPiHostRelayContractEnvironment, "")
 	reviewEnabledHome(t)
 	stubOpenCodeV1ReviewRuntime(t)
 	repo := initReviewCLIRepo(t)

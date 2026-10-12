@@ -179,10 +179,6 @@ func RenderOrchestratorWithSource(agent model.AgentID, source ReviewContractSour
 // module fragment markers for the internal core/module construction; the
 // public render always strips those exact marker lines.
 func renderOrchestrator(agent model.AgentID, source ReviewContractSource, capability string, annotate bool) (string, error) {
-	if agent == model.AgentPi {
-		return "", fmt.Errorf("render orchestrator for %q: the Pi prompt is owned by Gentle Shell", agent)
-	}
-
 	path := orchestratorAsset(agent)
 	content, err := assets.Read(path)
 	if err != nil {

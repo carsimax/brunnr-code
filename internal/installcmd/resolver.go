@@ -79,15 +79,10 @@ func resolveClaudeCodeInstall(profile system.PlatformProfile) CommandSequence {
 // npmBasedAgents is the set of agents whose auto-install runs npm commands.
 // When any of these agents is selected, npm (and therefore Node.js) must be
 // present before the pipeline reaches the agent install step.
-//
-// AgentPi is included because InstallCommand always runs engramInitCommand(),
-// which executes either `pnpm dlx` or `npm exec` (both require Node.js). The
-// npm-presence check is a sound proxy for Node.js availability.
 var npmBasedAgents = map[model.AgentID]struct{}{
 	model.AgentClaudeCode: {},
 	model.AgentOpenCode:   {},
 	model.AgentCodex:      {},
-	model.AgentPi:         {},
 }
 
 // ValidateAgentInstallPreflight validates agent-specific prerequisites that must
@@ -98,19 +93,6 @@ func ValidateAgentInstallPreflight(profile system.PlatformProfile, agent model.A
 			return err
 		}
 	}
-	switch agent {
-	case model.AgentPi:
-		return validatePiInstallPreflight()
-	default:
-		return nil
-	}
-}
-
-func validatePiInstallPreflight() error {
-	if _, err := cmdLookPath("pi"); err != nil {
-		return fmt.Errorf("Pi requires the `pi` executable in PATH before installing Gentle AI Pi packages")
-	}
-
 	return nil
 }
 

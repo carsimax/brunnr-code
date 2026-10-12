@@ -2,13 +2,11 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"sync"
@@ -17,7 +15,6 @@ import (
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents/codex"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
-	"github.com/gentleman-programming/gentle-ai/v4/internal/installcmd"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/pipeline"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/planner"
@@ -228,143 +225,6 @@ func TestRunInstallCodexKeepsOldRuntimeFailure(t *testing.T) {
 	}
 }
 
-func TestRunInstallEngramForPiAndOpenCodeProvisionsNativePiAndOpenCodeMCP(t *testing.T) {
-	home := t.TempDir()
-	restoreHome := osUserHomeDir
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-	})
-
-	osUserHomeDir = func() (string, error) { return home, nil }
-	cmdLookPath = func(name string) (string, error) {
-		return filepath.Join(home, "bin", name), nil
-	}
-	restorePreflightLookPath := installcmd.OverrideLookPath(func(name string) (string, error) {
-		return filepath.Join(home, "bin", name), nil
-	})
-	t.Cleanup(restorePreflightLookPath)
-
-	seedLegacyPiMCPAdapter(t, filepath.Join(home, ".pi", "agent"))
-	settingsPath := filepath.Join(home, ".pi", "agent", "settings.json")
-	if err := os.WriteFile(settingsPath, []byte(`{"packages":["npm:other@1.0.0","npm:pi-mcp-adapter","npm:gentle-engram","npm:gentle-engram@0.1.16"]}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	var commands []string
-	runCommand = func(name string, args ...string) error {
-		commands = append(commands, strings.Join(append([]string{name}, args...), " "))
-		return nil
-	}
-
-	result, err := RunInstall([]string{
-		"--agent", "pi",
-		"--agent", "opencode",
-		"--component", "engram",
-	}, system.DetectionResult{})
-	if err != nil {
-		t.Fatalf("RunInstall() error = %v", err)
-	}
-	if !result.Verify.Ready {
-		t.Fatalf("verification ready = false, report = %#v", result.Verify)
-	}
-
-	if _, err := os.Stat(filepath.Join(home, ".pi", "agent", "mcp.json")); !os.IsNotExist(err) {
-		t.Fatalf("native Pi Engram must not create MCP config: %v", err)
-	}
-	assertFileContains(t, filepath.Join(home, ".pi", "agent", "settings.json"), "npm:other@1.0.0")
-	assertFileNotContains(t, filepath.Join(home, ".pi", "agent", "settings.json"), "pi-mcp-adapter")
-	assertFileContains(t, filepath.Join(home, ".pi", "agent", "npm", "package.json"), "left-pad")
-	assertFileNotContains(t, filepath.Join(home, ".pi", "agent", "npm", "package.json"), "pi-mcp-adapter")
-	assertFileContains(t, filepath.Join(home, ".config", "opencode", "opencode.json"), "engram")
-	settingsBytes, err := os.ReadFile(settingsPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var settings struct {
-		Packages []string `json:"packages"`
-	}
-	if err := json.Unmarshal(settingsBytes, &settings); err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(settings.Packages, []string{"npm:other@1.0.0", "npm:gentle-engram@0.1.16"}) {
-		t.Fatalf("install did not repair duplicate Engram declarations: %v", settings.Packages)
-	}
-
-	if stringSliceContains(commands, "pi install npm:pi-mcp-adapter") {
-		t.Fatalf("commands still install the retired pi-mcp-adapter; got %v", commands)
-	}
-	if stringSliceContains(commands, engramInitCommandForTest) {
-		t.Fatalf("commands still run redundant Engram init; got %v", commands)
-	}
-}
-
-// TestRunInstallEngramForPiTargetsConfiguredAgentDirectory proves that
-// setting PI_CODING_AGENT_DIR (as gentle-shell does for its isolated Pi home)
-// makes install target that directory instead of the real ~/.pi, and leaves
-// the real ~/.pi untouched.
-func TestRunInstallEngramForPiTargetsConfiguredAgentDirectory(t *testing.T) {
-	home := t.TempDir()
-	// internal/agents/pi.isRealUserHome only honors an absolute
-	// PI_CODING_AGENT_DIR override for the process's actual home directory,
-	// so this test must make home look real for the duration of the test
-	// (osUserHomeDir below only feeds this package's own home resolution,
-	// not pi's os.UserHomeDir() check).
-	t.Setenv("HOME", home)
-	if runtime.GOOS == "windows" {
-		t.Setenv("USERPROFILE", home)
-	}
-	configured := filepath.Join(t.TempDir(), "gentle-shell-home", "agent")
-	t.Setenv("PI_CODING_AGENT_DIR", configured)
-	seedLegacyPiMCPAdapter(t, configured)
-
-	restoreHome := osUserHomeDir
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-	})
-
-	osUserHomeDir = func() (string, error) { return home, nil }
-	cmdLookPath = func(name string) (string, error) {
-		return filepath.Join(home, "bin", name), nil
-	}
-	restorePreflightLookPath := installcmd.OverrideLookPath(func(name string) (string, error) {
-		return filepath.Join(home, "bin", name), nil
-	})
-	t.Cleanup(restorePreflightLookPath)
-
-	runCommand = func(name string, args ...string) error {
-		return nil
-	}
-
-	result, err := RunInstall([]string{
-		"--agent", "pi",
-		"--component", "engram",
-	}, system.DetectionResult{})
-	if err != nil {
-		t.Fatalf("RunInstall() error = %v", err)
-	}
-	if !result.Verify.Ready {
-		t.Fatalf("verification ready = false, report = %#v", result.Verify)
-	}
-
-	if _, err := os.Stat(filepath.Join(configured, "mcp.json")); !os.IsNotExist(err) {
-		t.Fatalf("native Pi Engram must not create MCP config: %v", err)
-	}
-	assertFileNotContains(t, filepath.Join(configured, "settings.json"), "pi-mcp-adapter")
-	assertFileNotContains(t, filepath.Join(configured, "npm", "package.json"), "pi-mcp-adapter")
-
-	if _, statErr := os.Stat(filepath.Join(home, ".pi")); !os.IsNotExist(statErr) {
-		t.Fatalf("real home .pi dir stat err = %v, want IsNotExist (install must not touch the real ~/.pi while PI_CODING_AGENT_DIR is set)", statErr)
-	}
-}
-
 // TestExecuteCommandInheritsPiCodingAgentDirForChildProcesses proves that Pi
 // package-install child processes (spawned through executeCommand, the
 // runCommand default) still inherit PI_CODING_AGENT_DIR from the parent
@@ -419,42 +279,6 @@ func TestAgentInstallStepSkipsMissingNonPiRuntime(t *testing.T) {
 	}
 }
 
-func TestPiAgentInstallProgressUsesAdapterCommandNames(t *testing.T) {
-	restorePreflightLookPath := installcmd.OverrideLookPath(func(name string) (string, error) { return name, nil })
-	t.Cleanup(restorePreflightLookPath)
-
-	restoreCommand := runCommand
-	t.Cleanup(func() { runCommand = restoreCommand })
-	runCommand = func(string, ...string) error { return nil }
-
-	var events []pipeline.ProgressEvent
-	step := agentInstallStep{
-		id:      "agent:pi",
-		agent:   model.AgentPi,
-		homeDir: t.TempDir(),
-		progress: func(event pipeline.ProgressEvent) {
-			events = append(events, event)
-		},
-	}
-	if err := step.Run(); err != nil {
-		t.Fatalf("agentInstallStep.Run() error = %v", err)
-	}
-
-	wantPackages := []string{"pi install npm:gentle-pi", "pi install npm:gentle-engram", "pi install npm:pi-web-access", "pi install npm:pi-btw"}
-	if len(events) != len(wantPackages)*2 {
-		t.Fatalf("progress events = %d, want %d: %v", len(events), len(wantPackages)*2, events)
-	}
-	for i, commandLabel := range wantPackages {
-		wantID := "agent:pi:" + commandLabel
-		if events[i*2].StepID != wantID || events[i*2].Status != pipeline.StepStatusRunning {
-			t.Fatalf("running event[%d] = %+v, want step %q", i*2, events[i*2], wantID)
-		}
-		if events[i*2+1].StepID != wantID || events[i*2+1].Status != pipeline.StepStatusSucceeded {
-			t.Fatalf("succeeded event[%d] = %+v, want step %q", i*2+1, events[i*2+1], wantID)
-		}
-	}
-}
-
 func TestRunCommandSequenceWithProgressStopsAfterFailedCommand(t *testing.T) {
 	restoreCommand := runCommand
 	t.Cleanup(func() { runCommand = restoreCommand })
@@ -466,81 +290,24 @@ func TestRunCommandSequenceWithProgressStopsAfterFailedCommand(t *testing.T) {
 
 	var events []pipeline.ProgressEvent
 	err := runCommandSequenceWithProgress(
-		[][]string{{"pi", "install", "npm:first"}, {"pi", "install", "npm:second"}},
+		[][]string{{"npm", "install", "first"}, {"npm", "install", "second"}},
 		func(event pipeline.ProgressEvent) { events = append(events, event) },
-		"agent:pi",
+		"agent:codex",
 	)
 	if err == nil || !strings.Contains(err.Error(), "package install failed") {
 		t.Fatalf("runCommandSequenceWithProgress() error = %v, want package failure", err)
 	}
-	if len(commands) != 1 || commands[0] != "pi install npm:first" {
+	if len(commands) != 1 || commands[0] != "npm install first" {
 		t.Fatalf("commands = %v, want only the failed command", commands)
 	}
 	if len(events) != 2 {
 		t.Fatalf("progress events = %v, want running and failed", events)
 	}
-	if events[0].StepID != "agent:pi:pi install npm:first" || events[0].Status != pipeline.StepStatusRunning {
+	if events[0].StepID != "agent:codex:npm install first" || events[0].Status != pipeline.StepStatusRunning {
 		t.Fatalf("running event = %+v", events[0])
 	}
 	if events[1].StepID != events[0].StepID || events[1].Status != pipeline.StepStatusFailed || events[1].Err == nil {
 		t.Fatalf("failed event = %+v", events[1])
-	}
-}
-
-func TestPiAgentInstallRunsPackageCommandsWhenPiAlreadyInstalled(t *testing.T) {
-	binDir := t.TempDir()
-	fakePi := filepath.Join(binDir, "pi")
-	if err := os.WriteFile(fakePi, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("WriteFile(fake pi) error = %v", err)
-	}
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-
-	fakeNpm := filepath.Join(binDir, "npm")
-	if err := os.WriteFile(fakeNpm, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatalf("WriteFile(fake npm) error = %v", err)
-	}
-
-	restorePreflightLookPath := installcmd.OverrideLookPath(func(name string) (string, error) {
-		switch name {
-		case "pi":
-			return fakePi, nil
-		case "npm":
-			// Pi's npm-backed package installs still require npm.
-			return fakeNpm, nil
-		default:
-			return "", exec.ErrNotFound
-		}
-	})
-	t.Cleanup(restorePreflightLookPath)
-
-	restoreCommand := runCommand
-	t.Cleanup(func() { runCommand = restoreCommand })
-
-	var commands []string
-	runCommand = func(name string, args ...string) error {
-		commands = append(commands, strings.Join(append([]string{name}, args...), " "))
-		return nil
-	}
-
-	step := agentInstallStep{
-		id:      "agent:pi",
-		agent:   model.AgentPi,
-		homeDir: t.TempDir(),
-	}
-
-	if err := step.Run(); err != nil {
-		t.Fatalf("agentInstallStep.Run() error = %v", err)
-	}
-
-	for _, want := range []string{
-		"pi install npm:gentle-pi",
-		"pi install npm:gentle-engram",
-		"pi install npm:pi-web-access",
-		"pi install npm:pi-btw",
-	} {
-		if !stringSliceContains(commands, want) {
-			t.Fatalf("commands missing %q; got %v", want, commands)
-		}
 	}
 }
 

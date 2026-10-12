@@ -37,7 +37,7 @@ func sanitizeVersion(v string) string {
 // cannot import Go constants).
 var knownAgents = map[string]bool{
 	string(model.AgentClaudeCode): true, string(model.AgentOpenCode): true,
-	string(model.AgentCodex): true, string(model.AgentPi): true,
+	string(model.AgentCodex): true,
 }
 
 var knownComponents = map[string]bool{

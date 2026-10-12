@@ -142,7 +142,6 @@ func TestOpenCodeReviewTransportRefusesATamperedHandleWithoutAuthorityMutation(t
 func TestOpenCodeReviewTransportRefusesAnRctx2HandleWithAFreshStatusContinuation(t *testing.T) {
 	// Inheritance applies only without the Pi relay handshake; a Pi host
 	// running this test must not turn the STATUS into a Pi-driven one.
-	t.Setenv(reviewPiHostRelayContractEnvironment, "")
 	if testing.Short() {
 		t.Skip("requires relay subprocesses")
 	}

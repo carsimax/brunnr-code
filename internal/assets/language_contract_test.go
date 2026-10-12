@@ -134,7 +134,6 @@ func TestSupportedAgentODDLanguageMatrix(t *testing.T) {
 		{agent: "vscode-copilot", path: "generic/orchestrator.md"},
 		{agent: "codex", path: "codex/orchestrator.md"},
 		{agent: "openclaw", path: "generic/orchestrator.md"},
-		{agent: "pi", path: "generic/orchestrator.md"},
 		{agent: "trae-ide", path: "generic/orchestrator.md"},
 	}
 

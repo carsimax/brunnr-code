@@ -227,8 +227,8 @@ func reviewNarrationContainsWord(lowered, word string) bool {
 }
 
 // There is deliberately no stderr emission machinery here anymore: a
-// successful negotiated operation is machine-readable end to end (gentle-pi
-// fails closed on any stderr a successful native process writes). The
+// successful negotiated operation is machine-readable end to end (machine
+// callers fail closed on any stderr a successful native process writes). The
 // registered statements above stay live two ways. The Tier C stop statements
 // are contract data cross-validated against the live stop-code emitter in
 // review_next_transition.go by review_narration_test.go (the bijection test).

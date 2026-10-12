@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	piagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/planner"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
@@ -62,80 +61,6 @@ func TestBackupRootsHonorGentleAIHome(t *testing.T) {
 	}
 }
 
-func TestPiBackgroundPolicyPathRules(t *testing.T) {
-	home := t.TempDir()
-	configHome := filepath.Join(t.TempDir(), "pi-base")
-	piConfigDir := filepath.Join(t.TempDir(), "config")
-
-	for _, tt := range []struct {
-		name        string
-		configHome  string
-		piConfigDir string
-		want        string
-	}{
-		{name: "default", want: filepath.Join(home, ".pi", "gentle-ai", "background-subagents.json")},
-		{name: "GENTLE_PI_CONFIG_HOME keeps its base meaning", configHome: configHome, want: filepath.Join(configHome, "gentle-ai", "background-subagents.json")},
-		{name: "GENTLE_AI_PI_CONFIG_DIR is the gentle-pi config folder itself", piConfigDir: piConfigDir, want: filepath.Join(piConfigDir, "background-subagents.json")},
-		{name: "GENTLE_AI_PI_CONFIG_DIR wins over GENTLE_PI_CONFIG_HOME", configHome: configHome, piConfigDir: piConfigDir, want: filepath.Join(piConfigDir, "background-subagents.json")},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(PiConfigHomeEnv, tt.configHome)
-			t.Setenv(piagent.GentlePiConfigDirEnv, tt.piConfigDir)
-			if got := piBackgroundPolicyPath(home); got != tt.want {
-				t.Fatalf("piBackgroundPolicyPath() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestPiPersonaHonorsGentlePiConfigDir(t *testing.T) {
-	home := t.TempDir()
-	workspace := t.TempDir()
-	piConfigDir := filepath.Join(t.TempDir(), "config")
-	t.Setenv(piagent.GentlePiConfigDirEnv, piConfigDir)
-	want := filepath.Join(piConfigDir, "persona.json")
-	selection := model.Selection{Persona: model.PersonaNeutral}
-	adapters := resolveAdapters([]model.AgentID{model.AgentPi})
-
-	global := componentPathsWithWorkspaceScoped(home, workspace, ScopeGlobal, selection, adapters, model.ComponentPersona)
-	if !containsPath(global, want) {
-		t.Fatalf("global Pi persona paths = %v, missing %q", global, want)
-	}
-	workspacePaths := componentPathsWithWorkspaceScoped(home, workspace, ScopeWorkspace, selection, adapters, model.ComponentPersona)
-	if !containsPath(workspacePaths, filepath.Join(workspace, ".pi", "gentle-ai", "persona.json")) {
-		t.Fatalf("workspace Pi persona paths = %v, want the workspace file unchanged", workspacePaths)
-	}
-
-	install := componentApplyStep{
-		component: model.ComponentPersona, homeDir: home, workspaceDir: workspace, scope: ScopeGlobal,
-		agents: []model.AgentID{model.AgentPi}, selection: selection,
-	}
-	if err := install.Run(); err != nil {
-		t.Fatalf("install persona error = %v", err)
-	}
-	if _, err := os.Stat(want); err != nil {
-		t.Fatalf("install did not write %q: %v", want, err)
-	}
-	if err := os.Remove(want); err != nil {
-		t.Fatal(err)
-	}
-
-	var changed []string
-	syncStep := componentSyncStep{
-		id: "sync:persona", component: model.ComponentPersona, homeDir: home, workspaceDir: workspace,
-		agents: []model.AgentID{model.AgentPi}, selection: selection, changedFiles: &changed,
-	}
-	if err := syncStep.Run(); err != nil {
-		t.Fatalf("sync persona error = %v", err)
-	}
-	if !containsPath(changed, want) {
-		t.Fatalf("sync changed files = %v, missing %q", changed, want)
-	}
-	if _, err := os.Stat(filepath.Join(home, ".pi", "gentle-ai", "persona.json")); !os.IsNotExist(err) {
-		t.Fatalf("~/.pi/gentle-ai/persona.json written despite %s (stat err = %v)", piagent.GentlePiConfigDirEnv, err)
-	}
-}
-
 // writeFakeEngram writes a POSIX script that records its arguments and
 // answers `version` like a real Engram binary.
 func writeFakeEngram(t *testing.T, dir string) (bin, log string) {
@@ -181,7 +106,7 @@ func TestEngramStepUsesCallerSuppliedBinary(t *testing.T) {
 	state := &runtimeState{}
 	step := componentApplyStep{
 		component: model.ComponentEngram, homeDir: home, workspaceDir: t.TempDir(), scope: ScopeGlobal,
-		agents: []model.AgentID{model.AgentPi}, selection: model.Selection{Components: []model.ComponentID{model.ComponentEngram}},
+		agents: []model.AgentID{model.AgentClaudeCode}, selection: model.Selection{Components: []model.ComponentID{model.ComponentEngram}},
 		profile: system.PlatformProfile{OS: "darwin", PackageManager: "brew", Supported: true}, channel: ChannelStable, state: state,
 	}
 	if err := step.Run(); err != nil {
@@ -212,7 +137,7 @@ func TestEngramHealthChecksUseCallerSuppliedBinary(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 
 	state := &runtimeState{engramVersionResolved: true, engramVersion: "engram 1.15.3"}
-	for _, check := range engramHealthChecks(state, []model.AgentID{model.AgentPi}) {
+	for _, check := range engramHealthChecks(state, []model.AgentID{model.AgentClaudeCode}) {
 		if err := check.Run(t.Context()); err != nil {
 			t.Fatalf("%s error = %v", check.ID, err)
 		}
@@ -238,7 +163,7 @@ func TestPreparedInstallRejectsEngramBinaryThatDoesNotRun(t *testing.T) {
 	runCommand = recorder.record
 	cmdLookPath = missingBinaryLookPath
 
-	prepared, err := PrepareInstall([]string{"--agent", "pi", "--component", "engram"}, macOSDetectionResult())
+	prepared, err := PrepareInstall([]string{"--agent", "claude-code", "--component", "engram"}, macOSDetectionResult())
 	if err != nil {
 		t.Fatalf("PrepareInstall() error = %v", err)
 	}
@@ -255,24 +180,9 @@ func TestPreparedInstallRejectsEngramBinaryThatDoesNotRun(t *testing.T) {
 func TestInstallHelpListsIsolationVariables(t *testing.T) {
 	var help strings.Builder
 	PrintInstallHelp(&help)
-	for _, name := range []string{state.HomeEnv, piagent.GentlePiConfigDirEnv, system.EngramBinEnv} {
+	for _, name := range []string{state.HomeEnv, system.EngramBinEnv} {
 		if !strings.Contains(help.String(), name) {
 			t.Fatalf("install help does not list %s:\n%s", name, help.String())
 		}
-	}
-}
-
-// A workspace install whose workspace is the home folder keeps the workspace
-// persona file; only a global install follows GENTLE_AI_PI_CONFIG_DIR.
-func TestPiPersonaConfigPathsFollowScopeNotRootEquality(t *testing.T) {
-	home := t.TempDir()
-	piConfigDir := filepath.Join(t.TempDir(), "config")
-	t.Setenv(piagent.GentlePiConfigDirEnv, piConfigDir)
-	workspace := filepath.Join(home, ".pi", "gentle-ai", "persona.json")
-	if got := piPersonaConfigPaths(home, home, ScopeWorkspace); len(got) != 1 || got[0] != workspace {
-		t.Fatalf("workspace install in the home folder = %v, want [%s]", got, workspace)
-	}
-	if got := piPersonaConfigPaths(home, home, ScopeGlobal); len(got) != 1 || got[0] != filepath.Join(piConfigDir, "persona.json") {
-		t.Fatalf("global install = %v, want [%s]", got, filepath.Join(piConfigDir, "persona.json"))
 	}
 }

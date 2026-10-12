@@ -8,40 +8,6 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/planner"
 )
 
-func TestRenderDependencyTreePiOnlyEngramPlanShowsComponentAndPiInstallCopy(t *testing.T) {
-	selection := model.Selection{
-		Agents:     []model.AgentID{model.AgentPi},
-		Preset:     model.PresetFullGentleman,
-		Components: []model.ComponentID{model.ComponentEngram},
-	}
-	plan := planner.ResolvedPlan{
-		Agents:            []model.AgentID{model.AgentPi},
-		OrderedComponents: []model.ComponentID{model.ComponentEngram},
-	}
-
-	out := RenderDependencyTree(plan, selection, 0)
-
-	if strings.Contains(out, "No components selected yet.") {
-		t.Fatalf("RenderDependencyTree() showed generic empty copy for Pi-only Engram plan; output:\n%s", out)
-	}
-	for _, want := range []string{
-		"Components to install",
-		"engram",
-		"Pi agent support will be installed.",
-		"pi install npm:gentle-pi",
-		"pi install npm:gentle-engram",
-		"pi install npm:pi-web-access",
-		"pi install npm:pi-btw",
-	} {
-		if !strings.Contains(out, want) {
-			t.Fatalf("RenderDependencyTree() missing %q for Pi-only plan; output:\n%s", want, out)
-		}
-	}
-	if strings.Contains(out, "pi-engram init") || strings.Contains(out, "pi-mcp-adapter") {
-		t.Fatalf("RenderDependencyTree() shows retired initialization for Pi-only plan; output:\n%s", out)
-	}
-}
-
 func TestRenderDependencyTreeGenericEmptyPlanKeepsExistingCopy(t *testing.T) {
 	selection := model.Selection{Preset: model.PresetFullGentleman}
 
@@ -49,36 +15,5 @@ func TestRenderDependencyTreeGenericEmptyPlanKeepsExistingCopy(t *testing.T) {
 
 	if !strings.Contains(out, "No components selected yet.") {
 		t.Fatalf("RenderDependencyTree() missing generic empty copy; output:\n%s", out)
-	}
-	if strings.Contains(out, "Pi agent support will be installed.") {
-		t.Fatalf("RenderDependencyTree() showed Pi copy for generic empty plan; output:\n%s", out)
-	}
-}
-
-func TestRenderDependencyTreeMixedPiEmptyPlanShowsPiInstallCopy(t *testing.T) {
-	selection := model.Selection{
-		Agents: []model.AgentID{model.AgentPi, model.AgentOpenCode},
-		Preset: model.PresetFullGentleman,
-	}
-	plan := planner.ResolvedPlan{Agents: selection.Agents}
-
-	out := RenderDependencyTree(plan, selection, 0)
-
-	if strings.Contains(out, "No components selected yet.") {
-		t.Fatalf("RenderDependencyTree() showed generic empty copy for mixed Pi plan; output:\n%s", out)
-	}
-	for _, want := range []string{
-		"Pi agent support will be installed.",
-		"pi install npm:gentle-pi",
-		"pi install npm:gentle-engram",
-		"pi install npm:pi-web-access",
-		"pi install npm:pi-btw",
-	} {
-		if !strings.Contains(out, want) {
-			t.Fatalf("RenderDependencyTree() missing %q for mixed Pi plan; output:\n%s", want, out)
-		}
-	}
-	if strings.Contains(out, "pi-engram init") || strings.Contains(out, "pi-mcp-adapter") {
-		t.Fatalf("RenderDependencyTree() shows retired initialization for mixed Pi plan; output:\n%s", out)
 	}
 }

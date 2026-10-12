@@ -101,7 +101,6 @@ holding authoritative artifacts, so until now a degraded store had no exit.
 | `gentle-ai review store-reset --cwd <repo>` | Report, per category, what a reset would remove and what it would preserve. Removes nothing. |
 | `gentle-ai review store-reset --cwd <repo> --confirm` | Remove this clone's review lineage state. Irreversible. |
 | `gentle-ai review store-reset --cwd <repo> --confirm --include-in-flight` | Also remove reviews that have not reached a terminal state. |
-| `gentle-ai review store-reset --cwd <repo> --confirm --include-adapter-reviews` | Also remove the adapter-written `reviews/` graph store, which the lease and the in-flight refusal do not cover. |
 | `gentle-ai review store-reset --cwd <repo> --json` | The same report, machine-readable. |
 
 Every sub-action is user-initiated only; no adapter and no automation reaches
@@ -128,17 +127,6 @@ It **preserves** the receipt-driven-development kill switch in both the
 allowlist, so any path the command does not recognize -- including one a future
 release adds -- is reported and left in place rather than guessed at.
 
-It **withholds** `reviews/`, the review graph store the gentle-pi adapter
-writes, and removes it only when `--include-adapter-reviews` is given. Both
-safeties described below stop at the edge of that directory:
-`REVIEW-MAINTENANCE.lock` does not cover any path under it, so the exclusive
-lease excludes no writer there, and the in-flight classification reads only
-`review-transactions/v2`, so a review living there can never be listed as open.
-A default run therefore cannot tell a dead graph from a live review, and a
-destructive command does not delete what it cannot vouch for. The category is
-still measured and still reported, under the preserved list, carrying that
-reason and the flag that overrides it.
-
 Reviews that have not reached a terminal state (anything other than approved,
 escalated, or invalidated, plus any record that cannot be parsed) are refused by
 default and listed by name. The reset takes the same exclusive maintenance lease
@@ -154,7 +142,7 @@ would rebuild the dead end it exists to remove.
 The TUI exposes the same action as **Reset review store** in the main menu,
 between *Manage backups* and *Managed uninstall*, showing the same survey behind
 a confirmation whose cursor starts on *Cancel*. The TUI has no
-`--include-in-flight` or `--include-adapter-reviews` equivalent: when open
+`--include-in-flight` equivalent: when open
 reviews exist it refuses and prints the CLI invocation instead, so destroying
 in-flight work is never one keystroke away.
 

@@ -67,7 +67,7 @@ func TestStrictTDDCarrierLifecycle(t *testing.T) {
 }
 
 func TestStrictTDDUnsupportedCarrier(t *testing.T) {
-	for _, agent := range []model.AgentID{model.AgentPi, "unknown"} {
+	for _, agent := range []model.AgentID{"unknown"} {
 		t.Run(string(agent), func(t *testing.T) {
 			home := t.TempDir()
 			if path := StrictTDDPath(home, agent); path != "" {

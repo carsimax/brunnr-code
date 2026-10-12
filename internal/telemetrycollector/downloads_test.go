@@ -45,8 +45,8 @@ func TestFetchAndStoreDownloads_WritesExpectedRows(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			switch r.URL.Path {
-			case "/gentle-pi":
-				w.Write([]byte(`{"downloads":42,"package":"gentle-pi"}`))
+			case "/gentle-tool":
+				w.Write([]byte(`{"downloads":42,"package":"gentle-tool"}`))
 			case "/gentle-engram":
 				w.Write([]byte(`{"downloads":7,"package":"gentle-engram"}`))
 			default:
@@ -64,7 +64,7 @@ func TestFetchAndStoreDownloads_WritesExpectedRows(t *testing.T) {
 
 	now := time.Date(2026, 6, 10, 3, 0, 0, 0, time.UTC)
 	cfg := DownloadsConfig{
-		NpmPackages: []string{"gentle-pi", "gentle-engram"},
+		NpmPackages: []string{"gentle-tool", "gentle-engram"},
 		GithubRepos: []string{"Gentleman-Programming/gentle-ai"},
 	}
 	FetchAndStoreDownloads(ctx, s, http.DefaultClient, cfg, now, nil)
@@ -78,8 +78,8 @@ func TestFetchAndStoreDownloads_WritesExpectedRows(t *testing.T) {
 	for _, r := range npmRows {
 		npmByKey[r.Key] = r.Value
 	}
-	if npmByKey["gentle-pi"] != 42 {
-		t.Errorf("gentle-pi npm downloads = %d, want 42", npmByKey["gentle-pi"])
+	if npmByKey["gentle-tool"] != 42 {
+		t.Errorf("gentle-tool npm downloads = %d, want 42", npmByKey["gentle-tool"])
 	}
 	if npmByKey["gentle-engram"] != 7 {
 		t.Errorf("gentle-engram npm downloads = %d, want 7", npmByKey["gentle-engram"])
@@ -270,7 +270,7 @@ func TestFetchAndStoreDownloads_FailingAPILeavesPriorRowsIntact(t *testing.T) {
 		},
 	)
 	day1 := time.Date(2026, 6, 10, 3, 0, 0, 0, time.UTC)
-	cfg := DownloadsConfig{NpmPackages: []string{"gentle-pi"}, GithubRepos: []string{"Gentleman-Programming/gentle-ai"}}
+	cfg := DownloadsConfig{NpmPackages: []string{"gentle-tool"}, GithubRepos: []string{"Gentleman-Programming/gentle-ai"}}
 	FetchAndStoreDownloads(ctx, s, http.DefaultClient, cfg, day1, nil)
 
 	// Second run, a day later: npm now fails (500); github still succeeds
@@ -330,7 +330,7 @@ func TestBuildSummary_IncludesDownloads(t *testing.T) {
 	)
 
 	day1 := time.Date(2026, 6, 10, 3, 0, 0, 0, time.UTC)
-	cfg := DownloadsConfig{NpmPackages: []string{"gentle-pi"}, GithubRepos: []string{"Gentleman-Programming/gentle-ai"}}
+	cfg := DownloadsConfig{NpmPackages: []string{"gentle-tool"}, GithubRepos: []string{"Gentleman-Programming/gentle-ai"}}
 	FetchAndStoreDownloads(ctx, s, http.DefaultClient, cfg, day1, nil)
 
 	day2 := day1.AddDate(0, 0, 1)
@@ -347,12 +347,12 @@ func TestBuildSummary_IncludesDownloads(t *testing.T) {
 		t.Fatalf("BuildSummary: %v", err)
 	}
 
-	npm := summary.Downloads.Npm["gentle-pi"]
+	npm := summary.Downloads.Npm["gentle-tool"]
 	if npm.LastDay != 25 {
-		t.Errorf("npm gentle-pi last_day = %d, want 25", npm.LastDay)
+		t.Errorf("npm gentle-tool last_day = %d, want 25", npm.LastDay)
 	}
 	if npm.Last30Days != 45 {
-		t.Errorf("npm gentle-pi last_30_days = %d, want 45 (20+25)", npm.Last30Days)
+		t.Errorf("npm gentle-tool last_30_days = %d, want 45 (20+25)", npm.Last30Days)
 	}
 	if summary.Downloads.Github["v1.0.0"] != 30 {
 		t.Errorf("github v1.0.0 total = %d, want 30", summary.Downloads.Github["v1.0.0"])
@@ -389,7 +389,7 @@ func TestRunMaintenance_DownloadRowsDoNotPoisonRollupCatchUp(t *testing.T) {
 			w.Write([]byte(`[{"tag_name":"v1.0.0","assets":[{"download_count":22}]}]`))
 		},
 	)
-	cfg := DownloadsConfig{NpmPackages: []string{"gentle-pi"}, GithubRepos: []string{"Gentleman-Programming/gentle-ai"}}
+	cfg := DownloadsConfig{NpmPackages: []string{"gentle-tool"}, GithubRepos: []string{"Gentleman-Programming/gentle-ai"}}
 	FetchAndStoreDownloads(ctx, s, http.DefaultClient, cfg, day2, nil)
 
 	if err := RunMaintenance(ctx, s, now, 90, 2); err != nil {
@@ -440,7 +440,7 @@ func TestFetchAndStoreDownloads_CancelledContextSkipsStorage(t *testing.T) {
 	)
 
 	now := time.Date(2026, 6, 10, 3, 0, 0, 0, time.UTC)
-	cfg := DownloadsConfig{NpmPackages: []string{"gentle-pi"}, GithubRepos: []string{"Gentleman-Programming/gentle-ai"}}
+	cfg := DownloadsConfig{NpmPackages: []string{"gentle-tool"}, GithubRepos: []string{"Gentleman-Programming/gentle-ai"}}
 
 	done := make(chan struct{})
 	go func() {

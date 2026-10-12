@@ -18,7 +18,7 @@ const strictTDDContent = "Strict TDD Mode: enabled"
 // StrictTDDPath identifies the supported agent's native system-prompt carrier.
 func StrictTDDPath(targetDir string, agent model.AgentID) string {
 	adapter, err := agents.NewAdapter(agent)
-	if err != nil || !adapter.SupportsSystemPrompt() || agent == model.AgentPi {
+	if err != nil || !adapter.SupportsSystemPrompt() {
 		return ""
 	}
 	switch adapter.SystemPromptStrategy() {

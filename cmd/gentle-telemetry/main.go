@@ -113,7 +113,7 @@ func run() error {
 	var trustedProxyCIDRs repeatableFlag
 	flag.Var(&trustedProxyCIDRs, "trusted-proxy-cidr", "CIDR of a peer allowed to set X-Forwarded-For/X-Real-IP for rate limiting (repeatable; default 127.0.0.0/8,::1/128)")
 	var npmPackages repeatableFlag
-	flag.Var(&npmPackages, "npm-package", "npm package to fetch daily download counts for (repeatable; default gentle-pi,gentle-engram)")
+	flag.Var(&npmPackages, "npm-package", "npm package to fetch daily download counts for (repeatable; default gentle-engram)")
 	var githubRepos repeatableFlag
 	flag.Var(&githubRepos, "github-repo", "GitHub owner/repo to fetch release download counts for (repeatable; default Gentleman-Programming/gentle-ai)")
 	githubTokenFile := flag.String("github-token-file", "", "path to a file containing a GitHub token, to raise the API rate limit for --github-repo")
@@ -139,7 +139,7 @@ func run() error {
 		return fmt.Errorf("parse --trusted-proxy-cidr: %w", err)
 	}
 	if len(npmPackages) == 0 {
-		npmPackages = repeatableFlag{"gentle-pi", "gentle-engram"}
+		npmPackages = repeatableFlag{"gentle-engram"}
 	}
 	if len(githubRepos) == 0 {
 		githubRepos = repeatableFlag{"Gentleman-Programming/gentle-ai"}

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	piagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/backup"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/state"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/system"
@@ -21,7 +20,6 @@ func TestRunArgsRejectsInvalidIsolationVariablesBeforeDetection(t *testing.T) {
 		value string
 	}{
 		{"relative GENTLE_AI_HOME", state.HomeEnv, "relative/state"},
-		{"relative GENTLE_AI_PI_CONFIG_DIR", piagent.GentlePiConfigDirEnv, "relative/config"},
 		{"missing GENTLE_AI_ENGRAM_BIN", system.EngramBinEnv, filepath.Join(t.TempDir(), "engram")},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -39,7 +37,7 @@ func TestRunArgsRejectsInvalidIsolationVariablesBeforeDetection(t *testing.T) {
 				return nil
 			}
 
-			err := RunArgs([]string{"install", "--agent", "pi", "--dry-run"}, &bytes.Buffer{})
+			err := RunArgs([]string{"install", "--agent", "claude-code", "--dry-run"}, &bytes.Buffer{})
 			if err == nil || !strings.Contains(err.Error(), tc.env) {
 				t.Fatalf("RunArgs() error = %v, want an error naming %s", err, tc.env)
 			}

@@ -27,8 +27,6 @@ func SetReviewContractSource(source ReviewContractSource) {
 // checking contracts take their ODD-only form. A render that would still carry
 // review wording fails closed.
 //
-// Pi is rejected: its prompt is owned by the Gentle Shell package.
-//
 // It renders with the package-level review contract source; production callers
 // use RenderOrchestratorWithSource or RoutingOptions.ReviewContract instead.
 func RenderOrchestrator(agent model.AgentID) (string, error) {

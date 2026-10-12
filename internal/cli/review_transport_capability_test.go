@@ -17,7 +17,6 @@ import (
 // TestImmutableReviewRuntimeMatrix keeps runtime advertisement fail-closed for
 // runtimes that do not own a native executor boundary.
 func TestImmutableReviewRuntimeMatrix(t *testing.T) {
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	for _, test := range []struct {
 		name      string
 		runtime   string
@@ -28,7 +27,6 @@ func TestImmutableReviewRuntimeMatrix(t *testing.T) {
 		{name: "Claude prompt carried fresh executor", runtime: string(model.AgentClaudeCode), eligible: true, transport: reviewImmutableTransportClaudePromptCarried, supported: true},
 		{name: "OpenCode provider relay", runtime: string(model.AgentOpenCode), eligible: true, transport: reviewImmutableTransportOpenCodeProviderInjected, supported: true},
 		{name: "Codex subprocess boundary", runtime: string(model.AgentCodex), eligible: true, transport: reviewImmutableTransportCodexAdvisoryScratchProcess, supported: true},
-		{name: "Pi host relay", runtime: string(model.AgentPi), eligible: true, transport: reviewImmutableTransportPiHostRelay, supported: true},
 		{name: "unknown", runtime: "unknown-runtime", transport: reviewImmutableTransportUnsupported},
 		{name: "alias", runtime: "open-code", transport: reviewImmutableTransportUnsupported},
 		{name: "casing", runtime: "OpenCode", transport: reviewImmutableTransportUnsupported},
@@ -53,17 +51,15 @@ func TestImmutableReviewRuntimeMatrix(t *testing.T) {
 }
 
 func TestImmutableReviewRuntimeCapabilityIsClosedCatalogSet(t *testing.T) {
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 
-	const wantExposed = 4
+	const wantExposed = 3
 	exposed := 0
 	for _, agent := range catalog.AllAgents() {
 		t.Run(string(agent.ID), func(t *testing.T) {
 			capability := reviewImmutableRuntimeCapability(agent.ID)
 			want := agent.ID == model.AgentClaudeCode ||
 				agent.ID == model.AgentOpenCode ||
-				agent.ID == model.AgentCodex ||
-				agent.ID == model.AgentPi
+				agent.ID == model.AgentCodex
 			if capability.Eligible != want || capability.supportsImmutableReceiptReview() != want {
 				t.Fatalf("runtime capability = %#v, supported = %t, want exposed = %t", capability, capability.supportsImmutableReceiptReview(), want)
 			}
@@ -172,7 +168,6 @@ func TestUnsupportedImmutableReviewTransportStopsBeforeRepositoryOrAuthority(t *
 // neither depends on OPENCODE_DISABLE_PROJECT_CONFIG or
 // OPENCODE_DISABLE_EXTERNAL_SKILLS, which this test deliberately leaves unset.
 func TestSupportedImmutableReviewTransportReachesRepositoryValidation(t *testing.T) {
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	for _, test := range []struct {
 		name    string
 		runtime string
@@ -180,7 +175,6 @@ func TestSupportedImmutableReviewTransportReachesRepositoryValidation(t *testing
 		{name: "Claude", runtime: string(model.AgentClaudeCode)},
 		{name: "OpenCode", runtime: string(model.AgentOpenCode)},
 		{name: "Codex", runtime: string(model.AgentCodex)},
-		{name: "Pi", runtime: string(model.AgentPi)},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			var output bytes.Buffer
@@ -200,7 +194,6 @@ func TestSupportedImmutableReviewTransportReachesRepositoryValidation(t *testing
 }
 
 func TestImmutableReviewTransportRefusalNamesWorkingExits(t *testing.T) {
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	for _, runtime := range []model.AgentID{model.AgentKilocode} {
 		t.Run(string(runtime), func(t *testing.T) {
 			_, err := reviewRuntimeWithImmutableTransport(string(runtime))
@@ -211,7 +204,7 @@ func TestImmutableReviewTransportRefusalNamesWorkingExits(t *testing.T) {
 			if !strings.Contains(err.Error(), exit) {
 				t.Fatalf("refusal does not name the clone-scoped kill switch: %v", err)
 			}
-			if !strings.Contains(err.Error(), string(model.AgentClaudeCode)) || !strings.Contains(err.Error(), string(model.AgentOpenCode)) || !strings.Contains(err.Error(), string(model.AgentCodex)) || !strings.Contains(err.Error(), string(model.AgentPi)) {
+			if !strings.Contains(err.Error(), string(model.AgentClaudeCode)) || !strings.Contains(err.Error(), string(model.AgentOpenCode)) || !strings.Contains(err.Error(), string(model.AgentCodex)) {
 				t.Fatalf("refusal does not name every supported runtime: %v", err)
 			}
 			if strings.Contains(err.Error(), "supported immutable review runtimes: "+string(runtime)) {
@@ -241,34 +234,12 @@ func TestV21RejectsDuplicateRuntimeAgentsBeforeRepositoryAccess(t *testing.T) {
 // published provider-contract runtime inventory to the compiled capability:
 // the bundle may only declare what the boundary actually admits.
 func TestRegisteredRuntimeIdentitiesMatchCompiledTransportBoundary(t *testing.T) {
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
 	registered := reviewerprovider.RegisteredRuntimeIdentities()
 	supported := reviewTransportSupportedRuntimeIDs()
 	sort.Strings(registered)
 	sort.Strings(supported)
 	if !slices.Equal(registered, supported) {
 		t.Fatalf("RegisteredRuntimeIdentities() = %q, want the compiled supported runtimes %q", registered, supported)
-	}
-}
-
-// TestPiHostRelayContractHandshakeGatesAdmission pins the version handshake
-// for the externally-owned Pi launcher: without the exact declared relay
-// contract, Pi is refused at admission before any authority work and never
-// appears among the suggested supported runtimes.
-func TestPiHostRelayContractHandshakeGatesAdmission(t *testing.T) {
-	for _, declared := range []string{"", "gentle-pi.review-relay/v0", "GENTLE-PI.REVIEW-RELAY/V1"} {
-		t.Setenv(reviewPiHostRelayContractEnvironment, declared)
-		capability := reviewImmutableRuntimeCapability(model.AgentPi)
-		if capability.Eligible || capability.supportsImmutableReceiptReview() {
-			t.Fatalf("declared %q: capability = %#v, want fail-closed admission", declared, capability)
-		}
-		if slices.Contains(reviewTransportSupportedRuntimeIDs(), string(model.AgentPi)) {
-			t.Fatalf("declared %q: refusal exits steer users toward an undeclared relay", declared)
-		}
-	}
-	t.Setenv(reviewPiHostRelayContractEnvironment, reviewPiHostRelayContract)
-	if capability := reviewImmutableRuntimeCapability(model.AgentPi); !capability.supportsImmutableReceiptReview() {
-		t.Fatalf("declared handshake refused: %#v", capability)
 	}
 }
 

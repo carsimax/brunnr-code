@@ -130,9 +130,6 @@ func TestRemoteAuthorizationRetainsExistingPermissionMergeBehavior(t *testing.T)
 func TestRemoteAuthorizationPrimaryCarriers(t *testing.T) {
 	covered := 0
 	for _, agent := range catalog.AllAgents() {
-		if agent.ID == model.AgentPi {
-			continue // The install/sync step leaves package-owned Pi prompts untouched.
-		}
 		if agent.ID == model.AgentConductor {
 			continue // Catalog-only: no standalone guidance carrier (see conductor_catalog_only_test.go).
 		}
@@ -160,7 +157,7 @@ func TestRemoteAuthorizationPrimaryCarriers(t *testing.T) {
 		})
 	}
 	if covered != 3 {
-		t.Fatalf("covered %d non-Pi clients, want 3", covered)
+		t.Fatalf("covered %d clients, want 3", covered)
 	}
 }
 

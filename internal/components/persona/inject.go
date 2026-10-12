@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/gentleman-programming/gentle-ai/v4/internal/agents"
-	piagent "github.com/gentleman-programming/gentle-ai/v4/internal/agents/pi"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/assets"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/components/filemerge"
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
@@ -18,51 +17,6 @@ import (
 type InjectionResult struct {
 	Changed bool
 	Files   []string
-}
-
-// PiPersonaConfigPath returns the managed Pi persona state path beneath rootDir.
-// Pi resolves this file relative to the active agent configuration root, which
-// is the user's home for global install and the workspace for workspace install.
-func PiPersonaConfigPath(rootDir string) string {
-	return filepath.Join(rootDir, ".pi", "gentle-ai", "persona.json")
-}
-
-// PiGlobalPersonaConfigPath returns the persona state path of a global
-// install: persona.json in gentle-pi's config folder, which
-// GENTLE_AI_PI_CONFIG_DIR relocates (default <homeDir>/.pi/gentle-ai).
-func PiGlobalPersonaConfigPath(homeDir string) string {
-	return filepath.Join(piagent.GentlePiConfigDir(homeDir), "persona.json")
-}
-
-// InjectPiPersonaAt writes the small runtime config consumed by gentle-pi to
-// an exact persona.json path (PiPersonaConfigPath for a workspace,
-// PiGlobalPersonaConfigPath for a global install). Custom personas remain
-// user-owned and therefore intentionally do nothing.
-func InjectPiPersonaAt(path string, persona model.PersonaID) (InjectionResult, error) {
-	if strings.TrimSpace(path) == "" {
-		return InjectionResult{}, fmt.Errorf("Pi persona path must not be empty")
-	}
-	if persona == model.PersonaCustom {
-		return InjectionResult{}, nil
-	}
-
-	mode := string(persona)
-	if mode == "" {
-		mode = string(model.PersonaGentleman)
-	}
-	content, err := json.MarshalIndent(struct {
-		Mode string `json:"mode"`
-	}{Mode: mode}, "", "  ")
-	if err != nil {
-		return InjectionResult{}, fmt.Errorf("encode Pi persona config: %w", err)
-	}
-	content = append(content, '\n')
-
-	writeResult, err := filemerge.WriteFileAtomic(path, content, 0o644)
-	if err != nil {
-		return InjectionResult{}, err
-	}
-	return InjectionResult{Changed: writeResult.Changed, Files: []string{path}}, nil
 }
 
 // outputStyleOverlayJSON is the settings.json overlay to enable the selected

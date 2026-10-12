@@ -155,12 +155,6 @@ var storeResetRemovableTargets = []storeResetTarget{
 		name: "review-transactions/effect-markers", parts: []string{"review-transactions", "effect-markers"},
 		reason: "per-lineage delivery idempotence markers; meaningless once their lineage is gone",
 	},
-	{
-		name: "reviews", parts: []string{"reviews"}, optIn: true,
-		reason: "review graph store written by the gentle-pi adapter, outside this command's lease and in-flight coverage; removed only because --include-adapter-reviews was given",
-		withheldReason: "review graph store the gentle-pi adapter writes and this command cannot vouch for: " +
-			"REVIEW-MAINTENANCE.lock does not cover it and the in-flight refusal never reads it, so a default run cannot tell a dead graph from a live review; pass --include-adapter-reviews to remove it anyway",
-	},
 }
 
 // storeResetPreservedTargets is the complete exclusion list. Two of these are
@@ -269,12 +263,6 @@ type StoreResetRequest struct {
 	// terminal state. It exists so the refusal has an exit, not so callers can
 	// set it by default.
 	IncludeInFlight bool
-	// IncludeAdapterReviews permits removing the adapter-written reviews/
-	// graph store. It is separate from IncludeInFlight because it overrides a
-	// different guarantee: IncludeInFlight discards reviews this command can
-	// see and named, while this one discards a category it cannot see into at
-	// all, and so cannot list, count as in flight, or lock out a writer from.
-	IncludeAdapterReviews bool
 }
 
 // StoreResetInFlightError refuses a reset that would destroy open reviews.
@@ -395,10 +383,7 @@ func surveyReviewStore(ctx context.Context, repo string, request StoreResetReque
 // flag on purpose: each opt-in category overrides a different guarantee, and a
 // blanket flag would let a caller who wanted one of them discard the others
 // without ever reading why they were withheld.
-func storeResetOptedIn(target storeResetTarget, request StoreResetRequest) bool {
-	if target.name == "reviews" {
-		return request.IncludeAdapterReviews
-	}
+func storeResetOptedIn(_ storeResetTarget, _ StoreResetRequest) bool {
 	// An opt-in category nobody wired a switch for stays withheld. Failing
 	// closed here means adding a category to the list can spare data by
 	// accident, never destroy it by accident.

@@ -24,7 +24,7 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/opencode"
 )
 
-// #5256 T1 characterizes the orchestrator every non-Pi runtime receives before
+// #5256 T1 characterizes the orchestrator every runtime receives before
 // it is split into a core plus on-demand modules: per runtime and profile, the
 // raw asset, the rendered orchestrator, the embedded native review contract and
 // the guidance a fresh install writes. It measures only; it sets no byte budget
@@ -209,16 +209,15 @@ func TestOrchestratorModuleBaseline(t *testing.T) {
 		t.Fatalf("partial matrix: %d of %d variants ran; run the whole TestOrchestratorModuleBaseline without a subtest filter", len(order), len(moduleVariantInputs))
 	}
 
-	// Every non-Pi runtime with a guidance target and every runtime-specific
-	// orchestrator asset is characterized. Pi's prompt is owned by Gentle Shell,
-	// so it renders no orchestrator here. The generic asset is the fallback for
+	// Every runtime with a guidance target and every runtime-specific
+	// orchestrator asset is characterized. The generic asset is the fallback for
 	// runtimes without a dedicated orchestrator; no supported runtime uses it.
 	agentsSeen, assetsSeen := map[model.AgentID]bool{}, map[string]bool{}
 	for _, input := range moduleVariantInputs {
 		agentsSeen[input.agent], assetsSeen[input.asset] = true, true
 	}
 	for _, agent := range catalog.AllAgents() {
-		if agent.ID != model.AgentPi && !agentsSeen[agent.ID] {
+		if !agentsSeen[agent.ID] {
 			t.Errorf("runtime %q has no baseline variant", agent.ID)
 		}
 	}

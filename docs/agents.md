@@ -12,7 +12,6 @@ Gentle AI configures agents you already have; it does not install an AI agent fo
 | <a id="claude-code"></a>Claude Code | `claude-code` | Task subagents, MCP, skills, output styles, skill-registry and review hooks |
 | <a id="opencode"></a>OpenCode | `opencode` | Native task subagents, skills, MCP, managed review plugins and optional background policy |
 | <a id="codex"></a>Codex | `codex` | Native multi-agent when available, solo fallback, skills and MCP |
-| <a id="pi"></a>Pi | `pi` | Package-owned runtime through Gentle Shell; see [Pi](pi.md) |
 
 ## Agent guidance and ownership
 
