@@ -1,7 +1,7 @@
 package model
 
 // ComponentsForPreset returns the managed components implied by a preset. Every
-// non-custom preset installs the managed (Neutral) persona.
+// non-custom preset installs the managed (Principal Engineer) persona.
 func ComponentsForPreset(preset PresetID) []ComponentID {
 	var components []ComponentID
 	switch preset {

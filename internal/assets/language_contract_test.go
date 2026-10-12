@@ -43,7 +43,7 @@ func TestManagedDirectReplyAssetsEnforceEnglishNoCodeSwitching(t *testing.T) {
 		combineWith string // "" when the asset alone still carries the contract
 	}{
 		{name: "claude principal engineer output style", path: "claude/output-style-principal-engineer.md"},
-		{name: "generic neutral persona", path: "generic/persona-neutral.md"},
+		{name: "generic persona", path: "generic/persona.md"},
 	}
 
 	for _, tc := range tests {
@@ -185,9 +185,9 @@ func TestCommentWriterLanguageContractSources(t *testing.T) {
 	}
 }
 
-func TestNeutralPersonaAssetsProvideMentorParityWithoutRegionalVoice(t *testing.T) {
+func TestGenericPersonaProvidesMentorParityWithoutRegionalVoice(t *testing.T) {
 	for _, path := range []string{
-		"generic/persona-neutral.md",
+		"generic/persona.md",
 	} {
 		t.Run(path, func(t *testing.T) {
 			content := MustRead(path)
@@ -198,11 +198,12 @@ func TestNeutralPersonaAssetsProvideMentorParityWithoutRegionalVoice(t *testing.
 				"STOP and wait",
 				"Do not present option menus",
 				"verification",
-				"CONCEPTS > CODE",
+				"Concepts before code",
+				"Weakening the verifier is the one unforgivable move.",
 				"Generated technical artifacts default to English",
 			} {
 				if !strings.Contains(content, required) {
-					t.Fatalf("%s missing neutral parity contract %q", path, required)
+					t.Fatalf("%s missing mentor parity contract %q", path, required)
 				}
 			}
 
@@ -212,7 +213,7 @@ func TestNeutralPersonaAssetsProvideMentorParityWithoutRegionalVoice(t *testing.
 				"When replying to the user in Spanish, use warm natural Rioplatense Spanish",
 			} {
 				if strings.Contains(content, banned) {
-					t.Fatalf("%s contains banned regional neutral wording %q", path, banned)
+					t.Fatalf("%s contains banned regional wording %q", path, banned)
 				}
 			}
 		})
@@ -326,12 +327,12 @@ func TestOutputStylesKeepHumanReplyLanguageAcrossHarnessTurns(t *testing.T) {
 
 const preWriteArtifactSelfCheckRequired = "Before any Write/Edit whose content is an artifact, re-verify the artifact language rules."
 
-const neutralToneDialectAntiDriftRequired = "The same rule applies to tone and dialect: do not adopt regional forms from memory context, prior turns, or quoted material."
+const toneDialectAntiDriftRequired = "The same rule applies to tone and dialect: do not adopt regional forms from memory context, prior turns, or quoted material."
 
 func TestPersonaChannelsCarryPreWriteArtifactSelfCheck(t *testing.T) {
 	paths := []string{
 		"claude/output-style-principal-engineer.md",
-		"generic/persona-neutral.md",
+		"generic/persona.md",
 	}
 	for _, path := range paths {
 		t.Run(path, func(t *testing.T) {
@@ -343,15 +344,15 @@ func TestPersonaChannelsCarryPreWriteArtifactSelfCheck(t *testing.T) {
 	}
 }
 
-func TestNeutralChannelsExtendAntiDriftToToneAndDialect(t *testing.T) {
+func TestPersonaChannelsExtendAntiDriftToToneAndDialect(t *testing.T) {
 	paths := []string{
 		"claude/output-style-principal-engineer.md",
-		"generic/persona-neutral.md",
+		"generic/persona.md",
 	}
 	for _, path := range paths {
 		t.Run(path, func(t *testing.T) {
 			content := MustRead(path)
-			if !strings.Contains(content, neutralToneDialectAntiDriftRequired) {
+			if !strings.Contains(content, toneDialectAntiDriftRequired) {
 				t.Fatalf("%s: missing tone/dialect anti-drift sentence", path)
 			}
 		})

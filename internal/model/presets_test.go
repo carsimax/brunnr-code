@@ -12,10 +12,10 @@ func TestComponentsForPresetFullIsDevStackPlusPermissions(t *testing.T) {
 	}
 }
 
-// TestComponentsForPresetAlwaysInstallsNeutralPersona pins that persona is not
-// a choice: every managed preset installs the (Neutral) persona component, and
+// TestComponentsForPresetAlwaysInstallsManagedPersona pins that persona is not
+// a choice: every managed preset installs the managed persona component, and
 // only the custom preset leaves component selection to the user.
-func TestComponentsForPresetAlwaysInstallsNeutralPersona(t *testing.T) {
+func TestComponentsForPresetAlwaysInstallsManagedPersona(t *testing.T) {
 	for _, preset := range []PresetID{PresetFull, PresetEcosystemOnly, PresetMinimal} {
 		if got := ComponentsForPreset(preset); !slices.Contains(got, ComponentPersona) {
 			t.Errorf("ComponentsForPreset(%q) = %v, want it to include %q", preset, got, ComponentPersona)

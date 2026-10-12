@@ -367,7 +367,7 @@ func TestClaudeEmbeddedAssetLayout(t *testing.T) {
 		seen[entry.Name()] = true
 	}
 
-	for _, name := range []string{"agents", "persona-neutral-residual.md", "orchestrator.md"} {
+	for _, name := range []string{"agents", "persona-residual.md", "orchestrator.md"} {
 		if !seen[name] {
 			t.Fatalf("claude embedded assets missing %q", name)
 		}
@@ -529,7 +529,7 @@ func TestPersonasContainContextualSkillLoadingDirective(t *testing.T) {
 		isClaude  bool
 		invokeMsg string // wording specific to the agent family
 	}{
-		{path: "generic/persona-neutral.md", isClaude: false, invokeMsg: "read the matching SKILL.md"},
+		{path: "generic/persona.md", isClaude: false, invokeMsg: "read the matching SKILL.md"},
 	}
 
 	for _, tc := range tests {

@@ -45,7 +45,7 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 	files := make([]string, 0, 3)
 	changed := false
 
-	content := neutralPersonaContent(adapter.Agent(), residualChannel(adapter))
+	content := managedPersonaContent(adapter.Agent(), residualChannel(adapter))
 
 	// 1. Inject persona content based on system prompt strategy.
 	switch adapter.SystemPromptStrategy() {
@@ -196,11 +196,11 @@ func residualChannel(adapter agents.Adapter) bool {
 	return adapter.SupportsOutputStyles()
 }
 
-func neutralPersonaContent(agent model.AgentID, residualContentAvailable bool) string {
+func managedPersonaContent(agent model.AgentID, residualContentAvailable bool) string {
 	if residualContentAvailable && agent == model.AgentClaudeCode {
-		return assets.MustRead("claude/persona-neutral-residual.md")
+		return assets.MustRead("claude/persona-residual.md")
 	}
-	return assets.MustRead("generic/persona-neutral.md")
+	return assets.MustRead("generic/persona.md")
 }
 
 // mergeJSONFile merges overlay into the settings at path with the shared

@@ -15,6 +15,10 @@ import (
 	"github.com/carsimax/brunnr-code/internal/model"
 )
 
+// genericVoiceSentinel appears only in the full generic persona voice, never in
+// the Claude residual block, so it tells the two assets apart.
+const genericVoiceSentinel = "generation-verification loop"
+
 func claudeAdapter() agents.Adapter { return claude.NewAdapter() }
 func codexAdapter() agents.Adapter  { return codex.NewAdapter() }
 
@@ -49,7 +53,7 @@ func assertLanguageGuardrails(t *testing.T, text string, required []string, bann
 	}
 }
 
-func TestInjectClaudeNeutralWritesResidualPersonaWithoutRegionalLanguage(t *testing.T) {
+func TestInjectClaudeWritesResidualPersonaWithoutRegionalLanguage(t *testing.T) {
 	home := t.TempDir()
 
 	result, err := Inject(home, claudeAdapter())
@@ -67,17 +71,20 @@ func TestInjectClaudeNeutralWritesResidualPersonaWithoutRegionalLanguage(t *test
 	}
 
 	text := string(content)
-	// Neutral also has an active output-style channel for Claude — the persona
-	// section is the residual, not the full teaching-tone block.
-	if strings.Contains(text, "Senior Architect") {
-		t.Fatal("Neutral persona section should be a residual — 'Senior Architect' must not appear")
+	// Claude gets its voice from the Principal Engineer output style, so the
+	// persona section is the residual, not the full generic voice block.
+	if strings.Contains(text, genericVoiceSentinel) {
+		t.Fatalf("Claude persona section should be a residual — %q must not appear", genericVoiceSentinel)
 	}
 	if !strings.Contains(text, "## Rules") {
-		t.Fatal("Neutral persona residual section missing '## Rules'")
+		t.Fatal("Claude persona residual section missing '## Rules'")
+	}
+	if !strings.Contains(text, "Principal Engineer") {
+		t.Fatal("Claude persona residual should point to the Principal Engineer output style")
 	}
 	// Should NOT have regional language.
 	if strings.Contains(text, "Rioplatense") {
-		t.Fatal("Neutral persona should not contain Rioplatense language")
+		t.Fatal("Claude persona should not contain Rioplatense language")
 	}
 }
 
@@ -265,7 +272,7 @@ func TestInjectClaude_MalformedJSON_DoesNotPanic(t *testing.T) {
 // TestPersonaContentResidualDispatchAllAgents is a table-driven regression test
 // covering every supported agent: Claude Code receives the residual (tone-free)
 // persona asset when residual=true; all other agents receive the full persona
-// section unaffected by the residual flag. Neutral's generic/persona-neutral.md
+// section unaffected by the residual flag. generic/persona.md
 // remains the byte-identical fallback for every non-Claude agent.
 func TestPersonaContentResidualDispatchAllAgents(t *testing.T) {
 	allAgents := []model.AgentID{
@@ -277,26 +284,26 @@ func TestPersonaContentResidualDispatchAllAgents(t *testing.T) {
 		return agent == model.AgentClaudeCode
 	}
 
-	genericNeutral := assets.MustRead("generic/persona-neutral.md")
+	genericPersona := assets.MustRead("generic/persona.md")
 
 	for _, agent := range allAgents {
-		t.Run(string(agent)+"/neutral", func(t *testing.T) {
+		t.Run(string(agent), func(t *testing.T) {
 			residual := isResidualCapable(agent)
-			content := neutralPersonaContent(agent, residual)
+			content := managedPersonaContent(agent, residual)
 			if content == "" {
-				t.Fatalf("neutralPersonaContent(%q, residual=%v) returned empty string", agent, residual)
+				t.Fatalf("managedPersonaContent(%q, residual=%v) returned empty string", agent, residual)
 			}
 			switch {
 			case residual:
-				if strings.Contains(content, "Senior Architect") {
-					t.Fatalf("neutralPersonaContent(%q, residual=true) still contains tone content 'Senior Architect'", agent)
+				if strings.Contains(content, genericVoiceSentinel) {
+					t.Fatalf("managedPersonaContent(%q, residual=true) still contains voice content %q", agent, genericVoiceSentinel)
 				}
 				if !strings.Contains(content, "## Rules") {
-					t.Fatalf("neutralPersonaContent(%q, residual=true) missing residual '## Rules'", agent)
+					t.Fatalf("managedPersonaContent(%q, residual=true) missing residual '## Rules'", agent)
 				}
 			default:
-				if content != genericNeutral {
-					t.Fatalf("neutralPersonaContent(%q, residual=false) should be byte-identical to generic/persona-neutral.md", agent)
+				if content != genericPersona {
+					t.Fatalf("managedPersonaContent(%q, residual=false) should be byte-identical to generic/persona.md", agent)
 				}
 			}
 		})
@@ -505,14 +512,14 @@ func TestInjectCodexIsIdempotent(t *testing.T) {
 	if strings.Count(text, "<!-- brunnr-code:persona -->") != 1 {
 		t.Fatalf("expected exactly 1 persona marker after re-injection, got %d", strings.Count(text, "<!-- brunnr-code:persona -->"))
 	}
-	if strings.Count(text, "Senior Architect") != 1 {
-		t.Fatalf("expected persona content exactly once after re-injection, got %d occurrences", strings.Count(text, "Senior Architect"))
+	if strings.Count(text, genericVoiceSentinel) != 1 {
+		t.Fatalf("expected persona content exactly once after re-injection, got %d occurrences", strings.Count(text, genericVoiceSentinel))
 	}
 }
 
-// TestInjectCodexNeutralFreshInstallWrapsPersonaInMarkers ensures the neutral
+// TestInjectCodexFreshInstallWrapsPersonaInMarkers ensures the managed
 // persona gets the same marker-bound treatment on Codex.
-func TestInjectCodexNeutralFreshInstallWrapsPersonaInMarkers(t *testing.T) {
+func TestInjectCodexFreshInstallWrapsPersonaInMarkers(t *testing.T) {
 	home := t.TempDir()
 
 	if _, err := Inject(home, codexAdapter()); err != nil {
@@ -527,8 +534,8 @@ func TestInjectCodexNeutralFreshInstallWrapsPersonaInMarkers(t *testing.T) {
 	if strings.Count(text, "<!-- brunnr-code:persona -->") != 1 {
 		t.Fatalf("expected exactly 1 persona marker, got %d", strings.Count(text, "<!-- brunnr-code:persona -->"))
 	}
-	if !strings.Contains(text, assets.MustRead("generic/persona-neutral.md")) {
-		t.Fatal("neutral persona content missing from managed section")
+	if !strings.Contains(text, assets.MustRead("generic/persona.md")) {
+		t.Fatal("managed persona content missing from managed section")
 	}
 }
 

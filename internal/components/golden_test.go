@@ -61,19 +61,19 @@ func TestGoldenConfigs(t *testing.T) {
 // Persona Injector golden tests
 // ---------------------------------------------------------------------------
 
-func TestGoldenPersona_Claude_Neutral(t *testing.T) {
+func TestGoldenPersona_Claude(t *testing.T) {
 	home := t.TempDir()
 
 	result, err := persona.Inject(home, claudeAdapter())
 	if err != nil {
-		t.Fatalf("persona.Inject(claude, neutral) error = %v", err)
+		t.Fatalf("persona.Inject(claude) error = %v", err)
 	}
 	if !result.Changed {
-		t.Fatalf("persona.Inject(claude, neutral) changed = false")
+		t.Fatalf("persona.Inject(claude) changed = false")
 	}
 
 	claudeMD := readTestFile(t, filepath.Join(home, ".claude", "CLAUDE.md"))
-	assertGolden(t, "persona-claude-neutral.golden", claudeMD)
+	assertGolden(t, "persona-claude.golden", claudeMD)
 
 	// Locks the managed Principal Engineer output style written next to the
 	// residual CLAUDE.md persona block.

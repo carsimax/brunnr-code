@@ -25,7 +25,8 @@ The Neutral style carries theatrical rules inherited from the old Gentleman pers
 ## Tasks
 
 - [x] T1: Claude output style. Add the asset, delete `output-style-neutral.md`, update `resources.go`/`inject.go` naming, clean up the legacy `neutral.md`, update tests and goldens. Route: delegated (multi-file writer).
-- [ ] T2: Persona blocks. Rename `persona-neutral-residual.md` → `persona-residual.md` and `generic/persona-neutral.md` → `generic/persona.md`. Rewrite the generic voice to Principal Engineer and update the residual "Persona Voice" pointer. Update the assets/language-contract tests and goldens. Route: delegated.
+- [x] T2: Persona blocks. Rename `persona-neutral-residual.md` → `persona-residual.md` and `generic/persona-neutral.md` → `generic/persona.md`. Rewrite the generic voice to Principal Engineer and update the residual "Persona Voice" pointer. Update the assets/language-contract tests and goldens. Route: delegated.
+- [ ] T4: Make the persona component mandatory: remove it from the selectable components in the Custom preset/TUI so it is always installed (user decision 2026-10-12). Route: delegated.
 - [ ] T3: Update the e2e script (`e2e/e2e_test.sh`) and the stale comments (`sync.go`, `presets.go`). Route: inline or delegated, based on size.
 
 ## Acceptance criteria
@@ -43,4 +44,6 @@ Strategy: `single-pr` (single maintainer, no chained PRs). Forecast: ~400–600 
 - Exploration done (mapping agent).
 - T1 done (delegated writer). Asset gained verbatim language-contract rules required by `language_contract_test.go` (notification/subagent language preservation, English-only replies); accepted as behavioral, not tone. Deleted `TestReconciledStylesCarryAllMovedPersonaRules` (pinned removed Neutral wording). Legacy `neutral.md` cleanup: `persona.LegacyOutputStylePaths`, removed on inject/uninstall, included in sync/install/upgrade backups.
   - Checks: gofmtcheck ok; go test components/assets/update ok; go test ./internal/cli full ok (624s); go vet ok. Docker e2e not run.
-- Next: T2.
+- T2 done (delegated writer). Renamed residual/generic persona assets, `managedPersonaContent`, generic persona rewritten to Principal Engineer voice (87 lines). No tests deleted; parity test now requires "Concepts before code" and "Weakening the verifier is the one unforgivable move."
+  - Checks: gofmtcheck ok; go vet ok; go test components/assets/model/tui ok; go test ./internal/cli full ok (595s).
+- Next: T4, then T3.

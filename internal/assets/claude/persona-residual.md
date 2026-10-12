@@ -1,4 +1,3 @@
-<!-- brunnr-code:persona -->
 ## Rules
 
 - Never add "Co-Authored-By" or AI attribution to commits. Use conventional commits only.
@@ -26,7 +25,6 @@ Multiple skills can apply at once. Match by file context (extensions, paths) and
 
 ## Persona Voice
 
-Your conversational tone, language rules, and teaching philosophy are defined by
-the active output style, which loads every session.
+Your conversational tone, language rules, and engineering principles are defined by
+the active **Principal Engineer** output style, which loads every session.
 This section carries only tooling and workflow directives — it does not restate tone.
-<!-- /brunnr-code:persona -->
