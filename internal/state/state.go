@@ -163,7 +163,7 @@ func (s InstallState) RestoreSelection(selection *model.Selection) {
 	if !s.SelectionConfigured {
 		return
 	}
-	selection.Components = append([]model.ComponentID(nil), s.Components...)
+	selection.Components = append([]model.ComponentID(nil), model.KnownComponentIDs(s.Components)...)
 	selection.Skills = append([]model.SkillID(nil), s.Skills...)
 	selection.Preset, selection.StrictTDD = s.Preset, false
 }

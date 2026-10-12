@@ -48,6 +48,46 @@ const (
 	ComponentClaudeTheme ComponentID = "claude-theme"
 )
 
+// knownComponentIDs lists every component this build ships. The catalog test
+// keeps it in sync with catalog.MVPComponents.
+var knownComponentIDs = []ComponentID{
+	ComponentEngram,
+	ComponentSkills,
+	ComponentContext7,
+	ComponentPersona,
+	ComponentPermission,
+	ComponentTheme,
+	ComponentClaudeTheme,
+}
+
+// ShippedComponentIDs returns a copy of every component ID this build ships.
+func ShippedComponentIDs() []ComponentID {
+	return append([]ComponentID(nil), knownComponentIDs...)
+}
+
+// IsKnownComponentID reports whether id names a component this build ships.
+func IsKnownComponentID(id ComponentID) bool {
+	for _, known := range knownComponentIDs {
+		if id == known {
+			return true
+		}
+	}
+	return false
+}
+
+// KnownComponentIDs returns the persisted component IDs this build still
+// ships, preserving order. IDs of removed components are dropped silently so
+// stale persisted state never blocks sync or install.
+func KnownComponentIDs(ids []ComponentID) []ComponentID {
+	kept := make([]ComponentID, 0, len(ids))
+	for _, id := range ids {
+		if IsKnownComponentID(id) {
+			kept = append(kept, id)
+		}
+	}
+	return kept
+}
+
 type UninstallMode string
 
 const (

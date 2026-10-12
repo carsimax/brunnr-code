@@ -1001,3 +1001,20 @@ func findSub(s, sub string) bool {
 	}
 	return false
 }
+
+// TestRestoreSelectionDropsUnknownComponents pins that a persisted component
+// ID this build no longer ships (for example a removed integration) is dropped
+// on restore, so stale state never reaches sync's unsupported-component path.
+func TestRestoreSelectionDropsUnknownComponents(t *testing.T) {
+	persisted := InstallState{
+		SelectionConfigured: true,
+		Components:          []model.ComponentID{model.ComponentEngram, "retired-component", model.ComponentSkills},
+	}
+	var selection model.Selection
+	persisted.RestoreSelection(&selection)
+
+	want := []model.ComponentID{model.ComponentEngram, model.ComponentSkills}
+	if !reflect.DeepEqual(selection.Components, want) {
+		t.Fatalf("RestoreSelection components = %v, want %v", selection.Components, want)
+	}
+}
