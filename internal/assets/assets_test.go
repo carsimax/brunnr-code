@@ -327,7 +327,7 @@ func TestOrchestratorsProjectOrganicRouting(t *testing.T) {
 				t.Fatalf("%s retained prompt-owned review ceremony %q", path, retired)
 			}
 		}
-		// gentle-shell#1731: writers are delegated for a reason, and parallel
+		// Writers are delegated for a reason, and parallel
 		// writers follow one rule instead of a single-writer ban.
 		for _, retired := range []string{
 			"a large task delegates one writer per task", "one writer per task",
@@ -541,8 +541,7 @@ func TestOpenCodeEmbeddedAssetLayout(t *testing.T) {
 		}
 	}
 
-	// #4471: the parity agent prompts ported from Gentle Shell's global
-	// agents. Missing one here means a fresh install drops that agent.
+	// #4471: the ODD parity agent prompts. Missing one here means a fresh install drops that agent.
 	agentEntries, err := FS.ReadDir("opencode/agents")
 	if err != nil {
 		t.Fatalf("ReadDir(opencode/agents) error = %v", err)
@@ -1457,7 +1456,7 @@ func TestODDOrchestratorAssetsScopedToParent(t *testing.T) {
 	}
 }
 
-// Gentleman-Programming/gentle-shell#1731: the worker tests each requested
+// The worker tests each requested
 // rule plus only the touched existing behavior, the verifier probes the spec
 // itself in a scratch copy with a fixed severity bar, and both bound
 // corrections instead of looping.
@@ -1533,7 +1532,7 @@ func TestOpenCodeGenericAgentsCarryDelegateForReasonDiscipline(t *testing.T) {
 	}
 }
 
-// Gentleman-Programming/gentle-shell#1713: the generic workers read the ODD
+// The generic workers read the ODD
 // feature document as the specification, by reference, instead of a
 // paraphrase of the user's request; verify grounds its verdict in each spec.
 func TestOpenCodeGenericAgentsReadTheFeatureSpecByReference(t *testing.T) {

@@ -22,8 +22,8 @@ var openCodeAgentConfigAllowedKeys = map[string]bool{
 	"permission":  true,
 }
 
-// openCodeParityAgentNames is the full parity set from #4471: the 10 agents
-// ported from Gentle Shell's global agents, plus the two review provider
+// openCodeParityAgentNames is the full parity set from #4471: the 10 ODD
+// parity agents, plus the two review provider
 // roles retained across the SDD retirement.
 var openCodeParityAgentNames = []string{
 	"gentle-ai-explore", "gentle-ai-verify", "gentle-ai-worker",

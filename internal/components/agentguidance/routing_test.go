@@ -192,7 +192,7 @@ func TestRenderRoutingOrganicTaskContinuity(t *testing.T) {
 			"Before implementation or resume, the parent reads both the actual file and full observation",
 			"passes the locator, task IDs, and linked `S#`; workers read the document until `## Log` before edits",
 		}},
-		// Gentleman-Programming/gentle-shell#1713: handoffs paraphrased the user's
+		// Handoffs paraphrased the user's
 		// request and the feature document summarized it. The document is now the
 		// specification subagents read by reference, in a fixed order.
 		{"feature document is the verbatim specification read by reference", []string{
@@ -809,7 +809,7 @@ func TestUsageGuideDescribesTheSpecByReferenceFeatureDocument(t *testing.T) {
 	}
 }
 
-// gentle-shell#1494: task size is decided by understanding, contained risk,
+// Task size is decided by understanding, contained risk,
 // and whether the work can be resumed from the diff, never by counting files,
 // commands, fixes, or a requested todo list. Each mechanism turns on only by
 // its own trigger, and the agent may raise assess risk but never lower it.
@@ -873,7 +873,7 @@ func TestRenderRoutingSizesTasksByUnderstandingRiskAndResumability(t *testing.T)
 	}
 }
 
-// gentle-shell#1731: a writer is delegated for a named reason, never for size;
+// A writer is delegated for a named reason, never for size;
 // parallel writers stay safe without a single-writer ban; every code change
 // closes with a risk line; a tracked task never pauses on hedged wording; and
 // exploration exists only to decide or route.

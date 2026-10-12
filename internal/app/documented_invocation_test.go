@@ -407,7 +407,7 @@ func TestDocumentedInvocationsRunAsDocumented(t *testing.T) {
 	}
 	// Retired terms across all living docs are guarded by
 	// TestLivingDocsDoNotAdvertiseRetiredTerms.
-	for _, name := range []string{"README.md", "docs/intended-usage.md", "docs/agents.md", "docs/pi.md"} {
+	for _, name := range []string{"README.md", "docs/intended-usage.md", "docs/agents.md"} {
 		content, err := os.ReadFile(filepath.Join("..", "..", name))
 		if err != nil {
 			t.Fatal(err)

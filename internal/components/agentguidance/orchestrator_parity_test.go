@@ -7,14 +7,10 @@ import (
 	"github.com/gentleman-programming/gentle-ai/v4/internal/model"
 )
 
-// gentleShellParityHeadings lists every orchestrator section each
-// runtime must install exactly once. It mirrors the runtime-agnostic contract
-// of Gentle Shell's orchestrator prompt (`assets/orchestrator.md`,
-// `assets/orchestrator-delegation.md`, `assets/orchestrator-memory.md`, and
-// `assets/orchestrator-skills.md` at 89b8de3b5). When Gentle Shell adds a
-// runtime-agnostic section, port it into
-// `internal/assets/skills/_shared/odd-orchestrator-sections.md` and add its
-// heading here deliberately.
+// orchestratorParityHeadings lists every orchestrator section each
+// runtime must install exactly once. A new runtime-agnostic section is added
+// to `internal/assets/skills/_shared/odd-orchestrator-sections.md` and its
+// heading is added here deliberately.
 //
 // The list carries ODD and orchestration sections only: receipt-driven
 // development applies to a subset of runtimes, so RDD sections (Provider Defect
@@ -24,31 +20,31 @@ import (
 // Deliberately absent: Organic feature continuity and the memory lifecycle
 // rule (owned by the routing block's ODD protocol and the Engram protocol),
 // Gentle AI RDD ownership (RDD-specific), Judgment Day dispatch (owned by the
-// judgment-day skill), and every Pi-only binding (phase signaling, subagent
-// model routing, background policy, and runtime overlays).
-var gentleShellParityHeadings = []string{
+// judgment-day skill), and every runtime-specific binding (phase signaling,
+// subagent model routing, background policy, and runtime overlays).
+var orchestratorParityHeadings = []string{
 	// Orchestrator core restored from v3.7.0.
 	"Lossless Blocking Prompts",
 	"Language Domain Contract",
 	"Delegation Rules",
-	// assets/orchestrator.md
+	// Core role.
 	"Identity Contract",
 	"Core Role",
 	"Mental Model",
 	"Safety",
-	// assets/orchestrator-delegation.md
+	// Delegation.
 	"Work Routing Ladder",
 	"Canonical Lightweight Workflows",
 	"Allowed edit surfaces",
 	"Key Learnings closing block",
 	"Delivery strategy",
-	// assets/orchestrator-skills.md
+	// Skills.
 	"Intent-Driven Skill Discovery",
 }
 
-// gentleShellOnlyContent must never reach a runtime: Gentle Shell tool names and
-// the Judgment Day correction-batch contract.
-var gentleShellOnlyContent = []string{
+// foreignOrchestratorContent must never reach a runtime: tool names of other
+// orchestrator hosts and the Judgment Day correction-batch contract.
+var foreignOrchestratorContent = []string{
 	"gentle_odd_phase",
 	"subagent_run",
 	"subagent_status",
@@ -107,7 +103,7 @@ func TestInstalledEvidenceBudgetGuidance(t *testing.T) {
 	}
 }
 
-func TestInstalledOrchestratorHasGentleShellParity(t *testing.T) {
+func TestInstalledOrchestratorHasParityHeadings(t *testing.T) {
 	t.Parallel()
 
 	for _, agent := range orchestratorRuntimes(t) {
@@ -120,7 +116,7 @@ func TestInstalledOrchestratorHasGentleShellParity(t *testing.T) {
 			}
 			prompt := deliveredGuidance(t, result.Files[0])
 
-			for _, heading := range gentleShellParityHeadings {
+			for _, heading := range orchestratorParityHeadings {
 				if got := headingCount(prompt, heading); got != 1 {
 					t.Errorf("heading %q appears %d times, want 1", heading, got)
 				}
@@ -134,16 +130,16 @@ func TestInstalledOrchestratorHasGentleShellParity(t *testing.T) {
 				t.Error("installed prompt carries no skill resolution feedback contract")
 			}
 
-			for _, forbidden := range gentleShellOnlyContent {
+			for _, forbidden := range foreignOrchestratorContent {
 				if strings.Contains(prompt, forbidden) {
-					t.Errorf("installed prompt carries Gentle Shell-only content %q", forbidden)
+					t.Errorf("installed prompt carries foreign orchestrator content %q", forbidden)
 				}
 			}
 		})
 	}
 }
 
-// gentle-shell#1731: every installed orchestrator delegates a writer only for a
+// Every installed orchestrator delegates a writer only for a
 // named reason, routes parallel writers through one rule, explores only to
 // decide or route, and bounds verification timing and corrections.
 func TestInstalledOrchestratorDelegatesForReason(t *testing.T) {

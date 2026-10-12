@@ -202,7 +202,7 @@ After a successful burn, no terminal receipt, tombstone, witness, mirror, or del
 
 ## Reviewer transport
 
-The provider contract is shared by Claude Code, OpenCode, Codex, and Pi. Go derives frozen trees, manifest, subject hash, role, binding, schema, evidence limits, and admission. Adapters transport opaque provider output and never parse bindings, manufacture a verdict, or mutate review authority. Gentle AI writes nothing into the Pi system prompt because gentle-pi owns it, so this contract ships as `orchestration/pi.md` in the published provider contract bundle, which gentle-pi mirrors and injects at session start.
+The provider contract is shared by Claude Code, OpenCode, and Codex. Go derives frozen trees, manifest, subject hash, role, binding, schema, evidence limits, and admission. Adapters transport opaque provider output and never parse bindings, manufacture a verdict, or mutate review authority.
 
 The in-process Claude Code reviewer uses the saved model and effort for each role (`risk`, `readability`, `reliability`, `resilience`, `refuter`, and `validator`). It passes `--effort` only for a non-default effort supported by the assigned model, using the same compatibility rule as generated `review-*` subagents. Default effort and legacy model-only assignments omit the flag. Missing or malformed assignments preserve native defaults or a valid legacy model fallback. The reviewer keeps `--setting-sources ""`; it does not inherit user or project effort settings.
 
@@ -214,7 +214,7 @@ Dependency locks (`package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml`, 
 
 ### Non-lens provider roles: refuter and targeted validator
 
-`gentle-ai review capture-refuter` and `gentle-ai review capture-validation` bind the transaction-wide refuter batch and the correction-bound targeted validator the same way `review capture-result` binds a lens — `--lineage`, `--target`, `--expected-revision` (plus `--request-hash` for the validator) — and exactly one of three modes. A compiled runtime (Claude Code, Codex, OpenCode) passes `--agent` and `--execute`: Go materializes the role request, runs its own in-process adapter, and admits the raw result; no submission descriptor exists for this form, and `--materialize`/`--input` refuse typed for it. Pi is host-relay, so `--execute` refuses typed for it: Go never spawns a process for a pi role. STATUS instead renders the pi collect input as `--materialize=true` plus a `submission` descriptor, exactly like the lens `capture-result` path — `gentle-pi` materializes the read-only prompt, runs the model itself, and submits the raw result through `--input=<path|->`, whose `{{value}}` slot repeats every binding token (including `--agent`) and drops only the `--materialize` selector. Go admits that submission through the same raw admitters the compiled `--execute` path uses, with the same binding; no adapter runs and no retry is granted, so an unadmittable submission leaves the slot open for STATUS to reoffer, exactly like a malformed in-process capture.
+`gentle-ai review capture-refuter` and `gentle-ai review capture-validation` bind the transaction-wide refuter batch and the correction-bound targeted validator the same way `review capture-result` binds a lens — `--lineage`, `--target`, `--expected-revision` (plus `--request-hash` for the validator) — and exactly one of three modes. A compiled runtime (Claude Code, Codex, OpenCode) passes `--agent` and `--execute`: Go materializes the role request, runs its own in-process adapter, and admits the raw result; no submission descriptor exists for this form, and `--materialize`/`--input` refuse typed for it.
 
 #### Refuter probe
 
@@ -236,7 +236,7 @@ The refuter may confirm or drop a severe claim with one isolated reproducing com
 - Authority admitted before this change replays unchanged: a deterministic finding the refuter did not answer stays corroborated.
 - The single corrective re-invocation keeps the probe copy and its source root, so a corrective Codex refuter still runs in the confined candidate scratch.
 
-The role submission descriptor is a negotiated status contract change, so the negotiated status schema for this lifecycle is `gentle-ai.review-integration.status/v9` (v5 forbade a `submission` field on role inputs). Go no longer owns a pi adapter or the `~/.pi/gentle-ai/models.json` model-routing lookup it used to read before spawning a role process for pi; `gentle-pi`'s own host relay owns that routing now, the same way it already owns routing for the lens path.
+The role submission descriptor is a negotiated status contract change, so the negotiated status schema for this lifecycle is `gentle-ai.review-integration.status/v9` (v5 forbade a `submission` field on role inputs).
 
 ## Corrections and consent
 

@@ -192,7 +192,7 @@ func reviewAssessNextTransitionFor(root string, runtime model.AgentID, baseRef s
 }
 
 // reviewAssessHighRiskItems is the shared high-risk list of the routing
-// block's Task Size section (gentle-shell#1494). The agent that made a change
+// block's Task Size section. The agent that made a change
 // may cite one item to raise the assessed risk to high; it can never lower a
 // tier, so lowering stays with the deterministic assessment.
 var reviewAssessHighRiskItems = map[int]string{

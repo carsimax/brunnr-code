@@ -2454,7 +2454,7 @@ func runReviewFacadeStart(ctx context.Context, args []string, stdout io.Writer) 
 		request.Binding.LensSelectionReason = request.State.LensSelectionReason
 		// A resume keeps the lens selection its active lineage froze: an agent
 		// that names another selection while resuming replays that lineage
-		// instead of hitting atomic_start_conflict (gentle-shell#1207).
+		// instead of hitting atomic_start_conflict.
 		if requestedLineage := strings.TrimSpace(*lineage); requestedLineage != "" {
 			if _, active, loadErr := discoverCompactFacadeReview(ctx, root, requestedLineage, false); loadErr == nil {
 				request.AdoptFrozenLensSelection(active)

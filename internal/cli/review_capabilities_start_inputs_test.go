@@ -11,7 +11,7 @@ import (
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
-// rdd-risk-gated S14 (A3): callers such as gentle-shell detect the optional
+// rdd-risk-gated S14 (A3): callers detect the optional
 // `review start --request-context` and `--escalate-item/--escalate-reason`
 // inputs from the negotiated capabilities instead of probing START.
 var reviewStartInputCapabilityFeatures = []ReviewCapabilityFeature{

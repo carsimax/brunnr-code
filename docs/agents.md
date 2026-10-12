@@ -5,7 +5,7 @@
 
 ← [Back to README](../README.md)
 
-Gentle AI configures agents you already have; it does not install an AI agent for you. ODD is the development workflow. Capabilities and delegation primitives depend on the client. [Usage](usage.md) covers installation and sync; [Pi](pi.md) explains the separately owned Pi integration.
+Gentle AI configures agents you already have; it does not install an AI agent for you. ODD is the development workflow. Capabilities and delegation primitives depend on the client. [Usage](usage.md) covers installation and sync;
 
 | Agent | ID | Integration notes |
 | --- | --- | --- |
@@ -15,7 +15,7 @@ Gentle AI configures agents you already have; it does not install an AI agent fo
 
 ## Agent guidance and ownership
 
-Gentle AI installs or refreshes managed guidance, skills, and supported review agents for selected clients. It does not own Pi's runtime prompts or child-agent lifecycle: the separately installed Gentle Shell (`gentle-pi`) package does. Installing a single agent merges it into the recorded installed-agent selection; sync normally refreshes only that selection. `gentle-ai install --scope=workspace` places supported agent-scoped files in the project instead of the global agent configuration, while global-only settings remain global.
+Gentle AI installs or refreshes managed guidance, skills, and supported review agents for selected clients. Installing a single agent merges it into the recorded installed-agent selection; sync normally refreshes only that selection. `gentle-ai install --scope=workspace` places supported agent-scoped files in the project instead of the global agent configuration, while global-only settings remain global.
 
 Delegated work stays focused: the parent supplies task context and exact relevant skill paths, then checks the outcome. A client without native delegation can perform smaller work inline; native availability does not grant permission for extra writes. Hermes workers require explicit mission context, tools and skills rather than assuming inheritance. Codex multi-agent execution depends on native tools and configuration. Review agents are separate from ordinary ODD implementation agents; RDD runs only under the user-owned switch and candidate consent when applicable.
 
@@ -29,6 +29,5 @@ Delegated work stays focused: the parent supplies task context and exact relevan
 - **OpenClaw:** reads the active workspace from its configuration and writes managed `AGENTS.md`/`SOUL.md` there. MCP entries remain in global OpenClaw configuration.
 - **Hermes:** detected from its configuration directory; installation of the client itself is manual. Existing top-level configuration is preserved when MCP entries are merged.
 - **Conductor:** detected from the `~/.conductor` directory; installation of the desktop app itself is manual. Conductor workspaces inherit Claude Code configuration, so Gentle AI makes no Conductor-specific writes: it does not install skills, MCP servers, or system prompt files for Conductor — configure those through Claude Code instead.
-- **Pi:** the installer provisions companion packages, but Gentle Shell owns runtime prompts, model assignments, persona, and delegation. See [Pi integration](pi.md).
 
 Model assignment is client-specific and applies to supported generic and review roles, not a formal development-phase matrix. Use the TUI **Configure Models** screen to inspect available roles, including Judgment Day review roles. Strict TDD is an independently configured ODD mode, not inferred from the presence of tests. Run `gentle-ai doctor` for read-only installation diagnostics and `gentle-ai sync --dry-run` to preview managed updates. Uninstall previews and backs up managed configuration; it must preserve unrelated user files. [Full CLI guidance](usage.md#cli-commands).

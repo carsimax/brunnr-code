@@ -128,7 +128,7 @@ func InjectRoutingWithOptions(targetDir string, agent model.AgentID, options Rou
 
 	// The orchestrator travels with routing into the same always-loaded scope
 	// and the same write, so the two can never land in different files or be
-	// half-applied. Pi is the only runtime without one: Gentle Shell owns it.
+	// half-applied.
 	// With Claude global modules that scope receives the core, which keeps
 	// every critical policy, and the modules it points at.
 	var orchestrator string

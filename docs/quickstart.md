@@ -175,7 +175,6 @@ If something looks wrong after install, run `gentle-ai doctor` for a read-only h
 
 For `state.json` read errors, inspect the file and parent directory; check permissions and ownership when access is denied, and keep the existing state. For invalid JSON, restore a valid backup or repair the content while preserving your installation settings. Re-run `gentle-ai doctor` afterward; it never changes the file or its permissions.
 
-For a Pi-only install, the plan shows the Pi package stack instead of Gentle AI components. It installs `gentle-pi`, `gentle-engram`, `pi-web-access`, and `pi-btw` through Pi's package manager, without a separate `pi-engram init` registration. Engram exposes native Pi tools; Pi's built-in MCP support (Pi >= 0.99.0) runs other servers, such as CodeGraph, from `mcp.json`. Install and sync also repair unambiguous Engram package duplicates while preserving the retained version and object options; conflicting declarations require manual resolution. Gentle AI removes a previously installed `pi-mcp-adapter`, because an extension that registers `/mcp` replaces Pi's built-in MCP support.
 
 ## Start working with ODD
 

@@ -44,7 +44,7 @@ A session rooted in repository A can review an explicitly user-authorized nested
 
 Opaque `repository_context` can materialize or capture from process cwd A, but remains bound to B. OpenCode hosts receive a sealed `rctx3` handle that names B's canonical root, so their relay opens B directly instead of discovering it from the session directory; every other runtime keeps the `rctx2` digest. Identical lineage text in A and B names independent authority: approval burns B only and leaves A unchanged. Ordinary repository policy owns delivery, and any explicitly authorized delivery action runs in B only.
 
-Only Claude Code, Codex, OpenCode, and Pi receive this lifecycle. Unsupported runtimes fail before repository or authority mutation.
+Only Claude Code, Codex, and OpenCode receive this lifecycle. Unsupported runtimes fail before repository or authority mutation.
 
 ### Review and acknowledgement
 
@@ -71,7 +71,7 @@ Review completion is evidence about the completed transaction, not delivery auth
 
 ## Runtime boundary
 
-The atomic lifecycle is rendered only for Claude Code, OpenCode, Codex, and Pi. Generic and non-RDD runtime guidance keeps ODD routing and makes no review-transport promise. Pi receives the review execution contract through `orchestration/pi.md` in the provider contract bundle, which gentle-pi mirrors and injects at session start; gentle-ai writes nothing into the Pi system prompt.
+The atomic lifecycle is rendered only for Claude Code, OpenCode, and Codex. Generic and non-RDD runtime guidance keeps ODD routing and makes no review-transport promise.
 
 ## Historical compatibility
 

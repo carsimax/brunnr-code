@@ -164,16 +164,6 @@ A model that guesses the next step guesses differently tomorrow, and differently
 
 ---
 
-### Gentle Shell — A complete workspace for Pi
-
-<img width="100%" src="docs/assets/features/gentle-shell.png" alt="Gentle Shell development workspace with the todo list and live context and spend information" />
-
-Gentle Shell is a separate Pi integration package. Gentle AI configures supported agents; Gentle Shell owns its own Pi runtime, agents, and interface. Installing or updating this binary does not itself establish Pi behavior parity.
-
-**[Docs →](docs/pi.md)**
-
----
-
 ### 17 agents — Keep the agent you already use
 
 <img width="100%" src="docs/assets/features/agents.png" alt="The installer configuring multiple agents" />

@@ -23,7 +23,7 @@ Receipt-Driven Development (RDD) checks an exact change candidate when enabled. 
 
 The parent works inline by default and delegates only for a named reason when the selected agent supports it: an exploration map it needs to decide or route, parallel writers on disjoint edit surfaces, the long-session context backstop, or independent verification of a high-risk change. File count never decides delegation. Workers receive a bounded mission and relevant exact skill paths; the parent verifies outcomes rather than treating self-report as proof. Native delegation capabilities differ by agent; see [Supported Agents](agents.md).
 
-The skill registry catalogs project and installed skills. On supported clients, startup hooks refresh it with a cache; to refresh manually from a project use `gentle-ai skill-registry refresh --force`. Pi startup behavior belongs to the separately installed Gentle Shell package, not to this binary. See [Usage](usage.md#skill-registry-refresh) and [Pi integration](pi.md).
+The skill registry catalogs project and installed skills. On supported clients, startup hooks refresh it with a cache; to refresh manually from a project use `gentle-ai skill-registry refresh --force`. See [Usage](usage.md#skill-registry-refresh).
 
 Engram™, when installed and active, saves project decisions and discoveries across sessions. The agent uses its memory tools automatically. To inspect or sync memories manually, use `engram tui` or `engram sync`; [Engram documentation](engram.md) explains the integration.
 

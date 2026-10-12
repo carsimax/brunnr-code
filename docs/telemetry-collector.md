@@ -312,7 +312,7 @@ once, under its newest version/agents/RDD state); *any* event makes it
   "version_distribution": {"2.3.0": 25, "2.2.1": 5},
   "rdd_enabled_ratio": 0.63,
   "downloads": {
-    "npm": {"gentle-pi": {"last_day": 120, "last_30_days": 3400}},
+    "npm": {"gentle-engram": {"last_day": 120, "last_30_days": 3400}},
     "github": {"v2.3.0": 890}
   }
 }
@@ -336,7 +336,7 @@ once, under its newest version/agents/RDD state); *any* event makes it
   merging the two — matching the design's "computed from `rollups_daily`
   plus today's raw events."
 - **`downloads`**: public download counts, fetched daily from the npm
-  registry (`--npm-package`, repeatable, default `gentle-pi`,
+  registry (`--npm-package`, repeatable, default
   `gentle-engram`) and the GitHub API (`--github-repo`, repeatable, default
   `Gentleman-Programming/gentle-ai`) — see
   [External download counts](#external-download-counts). Nothing here
@@ -393,7 +393,7 @@ address"`, with the header's value itself never logged.
 --runtime-rate-limit-per-minute 600                         # per-address budget on /v1/runtime-events
 --runtime-store sqlite                                      # sqlite (default) | metrics | both — see Runtime metrics for VictoriaMetrics
 --trusted-proxy-cidr 127.0.0.0/8 --trusted-proxy-cidr ::1/128  # peers allowed to set X-Forwarded-For (repeatable; this is the default)
---npm-package gentle-pi --npm-package gentle-engram        # npm packages to fetch daily downloads for (repeatable; this is the default)
+--npm-package gentle-engram                                # npm packages to fetch daily downloads for (repeatable; this is the default)
 --github-repo Gentleman-Programming/gentle-ai              # GitHub repo to fetch release downloads for (repeatable; this is the default)
 --github-token-file <path>                                  # optional: raises the GitHub API rate limit
 ```
@@ -805,7 +805,7 @@ into the "Gentle AI" folder. Its panels:
 | RDD enabled ratio | Share of install-days over the trailing 30 days reporting `rdd_enabled=true`. |
 | Version distribution | Install-days per version over the trailing 30 days — a proxy for upgrade lag. |
 | Events per day | Raw event volume from the `events` table directly, so — unlike every other panel here — it is bounded by `--retention-days`: older days are gone once purged, since `rollups_daily` does not keep a raw event count. |
-| npm downloads per day | Daily download counts for `--npm-package` (gentle-pi, gentle-engram by default), from `rollups_daily.npm_downloads_day`. See [External download counts](#external-download-counts) — this is a public count, not telemetry. |
+| npm downloads per day | Daily download counts for `--npm-package` (gentle-engram by default), from `rollups_daily.npm_downloads_day`. See [External download counts](#external-download-counts) — this is a public count, not telemetry. |
 | gentle-ai release downloads | Cumulative GitHub release asset download counts per tag, from `rollups_daily.github_release_downloads_total` — the latest known total per tag, not a per-day delta. See [External download counts](#external-download-counts) — also a public count, not telemetry. |
 
 **Reverse proxy**: the `:443` block in `apache/telemetry-vhost.conf.tmpl`
@@ -849,7 +849,7 @@ read this log anyway; they only ever see the SQLite database.
 Alongside the collector's own telemetry, the daily job also fetches two
 **public** counts that have nothing to do with any gentle-ai install:
 
-- **npm downloads** (`--npm-package`, repeatable, default `gentle-pi`,
+- **npm downloads** (`--npm-package`, repeatable, default
   `gentle-engram`): `GET https://api.npmjs.org/downloads/point/last-day/<pkg>`,
   the npm registry's own public download-count API. Stored under the day
   it reports (npm's "last-day" is always the day *before* the request,

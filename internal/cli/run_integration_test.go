@@ -240,7 +240,7 @@ func TestExecuteCommandInheritsPiCodingAgentDirForChildProcesses(t *testing.T) {
 	restoreStreaming := SetCommandOutputStreaming(false)
 	t.Cleanup(restoreStreaming)
 
-	configured := filepath.Join(t.TempDir(), "gentle-shell-home", "agent")
+	configured := filepath.Join(t.TempDir(), "pi-home", "agent")
 	t.Setenv("PI_CODING_AGENT_DIR", configured)
 
 	outFile := filepath.Join(t.TempDir(), "observed-env")

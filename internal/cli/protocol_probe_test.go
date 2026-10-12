@@ -78,7 +78,7 @@ func TestMain(m *testing.M) {
 	// stand-in re-exec branch below: this package's catalog.AllAgents() loops
 	// and RunInstall/RunSync calls resolve Pi's config path directly from the
 	// environment, and a developer shell exporting PI_CODING_AGENT_DIR
-	// (Gentle Shell does) would otherwise redirect these tests into the real
+	// would otherwise redirect these tests into the real
 	// ~/.pi regardless of the sandboxed HOME set up below.
 	testenv.Isolate()
 	// The default fake is V1; an inherited host declaration must not override

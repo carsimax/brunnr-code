@@ -18,8 +18,8 @@ const lensSelectionReasonFixture = "changes credential parsing and the retry loo
 // any reviewed tier. START runs exactly those lenses in canonical order,
 // freezes the selection reason with the authority and its START binding, and
 // resuming the lineage keeps that frozen selection: a resume that names
-// another selection replays the existing authority instead of conflicting
-// (gentle-shell#1207 field report), while any other immutable difference
+// another selection replays the existing authority instead of conflicting,
+// while any other immutable difference
 // still conflicts.
 func TestReviewStartRunsTheLensesTheAgentSelected(t *testing.T) {
 	for _, tt := range []struct {

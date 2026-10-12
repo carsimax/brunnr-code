@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// gentle-shell#1494: the agent that made a change may raise its assess risk to
+// The agent that made a change may raise its assess risk to
 // high by citing one item of the shared high-risk list. It can never lower a
 // tier; lowering stays deterministic.
 

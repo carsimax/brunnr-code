@@ -27,7 +27,7 @@ var (
 	errInvalidOrchestratorModuleDir   = errors.New("invalid orchestrator module directory binding")
 )
 
-// orchestratorModuleNames is the Gentle Shell module layout, in its order. A
+// orchestratorModuleNames is the orchestrator module layout, in its order. A
 // module is built only when at least one fragment belongs to it.
 var orchestratorModuleNames = []string{"delegation", "verification", "tracking", "memory", "writer", "prompts", "skills"}
 

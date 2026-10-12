@@ -2301,7 +2301,7 @@ func userDeniesQuestion(root, orchestrator map[string]any) bool {
 }
 
 // installOpenCodeODDParityAgents installs the ODD/JD/review-lens subagents at
-// functional parity with Gentle Shell's global agents (#4471). Prior to this,
+// functional parity (#4471). Prior to this,
 // only gentle-orchestrator, gentleman, review-refuter, and review-validator
 // survived the SDD overlay's retirement; JD and the four review lenses were
 // dropped as collateral.

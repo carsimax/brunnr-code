@@ -23,9 +23,6 @@
 # --with-host lanes (REAL host applications, dev subscription):
 #   host-codex    - `codex exec` spawned by the compiled codex adapter runs a
 #                   medium reviewer capture (--agent codex) to the receipt.
-#   host-pi       - the INSTALLED gentle-pi review-host-relay code runs a real
-#                   locked-down print-mode `pi` reviewer; refuter/validator
-#                   legs run through the Go-owned pi spawn (--execute).
 #   host-opencode - a real headless `opencode run` session in a sandboxed HOME
 #                   with the real transport plugin: relay start/completion
 #                   frames must flow through the live host hooks.
