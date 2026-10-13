@@ -19,8 +19,8 @@ Assumption: credit to the source goes in the PR description and this document; n
 
 | ID | Specs | Route | Status | Evidence |
 |----|-------|-------|--------|----------|
-| T5 | S1, S2 | inline (one already-drafted asset file plus its pin test) | done | RED: `TestWorkUnitSkillCarriesGitWorkflowRules` failed on missing sections; GREEN: `go test ./internal/assets`, `scripts/test-fast.sh` exit 0, gofmtcheck clean; description 156 chars |
-| T3 | S1, S3 | delegated (4 skill files, 2 goldens) | pending | |
+| T5 | S1, S2 | inline (one already-drafted asset file plus its pin test) | done (`e5240ce5`) | RED: `TestWorkUnitSkillCarriesGitWorkflowRules` failed on missing sections; GREEN: `go test ./internal/assets`, `scripts/test-fast.sh` exit 0, gofmtcheck clean; description 156 chars |
+| T3 | S1, S3 | delegated (4 skill files, 2 goldens) | done | RED: `TestSkillsCarryAnatomySections` 16 errors; GREEN: same test, `go test ./internal/assets ./internal/components`, `scripts/test-fast.sh` exit 0, gofmtcheck clean; parent spot check re-ran assets and components tests: ok |
 | T2 | S1, S4 | delegated (routing.go, routing tests, Linux-only baseline) | pending | |
 | T1 | S1, S5 | delegated (new skill, about 14 registration places) | pending | |
 | T4 | S1, S6 | delegated (new test) | pending | |
@@ -33,3 +33,4 @@ Assumption: credit to the source goes in the PR description and this document; n
 - **L4** (2026-10-13) — User, verbatim: "incuyela pero hasta el final". T4 included, last. Order: T5, T3, T2, T1, T4.
 - **L5** (2026-10-13) — User, verbatim: "arrenquemos son worktree, parte de la ultima version remota de main". Worktree `../carsi-ai-worktrees/agent-skills-integration` created from `origin/main` `48cae732`.
 - **L6** (2026-10-13) — T5 done: `work-unit-commits` 1.1 gains formatting and save-point rules, staged-diff and out-of-scope checklist items, `## Branches and Worktrees`, `## Release Relationship`, `## Common Rationalizations`, `## Red Flags`. Next: T3.
+- **L7** (2026-10-13) — T3 done: skill-creator and skill-improver require Common Rationalizations, Red Flags, and Verification (sections and both identical style guides); go-testing backfilled; work-unit-commits `## Work Unit Checklist` renamed to `## Verification` (no pins on the old heading); two goldens regenerated. Known overage: the skill-creator body grew from 547 to 732 words, above its own advisory 700-token recommendation; left as is because the added rules are the point of the task. Next: T2.

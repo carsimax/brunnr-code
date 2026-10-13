@@ -34,7 +34,7 @@ Use it for:
 | Save points | Commit after each green step, so a failed step costs at most one increment. Inspect `git diff HEAD` before discarding work, and never run `git reset --hard` without the user's approval. |
 | Budget is not code-golf | Never shrink a diff by deleting comments, blank lines, docs, or tests, or by compressing code, to fit the review budget (400 by default, or the session `review_budget_lines`). Slice by work unit or report the overage. |
 
-## Work Unit Checklist
+## Verification
 
 Before committing, confirm:
 

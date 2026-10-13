@@ -489,6 +489,39 @@ func TestWorkUnitSkillCarriesGitWorkflowRules(t *testing.T) {
 	}
 }
 
+// The anatomy sections give an agent the excuses to reject, the signs of a
+// violated skill, and the evidence that proves its outcome.
+func TestSkillsCarryAnatomySections(t *testing.T) {
+	sections := []string{"## Common Rationalizations", "## Red Flags", "## Verification"}
+	for _, path := range []string{
+		"skills/skill-creator/SKILL.md",
+		"skills/skill-improver/SKILL.md",
+		"skills/go-testing/SKILL.md",
+		"skills/work-unit-commits/SKILL.md",
+	} {
+		skill := MustRead(path)
+		for _, want := range sections {
+			if !strings.Contains(skill, want) {
+				t.Errorf("%s missing section %q", path, want)
+			}
+		}
+	}
+
+	// skill-creator and skill-improver must require the sections in the
+	// skills they produce or audit, not only carry them.
+	for _, path := range []string{
+		"skills/skill-creator/SKILL.md",
+		"skills/skill-improver/SKILL.md",
+	} {
+		skill := MustRead(path)
+		for _, name := range []string{"Common Rationalizations", "Red Flags", "Verification"} {
+			if strings.Count(skill, name) < 2 {
+				t.Errorf("%s does not require %q in the skills it shapes", path, name)
+			}
+		}
+	}
+}
+
 func TestClaudeManagedOutputStylesAnchorReplyLanguageToLatestUserRequest(t *testing.T) {
 	tests := []struct {
 		path              string
