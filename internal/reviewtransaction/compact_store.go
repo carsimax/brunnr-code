@@ -1122,7 +1122,13 @@ func onlyUnpublishedCompactCrashResidue(entries []os.DirEntry, readErr error) bo
 }
 
 func acquireCompactStartLock(ctx context.Context, path string) (*storeLock, error) {
-	timer := time.NewTimer(compactStartLockTimeout)
+	return waitForStoreLock(ctx, compactStartLockTimeout, func() (*storeLock, error) { return acquireStoreLock(path) })
+}
+
+// waitForStoreLock retries acquire while the lock is contended, bounded by
+// timeout and ctx, so commit paths wait out brief holders such as read-only probes.
+func waitForStoreLock(ctx context.Context, timeout time.Duration, acquire func() (*storeLock, error)) (*storeLock, error) {
+	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 	ticker := time.NewTicker(compactStartLockPollInterval)
 	defer ticker.Stop()
@@ -1130,7 +1136,7 @@ func acquireCompactStartLock(ctx context.Context, path string) (*storeLock, erro
 		if err := ctx.Err(); err != nil {
 			return nil, &AuthorityLockCancelledError{Cause: err}
 		}
-		lock, err := acquireStoreLock(path)
+		lock, err := acquire()
 		if err == nil || !errors.Is(err, ErrConcurrentUpdate) {
 			return lock, err
 		}
@@ -1138,7 +1144,7 @@ func acquireCompactStartLock(ctx context.Context, path string) (*storeLock, erro
 		case <-ctx.Done():
 			return nil, &AuthorityLockCancelledError{Cause: ctx.Err()}
 		case <-timer.C:
-			return nil, &AuthorityLockTimeoutError{Timeout: compactStartLockTimeout}
+			return nil, &AuthorityLockTimeoutError{Timeout: timeout}
 		case <-ticker.C:
 		}
 	}
@@ -1565,7 +1571,7 @@ func (store CompactStore) replaceContextGuarded(ctx context.Context, expectedRev
 		}
 		defer maintenance.Release()
 	}
-	lock, err := acquireLocalStoreLock(store.lockPath)
+	lock, err := waitForStoreLock(ctx, maintenanceLockTimeout, func() (*storeLock, error) { return acquireLocalStoreLock(store.lockPath) })
 	if err != nil {
 		return "", err
 	}
