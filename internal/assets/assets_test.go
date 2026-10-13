@@ -489,6 +489,69 @@ func TestWorkUnitSkillCarriesGitWorkflowRules(t *testing.T) {
 	}
 }
 
+// A `shortcut:` marker records a deliberate limit. Closing work lists the
+// markers it adds, and Judgment Day judges must not re-report them as defects
+// unless the stated limit is already crossed.
+func TestSkillsCarryShortcutLedger(t *testing.T) {
+	for path, wants := range map[string][]string{
+		"skills/work-unit-commits/SKILL.md": {
+			"git diff -U0 <base> | grep '^+.*shortcut:'",
+			"git grep -n 'shortcut:'",
+			"each names its limit and when to upgrade",
+		},
+		"skills/judgment-day/SKILL.md": {
+			"is a recorded decision, not a finding",
+			"the stated limit is already crossed",
+			"lacks a limit or an upgrade trigger",
+		},
+		"skills/judgment-day/references/prompts-and-formats.md": {
+			"is a recorded decision, not a finding",
+			"the stated limit is already crossed",
+		},
+	} {
+		content := MustRead(path)
+		for _, want := range wants {
+			if !strings.Contains(content, want) {
+				t.Errorf("%s missing shortcut ledger rule %q", path, want)
+			}
+		}
+	}
+}
+
+// Judgment Day findings must be actionable and grounded: each one names a
+// concrete failing case, its fix, and the cost of skipping it, and the human
+// report ranks them and says what was not checked. The judge JSON keeps its
+// native fields, so the four parts live inside `claim`.
+func TestJudgmentDayCarriesFindingFormat(t *testing.T) {
+	for path, wants := range map[string][]string{
+		"skills/judgment-day/SKILL.md": {
+			"no concrete failing case, no finding",
+			"what it is, the problem, the fix, and the cost of skipping it",
+			"`Must` (BLOCKER/CRITICAL), `Should` (WARNING), and `Nice` (SUGGESTION)",
+			"numbered across `Must`, `Should`, and `Nice`",
+			"`Verdict:`",
+			"`Not checked:`",
+		},
+		"skills/judgment-day/references/prompts-and-formats.md": {
+			"no concrete failing case, no finding",
+			"In `claim`, state what it is, the problem as that failing case, the fix, and the cost of skipping it",
+			"Problem: {input or state} → {wrong result}. Fix: {change}. Cost if skipped: {consequence}.",
+			"Must\n1. ",
+			"Should\n2. ",
+			"Nice\n3. ",
+			"Verdict: {JUDGMENT: APPROVED ✅ | JUDGMENT: ESCALATED ⚠️}",
+			"Not checked: ",
+		},
+	} {
+		content := MustRead(path)
+		for _, want := range wants {
+			if !strings.Contains(content, want) {
+				t.Errorf("%s missing finding format rule %q", path, want)
+			}
+		}
+	}
+}
+
 // The anatomy sections give an agent the excuses to reject, the signs of a
 // violated skill, and the evidence that proves its outcome.
 func TestSkillsCarryAnatomySections(t *testing.T) {
@@ -561,6 +624,35 @@ func TestClaudeManagedOutputStylesAnchorReplyLanguageToLatestUserRequest(t *test
 			for _, required := range tc.artifactContracts {
 				if !strings.Contains(content, required) {
 					t.Fatalf("%s lost artifact-language contract %q", tc.path, required)
+				}
+			}
+		})
+	}
+}
+
+// TestPersonaChannelsCarryClosingLineAndSimplicityRefinements pins the rules
+// both persona channels share: the reply after a change or a verification
+// names what was not checked, the simplicity refinements, and the marker for a
+// limit left on purpose. The output style and the persona carry parallel
+// content, so a rule dropped from one channel is drift.
+func TestPersonaChannelsCarryClosingLineAndSimplicityRefinements(t *testing.T) {
+	paths := []string{
+		"claude/output-style-principal-engineer.md",
+		"generic/persona.md",
+	}
+	required := []string{
+		"When the reply follows a change or a verification, close with one line naming what was skipped or not checked and any risk the user must know.",
+		"add a dependency for a few lines",
+		"a one-liner that needs decoding is not short",
+		"options of equal size, take the one that is correct on edge cases",
+		"`shortcut: <the limit>, <when to upgrade>`",
+	}
+	for _, path := range paths {
+		t.Run(path, func(t *testing.T) {
+			content := MustRead(path)
+			for _, rule := range required {
+				if !strings.Contains(content, rule) {
+					t.Errorf("%s missing persona rule %q", path, rule)
 				}
 			}
 		})
