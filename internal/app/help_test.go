@@ -11,7 +11,7 @@ func TestHelpContainsAllCommands(t *testing.T) {
 	printHelp(&buf, "v1.0.0-test")
 	output := buf.String()
 
-	commands := []string{"install", "uninstall", "sync", "review start", "review capture-result", "review capture-correction-plan", "review capture-refuter", "review capture-validation", "review validate", "review status", "review repair", "review-start", "review-resume", "review-bundle-export", "review-bundle-import", "review-validate", "update", "upgrade", "restore", "version"}
+	commands := []string{"install", "uninstall", "sync", "review start", "review capture-result", "review capture-correction-plan", "review capture-refuter", "review capture-validation", "review validate", "review status", "review repair", "review-start", "review-resume", "review-bundle-export", "review-bundle-import", "review-validate", "update", "upgrade", "restore", "version", "hook branch-guard"}
 	for _, cmd := range commands {
 		if !strings.Contains(output, cmd) {
 			t.Errorf("help output missing command %q", cmd)
@@ -130,5 +130,15 @@ func TestHelpCommandsHeadingIsAligned(t *testing.T) {
 	printHelp(&buf, "v1.2.3")
 	if !strings.Contains(buf.String(), "\nCOMMANDS\n  install") {
 		t.Fatalf("help output has inconsistent command indentation:\n%s", buf.String())
+	}
+}
+
+// TestHookCommandDispatches proves `brunnr-code hook` reaches the hook
+// dispatcher: an unknown hook name is refused by it, not by the TUI path.
+func TestHookCommandDispatches(t *testing.T) {
+	var buf bytes.Buffer
+	err := RunArgs([]string{"hook", "nope"}, &buf)
+	if err == nil || !strings.Contains(err.Error(), `unknown hook "nope"`) {
+		t.Fatalf("RunArgs(hook nope) error = %v, want the hook dispatcher's unknown-hook error", err)
 	}
 }

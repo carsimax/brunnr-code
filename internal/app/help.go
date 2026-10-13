@@ -20,6 +20,8 @@ COMMANDS
                Initialize a project's CodeGraph index; codegraph [init] --help shows local help
   skill-registry refresh
                Refresh .atl/skill-registry.md with cache-hit fast path
+  hook branch-guard --agent <agent>
+               Claude PreToolUse hook: deny file edits on the default branch
   review start [--cwd <repo>] [--base-ref <ref>] [--focus <risk|resilience|readability|reliability>] [--locale <en|es>]
   review capture-result --lineage <id> --target <id> --lens <lens> --order <n> --input <review.json>
                Admit one reviewer result; the final capture closes and burns its review

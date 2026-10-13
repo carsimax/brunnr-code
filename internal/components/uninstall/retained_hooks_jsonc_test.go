@@ -83,6 +83,28 @@ func TestFullAgentClaudeRemovesRetainedHooksFromJSONCSettings(t *testing.T) {
 	}
 }
 
+// TestFullAgentClaudeRemovesBranchGuardHook proves uninstall removes the
+// managed PreToolUse branch guard while a user PreToolUse hook stays.
+func TestFullAgentClaudeRemovesBranchGuardHook(t *testing.T) {
+	seed := `{"hooks": {"PreToolUse": [` +
+		`{"matcher": "Edit|Write|MultiEdit|NotebookEdit", "hooks": [{"type": "command", "command": "brunnr-code hook branch-guard --agent claude-code", "timeout": 10}]},` +
+		`{"matcher": "Bash", "hooks": [{"type": "command", "command": "echo keep"}]}]}}`
+	path, err := applyClaudeSettingsRewrite(t, seed)
+	if err != nil {
+		t.Fatalf("uninstall: %v", err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), "hook branch-guard") {
+		t.Fatalf("managed branch guard kept:\n%s", raw)
+	}
+	if !strings.Contains(string(raw), "echo keep") {
+		t.Fatalf("user PreToolUse hook lost:\n%s", raw)
+	}
+}
+
 func TestFullAgentClaudeRefusesUnsafeJSONCHooksWithoutWrite(t *testing.T) {
 	for name, seed := range map[string]string{
 		"comment beside a user hook":      "{\n  \"hooks\": {\n    // mine\n    " + jsoncMixedStop + ",\n  },\n}\n",

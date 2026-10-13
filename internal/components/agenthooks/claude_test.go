@@ -352,7 +352,7 @@ func TestClaudeRetainedHooksInstall(t *testing.T) {
 	if err != nil || !first.Changed {
 		t.Fatalf("first: %+v %v", first, err)
 	}
-	want := []byte("{\n  \"hooks\": {\n    \"SessionStart\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"brunnr-code review stop-hook --agent claude-code\",\n            \"timeout\": 30,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"startup|resume|clear|compact\"\n      }\n    ],\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"echo keep\",\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      },\n      {\n        \"hooks\": [\n          {\n            \"command\": \"brunnr-code review stop-hook --agent claude-code\",\n            \"timeout\": 60,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      }\n    ]\n  }\n}\n")
+	want := []byte("{\n  \"hooks\": {\n    \"PreToolUse\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"brunnr-code hook branch-guard --agent claude-code\",\n            \"timeout\": 10,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"Edit|Write|MultiEdit|NotebookEdit\"\n      }\n    ],\n    \"SessionStart\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"brunnr-code review stop-hook --agent claude-code\",\n            \"timeout\": 30,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"startup|resume|clear|compact\"\n      }\n    ],\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"command\": \"echo keep\",\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      },\n      {\n        \"hooks\": [\n          {\n            \"command\": \"brunnr-code review stop-hook --agent claude-code\",\n            \"timeout\": 60,\n            \"type\": \"command\"\n          }\n        ],\n        \"matcher\": \"\"\n      }\n    ]\n  }\n}\n")
 	got, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -363,7 +363,7 @@ func TestClaudeRetainedHooksInstall(t *testing.T) {
 	for _, expected := range []struct {
 		command string
 		count   int
-	}{{"brunnr-code review stop-hook --agent claude-code", 2}, {`"matcher": "startup|resume|clear|compact"`, 1}} {
+	}{{"brunnr-code review stop-hook --agent claude-code", 2}, {`"matcher": "startup|resume|clear|compact"`, 1}, {"brunnr-code hook branch-guard --agent claude-code", 1}, {`"matcher": "Edit|Write|MultiEdit|NotebookEdit"`, 1}} {
 		if strings.Count(string(got), expected.command) != expected.count {
 			t.Fatalf("%q count = %d, want %d", expected.command, strings.Count(string(got), expected.command), expected.count)
 		}

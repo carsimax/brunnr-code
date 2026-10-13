@@ -85,6 +85,8 @@ func RunArgs(args []string, stdout io.Writer) error {
 			return runSkillRegistry(args[1:], stdout)
 		case "codegraph":
 			return cli.RunCodeGraph(args[1:], stdout)
+		case "hook":
+			return cli.RunHook(args[1:], os.Stdin, stdout)
 		case "review":
 			// The kill switch must stay reachable even when review authority
 			// itself is disabled, so it is dispatched ahead of the facade.
