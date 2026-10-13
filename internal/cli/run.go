@@ -775,6 +775,13 @@ func (s agentRoutingGuidanceStep) Run() error {
 	if s.changedFiles != nil && retainedHooks.Changed {
 		*s.changedFiles = append(*s.changedFiles, retainedHooks.Files...)
 	}
+	statusLine, err := agenthooks.InstallClaudeStatusLine(hookRoot, adapter, AppVersion)
+	if err != nil {
+		return fmt.Errorf("install Claude status line for %q: %w", s.agent, err)
+	}
+	if s.changedFiles != nil && statusLine.Changed {
+		*s.changedFiles = append(*s.changedFiles, statusLine.Files...)
+	}
 	hooks, err := agenthooks.InstallSkillRegistry(hookRoot, adapter)
 	if err != nil {
 		return fmt.Errorf("install skill-registry hook for %q: %w", s.agent, err)

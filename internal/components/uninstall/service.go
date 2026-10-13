@@ -16,6 +16,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/assets"
 	"github.com/carsimax/brunnr-code/internal/backup"
 	"github.com/carsimax/brunnr-code/internal/components/agentguidance"
+	"github.com/carsimax/brunnr-code/internal/components/agenthooks"
 	"github.com/carsimax/brunnr-code/internal/components/engram"
 	"github.com/carsimax/brunnr-code/internal/components/filemerge"
 	"github.com/carsimax/brunnr-code/internal/components/persona"
@@ -317,6 +318,18 @@ func (s *Service) buildPlan(agentIDs []model.AgentID, componentIDs []model.Compo
 					op = mergeRewriteOps(existing, op)
 				}
 				operationsByKey[key] = op
+			}
+			if agentID == model.AgentClaudeCode && path != "" {
+				// Rewrites run before removals, so the statusLine rewrite
+				// still sees the script it checks ownership against.
+				script := agenthooks.ClaudeStatusLineScriptPath(path)
+				backupTargets[script] = struct{}{}
+				rewrite := rewriteClaudeStatusLine(path)
+				rewrite.agents = []model.AgentID{agentID}
+				operationsByKey[operationKey(rewrite)] = mergeRewriteOps(operationsByKey[operationKey(rewrite)], rewrite)
+				remove := removeClaudeStatusLineScript(script)
+				remove.agents = []model.AgentID{agentID}
+				operationsByKey[operationKey(remove)] = remove
 			}
 		}
 	}
@@ -985,6 +998,98 @@ func removeSkillRegistryHook(raw []byte) ([]byte, bool, error) {
 		return nil, false, err
 	}
 	return append(out, '\n'), true, nil
+}
+
+// rewriteClaudeStatusLine removes the statusLine install added: one that runs
+// the managed script, while that script is absent or still unedited managed
+// output. A statusLine on a script the user owns is theirs and stays.
+func rewriteClaudeStatusLine(path string) operation {
+	return operation{
+		typeID: opRewriteFile,
+		path:   path,
+		apply: func(path string) (bool, bool, error) {
+			raw, err := readManagedFile(path)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return false, false, nil
+				}
+				return false, false, fmt.Errorf("read Claude settings %q: %w", path, err)
+			}
+			strict := json.Valid(raw)
+			root, err := unmarshalJSONObject(raw)
+			if err != nil {
+				return false, false, fmt.Errorf("parse Claude settings %q: %w", path, err)
+			}
+			script := agenthooks.ClaudeStatusLineScriptPath(path)
+			if !agenthooks.ClaudeStatusLineReferences(root["statusLine"], script) {
+				return false, false, nil
+			}
+			if exists, owned, err := managedStatusLineScript(script); err != nil || (exists && !owned) {
+				return false, false, err
+			}
+			var updated []byte
+			if strict {
+				delete(root, "statusLine")
+				if len(root) == 0 {
+					if err := removeFileIfExists(path); err != nil {
+						return false, false, err
+					}
+					return true, true, nil
+				}
+				if updated, err = json.MarshalIndent(root, "", "  "); err != nil {
+					return false, false, err
+				}
+				updated = append(updated, '\n')
+			} else {
+				var kept []string
+				if updated, kept, err = filemerge.RemoveJSONCMembers(raw, nil, []string{"statusLine"}, false); err != nil {
+					return false, false, err
+				}
+				if len(kept) > 0 {
+					return false, false, fmt.Errorf("refuse to remove statusLine spelled with escapes or holding comments in %q; remove it yourself", path)
+				}
+			}
+			if _, err := filemerge.WriteFileAtomic(path, updated, 0o644); err != nil {
+				return false, false, err
+			}
+			return true, false, nil
+		},
+	}
+}
+
+// removeClaudeStatusLineScript removes the status line script only while it is
+// unedited managed output.
+func removeClaudeStatusLineScript(path string) operation {
+	return operation{
+		typeID: opRemoveFile,
+		path:   path,
+		apply: func(path string) (bool, bool, error) {
+			if _, owned, err := managedStatusLineScript(path); err != nil || !owned {
+				return false, false, err
+			}
+			if err := removeFileIfExists(path); err != nil {
+				return false, false, err
+			}
+			return true, true, nil
+		},
+	}
+}
+
+// managedStatusLineScript reports whether the script exists and is unedited
+// managed output. A symlink or other non-regular entry is the user's.
+func managedStatusLineScript(path string) (exists, owned bool, err error) {
+	info, err := os.Lstat(path)
+	if os.IsNotExist(err) {
+		return false, false, nil
+	}
+	if err != nil || !info.Mode().IsRegular() {
+		return err == nil, false, err
+	}
+	data, err := readManagedFile(path)
+	if err != nil {
+		return true, false, err
+	}
+	return true, agenthooks.OwnsClaudeStatusLineScript(data), nil
 }
 
 func rewriteTOMLFile(path string, mutate func(content string) (string, bool)) operation {
