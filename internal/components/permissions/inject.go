@@ -95,7 +95,7 @@ func InjectAtPath(settingsPath string, adapter agents.Adapter) (InjectionResult,
 	if overlay == nil {
 		return InjectionResult{}, nil
 	}
-	writeResult, err := mergeJSONFile(settingsPath, overlay, filemerge.MergeJSONObjectsForPath)
+	writeResult, err := mergeJSONFile(settingsPath, overlay)
 	if err != nil {
 		return InjectionResult{}, err
 	}
@@ -103,13 +103,15 @@ func InjectAtPath(settingsPath string, adapter agents.Adapter) (InjectionResult,
 	return InjectionResult{Changed: writeResult.Changed, Files: []string{settingsPath}}, nil
 }
 
-func mergeJSONFile(path string, overlay []byte, merge func(string, []byte, []byte) ([]byte, error)) (filemerge.WriteResult, error) {
+// mergeJSONFile uses the JSONC merge so a malformed settings.json is refused
+// and comments survive, as persona and agenthooks already do for this file.
+func mergeJSONFile(path string, overlay []byte) (filemerge.WriteResult, error) {
 	baseJSON, err := osReadFile(path)
 	if err != nil {
 		return filemerge.WriteResult{}, err
 	}
 
-	merged, err := merge(path, baseJSON, overlay)
+	merged, err := filemerge.MergeJSONCObjects(baseJSON, overlay)
 	if err != nil {
 		return filemerge.WriteResult{}, err
 	}

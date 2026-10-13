@@ -37,7 +37,7 @@ A whole-repo audit (6 read-only Sonnet auditors, parent spot checks) found user-
 
 ### Must fix
 
-- [ ] T1: `settings.json` malformed or JSONC is rewritten as only `permissions`. Use `filemerge.MergeJSONCObjects` in `components/permissions/inject.go:98`; drop the malformed-as-`{}` swallow in `filemerge/json_merge.go:11-19` and its pinning test (`json_merge_test.go:120`); confirm `agents/claude/adapter.go` and `engram/inject.go:472` still hold.
+- [x] T1: `settings.json` malformed or JSONC is rewritten as only `permissions`. Use `filemerge.MergeJSONCObjects` in `components/permissions/inject.go:98`; drop the malformed-as-`{}` swallow in `filemerge/json_merge.go:11-19` and its pinning test (`json_merge_test.go:120`); confirm `agents/claude/adapter.go` and `engram/inject.go:472` still hold.
 - [ ] T2: user `permissions.deny` is replaced by the managed list. In `mergeObjectScope` (`filemerge/json_merge.go:905`), when base and overlay are both arrays, keep base entries and append missing overlay entries. Test with a user deny entry.
 - [ ] T3: lens and correction-plan captures run with `context.Background()` (`cli/review_artifact.go:192`, `cli/review_correction_plan_capture.go:48`). Wrap in `WithTimeout(reviewProviderRoleCaptureTimeout)`; set `command.WaitDelay` in the Claude and Codex adapters.
 - [ ] T4: stop-hook prints `--cwd <root>` unquoted (`cli/review_stop_hook.go:294`). Use `pathquote.ShellWord(root)`. Test with a path containing a space and `;`.
@@ -118,7 +118,8 @@ main
 
 ## Progress
 
-- 2026-10-12: feature document created from the audit report. No branch yet.
+- 2026-10-12: feature document created from the audit report. Integration branch `fix/audit-remediation`, draft PR #1 to `main`.
+- T1 done on `fix/audit-remediation-t01`. Route: inline (two small files plus tests). `permissions` merges `settings.json` with `MergeJSONCObjects`, so a malformed file is refused untouched and comments survive; `MergeJSONObjects` no longer treats a malformed base as `{}` (its other callers pre-validate or ignore the error). The full suite exposed a pre-existing `MergeJSONCObjects` bug: a replaced nested value kept its in-document indent and got the key indent again, so each sync added 2 spaces and broke sync idempotence; fixed by compacting and re-indenting the member. RED observed first: `TestInjectClaudeCodeRefusesMalformedSettings`, `TestInjectClaudeCodePreservesSettingsComments`, `TestMergeJSONCObjectsNestedValueIsIdempotent` (and the three `internal/cli` sync idempotence tests). Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok.
 
 ## Next step
 

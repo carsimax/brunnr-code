@@ -11,11 +11,7 @@ import (
 func MergeJSONObjects(baseJSON []byte, overlayJSON []byte) ([]byte, error) {
 	base, err := unmarshalJSONObject(baseJSON)
 	if err != nil {
-		// Real user machines may have a malformed or non-JSON mcp.json (e.g. a file
-		// that starts with "a" or contains arbitrary text). The installer backup step
-		// already snapshots the existing file before apply, so proceeding with an
-		// empty base is safe and far preferable to aborting the whole install.
-		base = map[string]any{}
+		return nil, fmt.Errorf("refuse to merge malformed json: %w", err)
 	}
 
 	overlay, err := unmarshalJSONObject(overlayJSON)
@@ -89,7 +85,16 @@ func MergeJSONCObjects(baseJSON []byte, overlayJSON []byte) ([]byte, error) {
 	}
 	updated := string(baseJSON)
 	for key := range overlay {
-		updated = upsertTopLevelJSONCValue(updated, key, string(members[key]))
+		// A member keeps its in-document indentation; reset it so the key's own
+		// indent is applied exactly once and repeated merges are byte-stable.
+		var compact, value bytes.Buffer
+		if err := json.Compact(&compact, members[key]); err != nil {
+			return nil, err
+		}
+		if err := json.Indent(&value, compact.Bytes(), "", "  "); err != nil {
+			return nil, err
+		}
+		updated = upsertTopLevelJSONCValue(updated, key, value.String())
 	}
 	if !strings.HasSuffix(updated, "\n") {
 		updated += "\n"
