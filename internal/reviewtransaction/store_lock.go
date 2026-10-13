@@ -22,6 +22,8 @@ const (
 	maintenanceExclusive maintenanceLockMode = true
 )
 
+// shortcut: same 2s budget as compactStartLockTimeout and the same limit (git
+// evidence work under the lock); upgrade together with it.
 const maintenanceLockTimeout = 2 * time.Second
 
 type storeLockOwner struct {

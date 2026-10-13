@@ -35,11 +35,12 @@ func NewClaudeAdapter() *ClaudeAdapter {
 // `--setting-sources ""` drops user/project settings (hooks, plugins,
 // permissions), the explicit `--system-prompt` replaces default context
 // assembly including CLAUDE.md memory, `--tools ""` leaves no live tools, and
-// the empty scratch working directory carries no project state.
+// `--strict-mcp-config` keeps user MCP servers from starting, and the empty
+// scratch working directory carries no project state.
 var claudeReviewerArguments = []string{
 	"--print", "--output-format", "text", "--tools", "",
 	"--permission-mode", "dontAsk", "--no-session-persistence",
-	"--setting-sources", "",
+	"--setting-sources", "", "--strict-mcp-config",
 	"--system-prompt", "You are an isolated code reviewer process. Your only instructions are those delivered in the user message.",
 }
 
