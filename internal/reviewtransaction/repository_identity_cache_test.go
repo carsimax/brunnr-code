@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -194,5 +195,145 @@ func TestRepositoryIdentityCacheRefreshesReplacedRepository(t *testing.T) {
 	identity = reviewRepositoryIdentityRecordFromLease(lease)
 	if format, err := repositoryObjectFormat(ctx, identity); err != nil || format != "sha256" {
 		t.Fatalf("repositoryObjectFormat() after replacement = %q, %v; want sha256", format, err)
+	}
+}
+
+// countGitChildren counts every git child this package spawns from here on
+// whose argument list matches.
+func countGitChildren(t *testing.T, match func(args []string) bool) *atomic.Int64 {
+	t.Helper()
+	var count atomic.Int64
+	original := gitCommandContext
+	gitCommandContext = func(ctx context.Context, name string, args ...string) *exec.Cmd {
+		if match(args) {
+			count.Add(1)
+		}
+		return original(ctx, name, args...)
+	}
+	t.Cleanup(func() { gitCommandContext = original })
+	return &count
+}
+
+// reviewGitAnswerQueries counts the root, directories and object-format
+// rev-parse queries separately.
+type reviewGitAnswerQueries struct{ root, directories, format *atomic.Int64 }
+
+func countReviewGitAnswerQueries(t *testing.T) reviewGitAnswerQueries {
+	t.Helper()
+	return reviewGitAnswerQueries{
+		root: countGitChildren(t, func(args []string) bool {
+			return slicesContain(args, "rev-parse") && args[len(args)-1] == "--show-toplevel"
+		}),
+		directories: countGitChildren(t, func(args []string) bool { return slicesContain(args, "--git-common-dir") }),
+		format:      countGitChildren(t, func(args []string) bool { return slicesContain(args, "--show-object-format") }),
+	}
+}
+
+// askReviewGitAnswers runs the root, directories and object-format queries
+// for repo, answered from the caches when they are warm.
+func askReviewGitAnswers(t *testing.T, repo string) {
+	t.Helper()
+	ctx := t.Context()
+	if _, err := (SnapshotBuilder{Repo: repo}).ResolveRepositoryRoot(ctx); err != nil {
+		t.Fatal(err)
+	}
+	lease, err := OpenRepositoryIdentityLease(ctx, repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repositoryObjectFormat(ctx, reviewRepositoryIdentityRecordFromLease(lease)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func appendReviewGitConfig(t *testing.T, path string) {
+	t.Helper()
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.WriteString("[brunnr]\n\tedit = true\n"); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestReviewGitAnswerCachesRefreshAfterConfigChanges(t *testing.T) {
+	requireSnapshotGit(t)
+	for _, test := range []struct {
+		name  string
+		setup func(t *testing.T, repo string) string
+	}{
+		{"repository config", func(t *testing.T, repo string) string {
+			return filepath.Join(repo, ".git", "config")
+		}},
+		{"GIT_CONFIG_GLOBAL file", func(t *testing.T, repo string) string {
+			path := filepath.Join(t.TempDir(), "global.gitconfig")
+			appendReviewGitConfig(t, path)
+			t.Setenv("GIT_CONFIG_GLOBAL", path)
+			return path
+		}},
+		{"gitconfig created in HOME", func(t *testing.T, repo string) string {
+			home := canonicalTempDir(t)
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "xdg"))
+			return filepath.Join(home, ".gitconfig")
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			repo := initSnapshotRepo(t)
+			config := test.setup(t, repo)
+			askReviewGitAnswers(t, repo)
+			queries := countReviewGitAnswerQueries(t)
+			askReviewGitAnswers(t, repo)
+			if got := queries.root.Load() + queries.directories.Load() + queries.format.Load(); got != 0 {
+				t.Fatalf("unchanged config spawned %d rev-parse queries, want 0", got)
+			}
+			appendReviewGitConfig(t, config)
+			askReviewGitAnswers(t, repo)
+			if queries.root.Load() == 0 || queries.directories.Load() == 0 || queries.format.Load() == 0 {
+				t.Fatalf("after editing %s: root=%d directories=%d format=%d queries, want each asked again",
+					config, queries.root.Load(), queries.directories.Load(), queries.format.Load())
+			}
+		})
+	}
+}
+
+func TestReviewGitAnswerCachesRejectConfigEditDuringQuery(t *testing.T) {
+	requireSnapshotGit(t)
+	repo := initSnapshotRepo(t)
+	config := filepath.Join(repo, ".git", "config")
+	forgetReviewGitAnswers()
+	// The edit lands after Git read the config and before the answer is
+	// stored, so only stamps taken before the query can see it.
+	reviewGitAnswerHook = func() { appendReviewGitConfig(t, config) }
+	askReviewGitAnswers(t, repo)
+	reviewGitAnswerHook = nil
+	queries := countReviewGitAnswerQueries(t)
+	askReviewGitAnswers(t, repo)
+	if queries.root.Load() == 0 || queries.directories.Load() == 0 {
+		t.Fatalf("config edited during the query: root=%d directories=%d queries, want each asked again",
+			queries.root.Load(), queries.directories.Load())
+	}
+}
+
+func TestReviewGitAnswerCacheBoundsBytes(t *testing.T) {
+	var cache reviewGitAnswerCache[int]
+	cache.store("oversized", 1, reviewGitAnswerCacheByteLimit/4+1)
+	if _, ok := cache.load("oversized"); ok {
+		t.Fatal("an answer above a quarter of the byte limit was cached")
+	}
+	quarter := reviewGitAnswerCacheByteLimit / 4
+	for index := range 5 {
+		cache.store(strconv.Itoa(index), index, quarter)
+		if cache.bytes > reviewGitAnswerCacheByteLimit {
+			t.Fatalf("cache holds %d bytes, limit %d", cache.bytes, reviewGitAnswerCacheByteLimit)
+		}
+	}
+	if _, ok := cache.load("4"); !ok {
+		t.Fatal("the newest answer was not cached after the byte bound cleared the cache")
 	}
 }

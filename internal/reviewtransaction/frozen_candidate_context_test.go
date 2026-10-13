@@ -504,6 +504,9 @@ func TestFrozenCandidateContextRejectsSnapshotMetadataMismatch(t *testing.T) {
 func TestPreparedCandidateInspectorReusesOneSetupForFourReads(t *testing.T) {
 	requireSnapshotGit(t)
 	repo, snapshot := preparedCandidateSnapshot(t)
+	// Cold caches, so every setup query the inspector runs is counted: a
+	// warm cache would hide a setup repeated per read.
+	forgetReviewGitAnswers()
 	original := gitCommandContext
 	children := 0
 	gitCommandContext = func(ctx context.Context, name string, args ...string) *exec.Cmd {
@@ -528,14 +531,13 @@ func TestPreparedCandidateInspectorReusesOneSetupForFourReads(t *testing.T) {
 			t.Fatalf("Inspect(%q, %d) error = %v", read.operation, read.pathIndex, err)
 		}
 	}
-	// 12 before the repository identity cache: prepare runs one rename-aware
-	// numstat (-M) for the patch operation's rename pairing (#3208) on top of
-	// its setup and raw-diff reads. The fixture already resolved this
-	// repository, so its root, directory and object-format rev-parse calls
-	// are now answered from the verified cache. 9 before the object answer
-	// cache: the three tree queries the fixture's Build already ran are reused.
-	if children != 6 {
-		t.Fatalf("Git children for prepare plus four reads = %d, want 6", children)
+	// One setup: the root, directories and object-format rev-parse calls,
+	// evidence validation's diff-tree (always re-proved by Git), the raw diff
+	// and the rename-aware numstat (-M) for the patch operation's rename
+	// pairing (#3208); then one child per read. A setup repeated per read
+	// adds at least validation's diff-tree to every read.
+	if children != 10 {
+		t.Fatalf("Git children for prepare plus four reads = %d, want 10", children)
 	}
 	builder := SnapshotBuilder{Repo: repo}
 	for _, inspection := range []struct {

@@ -357,6 +357,7 @@ func createSnapshotIndex(gitDir string) (*os.File, func(), error) {
 
 // ValidateEvidence binds snapshot metadata to repository object evidence.
 func (builder SnapshotBuilder) ValidateEvidence(ctx context.Context, snapshot Snapshot) error {
+	ctx = withReviewGitObjectRecheck(ctx)
 	if err := validateGeneratedPathInterpretation(snapshot.GeneratedPathInterpretation); err != nil {
 		return err
 	}
@@ -745,10 +746,12 @@ func (builder SnapshotBuilder) ResolveRepositoryRoot(ctx context.Context) (strin
 	if root, ok := cachedReviewRepositoryRoot(abs); ok && pathidentity.Contains(root, abs) {
 		return root, nil
 	}
+	prepared, cacheable := prepareReviewRepositoryRoot(ctx, abs)
 	root, err := resolveGitDirectory(ctx, abs, "--show-toplevel")
 	if err != nil {
 		return "", err
 	}
+	afterReviewGitAnswer()
 	// 1773 boundary 2: filepath.Rel decided containment by comparing strings,
 	// so on a default case-insensitive APFS volume the requested path and the
 	// toplevel Git reported for it -- same device, same inode, different
@@ -757,7 +760,9 @@ func (builder SnapshotBuilder) ResolveRepositoryRoot(ctx context.Context) (strin
 	if !pathidentity.Contains(root, abs) {
 		return "", errors.New("resolved repository root does not contain the requested path")
 	}
-	rememberReviewRepositoryRoot(abs, root)
+	if cacheable {
+		rememberReviewRepositoryRoot(abs, root, prepared)
+	}
 	return root, nil
 }
 

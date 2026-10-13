@@ -31,8 +31,17 @@ type reviewGitObjectQuery struct {
 	objects fs.FileInfo
 }
 
+// reviewGitObjectRecheckKey marks a context whose object queries must be
+// answered by Git: an object-store identity check cannot see pruned objects or
+// a removed alternate, so evidence validation re-proves its trees.
+type reviewGitObjectRecheckKey struct{}
+
+func withReviewGitObjectRecheck(ctx context.Context) context.Context {
+	return context.WithValue(ctx, reviewGitObjectRecheckKey{}, true)
+}
+
 func (query reviewGitObjectQuery) load(ctx context.Context) ([]byte, bool) {
-	if ctx.Err() != nil {
+	if ctx.Err() != nil || ctx.Value(reviewGitObjectRecheckKey{}) != nil {
 		return nil, false
 	}
 	answer, ok := reviewGitObjectAnswerCache.load(query.key)
@@ -43,7 +52,7 @@ func (query reviewGitObjectQuery) load(ctx context.Context) ([]byte, bool) {
 }
 
 func (query reviewGitObjectQuery) store(output []byte) {
-	reviewGitObjectAnswerCache.store(query.key, reviewGitObjectAnswer{objects: query.objects, output: bytes.Clone(output)})
+	reviewGitObjectAnswerCache.store(query.key, reviewGitObjectAnswer{objects: query.objects, output: bytes.Clone(output)}, len(output))
 }
 
 // reviewGitObjectQueryFor reports whether a Git run is a cacheable read-only

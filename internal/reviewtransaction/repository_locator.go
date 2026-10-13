@@ -787,17 +787,18 @@ func openRepositoryIdentityLeaseAtRoot(ctx context.Context, root string) (*Repos
 		}
 	}
 	reviewRepositoryDirectoriesCache.drop(rootIdentity.path)
+	stamps, stampedGitDir, stampedCommonDir, stamped := captureReviewGitConfigStamps(ctx, gitControl)
 	directories, err := resolveReviewRepositoryDirectories(ctx, rootIdentity.path)
 	if err != nil {
 		return nil, err
 	}
-	stamps, stamped := captureReviewGitFileStamps(reviewRepositoryDirectoryStampPaths(directories)...)
+	afterReviewGitAnswer()
 	lease, err := completeRepositoryIdentityLease(ctx, rootIdentity, gitControl, directories)
 	if err != nil {
 		return nil, err
 	}
 	if stamped {
-		rememberReviewRepositoryDirectories(rootIdentity.path, gitControl, directories, stamps)
+		rememberReviewRepositoryDirectories(rootIdentity.path, gitControl, directories, stamps, stampedGitDir, stampedCommonDir)
 	}
 	return lease, nil
 }

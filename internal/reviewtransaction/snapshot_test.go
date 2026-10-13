@@ -1992,9 +1992,10 @@ func TestSnapshotIntendedQueriesUseConstantGitInvocations(t *testing.T) {
 	if err := (SnapshotBuilder{Repo: repo}).ValidateEvidence(context.Background(), snapshot); err != nil {
 		t.Fatal(err)
 	}
-	// 0, not 1: Build already ran this exact ls-tree over the same tree ID.
-	if counts["ls-tree"] != 0 {
-		t.Fatalf("128-path ValidateEvidence ls-tree invocations = %d, want 0", counts["ls-tree"])
+	// Evidence validation re-proves the tree with Git even though Build
+	// already ran this exact ls-tree.
+	if counts["ls-tree"] != 1 {
+		t.Fatalf("128-path ValidateEvidence ls-tree invocations = %d, want 1", counts["ls-tree"])
 	}
 }
 

@@ -133,3 +133,27 @@ func TestGitObjectAnswerCacheBypassesNonObjectArguments(t *testing.T) {
 		t.Fatalf("symbolic revision spawned %d ls-tree processes, want 2", count.Load())
 	}
 }
+
+func TestValidateEvidenceReprovesTreesWithGitWhenCacheIsWarm(t *testing.T) {
+	requireSnapshotGit(t)
+	repo, snapshot := preparedCandidateSnapshot(t)
+	builder := SnapshotBuilder{Repo: repo}
+	if err := builder.ValidateEvidence(t.Context(), snapshot); err != nil {
+		t.Fatal(err)
+	}
+	diffTree := countGitSubcommand(t, "diff-tree")
+	if err := builder.ValidateEvidence(t.Context(), snapshot); err != nil {
+		t.Fatal(err)
+	}
+	if diffTree.Load() == 0 {
+		t.Fatal("warm ValidateEvidence took its tree evidence from the cache, want Git to re-prove it")
+	}
+	// The same query outside evidence validation still reuses the answer.
+	before := diffTree.Load()
+	if _, err := builder.changedPaths(t.Context(), snapshot.BaseTree, snapshot.CandidateTree); err != nil {
+		t.Fatal(err)
+	}
+	if diffTree.Load() != before {
+		t.Fatal("changedPaths outside validation skipped the cache")
+	}
+}
