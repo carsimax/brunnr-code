@@ -5,7 +5,7 @@ setopt extendedglob
 # Installed by brunnr-code; the version below is baked in at install/sync time.
 input=$(cat)
 
-IFS=$'\t' read -r model effort ctx five five_r week week_r dir style added removed dur <<< "$(echo "$input" | jq -r '[
+IFS=$'\t' read -r model effort ctx five five_r week week_r dir added removed dur <<< "$(echo "$input" | jq -r '[
   (.model.display_name // "-"),
   (.effort.level // "-"),
   (.context_window.used_percentage // "-"),
@@ -14,7 +14,6 @@ IFS=$'\t' read -r model effort ctx five five_r week week_r dir style added remov
   (.rate_limits.seven_day.used_percentage // "-"),
   (.rate_limits.seven_day.resets_at // "-"),
   (.workspace.current_dir // .cwd // "-"),
-  (.output_style.name // "-"),
   (.cost.total_lines_added // 0),
   (.cost.total_lines_removed // 0),
   (.cost.total_duration_ms // 0)
@@ -56,8 +55,7 @@ seg() { # label pct reset_text
 # ── Identity pieces ──
 a1="${E}[38;5;111m${model}${RST}"
 [[ "$effort" != "-" ]] && a1+=" ${E}[38;5;176m${effort}${RST}"
-[[ "$style" != "-" ]] && a1+=" ${DIM}${style}${RST}"
-a1+=" ${DIM}brunnr-code __BRUNNR_CODE_VERSION__${RST}"
+a1+=" ${DIM}ᛒ__BRUNNR_CODE_VERSION__${RST}"
 
 a2=""
 [[ "$dir" != "-" ]] && a2="${E}[38;5;117m${dir:t}${RST}"

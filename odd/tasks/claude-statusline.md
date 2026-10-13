@@ -22,6 +22,7 @@ The status line lives only in `~/.claude/statusline-command.sh` on one machine. 
 - [x] T1 Embedded statusline asset + installer step + uninstall + tests (route: delegated writer; trigger: 2+ non-trivial files)
 
 - [x] T2 Skip a fresh status line setup when `zsh` or `jq` is missing from PATH, warn on stderr (route: inline; small, understood change)
+- [x] T3 Drop the output style segment and shorten the version to `ᛒ<version>` (route: inline; template + test)
 
 ## Acceptance criteria
 - Fresh install writes the script and `statusLine`; script shows `brunnr-code <version>`.
@@ -45,5 +46,8 @@ Strategy: single-pr (forecast < 400 authored lines).
 - T1 shipped in v0.2.0 (PR #29).
 - T2: installer does not install system packages (needs sudo, per-distro package managers). It detects `zsh`/`jq` with `exec.LookPath`; a missing tool skips a fresh setup and returns `Result.Missing`, which install/sync print as a warning. An already managed statusLine keeps being refreshed. Evidence: RED `undefined: SetStatusLineLookPathForTest`; GREEN agenthooks + uninstall tests; `gofmtcheck` ok; `scripts/test-fast.sh` PASS.
 
+- T2 merged (PR #31).
+- T3: user picked `ᛒ<version>` over `bc <version>` and `v<version>`; accepted risk that terminal fonts without the rune show a box. Unedited managed scripts upgrade on the next sync (hash trailer). Evidence: agenthooks/uninstall/assets tests ok, `gofmtcheck` ok, `scripts/test-fast.sh` PASS, render `Opus 5.5 high ᛒ0.2.0 │ ctx ██░░░ 42% │ tmp`.
+
 ## Next step
-Push and open PR for T2 (user decision).
+Push and open PR for T3, then release v0.2.1 (user decision).
