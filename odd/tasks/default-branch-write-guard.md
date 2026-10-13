@@ -19,10 +19,10 @@ Branch: `feat/default-branch-write-guard`. Delivery: `ask-on-risk` (forecast ~35
 
 | ID | Specs | Route | Status | Evidence |
 |----|-------|-------|--------|----------|
-| T1 | S1-S4 | inline (no writer reason: one sequential unit) | pending | |
-| T2 | S5-S6 | inline | pending | |
-| T3 | S7 | inline | pending | |
-| V  | S1-S7 | delegated independent verifier (high risk) | pending | |
+| T1 | S1-S4 | inline (no writer reason: one sequential unit) | done | `d8eeef82` (RED: `RunHook` undefined; GREEN 11/11), hardening `53e7134c` (RED: large write + GIT_DIR tests fail on `d8eeef82`) |
+| T2 | S5-S6 | inline | done | `efc4f0f4` (RED: installer byte test + uninstall test) |
+| T3 | S7 | inline | done | `d8eeef82` help, `efc4f0f4` README |
+| V  | S1-S7 | delegated independent verifier (high risk) | partial | T1 at `d8eeef82`: S1-S4 PASS, no blockers; S5-S7 pending |
 
 ## Log
 
@@ -30,4 +30,9 @@ Branch: `feat/default-branch-write-guard`. Delivery: `ask-on-risk` (forecast ~35
 - **L2 (2026-10-13):** Explorer comparison: upstream gentle-ai HEAD `61125bb` and brunnr-code 0.3.0 share identical routing rules; branching/tracking/delegation depend on model judgment and no hook enforces them. Recommendation: a deterministic `PreToolUse` guard.
 - **L3 (2026-10-13, user, verbatim):** "ya fusione a main para que hagas sync y empecemos con lo que sigue"; behavior choice recorded in S1.
 - **L4 (2026-10-13):** Hook infrastructure map: retained hooks install via `agenthooks.InstallRetainedClaudeHooks` (`internal/components/agenthooks/claude.go:13`), shared by install and sync (`internal/cli/run.go:753`); ownership is the exact command string; uninstall walks `PreToolUse` already and needs the command in `managedRetainedHookCommand` (`internal/components/uninstall/service.go:897`). Classified large + high risk.
-- **Next:** T1 after confirming the PreToolUse deny JSON contract against Claude Code docs.
+- **L5 (2026-10-13):** PreToolUse contract confirmed (https://code.claude.com/docs/en/hooks.md): exit 0 + `hookSpecificOutput.permissionDecision: "deny"`; exit 1 fails open.
+- **L6 (2026-10-13):** T1 committed `d8eeef82`; assess `high_risk` (review due). Verifier at `d8eeef82`: S1-S4 PASS, no blockers; advisories: 4 MiB cap let a large Write through, inherited `GIT_DIR` overrode `-C`, relative path out of domain, `tool_name` unchecked (matcher scopes it), unborn `main` denied (consistent with S1). First two fixed in `53e7134c` with regression tests.
+- **L7 (2026-10-13):** Full suite run 1 failed `TestNoGoSourceBindsALiteralRuntimeIdentityIntoPrintedCommands` (literal `--agent claude-code` in printed strings, #2440 guard) and `TestRunArgsRestoreUnknownIDReturnsError` (passed 3/3 in isolation, intermittent). Fixed literals; run 2: `scripts/test-fast.sh` exit 0.
+- **L8 (2026-10-13, user, verbatim):** "lo que estamos haciendo resuelve el tema de que no se delega a subagentes?" — answered: no; the hook only enforces branching. Proposed a follow-up lookup-counter hook.
+- **L9 (2026-10-13, user, verbatim):** "Y como lo hace gentle-ia para que funcione sin un hook? esta bien la idea de hacerlo asi pero por que gentle ai no lo hace y si lo pidemos portar de  https://github.com/Gentleman-Programming/gentle-ai eso inclute el trabajo en ramas, dale un ojo." — explorer auditing upstream branch mechanisms and post-fork commits.
+- **Next:** verifier over S5-S7 (`efc4f0f4`), then the due review; upstream port decision pending the audit.
