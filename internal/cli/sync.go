@@ -30,6 +30,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/pipeline"
 	"github.com/carsimax/brunnr-code/internal/planner"
 	"github.com/carsimax/brunnr-code/internal/state"
+	"github.com/carsimax/brunnr-code/internal/statecoord"
 	"github.com/carsimax/brunnr-code/internal/system"
 	"github.com/carsimax/brunnr-code/internal/verify"
 )
@@ -1291,7 +1292,7 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 }
 
 func persistSyncManagedAssetState(homeDir string, selection model.Selection, writer string, codexServiceTier *string) error {
-	return withInstallStateLock(homeDir, func() error {
+	return statecoord.WithLock(homeDir, func() error {
 		latest, err := state.Read(homeDir)
 		if errors.Is(err, os.ErrNotExist) {
 			latest = state.InstallState{}

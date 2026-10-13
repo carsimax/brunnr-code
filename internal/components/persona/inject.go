@@ -90,35 +90,6 @@ func injectInternal(homeDir string, adapter agents.Adapter) (InjectionResult, er
 			files = append(files, promptPath)
 			break
 		}
-
-		// Writing ONLY the persona content would destroy any routing/engram
-		// sections that are injected later in the pipeline. Instead, we write the
-		// persona content as the base and let subsequent inject steps (routing,
-		// engram) append their sections.
-		//
-		// If the file already exists and has managed sections (routing, engram), we
-		// must preserve them — replace only the persona portion at the top.
-		existing, readErr := readFileOrEmpty(promptPath)
-		if readErr != nil {
-			return InjectionResult{}, readErr
-		}
-
-		if preserved, ok := preserveManagedSections(existing, content); ok {
-			writeResult, err := filemerge.WriteFileAtomic(promptPath, []byte(preserved), 0o644)
-			if err != nil {
-				return InjectionResult{}, err
-			}
-			changed = changed || writeResult.Changed
-			files = append(files, promptPath)
-			break
-		}
-
-		writeResult, err := filemerge.WriteFileAtomic(promptPath, []byte(content), 0o644)
-		if err != nil {
-			return InjectionResult{}, err
-		}
-		changed = changed || writeResult.Changed
-		files = append(files, promptPath)
 	}
 
 	// 2. Write the managed output style and enable it in settings.
@@ -240,35 +211,6 @@ var osReadFile = func(path string) ([]byte, error) {
 	}
 
 	return content, nil
-}
-
-// preserveManagedSections checks whether the existing file content has
-// brunnr-code managed sections (routing guidance, engram protocol, etc.) and
-// returns new content that preserves those sections while replacing only the
-// persona text before them. Returns ("", false) when no preservation is needed
-// (empty file or no managed markers found).
-func preserveManagedSections(existing, newPersona string) (string, bool) {
-	if existing == "" {
-		return "", false
-	}
-
-	idx := strings.Index(existing, "<!-- brunnr-code:")
-	if idx < 0 {
-		return "", false
-	}
-
-	managedSuffix := existing[idx:]
-	updated := newPersona
-	if !strings.HasSuffix(updated, "\n") {
-		updated += "\n"
-	}
-	if idx > 0 {
-		// There was persona content before the markers — add a blank line separator.
-		updated += "\n"
-	}
-	updated += managedSuffix
-
-	return updated, true
 }
 
 func readFileOrEmpty(path string) (string, error) {

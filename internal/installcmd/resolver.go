@@ -13,8 +13,6 @@ type CommandSequence = [][]string
 
 type Resolver interface {
 	ResolveAgentInstall(profile system.PlatformProfile, agent model.AgentID) (CommandSequence, error)
-	ResolveComponentInstall(profile system.PlatformProfile, component model.ComponentID) (CommandSequence, error)
-	ResolveDependencyInstall(profile system.PlatformProfile, dependency string) (CommandSequence, error)
 }
 
 type profileResolver struct{}
@@ -58,50 +56,4 @@ func resolveClaudeCodeInstall(profile system.PlatformProfile) CommandSequence {
 var npmBasedAgents = map[model.AgentID]struct{}{
 	model.AgentClaudeCode: {},
 	model.AgentCodex:      {},
-}
-
-func (profileResolver) ResolveComponentInstall(profile system.PlatformProfile, component model.ComponentID) (CommandSequence, error) {
-	switch component {
-	case model.ComponentEngram:
-		return resolveEngramInstall(profile)
-	default:
-		return nil, fmt.Errorf("install command is not supported for component %q", component)
-	}
-}
-
-func (profileResolver) ResolveDependencyInstall(profile system.PlatformProfile, dependency string) (CommandSequence, error) {
-	if dependency == "" {
-		return nil, fmt.Errorf("dependency name is required")
-	}
-
-	switch profile.PackageManager {
-	case "apt":
-		return CommandSequence{{"sudo", "apt-get", "install", "-y", dependency}}, nil
-	case "pacman":
-		return CommandSequence{{"sudo", "pacman", "-S", "--noconfirm", dependency}}, nil
-	case "dnf":
-		return CommandSequence{{"sudo", "dnf", "install", "-y", dependency}}, nil
-	case "rpm-ostree":
-		return CommandSequence{{"rpm-ostree", "install", "-y", "--apply-live", dependency}}, nil
-	case "winget":
-		return CommandSequence{{"winget", "install", "--id", dependency, "-e", "--accept-source-agreements", "--accept-package-agreements"}}, nil
-	default:
-		return nil, fmt.Errorf(
-			"unsupported package manager %q for os=%q distro=%q",
-			profile.PackageManager,
-			profile.OS,
-			profile.LinuxDistro,
-		)
-	}
-}
-
-// resolveEngramInstall always returns an error: Engram has no package-manager
-// install command. Callers must use engram.DownloadLatestBinary() instead,
-// which installs the pre-built release binary from
-// https://github.com/Gentleman-Programming/engram/releases
-func resolveEngramInstall(profile system.PlatformProfile) (CommandSequence, error) {
-	return nil, fmt.Errorf(
-		"engram on %q/%q uses direct binary download — use engram.DownloadLatestBinary() instead of CommandSequence",
-		profile.OS, profile.PackageManager,
-	)
 }
