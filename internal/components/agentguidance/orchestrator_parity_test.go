@@ -30,6 +30,7 @@ var orchestratorParityHeadings = []string{
 	// Core role.
 	"Identity Contract",
 	"Core Role",
+	"Authorized work continuity",
 	"Mental Model",
 	"Safety",
 	// Delegation.
