@@ -110,7 +110,7 @@ func TestInstallClaudeStatusLine(t *testing.T) {
 				t.Fatal(scriptErr)
 			}
 			body := string(scriptData)
-			if !strings.Contains(body, "brunnr-code v1.2.3") || strings.Contains(body, statusLineVersionToken) {
+			if !strings.Contains(body, "ᛒv1.2.3") || strings.Contains(body, statusLineVersionToken) {
 				t.Fatalf("version not substituted in script")
 			}
 			if !OwnsClaudeStatusLineScript(scriptData) {
@@ -147,7 +147,7 @@ func TestInstallClaudeStatusLineUpgradeKeepsUserEdits(t *testing.T) {
 		t.Fatalf("upgrade: %+v %v", upgraded, err)
 	}
 	data, _ := os.ReadFile(script)
-	if !strings.Contains(string(data), "brunnr-code v2") {
+	if !strings.Contains(string(data), "ᛒv2") {
 		t.Fatal("managed script not upgraded")
 	}
 
