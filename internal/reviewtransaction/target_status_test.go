@@ -915,6 +915,7 @@ func TestAssessTargetStatusPropagatesOperationalAuthorityFailures(t *testing.T) 
 
 	t.Run("git exit 73", func(t *testing.T) {
 		repo := targetStatusOperationalFailureFixture(t, "status-git-exit")
+		forgetReviewGitAnswers()
 		writeSnapshotFile(t, repo, "tracked.txt", "drifted candidate\n")
 		originalCommand := gitCommandContext
 		t.Cleanup(func() { gitCommandContext = originalCommand })
@@ -936,6 +937,7 @@ func TestAssessTargetStatusPropagatesOperationalAuthorityFailures(t *testing.T) 
 
 	t.Run("git timeout", func(t *testing.T) {
 		repo := targetStatusOperationalFailureFixture(t, "status-git-timeout")
+		forgetReviewGitAnswers()
 		originalCommand, originalTimeout, originalWait := gitCommandContext, LocalGitCommandTimeout, gitCommandWaitDelay
 		t.Cleanup(func() {
 			gitCommandContext, LocalGitCommandTimeout, gitCommandWaitDelay = originalCommand, originalTimeout, originalWait
@@ -957,6 +959,7 @@ func TestAssessTargetStatusPropagatesOperationalAuthorityFailures(t *testing.T) 
 
 	t.Run("git process control", func(t *testing.T) {
 		repo := targetStatusOperationalFailureFixture(t, "status-git-control")
+		forgetReviewGitAnswers()
 		originalStarter := gitProcessTreeStarter
 		t.Cleanup(func() { gitProcessTreeStarter = originalStarter })
 		cause := errors.New("job object assignment denied")

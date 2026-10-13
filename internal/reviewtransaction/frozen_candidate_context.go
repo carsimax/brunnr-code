@@ -547,7 +547,7 @@ func isolatedImmutableTreeGitWithAttributesFile(ctx context.Context, repo string
 	if err != nil {
 		return nil, "", func() error { return nil }, err
 	}
-	objectFormat, err := gitObjectFormat(ctx, identity.RepositoryRoot)
+	objectFormat, err := repositoryObjectFormat(ctx, identity)
 	if err != nil {
 		return nil, "", func() error { return nil }, err
 	}

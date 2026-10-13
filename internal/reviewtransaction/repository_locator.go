@@ -777,10 +777,39 @@ func openRepositoryIdentityLeaseAtRoot(ctx context.Context, root string) (*Repos
 	if err != nil {
 		return nil, err
 	}
+	if directories, ok := cachedReviewRepositoryDirectories(rootIdentity.path, gitControl); ok {
+		lease, err := completeRepositoryIdentityLease(ctx, rootIdentity, gitControl, directories)
+		if err == nil {
+			return lease, nil
+		}
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
+	}
+	reviewRepositoryDirectoriesCache.drop(rootIdentity.path)
 	directories, err := resolveReviewRepositoryDirectories(ctx, rootIdentity.path)
 	if err != nil {
 		return nil, err
 	}
+	stamps, stamped := captureReviewGitFileStamps(reviewRepositoryDirectoryStampPaths(directories)...)
+	lease, err := completeRepositoryIdentityLease(ctx, rootIdentity, gitControl, directories)
+	if err != nil {
+		return nil, err
+	}
+	if stamped {
+		rememberReviewRepositoryDirectories(rootIdentity.path, gitControl, directories, stamps)
+	}
+	return lease, nil
+}
+
+// completeRepositoryIdentityLease proves Git's directory answer against the
+// filesystem; it runs unchanged whether the answer is fresh or cached.
+func completeRepositoryIdentityLease(
+	ctx context.Context,
+	rootIdentity reviewRepositoryDirectoryIdentity,
+	gitControl reviewRepositoryControlIdentity,
+	directories []reviewRepositoryDirectoryIdentity,
+) (*RepositoryIdentityLease, error) {
 	top, commonDir, gitDir := directories[0], directories[1], directories[2]
 	if !os.SameFile(rootIdentity.info, top.info) {
 		return nil, errors.New("repository root identity changed")

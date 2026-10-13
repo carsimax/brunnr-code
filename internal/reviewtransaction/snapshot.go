@@ -742,6 +742,9 @@ func (builder SnapshotBuilder) ResolveRepositoryRoot(ctx context.Context) (strin
 	if err != nil {
 		return "", err
 	}
+	if root, ok := cachedReviewRepositoryRoot(abs); ok && pathidentity.Contains(root, abs) {
+		return root, nil
+	}
 	root, err := resolveGitDirectory(ctx, abs, "--show-toplevel")
 	if err != nil {
 		return "", err
@@ -754,6 +757,7 @@ func (builder SnapshotBuilder) ResolveRepositoryRoot(ctx context.Context) (strin
 	if !pathidentity.Contains(root, abs) {
 		return "", errors.New("resolved repository root does not contain the requested path")
 	}
+	rememberReviewRepositoryRoot(abs, root)
 	return root, nil
 }
 

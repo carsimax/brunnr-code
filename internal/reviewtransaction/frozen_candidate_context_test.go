@@ -528,11 +528,13 @@ func TestPreparedCandidateInspectorReusesOneSetupForFourReads(t *testing.T) {
 			t.Fatalf("Inspect(%q, %d) error = %v", read.operation, read.pathIndex, err)
 		}
 	}
-	// 12, not 11: prepare now also runs one rename-aware numstat (-M) to
-	// build the patch operation's rename pairing (#3208), on top of its prior
-	// setup and raw-diff reads.
-	if children != 12 {
-		t.Fatalf("Git children for prepare plus four reads = %d, want 12", children)
+	// 12 before the repository identity cache: prepare runs one rename-aware
+	// numstat (-M) for the patch operation's rename pairing (#3208) on top of
+	// its setup and raw-diff reads. The fixture already resolved this
+	// repository, so its root, directory and object-format rev-parse calls
+	// are now answered from the verified cache.
+	if children != 9 {
+		t.Fatalf("Git children for prepare plus four reads = %d, want 9", children)
 	}
 	builder := SnapshotBuilder{Repo: repo}
 	for _, inspection := range []struct {
