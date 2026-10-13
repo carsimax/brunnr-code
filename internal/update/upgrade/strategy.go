@@ -17,10 +17,6 @@ var engramDownloadFn = engram.DownloadLatestBinary
 
 // execCommand is a package-level var declared in executor.go (same package).
 
-type strategyOutcome struct {
-	exitRequested bool
-}
-
 // runStrategy executes the upgrade for a single tool using the appropriate strategy
 // for the given platform profile.
 //
@@ -28,22 +24,17 @@ type strategyOutcome struct {
 //   - binary method + engram → engramBinaryUpgrade (all platforms)
 //   - binary method + other tools → manualFallback
 //   - unknown method → manualFallback with explicit message
-func runStrategy(ctx context.Context, r update.UpdateResult, profile system.PlatformProfile) (bool, error) {
+func runStrategy(ctx context.Context, r update.UpdateResult, profile system.PlatformProfile) error {
 	method := r.Tool.InstallMethod
 	switch method {
 	case update.InstallBinary:
-		return false, binaryUpgrade(r, profile)
+		return binaryUpgrade(r, profile)
 	default:
-		return false, &ManualFallbackError{
+		return &ManualFallbackError{
 			Hint: fmt.Sprintf("upgrade %q: unsupported install method %q — please update manually. See: https://github.com/Gentleman-Programming/%s",
 				r.Tool.Name, method, r.Tool.Repo),
 		}
 	}
-}
-
-func runStrategyWithOutcome(ctx context.Context, r update.UpdateResult, profile system.PlatformProfile) (strategyOutcome, error) {
-	exitRequested, err := runStrategy(ctx, r, profile)
-	return strategyOutcome{exitRequested: exitRequested}, err
 }
 
 // binaryUpgrade handles binary-release upgrades.
