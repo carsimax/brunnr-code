@@ -11,6 +11,8 @@ import (
 	"github.com/carsimax/brunnr-code/internal/backup"
 )
 
+const restoreSavedNote = "the files it replaced are saved as a restore backup (see `brunnr-code restore --list`)\n"
+
 // setupRestoreHome creates a temporary home dir with N backup manifests.
 // Returns the home dir path. Manifests are created with predictable IDs.
 func setupRestoreHome(t *testing.T, count int) string {
@@ -284,7 +286,7 @@ func TestRunRestore_UnknownFlagReturnsError(t *testing.T) {
 // forms through the public restore entry point without touching real config.
 func TestRunRestore_BooleanFlagValues(t *testing.T) {
 	label := "install — " + time.Date(2026, 3, 20, 10, 0, 0, 0, time.UTC).Local().Format("2006-01-02 15:04")
-	complete := "restore complete — restored backup backup-000 (" + label + ")\n"
+	complete := "restore complete — restored backup backup-000 (" + label + ")\n" + restoreSavedNote
 	prompt := "Restore backup backup-000 (" + label + ")?\nThis will overwrite your current configuration. Type 'yes' to confirm: "
 	const usage = "usage: brunnr-code restore [--list | latest | <id>] [--yes]"
 	listing := "Available backups (1):\n  [1] backup-000  " + label + "\n"
@@ -452,4 +454,46 @@ func restoreHomeDir(t *testing.T, dir string) {
 	})
 	osUserHomeDir = func() (string, error) { return dir, nil }
 	backup.UserHomeDirFn = func() (string, error) { return dir, nil }
+}
+
+// Restoring overwrites the current files, so they must be saved first: an
+// accidental restore of an old backup otherwise destroys newer edits.
+func TestRunRestore_SavesCurrentFilesBeforeRestoring(t *testing.T) {
+	home := t.TempDir()
+	restoreHomeDir(t, home)
+	current := filepath.Join(home, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(current), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(current, []byte("newer edits\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(home, ".brunnr-code", "backups", "backup-old")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	old := backup.Manifest{
+		ID:        "backup-old",
+		CreatedAt: time.Date(2026, 3, 20, 10, 0, 0, 0, time.UTC),
+		RootDir:   dir,
+		Entries:   []backup.ManifestEntry{{OriginalPath: current, Existed: true}},
+	}
+	if err := backup.WriteManifest(filepath.Join(dir, backup.ManifestFilename), old); err != nil {
+		t.Fatal(err)
+	}
+
+	restorer := func(backup.Manifest) error { return nil }
+	if err := RunRestoreWithFn([]string{"backup-old", "--yes"}, restorer, &strings.Builder{}); err != nil {
+		t.Fatalf("RunRestoreWithFn() error = %v", err)
+	}
+
+	var saved *backup.Manifest
+	for _, m := range listBackupsFromDir(home) {
+		if m.ID != "backup-old" {
+			saved = &m
+		}
+	}
+	if saved == nil || saved.Source != backup.BackupSourceRestore || saved.FileCount != 1 {
+		t.Fatalf("pre-restore backup = %+v, want a restore-source backup holding the current file", saved)
+	}
 }

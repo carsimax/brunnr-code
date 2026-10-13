@@ -22,6 +22,8 @@ const (
 	BackupSourceUpgrade BackupSource = "upgrade"
 	// BackupSourceUninstall indicates the backup was created before an uninstall run.
 	BackupSourceUninstall BackupSource = "uninstall"
+	// BackupSourceRestore indicates the backup saved the current files before a restore.
+	BackupSourceRestore BackupSource = "restore"
 )
 
 // Label returns a human-readable string for the BackupSource.
@@ -36,6 +38,8 @@ func (s BackupSource) Label() string {
 		return "upgrade"
 	case BackupSourceUninstall:
 		return "uninstall"
+	case BackupSourceRestore:
+		return "restore"
 	default:
 		return "unknown source"
 	}
