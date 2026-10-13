@@ -38,6 +38,7 @@ func TestFullAgentClaudeRemovesManagedStatusLine(t *testing.T) {
 				t.Fatal(err)
 			}
 			if tc.install {
+				agenthooks.SetStatusLineLookPathForTest(t)
 				if _, err := agenthooks.InstallClaudeStatusLine(homeDir, adapter, "v1"); err != nil {
 					t.Fatal(err)
 				}

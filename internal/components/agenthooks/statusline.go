@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -25,6 +26,35 @@ const (
 	// proves ownership without a separate ledger file.
 	statusLineTrailer = "# brunnr-code-managed sha256:"
 )
+
+// statusLineLookPath finds the tools the script needs to render. Tests
+// replace it through SetStatusLineLookPathForTest.
+var statusLineLookPath = exec.LookPath
+
+// SetStatusLineLookPathForTest makes every render tool resolve except the
+// missing ones, and restores the real lookup when the test ends.
+func SetStatusLineLookPathForTest(t interface{ Cleanup(func()) }, missing ...string) {
+	orig := statusLineLookPath
+	statusLineLookPath = func(name string) (string, error) {
+		for _, m := range missing {
+			if name == m {
+				return "", exec.ErrNotFound
+			}
+		}
+		return "/usr/bin/" + name, nil
+	}
+	t.Cleanup(func() { statusLineLookPath = orig })
+}
+
+func missingStatusLineTools() []string {
+	var missing []string
+	for _, tool := range []string{"zsh", "jq"} {
+		if _, err := statusLineLookPath(tool); err != nil {
+			missing = append(missing, tool)
+		}
+	}
+	return missing
+}
 
 // ClaudeStatusLineScriptPath returns where the managed status line script
 // lives: next to the Claude settings file.
@@ -114,6 +144,13 @@ func InstallClaudeStatusLine(homeDir string, adapter agents.Adapter, version str
 	}
 	if scriptExists && !OwnsClaudeStatusLineScript(current) {
 		return Result{}, nil
+	}
+	// A status line that cannot render is worse than none. One already set
+	// up keeps being refreshed: the user chose it and may fix PATH later.
+	if !hasStatusLine {
+		if missing := missingStatusLineTools(); len(missing) > 0 {
+			return Result{Missing: missing}, nil
+		}
 	}
 
 	var result Result
