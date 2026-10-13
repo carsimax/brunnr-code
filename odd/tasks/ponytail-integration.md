@@ -18,8 +18,8 @@ Assumption: credit to the source goes in the PR description and this document; n
 
 | ID | Specs | Route | Status | Evidence |
 |----|-------|-------|--------|----------|
-| T1 | S1, S2 | delegated (two asset files, their wording tests and goldens) | done | RED: `TestPersonaChannelsCarryClosingLineAndSimplicityRefinements` failed, five rules missing in both assets; GREEN: same test, assets/components/cli ok, `scripts/test-fast.sh` exit 0, gofmtcheck clean; parent spot check: new test ok, and on Linux `TestOrchestratorModuleBaseline` and the budget tests pass unchanged |
-| T2 | S1, S3 | delegated (two skills and their tests) | pending | |
+| T1 | S1, S2 | delegated (two asset files, their wording tests and goldens) | done (`a4fab5f9`) | RED: `TestPersonaChannelsCarryClosingLineAndSimplicityRefinements` failed, five rules missing in both assets; GREEN: same test, assets/components/cli ok, `scripts/test-fast.sh` exit 0, gofmtcheck clean; parent spot check: new test ok, and on Linux `TestOrchestratorModuleBaseline` and the budget tests pass unchanged |
+| T2 | S1, S3 | delegated (two skills and their tests) | done | RED: `TestSkillsCarryShortcutLedger` 8 phrases missing; GREEN: same test, assets/components ok (trigger and duplicate tests included), `scripts/test-fast.sh` exit 0, gofmtcheck clean; ledger command run against `origin/main`; parent spot check: ok |
 | T3 | S1, S4 | delegated (judgment-day and its tests) | pending | |
 
 ## Log
@@ -28,3 +28,4 @@ Assumption: credit to the source goes in the PR description and this document; n
 - **L2** (2026-10-13) — Research: the decision ladder is already paraphrased in our output style and persona (added 2026-10-12); only "Be lazy about the solution, never about the change" is near-identical, which is not a substantial portion. Gaps chosen: closing not-checked/risk line, three ladder refinements, the `shortcut:` marker and ledger, and a stricter review finding format. The installed ponytail plugin's SubagentStart hook injects its rules into every subagent in the user's environment; that is environment, not repository, scope.
 - **L3** (2026-10-13) — User, verbatim: "ok vamos con ello". Worktree `../carsi-ai-worktrees/ponytail-integration` created from `origin/main` `9a13025c`.
 - **L4** (2026-10-13) — T1 done: the output style gains four Simplicity bullets and a Response Contract closing line; the persona gains the same rules tersely (it has no ordered preference list, so the list was not copied there). Only `persona-claude-principal-engineer-outputstyle.golden` changed (reason for `-update`: the output style intentionally gained these rules). Next: T2.
+- **L5** (2026-10-13) — T2 done: work-unit-commits Verification and Commands gain the shortcut ledger (`git diff -U0 <base> | grep '^+.*shortcut:'`, which also covers the commit being prepared, plus `git grep -n 'shortcut:'` for locations); judgment-day Hard Rules and the judge prompt in `references/prompts-and-formats.md` treat a marked shortcut as a decision unless its limit is crossed or the marker is incomplete. The jd-judge agents defer to that prompt, so they were not edited. Next: T3.

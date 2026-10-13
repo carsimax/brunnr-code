@@ -489,6 +489,35 @@ func TestWorkUnitSkillCarriesGitWorkflowRules(t *testing.T) {
 	}
 }
 
+// A `shortcut:` marker records a deliberate limit. Closing work lists the
+// markers it adds, and Judgment Day judges must not re-report them as defects
+// unless the stated limit is already crossed.
+func TestSkillsCarryShortcutLedger(t *testing.T) {
+	for path, wants := range map[string][]string{
+		"skills/work-unit-commits/SKILL.md": {
+			"git diff -U0 <base> | grep '^+.*shortcut:'",
+			"git grep -n 'shortcut:'",
+			"each names its limit and when to upgrade",
+		},
+		"skills/judgment-day/SKILL.md": {
+			"is a recorded decision, not a finding",
+			"the stated limit is already crossed",
+			"lacks a limit or an upgrade trigger",
+		},
+		"skills/judgment-day/references/prompts-and-formats.md": {
+			"is a recorded decision, not a finding",
+			"the stated limit is already crossed",
+		},
+	} {
+		content := MustRead(path)
+		for _, want := range wants {
+			if !strings.Contains(content, want) {
+				t.Errorf("%s missing shortcut ledger rule %q", path, want)
+			}
+		}
+	}
+}
+
 // The anatomy sections give an agent the excuses to reject, the signs of a
 // violated skill, and the evidence that proves its outcome.
 func TestSkillsCarryAnatomySections(t *testing.T) {

@@ -11,6 +11,8 @@ Criteria: correctness, edge cases, error handling, performance, security, and pr
 
 Run one exhaustive read-only sweep. Do not edit, delegate, refute, or inspect unrelated scope. If scoped re-judging, read ONLY the frozen ledger and immutable fix delta; record any fix-caused defect with proof.
 
+A code comment `shortcut: <limit>, <when to upgrade>` is a recorded decision, not a finding. Report it only when evidence shows the stated limit is already crossed, citing the marker in `proof_refs`, or when the marker lacks a limit or an upgrade trigger.
+
 Return one JSON object and no prose, using exactly this native result shape:
 
 {"findings":[{"location":"path:line or path:start-end","severity":"CRITICAL","claim":"observable incorrect behavior","evidence_class":"deterministic","causal_disposition":"introduced","proof_refs":["concrete proof"]}],"evidence":["what was inspected"]}

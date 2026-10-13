@@ -48,6 +48,7 @@ Before committing, confirm:
 - [ ] The commit message explains the outcome, not the file list.
 - [ ] `git diff --cached` reviewed: no secrets, tokens, `.env` files, or build artifacts staged.
 - [ ] Out-of-scope issues noticed but not touched are listed in the task report, not fixed silently.
+- [ ] Shortcut ledger: `git diff -U0 <base> | grep '^+.*shortcut:'` lists the `shortcut:` markers this change adds against its branch point, committed or not; each names its limit and when to upgrade, and the task report lists them.
 
 ## Split Examples
 
@@ -119,4 +120,8 @@ git diff --cached --stat
 
 # Check recent commit style
 git log --oneline -5
+
+# Shortcut ledger: markers this change adds, then where every marker lives
+git diff -U0 <base> | grep '^+.*shortcut:'
+git grep -n 'shortcut:'
 ```

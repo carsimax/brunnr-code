@@ -19,6 +19,7 @@ Load only when the user explicitly requests Judgment Day or equivalent dual/adve
 - Never launch `review-refuter`; two-judge agreement is the corroboration mechanism.
 - Only the parent orchestrator merges/persists findings, launches the fix actor (`jd-fix-agent`), and launches scoped re-judgment.
 - Fix only severe findings confirmed by both judges. WARNING/SUGGESTION rows remain `info`.
+- A code comment `shortcut: <limit>, <when to upgrade>` is a recorded decision, not a finding. It is a finding only when evidence shows the stated limit is already crossed (cite the marker), or when the marker lacks a limit or an upgrade trigger.
 - Permit at most two fix rounds and two scoped re-judgments. Re-judgment sees only the frozen ledger plus fix delta and may record fix-caused defects.
 - The only terminal verdicts are `APPROVED | ESCALATED`; never reset or extend an exhausted round budget.
 - A judgment issues no receipt and carries no delivery authority: it satisfies no commit, push, PR, or release gate. When the caller explicitly wants ordinary negotiated review for the same target, run it as its own step; neither outcome authorizes delivery, which remains under ordinary repository policy.
