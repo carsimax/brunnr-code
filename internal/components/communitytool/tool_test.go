@@ -239,42 +239,62 @@ func TestCodeGraphGuidanceContainsLazyInitAndUsageRules(t *testing.T) {
 	}
 }
 
-func TestCodeGraphGuidanceRequiresFreshIndexForCLIReads(t *testing.T) {
+// Upstream v1.6.2: the MCP daemon's watcher and connect-time catch-up keep the
+// shared index fresh, while CLI reads (`codegraph query/explore/...`) only
+// `CodeGraph.open` the index and never sync (src/bin/codegraph.ts; README
+// "How auto-syncing works").
+func TestCodeGraphGuidanceMatchesUpstreamDaemonFreshness(t *testing.T) {
 	guidance := CodeGraphGuidanceMarkdown()
 	for _, want := range []string{
-		"MCP auto-sync requires a running daemon with an active file watcher",
-		"CLI intelligence commands read the existing index as-is and do not auto-sync",
-		"Before CLI intelligence reads, run `codegraph sync -q <project-root>`",
+		"its shared daemon runs a file watcher that keeps the index fresh",
+		"so MCP reads need no manual sync",
+		"CLI intelligence commands read that same index as-is and never catch up themselves",
+		"Run `codegraph sync -q <project-root>` before CLI intelligence reads when no CodeGraph MCP session is active for the project",
+		"when the watcher is disabled (`CODEGRAPH_NO_DAEMON=1`, sandboxed environments)",
+		"or when results look stale after edits (`codegraph status` lists pending changes)",
 		"If sync fails, do not treat the existing index as current",
-		"The presence of `.codegraph/` alone does not guarantee freshness",
 	} {
 		if !strings.Contains(guidance, want) {
 			t.Errorf("CodeGraphGuidanceMarkdown() missing %q", want)
 		}
 	}
 	for _, stale := range []string{
+		"MCP auto-sync requires a running daemon",
+		"Before CLI intelligence reads, run `codegraph sync -q <project-root>`, including after edits",
 		"rely on watcher auto-sync by default",
-		"Run `codegraph sync` only when",
 	} {
 		if strings.Contains(guidance, stale) {
-			t.Errorf("CodeGraphGuidanceMarkdown() retains misleading freshness rule %q", stale)
+			t.Errorf("CodeGraphGuidanceMarkdown() retains pre-1.6 freshness rule %q", stale)
 		}
 	}
 }
 
-func TestCodeGraphGuidanceSyncPrecedesCLIReads(t *testing.T) {
+func TestCodeGraphGuidanceSyncRulePrecedesCLIReads(t *testing.T) {
 	guidance := CodeGraphGuidanceMarkdown()
 	read := strings.Index(guidance, "Use `codegraph_explore` after initialization, or the read-only upstream CLI commands when MCP tools are absent")
 	if read < 0 {
 		t.Fatal("missing intelligence read instruction")
 	}
 	for _, prerequisite := range []string{
-		"Before CLI intelligence reads, run `codegraph sync -q <project-root>`",
+		"Run `codegraph sync -q <project-root>` before CLI intelligence reads",
 		"If sync fails, do not treat the existing index as current; explain the failure and fall back to normal filesystem tools",
 	} {
 		position := strings.Index(guidance, prerequisite)
 		if position < 0 || position >= read {
 			t.Errorf("prerequisite %q must precede the intelligence read instruction", prerequisite)
+		}
+	}
+}
+
+func TestCodeGraphGuidanceLeavesUpgradesToBrunnrInstall(t *testing.T) {
+	guidance := CodeGraphGuidanceMarkdown()
+	for _, want := range []string{
+		"`codegraph upgrade`. `brunnr-code install` owns CodeGraph setup and upgrades",
+		"upgrades an older CLI to the supported minimum automatically",
+		"the only CodeGraph MCP tool listed unless `CODEGRAPH_MCP_TOOLS` enables others",
+	} {
+		if !strings.Contains(guidance, want) {
+			t.Errorf("CodeGraphGuidanceMarkdown() missing %q", want)
 		}
 	}
 }

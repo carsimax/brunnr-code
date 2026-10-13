@@ -41,7 +41,7 @@ Keep Brunnr's own managed guidance block, and keep replacing upstream's `CODEGRA
 - [x] T1: Remove the Community Tools selector and make CodeGraph mandatory. Covers TUI, model, state, app, cli run/sync, communitytool gating and tests. Route: delegated (multi-file writer).
 - [x] T2: Version alignment. Raise the floor to 1.6.2 and upgrade via `codegraph upgrade` when the installed CLI is older. Tests. Route: delegated.
 - [x] T3: Strict MCP wiring detection for Claude (args `serve --mcp`) and Codex (TOML `[mcp_servers.codegraph]`). Tests. Route: delegated.
-- [ ] T4: Guidance update for v1.6 (daemon auto-sync; Brunnr owns upgrade). Tests pinning wording. Route: inline or delegated, based on size.
+- [x] T4: Guidance update for v1.6 (daemon auto-sync; Brunnr owns upgrade). Tests pinning wording. Route: inline or delegated, based on size.
 
 ## Acceptance criteria
 
@@ -82,3 +82,12 @@ Strategy: `single-pr`. Forecast: ~600–900 authored lines, mostly deletions in 
   - Status flow: a mis-wired entry makes the agent not configured, so neither the reconcile shortcut nor the guidance-only repair applies and install runs the targeted `codegraph install --target ... --location global --yes` (`TestInstallRewiresAnOutdatedClaudeEntry`).
   - Tests: `TestClaudeGlobalConfigRequiresUpstreamServeMCPEntry`, `TestCodexConfigRequiresUpstreamServeMCPTable`, `TestCodexWiringIgnoresAmbientCodexHomeForIsolatedHomes`, `TestCodexWiringIgnoresOtherServerShapes`, `TestInstallRewiresAnOutdatedClaudeEntry`. Fixtures that used the pre-1.6 shape were moved to the upstream shape. RED observed first: 19 subtests failed on the old substring and command-only checks, and the rewire test failed on the old code.
   - Checks: gofmtcheck ok; go vet ok; `go test ./internal/components/... ./internal/assets/... ./internal/app` ok; targeted `internal/cli` CodeGraph tests ok (full cli suite runs after T4).
+  - Commit: ce391bf9
+- T4 done (route: delegated, same writer; trigger: guidance plus pinned-wording tests, after reading upstream source).
+  - Upstream evidence (v1.6.2): README "How auto-syncing works" says the MCP server's watcher syncs on change and runs a connect-time catch-up, and manual `codegraph sync` only makes sense when the watcher is disabled (sandbox, `CODEGRAPH_NO_DAEMON=1`) or when scripting outside an agent session. `src/bin/codegraph.ts` `query` and `explore` only `CodeGraph.open` the index and never sync, so CLI reads do not catch up themselves; they see what the daemon (or the last manual sync) wrote. `sync [path]` has `-q, --quiet`. `codegraph status` lists pending changes. README: `codegraph_explore` is the only MCP tool listed by default; `CODEGRAPH_MCP_TOOLS` re-enables others.
+  - Step 6 now says: an active MCP session's daemon keeps the shared index fresh, so MCP reads need no manual sync; CLI reads never catch up, so run `codegraph sync -q <project-root>` before CLI reads when no MCP session is active, when the watcher is disabled, or when results look stale (`codegraph status`). The sync-failure fallback stays. The old mandatory sync before every CLI read is gone.
+  - Lifecycle bullet: agents still never run `uninit`, `install`, `uninstall` or `upgrade`; `brunnr-code install` owns setup and upgrades. Sync was not named, because the sync step only refreshes guidance and never upgrades the CLI (`codeGraphGuidanceSyncStep.Run` in `internal/cli/sync.go`).
+  - One clause added to the MCP bullet: `codegraph_explore` is the only listed tool unless `CODEGRAPH_MCP_TOOLS` enables others.
+  - No golden or orchestrator baseline embeds this block; only `tool_test.go` pins it. Tests: `TestCodeGraphGuidanceMatchesUpstreamDaemonFreshness`, `TestCodeGraphGuidanceSyncRulePrecedesCLIReads`, `TestCodeGraphGuidanceLeavesUpgradesToBrunnrInstall`. RED observed first: 3 tests failed against the old block.
+  - Checks: gofmtcheck ok; go vet ok; `go test ./internal/components/... ./internal/assets/... ./internal/app` ok; full `internal/cli` suite ok (591s). `~/.codex` absent before and after.
+- Next: run `go test ./...`, check the acceptance grep, then deliver the branch as one PR (`single-pr`).
