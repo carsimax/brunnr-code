@@ -518,6 +518,40 @@ func TestSkillsCarryShortcutLedger(t *testing.T) {
 	}
 }
 
+// Judgment Day findings must be actionable and grounded: each one names a
+// concrete failing case, its fix, and the cost of skipping it, and the human
+// report ranks them and says what was not checked. The judge JSON keeps its
+// native fields, so the four parts live inside `claim`.
+func TestJudgmentDayCarriesFindingFormat(t *testing.T) {
+	for path, wants := range map[string][]string{
+		"skills/judgment-day/SKILL.md": {
+			"no concrete failing case, no finding",
+			"what it is, the problem, the fix, and the cost of skipping it",
+			"`Must` (BLOCKER/CRITICAL), `Should` (WARNING), and `Nice` (SUGGESTION)",
+			"numbered across `Must`, `Should`, and `Nice`",
+			"`Verdict:`",
+			"`Not checked:`",
+		},
+		"skills/judgment-day/references/prompts-and-formats.md": {
+			"no concrete failing case, no finding",
+			"In `claim`, state what it is, the problem as that failing case, the fix, and the cost of skipping it",
+			"Problem: {input or state} → {wrong result}. Fix: {change}. Cost if skipped: {consequence}.",
+			"Must\n1. ",
+			"Should\n2. ",
+			"Nice\n3. ",
+			"Verdict: {JUDGMENT: APPROVED ✅ | JUDGMENT: ESCALATED ⚠️}",
+			"Not checked: ",
+		},
+	} {
+		content := MustRead(path)
+		for _, want := range wants {
+			if !strings.Contains(content, want) {
+				t.Errorf("%s missing finding format rule %q", path, want)
+			}
+		}
+	}
+}
+
 // The anatomy sections give an agent the excuses to reject, the signs of a
 // violated skill, and the evidence that proves its outcome.
 func TestSkillsCarryAnatomySections(t *testing.T) {

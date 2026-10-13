@@ -20,6 +20,7 @@ Load only when the user explicitly requests Judgment Day or equivalent dual/adve
 - Only the parent orchestrator merges/persists findings, launches the fix actor (`jd-fix-agent`), and launches scoped re-judgment.
 - Fix only severe findings confirmed by both judges. WARNING/SUGGESTION rows remain `info`.
 - A code comment `shortcut: <limit>, <when to upgrade>` is a recorded decision, not a finding. It is a finding only when evidence shows the stated limit is already crossed (cite the marker), or when the marker lacks a limit or an upgrade trigger.
+- Each finding states what it is, the problem, the fix, and the cost of skipping it, and the problem is a concrete failing case (an input or state and the wrong result it produces): no concrete failing case, no finding.
 - Permit at most two fix rounds and two scoped re-judgments. Re-judgment sees only the frozen ledger plus fix delta and may record fix-caused defects.
 - The only terminal verdicts are `APPROVED | ESCALATED`; never reset or extend an exhausted round budget.
 - A judgment issues no receipt and carries no delivery authority: it satisfies no commit, push, PR, or release gate. When the caller explicitly wants ordinary negotiated review for the same target, run it as its own step; neither outcome authorizes delivery, which remains under ordinary repository policy.
@@ -46,9 +47,11 @@ Load only when the user explicitly requests Judgment Day or equivalent dual/adve
 
 ## Output Contract
 
-Return target identity, round, confirmed/suspect/contradiction/INFO counts, correction work units, scoped re-judgment result, artifact references, skill resolution, and exactly one final `JUDGMENT: APPROVED ✅` or `JUDGMENT: ESCALATED ⚠️`.
+Return target identity, round, confirmed/suspect/contradiction/INFO counts, correction work units, scoped re-judgment result, artifact references, and skill resolution.
+
+List findings numbered across `Must`, `Should`, and `Nice`, mapping judge severity as `Must` (BLOCKER/CRITICAL), `Should` (WARNING), and `Nice` (SUGGESTION) and keeping each finding's ledger status. End with a `Verdict:` line carrying exactly one `JUDGMENT: APPROVED ✅` or `JUDGMENT: ESCALATED ⚠️`, then a `Not checked:` line naming the scope, criteria, or verification no judge covered.
 
 ## References
 
-- [references/prompts-and-formats.md](references/prompts-and-formats.md) — compact judge/fix prompts and verdict shape.
+- [references/prompts-and-formats.md](references/prompts-and-formats.md) — compact judge/fix prompts, verdict shape, and human report.
 - [../_shared/review-ledger-contract.md](../_shared/review-ledger-contract.md) — optional ordinary negotiated-review context: consult it only when the caller explicitly requests that lifecycle; never required to run judges and never delivery authorization.
