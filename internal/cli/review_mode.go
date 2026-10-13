@@ -243,7 +243,7 @@ func (err *reviewModeUnsafePathError) repairCommand() string {
 		if err.Directory {
 			mode = "700"
 		}
-		return "chmod " + mode + " " + quotePOSIXShellToken(err.Path)
+		return "chmod " + mode + " " + pathquote.ShellWord(err.Path)
 	}
 	securityType := "FileSecurity"
 	inheritance := "'None'"
@@ -267,10 +267,6 @@ func (err *reviewModeUnsafePathError) repairCommand() string {
 
 func quotePowerShellLiteral(path string) string {
 	return "'" + strings.ReplaceAll(path, "'", "''") + "'"
-}
-
-func quotePOSIXShellToken(path string) string {
-	return "'" + strings.ReplaceAll(path, "'", `'"'"'`) + "'"
 }
 
 // reviewModePrivateModeIneffectiveError rewrites the unsafe-path refusal for
