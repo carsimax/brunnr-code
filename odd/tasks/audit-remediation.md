@@ -56,7 +56,7 @@ A whole-repo audit (6 read-only Sonnet auditors, parent spot checks) found user-
 - [x] T14: store lock retry pasted five times; commit paths fail immediately on contention (`reviewtransaction/compact_reviewer_capture.go:517,661,939`, `compact_unachievable_lens.go:63,176`, `compact_store.go:1559`, `compact_abandon.go:262`). One `acquireLocalStoreLockWait(ctx, path)` helper for all seven; check `cli/review_operation_contract.go:817-860` still classifies the timeout as no-mutation.
 - [x] T15: `terminal-consumption` tombstones survive `review reset` (`reviewtransaction/store_reset.go:128-165`). Add the category to `storeResetRemovableTargets`.
 - [x] T16: Codex reviewer failure embeds all stderr in the error (`reviewerprovider/codex_adapter.go:93`). Use `reviewerTransportFailureDetail` with a byte cap.
-- [ ] T17: shipped skills are overwritten with no ownership check (`components/skills/inject.go:154`). Decision first (see Open decisions).
+- [x] T17: shipped skills are overwritten with no ownership check (`components/skills/inject.go:154`). Decision first (see Open decisions).
 
 ### Lean
 
@@ -138,6 +138,7 @@ main
 - T15 done on `fix/audit-remediation-t15`. Route: inline (one list entry plus test). `review-transactions/terminal-consumption` joins `storeResetRemovableTargets`. RED observed first: `TestResetReviewStoreRemovesTerminalConsumptionTombstones` (tombstone survived), then GREEN. Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok. PR #16, merged.
 - T16 done on `fix/audit-remediation-t16`. Route: inline (shared helper plus one call site). `reviewerTransportFailureDetail` returned stderr unchanged for Claude as well; it now keeps the last `reviewerTransportFailureStderrLimit` (4096) bytes, and the Codex adapter uses the helper. RED observed first: `TestReviewerTransportFailureDetailBoundsStderr` (220020 bytes), then GREEN. Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok.
 - T17 decision (user, 2026-10-13): shipped skills stay installer-owned; document that edits are overwritten and that customizations belong under another skill ID.
+- T17 done on `fix/audit-remediation-t17`. Route: inline (docs plus one code comment). README states that the eight shipped skills' files are rewritten by every install and sync and that customizations go under another skill ID; `components/skills/inject.go` says the same at the write. No test (documentation only). Verification: `go build ./...` ok; `go run ./internal/gofmtcheck` ok; `go test ./internal/components/skills` ok; `go test ./internal/app -run Documented` ok.
 
 ## Next step
 

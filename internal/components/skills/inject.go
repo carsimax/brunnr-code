@@ -151,6 +151,8 @@ func InjectDirectoryWithCapabilityWithWriter(skillDir string, skillIDs []model.S
 		if capability != "" {
 			content = extractModelSection(content, capability)
 		}
+		// Shipped skill files are installer-owned: user edits are overwritten on
+		// purpose, and customizations belong under another skill ID (README).
 		writeResult, err := writeFile(entry.destination, []byte(content), 0o644)
 		if err != nil {
 			return InjectionResult{}, fmt.Errorf("write %q: %w", entry.destination, err)
