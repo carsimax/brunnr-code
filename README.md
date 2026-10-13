@@ -57,6 +57,10 @@ Engram memory, the persona, the permissions overlay and eight skills
 chained-pr, cognitive-doc-design, work-unit-commits). Only the agents are
 selectable.
 
+The files of those eight skills belong to the installer: every `install` and
+`sync` rewrites them, so local edits are lost. To customize one, copy it under a
+skill ID of your own.
+
 ## Build from source
 
 ```bash
