@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/carsimax/brunnr-code/internal/components/filemerge"
+	"github.com/carsimax/brunnr-code/internal/components/permissions"
 )
 
 type jsonPath []string
@@ -49,6 +50,60 @@ func removeJSONPaths(raw []byte, paths ...jsonPath) ([]byte, bool, error) {
 		return nil, false, fmt.Errorf("marshal json after cleanup: %w", err)
 	}
 
+	eol := detectEOL(string(raw))
+	encoded = bytes.ReplaceAll(encoded, []byte("\n"), []byte(eol))
+	return append(encoded, []byte(eol)...), true, nil
+}
+
+// removeManagedPermissions removes only what the installer wrote under
+// "permissions": its deny entries and defaultMode (when still the managed
+// value). The user's own allow/ask/deny rules survive; emptied containers go.
+func removeManagedPermissions(raw []byte) ([]byte, bool, error) {
+	root, err := unmarshalJSONObject(raw)
+	if err != nil {
+		return nil, false, err
+	}
+	perms, ok := root["permissions"].(map[string]any)
+	if !ok {
+		return raw, false, nil
+	}
+	managedDeny, managedMode := permissions.ManagedClaudeDenyRules()
+	changed := false
+	if perms["defaultMode"] == managedMode {
+		delete(perms, "defaultMode")
+		changed = true
+	}
+	if deny, ok := perms["deny"].([]any); ok {
+		managed := map[string]bool{}
+		for _, rule := range managedDeny {
+			managed[rule] = true
+		}
+		kept := make([]any, 0, len(deny))
+		for _, rule := range deny {
+			if s, isString := rule.(string); isString && managed[s] {
+				continue
+			}
+			kept = append(kept, rule)
+		}
+		if len(kept) != len(deny) {
+			changed = true
+			if len(kept) == 0 {
+				delete(perms, "deny")
+			} else {
+				perms["deny"] = kept
+			}
+		}
+	}
+	if !changed {
+		return raw, false, nil
+	}
+	if len(perms) == 0 {
+		delete(root, "permissions")
+	}
+	encoded, err := json.MarshalIndent(root, "", "  ")
+	if err != nil {
+		return nil, false, fmt.Errorf("marshal json after cleanup: %w", err)
+	}
 	eol := detectEOL(string(raw))
 	encoded = bytes.ReplaceAll(encoded, []byte("\n"), []byte(eol))
 	return append(encoded, []byte(eol)...), true, nil

@@ -4,7 +4,9 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
+	"time"
 )
 
 // TestSnapshotterCreatesCompressedBackup verifies that Create() produces a
@@ -216,5 +218,65 @@ func TestSnapshotterManifestEntrySnapshotPath(t *testing.T) {
 	}
 	if len(entry.SnapshotPath) == 0 {
 		t.Errorf("SnapshotPath is empty for an existing file")
+	}
+}
+
+func TestSnapshotCreateIsPrivate(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX modes")
+	}
+	src := filepath.Join(t.TempDir(), "claude.json")
+	if err := os.WriteFile(src, []byte(`{"token":"x"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(t.TempDir(), "snap")
+	if _, err := NewSnapshotter().Create(dir, []string{src}); err != nil {
+		t.Fatal(err)
+	}
+	for path, want := range map[string]os.FileMode{
+		dir:                                  0o700,
+		filepath.Join(dir, ArchiveFilename):  0o600,
+		filepath.Join(dir, ManifestFilename): 0o600,
+	} {
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if info.Mode().Perm() != want {
+			t.Errorf("%s mode = %o, want %o", filepath.Base(path), info.Mode().Perm(), want)
+		}
+	}
+}
+
+func TestSnapshotCreateRemovesPartialDirOnFailure(t *testing.T) {
+	// A directory squatting on the archive name makes archive creation fail.
+	dir := filepath.Join(t.TempDir(), "snap")
+	src := filepath.Join(t.TempDir(), "a.json")
+	if err := os.WriteFile(src, []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, ArchiveFilename), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Pre-existing dir must survive.
+	if _, err := NewSnapshotter().Create(dir, []string{src}); err == nil {
+		t.Fatal("expected error")
+	}
+	if _, err := os.Stat(dir); err != nil {
+		t.Fatalf("pre-existing dir removed: %v", err)
+	}
+
+	fresh := filepath.Join(t.TempDir(), "fresh")
+	blocker := filepath.Join(fresh, ArchiveFilename)
+	s := NewSnapshotter()
+	s.now = func() time.Time {
+		_ = os.MkdirAll(blocker, 0o755) // created after Create's MkdirAll
+		return time.Now()
+	}
+	if _, err := s.Create(fresh, []string{src}); err == nil {
+		t.Fatal("expected error")
+	}
+	if _, err := os.Stat(fresh); !os.IsNotExist(err) {
+		t.Fatalf("partial snapshot dir left behind: %v", err)
 	}
 }

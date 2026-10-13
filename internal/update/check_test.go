@@ -1391,3 +1391,26 @@ func mockCmd(name string, args ...string) *exec.Cmd {
 	}
 	return exec.Command(name, args...)
 }
+
+func TestCheckGitHubResponseForbiddenDistinguishesRateLimit(t *testing.T) {
+	for _, tc := range []struct {
+		remaining string
+		want      string
+	}{
+		{"0", "rate limit"},
+		{"", "forbidden"},
+		{"42", "forbidden"},
+	} {
+		resp := &http.Response{StatusCode: http.StatusForbidden, Header: http.Header{}}
+		if tc.remaining != "" {
+			resp.Header.Set("X-RateLimit-Remaining", tc.remaining)
+		}
+		err := checkGitHubResponse(resp, "o", "r")
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("remaining=%q: err = %v, want substring %q", tc.remaining, err, tc.want)
+		}
+		if tc.want == "forbidden" && strings.Contains(err.Error(), "rate limit") {
+			t.Errorf("remaining=%q: wrongly reported as rate limit: %v", tc.remaining, err)
+		}
+	}
+}

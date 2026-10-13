@@ -117,3 +117,20 @@ func runCommand(t *testing.T, dir, name string, args ...string) {
 		t.Fatalf("%s failed: %v: %s", name, err, output)
 	}
 }
+
+func TestRunSkipsTrackedFilesDeletedFromWorktree(t *testing.T) {
+	root := t.TempDir()
+	runCommand(t, root, "git", "init", "--quiet")
+	if err := os.WriteFile(filepath.Join(root, "gone.go"), []byte("package gone\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	runCommand(t, root, "git", "add", "gone.go")
+	if err := os.Remove(filepath.Join(root, "gone.go")); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	if got := run(root, &stdout, &stderr); got != 0 {
+		t.Fatalf("run() = %d, want 0; stderr=%q", got, stderr.String())
+	}
+}

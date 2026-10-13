@@ -29,10 +29,19 @@ func NewSnapshotter() Snapshotter {
 	return Snapshotter{now: time.Now}
 }
 
-func (s Snapshotter) Create(snapshotDir string, paths []string) (Manifest, error) {
-	if err := os.MkdirAll(snapshotDir, 0o755); err != nil {
+func (s Snapshotter) Create(snapshotDir string, paths []string) (_ Manifest, err error) {
+	_, statErr := os.Stat(snapshotDir)
+	preexisting := statErr == nil
+	// Snapshots copy config files that may hold tokens: owner-only.
+	if err := os.MkdirAll(snapshotDir, 0o700); err != nil {
 		return Manifest{}, fmt.Errorf("create snapshot directory %q: %w", snapshotDir, err)
 	}
+	// A partial dir has no manifest, so it would never be listed or pruned.
+	defer func() {
+		if err != nil && !preexisting {
+			_ = os.RemoveAll(snapshotDir)
+		}
+	}()
 
 	manifest := Manifest{
 		ID:         filepath.Base(snapshotDir),

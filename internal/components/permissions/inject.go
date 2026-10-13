@@ -61,6 +61,22 @@ var claudeCodeOverlayJSON = []byte(`{
 }
 `)
 
+// ManagedClaudeDenyRules returns the deny entries and the defaultMode the
+// installer writes into Claude Code settings, so uninstall can remove exactly
+// those and leave the user's own permission rules alone.
+func ManagedClaudeDenyRules() (deny []string, defaultMode string) {
+	var overlay struct {
+		Permissions struct {
+			DefaultMode string   `json:"defaultMode"`
+			Deny        []string `json:"deny"`
+		} `json:"permissions"`
+	}
+	if err := json.Unmarshal(claudeCodeOverlayJSON, &overlay); err != nil {
+		panic(err) // the overlay is a compile-time constant
+	}
+	return overlay.Permissions.Deny, overlay.Permissions.DefaultMode
+}
+
 // agentOverlay returns the correct permission overlay for the given agent,
 // or nil if the agent does not support permission injection via settings.json.
 func agentOverlay(id model.AgentID) []byte {

@@ -197,7 +197,11 @@ func checkGitHubResponse(resp *http.Response, owner, repo string) error {
 	case http.StatusOK:
 		return nil
 	case http.StatusForbidden:
-		return fmt.Errorf("github API rate limit exceeded (HTTP 403)")
+		// A revoked or invalid token also yields 403; only an exhausted quota is a rate limit.
+		if resp.Header.Get("X-RateLimit-Remaining") == "0" {
+			return fmt.Errorf("github API rate limit exceeded (HTTP 403)")
+		}
+		return fmt.Errorf("github API HTTP 403: forbidden (check GITHUB_TOKEN/GH_TOKEN)")
 	case http.StatusNotFound:
 		return fmt.Errorf("no releases found for %s/%s (HTTP 404)", owner, repo)
 	default:

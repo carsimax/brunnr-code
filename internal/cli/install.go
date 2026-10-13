@@ -49,7 +49,19 @@ func ParseInstallFlags(args []string) (InstallFlags, error) {
 	fs.BoolVar(&opts.ClaudeOrchestratorModules, "claude-orchestrator-modules", false, "global Claude only: install the orchestrator as a core plus on-demand modules")
 	fs.BoolVar(&opts.DryRun, "dry-run", false, "preview plan without executing")
 
-	if err := fs.Parse(args); err != nil {
+	err := fs.Parse(args)
+	if err != nil {
+		return InstallFlags{}, err
+	}
+
+	// An explicit but empty list would otherwise read as "no --agent" and take
+	// the full-install overwrite path.
+	fs.Visit(func(f *flag.Flag) {
+		if (f.Name == "agent" || f.Name == "agents") && len(opts.Agents) == 0 {
+			err = fmt.Errorf("--%s requires at least one agent id", f.Name)
+		}
+	})
+	if err != nil {
 		return InstallFlags{}, err
 	}
 
