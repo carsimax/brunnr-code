@@ -470,6 +470,25 @@ func TestRetiredLedgerGuidanceAbsentFromDistributedAssets(t *testing.T) {
 	}
 }
 
+func TestWorkUnitSkillCarriesGitWorkflowRules(t *testing.T) {
+	skill := MustRead("skills/work-unit-commits/SKILL.md")
+	for _, want := range []string{
+		"## Branches and Worktrees",
+		"## Release Relationship",
+		"## Common Rationalizations",
+		"## Red Flags",
+		"never run `git reset --hard` without the user's approval",
+		"git diff --cached",
+		"git worktree add ../<repo>-worktrees/<feature>",
+		"Never force-push",
+		"-ldflags",
+	} {
+		if !strings.Contains(skill, want) {
+			t.Errorf("work-unit skill missing git workflow rule %q", want)
+		}
+	}
+}
+
 func TestClaudeManagedOutputStylesAnchorReplyLanguageToLatestUserRequest(t *testing.T) {
 	tests := []struct {
 		path              string
