@@ -20,7 +20,7 @@ Branch: `feat/mac-only`. Delivery: `single-pr` (single-maintainer repo, no chain
 | ID | Specs | Route | Status | Evidence |
 |----|-------|-------|--------|----------|
 | T1 | S2, S3 | inline | done | see commit; installer guard probed with fake `uname`/`sysctl` (5 cases OK); goreleaser snapshot emits only `darwin_arm64` |
-| T2 | S4 | inline | pending | |
+| T2 | S4 | inline | done | see commit; ci.yml jobs = go-format, unit-tests (macos-latest), darwin-runtime, organic-runtime-e2e (macos-latest); `go test ./internal/assets/... ./internal/components/...` ok |
 | T3 | S5 | inline | pending | |
 | T4 | S6 | inline | pending | |
 | T5 | S7 | inline | pending | |
@@ -36,3 +36,4 @@ Each task: `go run ./internal/gofmtcheck`, `GOOS=darwin GOARCH=arm64 go build ./
 - **L3 (2026-10-13, user, verbatim):** "Solo Apple Silicon"
 - **L4 (2026-10-13, user, verbatim):** "ok" (authorizes implementation of the six-phase plan).
 - **L5 (2026-10-13):** T1 done. Advisory (pre-existing, out of scope): `scripts/test-review-contract-package.sh` fails its contract inventory assertion (`review-acknowledged.schema.json` not in the expected list) before reaching the platform check; CI does not run it.
+- **L6 (2026-10-13):** T2 done. Removed `windows-full-suite.yml`, the `windows-runtime`, `claude-network-none` (Linux Docker netns proof) and `e2e-tests` jobs, `e2e/Dockerfile.*`, `docker-test.sh`, `e2e_test.sh`, `lib.sh`, the Windows CI pin tests in `internal/assets/formatter_ordering_test.go`, and the Docker e2e lines in `CLAUDE.md` and the shipped `branch-pr` skill. The organic PowerShell step became bash; `BRUNNR_CODE_LARGE_WORKSPACE_E2E` now runs on macOS. Follow-ups: the Linux-only Codex transport journey (`organic_runtime_test.go:321`, strace) no longer runs in CI and is removed in T5; branch protection must drop the removed required checks (manual repo setting).

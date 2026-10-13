@@ -36,7 +36,6 @@ Many tests in `internal/assets` pin the exact wording of the embedded markdown, 
 Other test suites:
 
 - **Real-agent e2e** needs the Claude Code CLI installed: `go test -tags real_agent_e2e -v ./e2e/organicruntime -count=1 -timeout=25m`.
-- **Docker e2e:** `./e2e/docker-test.sh`. Set `RUN_FULL_E2E=1` and/or `RUN_BACKUP_TESTS=1` to add the extra tiers. The images are `e2e/Dockerfile.*`.
 
 ## Architecture
 
