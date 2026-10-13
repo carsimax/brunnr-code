@@ -186,3 +186,9 @@ func (s compatibilitySkillsRefreshStep) Run() error {
 	}
 	return nil
 }
+
+// Rollback undoes nothing on macOS; it exists so a failed run still reports
+// this step in its rollback progress, as it did before Windows was dropped.
+func (s compatibilitySkillsRefreshStep) Rollback() error {
+	return nil
+}

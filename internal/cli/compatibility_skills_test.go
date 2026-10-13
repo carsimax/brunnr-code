@@ -615,3 +615,16 @@ func TestStagePlansRefreshCompatibilitySkillsOncePerOperation(t *testing.T) {
 		}
 	}
 }
+
+// The rollback report lists every succeeded RollbackStep, so the refresh step
+// must keep its no-op Rollback to keep its row in a failed run's progress.
+func TestCompatibilitySkillsRefreshStepKeepsRollbackRow(t *testing.T) {
+	var step pipeline.Step = compatibilitySkillsRefreshStep{}
+	rollback, ok := step.(pipeline.RollbackStep)
+	if !ok {
+		t.Fatal("compatibilitySkillsRefreshStep no longer implements pipeline.RollbackStep")
+	}
+	if err := rollback.Rollback(); err != nil {
+		t.Fatalf("Rollback() = %v, want nil", err)
+	}
+}
