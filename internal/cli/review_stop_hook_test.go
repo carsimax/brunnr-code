@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/carsimax/brunnr-code/internal/pathquote"
 	"io"
 	"os"
 	"path/filepath"
@@ -600,5 +601,16 @@ func TestReviewStopHookRemindsWhenConsentStaleMarkerExpired(t *testing.T) {
 	}
 	if decodeReviewStopHookResult(t, stdout.Bytes()).Decision != "block" {
 		t.Fatalf("expired consent-stale marker must restore the reminder: %s", stdout.String())
+	}
+}
+
+// The hook tells the agent to run the STATUS line, so the root must be one
+// shell word: a space splits it and `;` would run a second command.
+func TestReviewStopHookReasonQuotesRepositoryRoot(t *testing.T) {
+	root := "/work/my repo;touch pwned"
+	reason := reviewStopHookReasonText("target", root, "claude-code", "brunnr-code review start")
+	want := "--cwd " + pathquote.ShellWord(root) + " "
+	if !strings.Contains(reason, want) {
+		t.Fatalf("stop-hook reason does not quote the root; want %q in:\n%s", want, reason)
 	}
 }
