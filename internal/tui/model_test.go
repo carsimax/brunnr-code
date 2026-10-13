@@ -3897,7 +3897,7 @@ func TestUpdatePromptScreen_UpdateNowAlsoSyncs(t *testing.T) {
 				return nil, nil
 			}
 
-			updated, _ := m.Update(key)
+			updated, cmd := m.Update(key)
 			got := updated.(Model)
 
 			if got.Screen != ScreenUpgradeSync {
@@ -3906,7 +3906,7 @@ func TestUpdatePromptScreen_UpdateNowAlsoSyncs(t *testing.T) {
 			if got.OperationMode != "upgrade-sync" || !got.OperationRunning {
 				t.Fatalf("OperationMode = %q, OperationRunning = %v; want running upgrade-sync", got.OperationMode, got.OperationRunning)
 			}
-			executeUpgradeSyncSequence(t, got)
+			runUpdatePromptCmd(cmd)
 			if !synced {
 				t.Fatal("SyncFn was not called after accepting the update prompt")
 			}
