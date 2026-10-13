@@ -142,6 +142,10 @@ var storeResetRemovableTargets = []storeResetTarget{
 		name: "review-transactions/effect-markers", parts: []string{"review-transactions", "effect-markers"},
 		reason: "per-lineage delivery idempotence markers; meaningless once their lineage is gone",
 	},
+	{
+		name: "review-transactions/terminal-consumption", parts: []string{"review-transactions", "terminal-consumption"},
+		reason: "tombstones of acknowledged targets; meaningless once the burned lineages they record are gone",
+	},
 }
 
 // storeResetPreservedTargets is the complete exclusion list. Two of these are
