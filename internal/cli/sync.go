@@ -1277,11 +1277,7 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 	// A workspace sync is a pure managed-asset refresh: it never stamps the
 	// global state file with provenance (issue #1074).
 	if scope == ScopeGlobal {
-		err := persistSyncManagedAssetState(homeDir, selection, writer)
-		if err == nil {
-			err = recordCodexServiceTier(homeDir, rt.state.codexServiceTier)
-		}
-		if err != nil {
+		if err := persistSyncManagedAssetState(homeDir, selection, writer, rt.state.codexServiceTier); err != nil {
 			persistErr := fmt.Errorf("persist sync managed asset state: %w", err)
 			rollback := orchestrator.Rollback(result.Execution)
 			if rollback.Err != nil {
@@ -1294,7 +1290,7 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 	return result, nil
 }
 
-func persistSyncManagedAssetState(homeDir string, selection model.Selection, writer string) error {
+func persistSyncManagedAssetState(homeDir string, selection model.Selection, writer string, codexServiceTier *string) error {
 	return withInstallStateLock(homeDir, func() error {
 		latest, err := state.Read(homeDir)
 		if errors.Is(err, os.ErrNotExist) {
@@ -1322,6 +1318,7 @@ func persistSyncManagedAssetState(homeDir string, selection model.Selection, wri
 		if latest.SelectionConfigured {
 			latest.SetSelection(selection)
 		}
+		applyCodexServiceTier(&latest, codexServiceTier)
 		now := time.Now().UTC()
 		latest.LastSyncedAt = &now
 		shouldWrite = true

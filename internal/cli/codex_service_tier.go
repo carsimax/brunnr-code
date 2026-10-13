@@ -1,9 +1,6 @@
 package cli
 
 import (
-	"errors"
-	"os"
-
 	"github.com/carsimax/brunnr-code/internal/components/engram"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/state"
@@ -28,21 +25,12 @@ func (s *runtimeState) noteCodexServiceTier(result engram.InjectionResult) {
 	}
 }
 
-// recordCodexServiceTier stores engram's write result as the managed tier.
-// nil means Codex config.toml was not written, so the previous value stays.
-func recordCodexServiceTier(homeDir string, tier *string) error {
-	if tier == nil {
-		return nil
+// applyCodexServiceTier stores engram's write result as the managed tier in
+// the same state write as the rest of the run, so a failure cannot leave one
+// written without the other. nil means Codex config.toml was not written, so
+// the previous value stays.
+func applyCodexServiceTier(installState *state.InstallState, tier *string) {
+	if tier != nil {
+		installState.CodexServiceTier = *tier
 	}
-	return withInstallStateLock(homeDir, func() error {
-		latest, err := state.Read(homeDir)
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-		if latest.CodexServiceTier == *tier {
-			return nil
-		}
-		latest.CodexServiceTier = *tier
-		return state.WriteReconciled(homeDir, latest)
-	})
 }

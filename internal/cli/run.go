@@ -240,10 +240,7 @@ func RunPreparedInstall(prepared PreparedInstall, detection system.DetectionResu
 	if err != nil {
 		return result, rollbackPostApplyError(orchestrator, result.Execution, fmt.Errorf("derive managed asset writer identity: %w", err))
 	}
-	err = persistInstallState(homeDir, newState, agentIDs, flags, writer)
-	if err == nil {
-		err = recordCodexServiceTier(homeDir, runtime.state.codexServiceTier)
-	}
+	err = persistInstallState(homeDir, newState, agentIDs, flags, writer, runtime.state.codexServiceTier)
 	if err != nil {
 		persistErr := fmt.Errorf("persist install state: %w", err)
 		rollback := orchestrator.Rollback(result.Execution)
@@ -261,7 +258,7 @@ func rollbackPostApplyError(orchestrator *pipeline.Orchestrator, execution pipel
 	return errors.Join(cause, rollback.Err)
 }
 
-func persistInstallState(homeDir string, newState state.InstallState, agentIDs []string, flags InstallFlags, writer string) error {
+func persistInstallState(homeDir string, newState state.InstallState, agentIDs []string, flags InstallFlags, writer string, codexServiceTier *string) error {
 	return withInstallStateLock(homeDir, func() error {
 		if len(flags.Agents) > 0 {
 			merged, mergeErr := mergeExplicitAgentInstallState(homeDir, newState, agentIDs)
@@ -279,6 +276,7 @@ func persistInstallState(homeDir string, newState state.InstallState, agentIDs [
 			newState = mergeFullInstallState(existing, newState)
 		}
 		newState.ManagedAssetDigest = writer
+		applyCodexServiceTier(&newState, codexServiceTier)
 		return state.WriteReconciled(homeDir, newState)
 	})
 }
