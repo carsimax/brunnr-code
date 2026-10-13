@@ -849,3 +849,51 @@ func TestRestoreCompressedMixedEntries(t *testing.T) {
 		t.Errorf("created_by_sync should have been removed by !Existed branch, but stat err = %v", statErr)
 	}
 }
+
+// A rollback must restore every entry it can: one unrestorable entry must not
+// leave the entries after it in their modified state.
+func TestRestoreContinuesPastAFailingEntry(t *testing.T) {
+	home := t.TempDir()
+	origUserHomeDirFn := UserHomeDirFn
+	origBackupRootFn := BackupRootFn
+	t.Cleanup(func() {
+		UserHomeDirFn = origUserHomeDirFn
+		BackupRootFn = origBackupRootFn
+	})
+	UserHomeDirFn = func() (string, error) { return home, nil }
+	BackupRootFn = func() (string, error) { return home, nil }
+
+	brokenPath := filepath.Join(home, "config", "broken.json")
+	laterPath := filepath.Join(home, "config", "later.json")
+	if err := os.MkdirAll(filepath.Dir(laterPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	if err := os.WriteFile(laterPath, []byte("modified\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	snapshotPath := filepath.Join(home, "backup", "files", "later.json")
+	if err := os.MkdirAll(filepath.Dir(snapshotPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll() snapshot dir error = %v", err)
+	}
+	if err := os.WriteFile(snapshotPath, []byte("original\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile() snapshot error = %v", err)
+	}
+
+	manifest := Manifest{
+		Entries: []ManifestEntry{
+			{OriginalPath: brokenPath, SnapshotPath: filepath.Join(home, "backup", "files", "missing.json"), Existed: true, Mode: 0o600},
+			{OriginalPath: laterPath, SnapshotPath: snapshotPath, Existed: true, Mode: 0o600},
+		},
+	}
+
+	if err := (RestoreService{}).Restore(manifest); err == nil || !strings.Contains(err.Error(), "missing.json") {
+		t.Fatalf("Restore() error = %v; want the failing entry reported", err)
+	}
+	got, err := os.ReadFile(laterPath)
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+	if string(got) != "original\n" {
+		t.Fatalf("later entry = %q, want %q (restore stopped at the first failure)", got, "original\n")
+	}
+}

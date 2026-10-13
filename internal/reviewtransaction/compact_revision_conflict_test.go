@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"time"
 )
 
 // TestCompactRevisionConflictIsTypedAndProvesNonMutation is the store-side half
@@ -66,5 +67,26 @@ func TestCompactRevisionConflictIsTypedAndProvesNonMutation(t *testing.T) {
 	loaded, err := store.Load()
 	if err != nil || loaded.Revision != committed {
 		t.Fatalf("authority after the refused compare-and-set = %#v, %v; want revision %q", loaded, err, committed)
+	}
+}
+
+// A brief holder of the store lock (for example a read-only status probe) must
+// delay a commit, not fail it.
+func TestCompactCommitWaitsOutBriefStoreLockContention(t *testing.T) {
+	repo := initSnapshotRepo(t)
+	state, store, record := correctionRequiredCompactAuthority(t, repo, "compact-commit-lock-wait")
+	held, err := acquireLocalStoreLock(store.lockPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		held.release()
+	}()
+	if err := state.BeginCorrection(1); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Replace(record.Revision, "review/begin-fix", state); err != nil {
+		t.Fatalf("commit during brief store lock contention = %v, want it to wait and succeed", err)
 	}
 }

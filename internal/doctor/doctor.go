@@ -41,76 +41,15 @@ const (
 	RemedyFreeDiskSpace      RemedyID = "free-disk-space"
 )
 
-// RemedyCategory groups remedies by the resource they concern.
-type RemedyCategory string
-
-const (
-	RemedyCategoryInstall       RemedyCategory = "install"
-	RemedyCategoryConfiguration RemedyCategory = "configuration"
-	RemedyCategoryEnvironment   RemedyCategory = "environment"
-	RemedyCategoryService       RemedyCategory = "service"
-	RemedyCategoryStorage       RemedyCategory = "storage"
-)
-
-// ActionMode describes the interaction required before a remedy may run.
-type ActionMode string
-
-const (
-	ActionAutomatic    ActionMode = "automatic"
-	ActionConfirmation ActionMode = "confirmation"
-	ActionManualOnly   ActionMode = "manual-only"
-)
-
-// Platform identifies an operating environment supported by a remedy.
-type Platform string
-
-const (
-	PlatformWindows Platform = "windows"
-	PlatformMacOS   Platform = "macos"
-	PlatformLinux   Platform = "linux"
-	PlatformWSL     Platform = "wsl"
-)
-
 // Remedy describes a possible response without performing it.
 type Remedy struct {
-	ID                 RemedyID
-	Description        string
-	Category           RemedyCategory
-	ActionMode         ActionMode
-	Eligible           bool
-	EligibilityReason  string
-	SupportedPlatforms []Platform
+	ID          RemedyID
+	Description string
 }
 
-// NewRemedy classifies a remedy without making it executable.
+// NewRemedy builds a remedy; it is guidance only and never executable.
 func NewRemedy(id RemedyID, description string) *Remedy {
-	r := &Remedy{ID: id, Description: description, ActionMode: ActionManualOnly, SupportedPlatforms: supportedPlatforms()}
-	switch id {
-	case RemedyInstallTool, RemedyInstall:
-		r.Category, r.EligibilityReason = RemedyCategoryInstall, "no bounded managed install was identified"
-	case RemedyRemoveDuplicates:
-		r.Category, r.EligibilityReason = RemedyCategoryEnvironment, "binary ownership is unknown"
-	case RemedyEditShellPath:
-		r.Category, r.EligibilityReason = RemedyCategoryEnvironment, "shell startup files are user-owned"
-	case RemedyRepairState:
-		r.Category, r.EligibilityReason = RemedyCategoryConfiguration, "no safe recovery source was identified"
-	case RemedyInspectStateAccess:
-		r.Category, r.EligibilityReason = RemedyCategoryConfiguration, "file access and ownership require manual inspection"
-	case RemedySync:
-		r.Category, r.ActionMode, r.Eligible = RemedyCategoryConfiguration, ActionConfirmation, true
-		r.EligibilityReason = "requires managed state and existing sync safeguards"
-	case RemedyStartEngram, RemedyInspectEngram:
-		r.Category, r.EligibilityReason = RemedyCategoryService, "external process and log ownership is unknown"
-	case RemedyFreeDiskSpace:
-		r.Category, r.EligibilityReason = RemedyCategoryStorage, "disk cleanup is user-owned"
-	default:
-		r.EligibilityReason = "remedy is not allowlisted"
-	}
-	return r
-}
-
-func supportedPlatforms() []Platform {
-	return []Platform{PlatformWindows, PlatformMacOS, PlatformLinux, PlatformWSL}
+	return &Remedy{ID: id, Description: description}
 }
 
 // Result contains evidence produced by one check.

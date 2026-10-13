@@ -44,31 +44,6 @@ func TestRunnerPreservesDeclarationOrderAndStableIDs(t *testing.T) {
 	}
 }
 
-func TestNewRemedyClassifiesCurrentRemedies(t *testing.T) {
-	tests := []struct {
-		id       RemedyID
-		category RemedyCategory
-		mode     ActionMode
-		eligible bool
-	}{
-		{RemedyInstallTool, RemedyCategoryInstall, ActionManualOnly, false},
-		{RemedyRemoveDuplicates, RemedyCategoryEnvironment, ActionManualOnly, false},
-		{RemedyInstall, RemedyCategoryInstall, ActionManualOnly, false},
-		{RemedyRepairState, RemedyCategoryConfiguration, ActionManualOnly, false},
-		{RemedyID("inspect-state-access"), RemedyCategoryConfiguration, ActionManualOnly, false},
-		{RemedySync, RemedyCategoryConfiguration, ActionConfirmation, true},
-		{RemedyStartEngram, RemedyCategoryService, ActionManualOnly, false},
-		{RemedyInspectEngram, RemedyCategoryService, ActionManualOnly, false},
-		{RemedyFreeDiskSpace, RemedyCategoryStorage, ActionManualOnly, false},
-	}
-	for _, tt := range tests {
-		r := NewRemedy(tt.id, "guidance")
-		if r.Description != "guidance" || r.Category != tt.category || r.ActionMode != tt.mode || r.Eligible != tt.eligible || r.EligibilityReason == "" || len(r.SupportedPlatforms) != 4 {
-			t.Errorf("NewRemedy(%q) = %#v", tt.id, r)
-		}
-	}
-}
-
 func recordingCheck(order *[]CheckID, id CheckID, result Result) func(context.Context) Result {
 	return func(context.Context) Result { *order = append(*order, id); return result }
 }

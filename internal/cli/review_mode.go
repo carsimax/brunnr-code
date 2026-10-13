@@ -17,6 +17,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/pathquote"
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 	"github.com/carsimax/brunnr-code/internal/state"
+	"github.com/carsimax/brunnr-code/internal/statecoord"
 )
 
 // ReviewModeSchema identifies the user-facing kill-switch projection.
@@ -82,6 +83,10 @@ func RunReviewMode(args []string, stdout io.Writer) error {
 			revisionProvided = true
 		}
 	})
+
+	if revisionProvided && selectedScope == reviewModeScopeGlobal {
+		return errors.New("--expected-revision only applies with --scope clone")
+	}
 
 	ctx := context.Background()
 	result := ReviewModeResult{Schema: ReviewModeSchema, Operation: operation, Scope: selectedScope}
@@ -243,7 +248,7 @@ func (err *reviewModeUnsafePathError) repairCommand() string {
 		if err.Directory {
 			mode = "700"
 		}
-		return "chmod " + mode + " " + quotePOSIXShellToken(err.Path)
+		return "chmod " + mode + " " + pathquote.ShellWord(err.Path)
 	}
 	securityType := "FileSecurity"
 	inheritance := "'None'"
@@ -267,10 +272,6 @@ func (err *reviewModeUnsafePathError) repairCommand() string {
 
 func quotePowerShellLiteral(path string) string {
 	return "'" + strings.ReplaceAll(path, "'", "''") + "'"
-}
-
-func quotePOSIXShellToken(path string) string {
-	return "'" + strings.ReplaceAll(path, "'", `'"'"'`) + "'"
 }
 
 // reviewModePrivateModeIneffectiveError rewrites the unsafe-path refusal for
@@ -407,8 +408,13 @@ func applyReviewMode(
 		return reviewModeStatus(ctx, repo)
 	}
 	global, err := readGlobalRDDMode()
-	if err != nil {
+	if err != nil && operation == "enable" {
 		return disabled, err
+	}
+	// A clone-scoped disable is off whatever the global source says, so an
+	// unreadable state.json must not take this kill switch with it.
+	if err != nil {
+		global = reviewtransaction.RDDGlobalMode{}
 	}
 	mode := reviewtransaction.RDDModeOff
 	if operation == "enable" {
@@ -447,7 +453,7 @@ func readGlobalRDDMode() (reviewtransaction.RDDGlobalMode, error) {
 		if errors.Is(err, os.ErrNotExist) {
 			return reviewtransaction.RDDGlobalMode{}, nil
 		}
-		return reviewtransaction.RDDGlobalMode{}, fmt.Errorf("read global review mode: %w", err)
+		return reviewtransaction.RDDGlobalMode{}, fmt.Errorf("read global review mode from %s: %w; repair that JSON file, or move it aside and run `brunnr-code sync` to rebuild it", state.Path(home), err)
 	}
 	global := reviewtransaction.RDDGlobalMode{Value: persisted.RDDMode}
 	if persisted.RDDModeRecordedAt != nil {
@@ -461,7 +467,7 @@ func writeGlobalRDDMode(operation string) error {
 	if err != nil {
 		return fmt.Errorf("resolve user home directory: %w", err)
 	}
-	return withInstallStateLock(home, func() error {
+	return statecoord.WithLock(home, func() error {
 		persisted, err := state.Read(home)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("read global review mode: %w", err)

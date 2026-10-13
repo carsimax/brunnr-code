@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 )
 
 type SystemInfo struct {
@@ -110,12 +111,18 @@ func Detect(ctx context.Context) (DetectionResult, error) {
 // detectNpmWritable checks if npm's global prefix is under the user's home
 // directory (nvm, fnm, volta, etc.), meaning sudo is not needed for global installs.
 func detectNpmWritable(homeDir string) bool {
-	out, err := runProbe(exec.Command("npm", "config", "get", "prefix"))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	out, err := runProbe(exec.CommandContext(ctx, "npm", "config", "get", "prefix"))
 	if err != nil {
 		return false
 	}
-	prefix := strings.TrimSpace(string(out))
-	return strings.HasPrefix(prefix, homeDir)
+	return pathUnderHome(strings.TrimSpace(string(out)), homeDir)
+}
+
+// pathUnderHome matches whole path segments so /home/al does not claim /home/alice.
+func pathUnderHome(path, homeDir string) bool {
+	return path == homeDir || strings.HasPrefix(path, strings.TrimRight(homeDir, string(os.PathSeparator))+string(os.PathSeparator))
 }
 
 func detectFromInputs(goos, arch, shell, linuxOSRelease string, tools map[string]ToolStatus, configs []ConfigState) DetectionResult {

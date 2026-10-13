@@ -177,3 +177,11 @@ func TestParseInstallFlagsRejectsRemovedSetupFlags(t *testing.T) {
 		})
 	}
 }
+
+func TestParseInstallFlagsRejectsEmptyAgentList(t *testing.T) {
+	for _, args := range [][]string{{"--agent", ","}, {"--agents="}, {"--agent", " , "}} {
+		if _, err := ParseInstallFlags(args); err == nil {
+			t.Errorf("ParseInstallFlags(%v) accepted an empty agent list", args)
+		}
+	}
+}

@@ -8,7 +8,6 @@ import (
 	"io"
 	"maps"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/carsimax/brunnr-code/internal/backup"
@@ -805,9 +804,10 @@ func persistAssignments(homeDir string, selection model.Selection) error {
 		current, err := state.Read(homeDir)
 		if err != nil {
 			// State file may not exist yet (e.g. pre-state users). Other read
-			// failures, such as invalid JSON, must not overwrite existing state.
+			// failures, such as invalid JSON, must not overwrite existing state
+			// and must not be reported as a successful save either.
 			if !errors.Is(err, os.ErrNotExist) {
-				return nil
+				return fmt.Errorf("read install state: %w", err)
 			}
 			current = state.InstallState{}
 		}
@@ -916,36 +916,7 @@ func ListBackups() []backup.Manifest {
 		return nil
 	}
 
-	backupRoot := state.BackupsDir(homeDir)
-	entries, err := os.ReadDir(backupRoot)
-	if err != nil {
-		return nil
-	}
-
-	manifests := make([]backup.Manifest, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-
-		manifestPath := filepath.Join(backupRoot, entry.Name(), backup.ManifestFilename)
-		manifest, err := backup.ReadManifest(manifestPath)
-		if err != nil {
-			continue
-		}
-		manifests = append(manifests, manifest)
-	}
-
-	// Sort by creation time (newest first) — the IDs are timestamps.
-	for i := 0; i < len(manifests); i++ {
-		for j := i + 1; j < len(manifests); j++ {
-			if manifests[j].CreatedAt.After(manifests[i].CreatedAt) {
-				manifests[i], manifests[j] = manifests[j], manifests[i]
-			}
-		}
-	}
-
-	return manifests
+	return backup.List(state.BackupsDir(homeDir))
 }
 
 func codexOrchestratorToState(a *model.CodexOrchestratorAssignment) *state.CodexOrchestratorAssignmentState {

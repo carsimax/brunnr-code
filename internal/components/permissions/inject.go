@@ -1,6 +1,7 @@
 package permissions
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -60,6 +61,22 @@ var claudeCodeOverlayJSON = []byte(`{
 }
 `)
 
+// ManagedClaudeDenyRules returns the deny entries and the defaultMode the
+// installer writes into Claude Code settings, so uninstall can remove exactly
+// those and leave the user's own permission rules alone.
+func ManagedClaudeDenyRules() (deny []string, defaultMode string) {
+	var overlay struct {
+		Permissions struct {
+			DefaultMode string   `json:"defaultMode"`
+			Deny        []string `json:"deny"`
+		} `json:"permissions"`
+	}
+	if err := json.Unmarshal(claudeCodeOverlayJSON, &overlay); err != nil {
+		panic(err) // the overlay is a compile-time constant
+	}
+	return overlay.Permissions.Deny, overlay.Permissions.DefaultMode
+}
+
 // agentOverlay returns the correct permission overlay for the given agent,
 // or nil if the agent does not support permission injection via settings.json.
 func agentOverlay(id model.AgentID) []byte {
@@ -95,7 +112,7 @@ func InjectAtPath(settingsPath string, adapter agents.Adapter) (InjectionResult,
 	if overlay == nil {
 		return InjectionResult{}, nil
 	}
-	writeResult, err := mergeJSONFile(settingsPath, overlay, filemerge.MergeJSONObjectsForPath)
+	writeResult, err := mergeJSONFile(settingsPath, overlay)
 	if err != nil {
 		return InjectionResult{}, err
 	}
@@ -103,18 +120,59 @@ func InjectAtPath(settingsPath string, adapter agents.Adapter) (InjectionResult,
 	return InjectionResult{Changed: writeResult.Changed, Files: []string{settingsPath}}, nil
 }
 
-func mergeJSONFile(path string, overlay []byte, merge func(string, []byte, []byte) ([]byte, error)) (filemerge.WriteResult, error) {
+// mergeJSONFile uses the JSONC merge so a malformed settings.json is refused
+// and comments survive, as persona and agenthooks already do for this file.
+func mergeJSONFile(path string, overlay []byte) (filemerge.WriteResult, error) {
 	baseJSON, err := osReadFile(path)
 	if err != nil {
 		return filemerge.WriteResult{}, err
 	}
 
-	merged, err := merge(path, baseJSON, overlay)
+	overlay, err = withUserDenyRules(baseJSON, overlay)
+	if err != nil {
+		return filemerge.WriteResult{}, err
+	}
+	merged, err := filemerge.MergeJSONCObjects(baseJSON, overlay)
 	if err != nil {
 		return filemerge.WriteResult{}, err
 	}
 
 	return filemerge.WriteFileAtomic(path, merged, filemerge.ExistingFileMode(path, 0o644))
+}
+
+// withUserDenyRules appends the user's own permissions.deny entries to the
+// managed list, because the merge replaces arrays and deny rules are the only
+// guard left under bypassPermissions.
+func withUserDenyRules(baseJSON, overlay []byte) ([]byte, error) {
+	base, err := filemerge.UnmarshalJSONObject(baseJSON)
+	if err != nil {
+		return overlay, nil // the merge itself refuses a malformed base
+	}
+	basePermissions, _ := base["permissions"].(map[string]any)
+	userDeny, _ := basePermissions["deny"].([]any)
+	if len(userDeny) == 0 {
+		return overlay, nil
+	}
+	var result map[string]any
+	if err := json.Unmarshal(overlay, &result); err != nil {
+		return nil, fmt.Errorf("unmarshal permissions overlay: %w", err)
+	}
+	permissions, _ := result["permissions"].(map[string]any)
+	deny, _ := permissions["deny"].([]any)
+	seen := make(map[string]bool, len(deny)+len(userDeny))
+	for _, rule := range deny {
+		key, _ := json.Marshal(rule)
+		seen[string(key)] = true
+	}
+	for _, rule := range userDeny {
+		key, _ := json.Marshal(rule)
+		if !seen[string(key)] {
+			seen[string(key)] = true
+			deny = append(deny, rule)
+		}
+	}
+	permissions["deny"] = deny
+	return json.Marshal(result)
 }
 
 var osReadFile = func(path string) ([]byte, error) {

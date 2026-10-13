@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/carsimax/brunnr-code/internal/pathquote"
 	"io"
 	"os"
 	"path/filepath"
@@ -228,8 +229,12 @@ func runReviewStopHookStop(ctx context.Context, payload reviewStopHookPayload, r
 	if _, err := fmt.Fprintln(stdout, string(encoded)); err != nil {
 		return err
 	}
-	_, err = recordReviewStopHookReminder(payload.SessionID, targetIdentity)
-	return err
+	// The record is only a dedupe hint and the block JSON is already printed;
+	// a non-zero exit here would make Claude Code drop that JSON.
+	if err := recordReviewStopHookReminder(payload.SessionID, targetIdentity); err != nil {
+		fmt.Fprintf(os.Stderr, "review stop-hook: record reminder: %v\n", err)
+	}
+	return nil
 }
 
 // reviewStopHookResolveTargetIdentity resolves the repository root, the
@@ -291,7 +296,7 @@ func reviewStopHookResolveTargetIdentity(ctx context.Context, repo, runtimeAgent
 // (carrying --consent=relay), the lossless-relay instruction for any consent
 // envelope that START returns, and the once-per-candidate scope of this hook.
 func reviewStopHookReasonText(targetIdentity, root, runtimeAgent, startCommand string) string {
-	statusCommand := fmt.Sprintf("brunnr-code review status --cwd %s --contract %s --agent %s --next-transition", root, ReviewIntegrationContractV2, runtimeAgent)
+	statusCommand := fmt.Sprintf("brunnr-code review status --cwd %s --contract %s --agent %s --next-transition", pathquote.ShellWord(root), ReviewIntegrationContractV2, runtimeAgent)
 	return strings.Join([]string{
 		"Receipt-driven development is enabled for this repository, and it holds an unreviewed candidate (target_identity " + targetIdentity + ").",
 		"By the review contract entry rule, you must run the selectorless STATUS preflight below and route only from its returned next_transition before reporting completion; never infer a command from prose or a stale reply.",
@@ -390,51 +395,35 @@ func recordReviewStopHookLastSeen(sessionID, targetIdentity string) error {
 	return err
 }
 
-// recordReviewStopHookReminder decides, and records, whether a Stop for
-// targetIdentity should stay silent. It reports silent=true when: the session
-// id is invalid (there is nothing safe to record, so the caller still
-// reminds -- see below); the recorded SessionStart baseline equals
-// targetIdentity (the candidate predates this session); or the session was
-// already reminded about this exact targetIdentity. Otherwise it records
-// targetIdentity as the session's last reminder (preserving any recorded
-// baseline untouched) and reports silent=false so the caller reminds.
-//
-// An invalid or missing session id is the one case that reminds (silent
-// false) without persisting: there is no safe file name to record it under.
-func recordReviewStopHookReminder(sessionID, targetIdentity string) (silent bool, err error) {
+// recordReviewStopHookReminder records targetIdentity as the session's last
+// reminder, preserving any recorded baseline untouched. The caller has already
+// decided to remind, so no silence check happens here. An invalid or missing
+// session id persists nothing: there is no safe file name to record it under.
+func recordReviewStopHookReminder(sessionID, targetIdentity string) error {
 	if !reviewStopHookSessionIDPattern.MatchString(sessionID) {
-		return false, nil
+		return nil
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return false, fmt.Errorf("resolve user home directory: %w", err)
+		return fmt.Errorf("resolve user home directory: %w", err)
 	}
 	path := reviewStopHookRecordPath(home, sessionID)
 
-	record, hadRecord, err := readReviewStopHookRecord(path)
+	record, _, err := readReviewStopHookRecord(path)
 	if err != nil {
-		return false, err
+		return err
 	}
-	if hadRecord {
-		if record.BaselineTargetIdentity != "" && record.BaselineTargetIdentity == targetIdentity {
-			return true, nil
-		}
-		if record.TargetIdentity != "" && record.TargetIdentity == targetIdentity {
-			return true, nil
-		}
-	}
-
 	record.Schema = reviewStopHookReminderSchema
 	record.TargetIdentity = targetIdentity
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return false, err
+		return err
 	}
 	payload, err := json.Marshal(record)
 	if err != nil {
-		return false, err
+		return err
 	}
 	_, err = filemerge.WriteFileAtomic(path, payload, 0o644)
-	return false, err
+	return err
 }
 
 // reviewStopHookReviewDue reports review_due for the current candidate by

@@ -22,6 +22,8 @@ const (
 	maintenanceExclusive maintenanceLockMode = true
 )
 
+// shortcut: same 2s budget as compactStartLockTimeout and the same limit (git
+// evidence work under the lock); upgrade together with it.
 const maintenanceLockTimeout = 2 * time.Second
 
 type storeLockOwner struct {
@@ -353,40 +355,36 @@ func (lock *storeLock) release() error {
 // here: the caller falls back to the root-anchored walk, which is always
 // safe and matches today's behavior verbatim.
 func secureLockRoot(path string) (string, bool) {
-	cleanPath := filepath.Clean(path)
-	var authorityRoot string
-	for current := filepath.Dir(cleanPath); ; current = filepath.Dir(current) {
-		if filepath.Base(current) == "review-transactions" && filepath.Base(filepath.Dir(current)) == GitCommonDirName {
-			if authorityRoot != "" {
-				return "", false
-			}
-			authorityRoot = current
-		}
-		parent := filepath.Dir(current)
-		if parent == current {
-			break
-		}
-	}
-	if authorityRoot == "" {
+	authorityRoot, ambiguous := findAuthorityRoot(filepath.Clean(path))
+	if ambiguous || authorityRoot == "" {
 		return "", false
 	}
 	return filepath.Dir(filepath.Dir(authorityRoot)), true
 }
 
-func maintenanceLockPathForStoreLock(path string) (string, error) {
-	cleanPath := filepath.Clean(path)
-	var authorityRoot string
+// findAuthorityRoot returns the single "review-transactions" directory whose
+// parent is the GitCommonDirName marker above cleanPath. It returns "" when
+// none exists and ambiguous=true when more than one does.
+func findAuthorityRoot(cleanPath string) (root string, ambiguous bool) {
 	for current := filepath.Dir(cleanPath); ; current = filepath.Dir(current) {
 		if filepath.Base(current) == "review-transactions" && filepath.Base(filepath.Dir(current)) == GitCommonDirName {
-			if authorityRoot != "" {
-				return "", errors.New("review store lock path has ambiguous authority roots")
+			if root != "" {
+				return "", true
 			}
-			authorityRoot = current
+			root = current
 		}
 		parent := filepath.Dir(current)
 		if parent == current {
-			break
+			return root, false
 		}
+	}
+}
+
+func maintenanceLockPathForStoreLock(path string) (string, error) {
+	cleanPath := filepath.Clean(path)
+	authorityRoot, ambiguous := findAuthorityRoot(cleanPath)
+	if ambiguous {
+		return "", errors.New("review store lock path has ambiguous authority roots")
 	}
 	if authorityRoot == "" {
 		return "", nil

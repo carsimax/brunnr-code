@@ -37,7 +37,7 @@ func replaceCodexMCPServerBlock(content, header, block string) string {
 
 	var kept []string
 	for i := 0; i < len(lines); {
-		if !inString[i] && strings.TrimSpace(lines[i]) == header {
+		if !inString[i] && TOMLHeaderWithoutComment(strings.TrimSpace(lines[i])) == header {
 			// Skip the old block header and all its key-value lines.
 			i++
 			for i < len(lines) {
@@ -96,7 +96,7 @@ func UpsertTOMLTableKey(content, section, key, rawValue string) string {
 			continue
 		}
 		trimmed := strings.TrimSpace(line)
-		if trimmed == header {
+		if TOMLHeaderWithoutComment(trimmed) == header {
 			sectionLine = i
 			inSection = true
 			continue
@@ -190,7 +190,7 @@ func RemoveTOMLTableKeys(content, section string, keys []string) string {
 			continue
 		}
 		trimmed := strings.TrimSpace(line)
-		if trimmed == header {
+		if TOMLHeaderWithoutComment(trimmed) == header {
 			inSection = true
 			out = append(out, line)
 			continue
@@ -236,7 +236,7 @@ func RemoveTOMLTable(content, tableName string) string {
 	kept := make([]string, 0, len(lines))
 	for i := 0; i < len(lines); {
 		trimmed := strings.TrimSpace(lines[i])
-		if !inString[i] && trimmed == header {
+		if !inString[i] && TOMLHeaderWithoutComment(trimmed) == header {
 			i++
 			for i < len(lines) {
 				if !inString[i] && isTOMLTableHeader(strings.TrimSpace(lines[i])) {
@@ -404,10 +404,12 @@ func escapedTOMLCharacter(line string, index int) bool {
 }
 
 func isTOMLTableHeader(line string) bool {
-	if !strings.HasPrefix(line, "[") {
-		return false
-	}
+	return strings.HasPrefix(line, "[") && strings.HasSuffix(TOMLHeaderWithoutComment(line), "]")
+}
 
+// TOMLHeaderWithoutComment returns a trimmed line without a trailing # comment
+// outside quotes, so "[features] # mine" still matches "[features]".
+func TOMLHeaderWithoutComment(line string) string {
 	var quote byte
 	escaped := false
 	for i := 0; i < len(line); i++ {
@@ -428,10 +430,9 @@ func isTOMLTableHeader(line string) bool {
 		case '"', '\'':
 			quote = char
 		case '#':
-			line = strings.TrimSpace(line[:i])
-			return strings.HasSuffix(line, "]")
+			return strings.TrimSpace(line[:i])
 		}
 	}
 
-	return strings.HasSuffix(line, "]")
+	return line
 }

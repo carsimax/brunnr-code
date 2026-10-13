@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/carsimax/brunnr-code/internal/model"
 )
@@ -85,12 +86,14 @@ func (adapter *CodexAdapter) Review(ctx context.Context, invocation Invocation) 
 		arguments = append(arguments, "--model", adapter.Model)
 	}
 	command := commandContext(ctx, binary, arguments...)
+	// A grandchild holding stdout must not keep Wait blocked after the context ends.
+	command.WaitDelay = time.Second
 	command.Dir = workdir
 	command.Stdin = bytes.NewReader(invocation.Prompt())
 	var stderr bytes.Buffer
 	command.Stderr = &stderr
 	if err := command.Run(); err != nil {
-		return nil, fmt.Errorf("codex reviewer transport failed: %w: %s", err, stderr.String())
+		return nil, fmt.Errorf("codex reviewer transport failed: %w: %s", err, reviewerTransportFailureDetail(stderr.String(), ""))
 	}
 
 	raw, err := os.ReadFile(outputPath)
@@ -105,6 +108,10 @@ func (adapter *CodexAdapter) Review(ctx context.Context, invocation Invocation) 
 // disabled explicitly rather than trusted to a default, and the temp-dir
 // writable roots workspace-write would otherwise add are excluded. The final
 // message path stays outside the writable copy.
+//
+// shortcut: read-only still lets Codex read absolute paths outside the
+// workspace, so injected prompt text in reviewed code could pull home files
+// into its result; upgrade to a sandbox with a path allowlist when Codex offers one.
 func codexReviewerArguments(workdir, outputPath string, probe bool) ([]string, error) {
 	sandbox := "read-only"
 	if probe {

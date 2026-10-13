@@ -12,8 +12,8 @@ import (
 // backslash, so a Windows path prints with doubled separators in the exact
 // invocation the user is told to copy-paste. These tests pin the correct
 // behavior: the printed invocation contains the path as the filesystem knows
-// it, quoted, with single separators, so strings.Contains(message, repo)
-// holds on every platform.
+// it, as one literal shell word with single separators, so
+// strings.Contains(message, repo) holds on every platform.
 
 func TestCompactAbandonCommandTextRendersWindowsPathVerbatim(t *testing.T) {
 	repo := `C:\Users\dev\repo`
@@ -22,7 +22,7 @@ func TestCompactAbandonCommandTextRendersWindowsPathVerbatim(t *testing.T) {
 		Revision:         "rev-1",
 		SnapshotIdentity: "snap-1",
 	})
-	want := `--cwd "C:\Users\dev\repo"`
+	want := `--cwd 'C:\Users\dev\repo'`
 	if !strings.Contains(text, want) {
 		t.Fatalf("abandon invocation does not contain the path as the filesystem knows it:\nwant substring: %s\ngot: %s", want, text)
 	}
@@ -30,7 +30,7 @@ func TestCompactAbandonCommandTextRendersWindowsPathVerbatim(t *testing.T) {
 
 func TestCompactReclaimAuthorityRefusalRendersWindowsPathVerbatim(t *testing.T) {
 	repo := `C:\Users\dev\repo`
-	want := `--cwd "C:\Users\dev\repo"`
+	want := `--cwd 'C:\Users\dev\repo'`
 	tests := []struct {
 		name     string
 		populate func(t *testing.T, dir string)

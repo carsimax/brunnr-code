@@ -74,9 +74,6 @@ func TestRunDoctor_StateErrorsPreserveState(t *testing.T) {
 				if !strings.Contains(result.Detail, path) || !strings.Contains(result.Detail, tt.readErr.Error()) {
 					t.Errorf("lost read evidence: %s", result.Detail)
 				}
-				if result.Remedy != nil && (result.Remedy.Eligible || result.Remedy.ActionMode != doctor.ActionManualOnly) {
-					t.Errorf("access remedy must remain manual: %+v", result.Remedy)
-				}
 			}
 			var output bytes.Buffer
 			if err := RunDoctor(context.Background(), &output); err != nil {

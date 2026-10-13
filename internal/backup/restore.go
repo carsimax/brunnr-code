@@ -236,100 +236,7 @@ func (s RestoreService) restoreCompressed(manifest Manifest) error {
 		return fmt.Errorf("extract archive %q: %w", archivePath, err)
 	}
 
-	for _, entry := range manifest.Entries {
-		// All paths must be absolute and under an allowed root — both
-		// Existed and !Existed branches share the same containment check.
-		if !filepath.IsAbs(entry.OriginalPath) || !isPathUnderRoots(entry.OriginalPath, roots) {
-			return invalidOriginalPathErr(entry.OriginalPath, roots)
-		}
-
-		switch {
-		case entry.Kind == PathKindDirectory && entry.Existed:
-			// Pre-existing directory: ensure it still exists; never delete.
-			if err := os.MkdirAll(entry.OriginalPath, os.FileMode(entry.Mode)); err != nil {
-				return fmt.Errorf("ensure pre-existing directory %q: %w", entry.OriginalPath, err)
-			}
-			continue
-
-		case entry.Kind == PathKindSymlinkDirectory && entry.Existed:
-			// Pre-existing symlink to a directory: verify type and recorded
-			// target against the manifest BEFORE doing anything (decode2
-			// 2026-08-18 PR #2021 review). The previous code accepted any
-			// existing node at the path; a tampered manifest could claim a
-			// regular file is a symlink, or vice versa, and the restore
-			// would silently accept the disk's actual node without cross-
-			// checking. We must either (a) validate the on-disk symlink
-			// type and target, or (b) recreate from the manifest. We pick
-			// (a) because recreating risks redirecting an outside-the-root
-			// entity if the manifest's LinkTarget diverges from the
-			// on-disk one — refusing closed is the safer side.
-			info, err := os.Lstat(entry.OriginalPath)
-			if err != nil {
-				if !os.IsNotExist(err) {
-					return fmt.Errorf("stat pre-existing symlink %q: %w", entry.OriginalPath, err)
-				}
-				// Symlink is missing on disk: validate and recreate.
-				if err := validateSymlinkTarget(entry.LinkTarget, entry.OriginalPath, roots); err != nil {
-					return fmt.Errorf("manifest entry %q has unsafe LinkTarget %q: %w", entry.OriginalPath, entry.LinkTarget, err)
-				}
-				if err := os.MkdirAll(filepath.Dir(entry.OriginalPath), 0o755); err != nil {
-					return fmt.Errorf("create parent directory for symlink %q: %w", entry.OriginalPath, err)
-				}
-				if err := os.Symlink(entry.LinkTarget, entry.OriginalPath); err != nil {
-					return fmt.Errorf("restore symlink %q -> %q: %w", entry.OriginalPath, entry.LinkTarget, err)
-				}
-				continue
-			}
-			if info.Mode()&os.ModeSymlink == 0 {
-				return fmt.Errorf("manifest entry %q declares symlink-directory but on-disk node is %s — refusing to clobber a non-symlink with a symlink", entry.OriginalPath, info.Mode().String())
-			}
-			existingTarget, readErr := os.Readlink(entry.OriginalPath)
-			if readErr != nil {
-				return fmt.Errorf("readlink pre-existing symlink %q: %w", entry.OriginalPath, readErr)
-			}
-			if existingTarget != entry.LinkTarget {
-				return fmt.Errorf("manifest entry %q declares LinkTarget %q but on-disk symlink points at %q — refusing to redirect", entry.OriginalPath, entry.LinkTarget, existingTarget)
-			}
-			continue
-
-		case entry.Existed:
-			// Existed=true + Kind unknown or regular: treat as regular file
-			// (legacy compatibility). Existing restore path applies.
-			// SnapshotPath must be relative inside the archive (e.g. "files/.config/foo.json").
-			// An absolute path would cause filepath.Join to ignore tempDir, reading from
-			// the live filesystem instead of the extraction directory.
-			if filepath.IsAbs(entry.SnapshotPath) {
-				return fmt.Errorf("manifest entry %q has absolute SnapshotPath %q, expected relative", entry.OriginalPath, entry.SnapshotPath)
-			}
-			resolvedEntry := ManifestEntry{
-				OriginalPath: entry.OriginalPath,
-				SnapshotPath: filepath.Join(tempDir, filepath.FromSlash(entry.SnapshotPath)),
-				Existed:      true,
-				Mode:         entry.Mode,
-			}
-			if err := restoreEntry(resolvedEntry, true, roots); err != nil {
-				return err
-			}
-			continue
-		}
-
-		// !Existed branch: what to do depends on Kind.
-		switch entry.Kind {
-		case PathKindRegularFile:
-			// PathKindRegularFile explicitly opts into deletion semantics:
-			// the install may have created this file and the manifest
-			// records it as absent, so it is safe to delete. ENOTDIR means a
-			// regular file ancestor already proves it absent; keep that file.
-			if err := os.Remove(entry.OriginalPath); err != nil && !os.IsNotExist(err) && !errors.Is(err, syscall.ENOTDIR) {
-				return fmt.Errorf("remove path %q: %w", entry.OriginalPath, err)
-			}
-		default:
-			// Kind="" (legacy unknown), Kind=directory, Kind=symlink_directory:
-			// we never proved the install created this path. Preserve it.
-		}
-	}
-
-	return nil
+	return restoreManifestEntries(manifest.Entries, tempDir, roots)
 }
 
 // restorePlain handles old-style backups where Compressed==false.
@@ -346,48 +253,73 @@ func (s RestoreService) restorePlain(manifest Manifest) error {
 		return fmt.Errorf("resolve restore roots: %w", err)
 	}
 
-	for _, entry := range manifest.Entries {
-		// All paths must be absolute and under an allowed root — both
-		// Existed and !Existed branches share the same containment check.
-		if !filepath.IsAbs(entry.OriginalPath) || !isPathUnderRoots(entry.OriginalPath, roots) {
-			return invalidOriginalPathErr(entry.OriginalPath, roots)
-		}
+	return restoreManifestEntries(manifest.Entries, "", roots)
+}
 
-		switch {
-		case entry.Kind == PathKindDirectory && entry.Existed:
-			// Pre-existing directory: ensure it still exists; never delete.
-			if err := os.MkdirAll(entry.OriginalPath, os.FileMode(entry.Mode)); err != nil {
-				return fmt.Errorf("ensure pre-existing directory %q: %w", entry.OriginalPath, err)
-			}
-			continue
-
-		case entry.Kind == PathKindSymlinkDirectory && entry.Existed:
-			if err := reconcileExistingSymlink(entry, roots); err != nil {
-				return err
-			}
-			continue
-
-		case entry.Existed:
-			if err := restoreEntry(entry, false, roots); err != nil {
-				return err
-			}
-			continue
-		}
-
-		// !Existed branch: what to do depends on Kind.
-		switch entry.Kind {
-		case PathKindRegularFile:
-			// PathKindRegularFile explicitly opts into deletion semantics;
-			// ENOTDIR is absence below a regular file, as in restoreCompressed.
-			if err := os.Remove(entry.OriginalPath); err != nil && !os.IsNotExist(err) && !errors.Is(err, syscall.ENOTDIR) {
-				return fmt.Errorf("remove path %q: %w", entry.OriginalPath, err)
-			}
-		default:
-			// Kind="" (legacy unknown), Kind=directory, Kind=symlink_directory:
-			// we never proved the install created this path. Preserve it.
+// restoreManifestEntries restores every entry it can and reports all failures,
+// so a rollback never leaves the entries after a bad one half-reverted.
+func restoreManifestEntries(entries []ManifestEntry, archiveDir string, roots []string) error {
+	var errs []error
+	for _, entry := range entries {
+		if err := restoreManifestEntry(entry, archiveDir, roots); err != nil {
+			errs = append(errs, err)
 		}
 	}
+	return errors.Join(errs...)
+}
 
+// restoreManifestEntry restores one entry. archiveDir is the extracted archive
+// of a compressed backup, or "" for a plain backup whose SnapshotPath is an
+// absolute file on disk.
+func restoreManifestEntry(entry ManifestEntry, archiveDir string, roots []string) error {
+	// All paths must be absolute and under an allowed root — both
+	// Existed and !Existed branches share the same containment check.
+	if !filepath.IsAbs(entry.OriginalPath) || !isPathUnderRoots(entry.OriginalPath, roots) {
+		return invalidOriginalPathErr(entry.OriginalPath, roots)
+	}
+
+	switch {
+	case entry.Kind == PathKindDirectory && entry.Existed:
+		// Pre-existing directory: ensure it still exists; never delete.
+		if err := os.MkdirAll(entry.OriginalPath, os.FileMode(entry.Mode)); err != nil {
+			return fmt.Errorf("ensure pre-existing directory %q: %w", entry.OriginalPath, err)
+		}
+		return nil
+
+	case entry.Kind == PathKindSymlinkDirectory && entry.Existed:
+		return reconcileExistingSymlink(entry, roots)
+
+	case entry.Existed && archiveDir == "":
+		return restoreEntry(entry, false, roots)
+
+	case entry.Existed:
+		// Existed=true + Kind unknown or regular: treat as regular file
+		// (legacy compatibility). SnapshotPath must be relative inside the
+		// archive (e.g. "files/.config/foo.json"). An absolute path would
+		// cause filepath.Join to ignore archiveDir, reading from the live
+		// filesystem instead of the extraction directory.
+		if filepath.IsAbs(entry.SnapshotPath) {
+			return fmt.Errorf("manifest entry %q has absolute SnapshotPath %q, expected relative", entry.OriginalPath, entry.SnapshotPath)
+		}
+		return restoreEntry(ManifestEntry{
+			OriginalPath: entry.OriginalPath,
+			SnapshotPath: filepath.Join(archiveDir, filepath.FromSlash(entry.SnapshotPath)),
+			Existed:      true,
+			Mode:         entry.Mode,
+		}, true, roots)
+	}
+
+	// !Existed branch: only PathKindRegularFile opts into deletion semantics:
+	// the install may have created this file and the manifest records it as
+	// absent, so it is safe to delete. ENOTDIR means a regular file ancestor
+	// already proves it absent; keep that file. Kind="" (legacy unknown),
+	// directory and symlink_directory are preserved: we never proved the
+	// install created them.
+	if entry.Kind == PathKindRegularFile {
+		if err := os.Remove(entry.OriginalPath); err != nil && !os.IsNotExist(err) && !errors.Is(err, syscall.ENOTDIR) {
+			return fmt.Errorf("remove path %q: %w", entry.OriginalPath, err)
+		}
+	}
 	return nil
 }
 

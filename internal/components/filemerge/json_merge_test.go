@@ -84,49 +84,35 @@ func TestMergeJSONObjectsSupportsJSONCBase(t *testing.T) {
 	}
 }
 
-func TestMergeJSONObjectsMalformedBaseReturnsOverlayOnly(t *testing.T) {
-	// Real user machines (e.g. Windows) may have a malformed ~/.cursor/mcp.json.
-	// The installer should recover by treating the broken base as {} and continuing.
+func TestMergeJSONObjectsRefusesMalformedBase(t *testing.T) {
+	// Treating a broken base as {} would rewrite the user's file with only the
+	// overlay, so a malformed base must be refused.
 	tests := []struct {
 		name    string
 		base    []byte
 		overlay []byte
-		wantKey string
 	}{
 		{
 			name:    "base starting with letter",
 			base:    []byte(`allow: all`),
 			overlay: []byte(`{"mcpServers": {"example": {"type": "remote"}}}`),
-			wantKey: "mcpServers",
 		},
 		{
 			name:    "unclosed json object",
 			base:    []byte(`{"ok": true`),
 			overlay: []byte(`{"chat.tools.autoApprove": true}`),
-			wantKey: "chat.tools.autoApprove",
 		},
 		{
 			name:    "arbitrary text",
 			base:    []byte(`a`),
 			overlay: []byte(`{"servers": {"engram": {"command": "engram"}}}`),
-			wantKey: "servers",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			merged, err := MergeJSONObjects(tt.base, tt.overlay)
-			if err != nil {
-				t.Fatalf("MergeJSONObjects() error = %v; want nil (malformed base should be treated as {})", err)
-			}
-
-			var got map[string]any
-			if err := json.Unmarshal(merged, &got); err != nil {
-				t.Fatalf("merged result is not valid JSON: %v", err)
-			}
-
-			if _, ok := got[tt.wantKey]; !ok {
-				t.Fatalf("merged result missing key %q from overlay; got keys: %v", tt.wantKey, got)
+			if _, err := MergeJSONObjects(tt.base, tt.overlay); err == nil {
+				t.Fatalf("MergeJSONObjects() error = nil; want refusal for malformed base")
 			}
 		})
 	}
@@ -389,5 +375,20 @@ func TestUnmarshalJSONObjectKeepsStrictSingleDocument(t *testing.T) {
 				t.Fatalf("UnmarshalJSONObject(%q) error = %v, want %q", tc.raw, err, tc.wantErr)
 			}
 		})
+	}
+}
+
+func TestMergeJSONCObjectsNestedValueIsIdempotent(t *testing.T) {
+	overlay := []byte(`{"permissions": {"defaultMode": "bypassPermissions", "deny": ["Read(.env)"]}}`)
+	first, err := MergeJSONCObjects(nil, overlay)
+	if err != nil {
+		t.Fatalf("first merge error = %v", err)
+	}
+	second, err := MergeJSONCObjects(first, overlay)
+	if err != nil {
+		t.Fatalf("second merge error = %v", err)
+	}
+	if string(first) != string(second) {
+		t.Fatalf("second merge changed the document:\nfirst:\n%s\nsecond:\n%s", first, second)
 	}
 }

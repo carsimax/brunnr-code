@@ -1,6 +1,10 @@
 package system
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestIsSupportedOS(t *testing.T) {
 	tests := []struct {
@@ -383,5 +387,19 @@ func TestDetectFromInputsProfileIsPopulatedInSystem(t *testing.T) {
 	// System.Supported should mirror profile
 	if result.System.Supported != result.System.Profile.Supported {
 		t.Fatalf("System.Supported (%v) != Profile.Supported (%v)", result.System.Supported, result.System.Profile.Supported)
+	}
+}
+
+func TestPathUnderHome(t *testing.T) {
+	home := string(os.PathSeparator) + filepath.Join("home", "al")
+	for path, want := range map[string]bool{
+		home:                             true,
+		filepath.Join(home, ".nvm", "x"): true,
+		home + "ice" + string(os.PathSeparator) + "bin": false,
+		filepath.Join("usr", "local"):                   false,
+	} {
+		if got := pathUnderHome(path, home); got != want {
+			t.Errorf("pathUnderHome(%q) = %v, want %v", path, got, want)
+		}
 	}
 }

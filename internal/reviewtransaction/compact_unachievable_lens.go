@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"time"
 )
 
 // CompactUnachievableLensAttemptRequest binds one host declaration that a
@@ -55,20 +54,7 @@ func (store CompactStore) RecordUnachievableLensAttempt(ctx context.Context, req
 	if maintenance != nil {
 		defer maintenance.Release()
 	}
-	deadline := time.NewTimer(maintenanceLockTimeout)
-	defer deadline.Stop()
-	var lock *storeLock
-	for {
-		lock, err = acquireStoreLock(store.lockPath)
-		if !errors.Is(err, ErrConcurrentUpdate) {
-			break
-		}
-		select {
-		case <-deadline.C:
-			return false, &AuthorityLockTimeoutError{Timeout: maintenanceLockTimeout}
-		case <-time.After(10 * time.Millisecond):
-		}
-	}
+	lock, err := waitForStoreLock(ctx, maintenanceLockTimeout, func() (*storeLock, error) { return acquireStoreLock(store.lockPath) })
 	if err != nil {
 		return false, err
 	}
@@ -168,20 +154,7 @@ func (store CompactStore) WithdrawUnachievableLensAttempt(ctx context.Context, r
 	if maintenance != nil {
 		defer maintenance.Release()
 	}
-	deadline := time.NewTimer(maintenanceLockTimeout)
-	defer deadline.Stop()
-	var lock *storeLock
-	for {
-		lock, err = acquireStoreLock(store.lockPath)
-		if !errors.Is(err, ErrConcurrentUpdate) {
-			break
-		}
-		select {
-		case <-deadline.C:
-			return false, &AuthorityLockTimeoutError{Timeout: maintenanceLockTimeout}
-		case <-time.After(10 * time.Millisecond):
-		}
-	}
+	lock, err := waitForStoreLock(ctx, maintenanceLockTimeout, func() (*storeLock, error) { return acquireStoreLock(store.lockPath) })
 	if err != nil {
 		return false, err
 	}

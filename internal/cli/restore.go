@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/carsimax/brunnr-code/internal/backup"
 	"github.com/carsimax/brunnr-code/internal/state"
@@ -140,12 +142,39 @@ func runRestoreWithHomeDir(args []string, restorer RestoreFunc, stdout io.Writer
 		}
 	}
 
+	// Save the current files first, so a restore can itself be undone.
+	if err := saveFilesBeforeRestore(homeDir, manifest); err != nil {
+		return err
+	}
+
 	// Execute restore.
 	if err := restorer(manifest); err != nil {
 		return fmt.Errorf("restore failed: %w", err)
 	}
 
 	fmt.Fprintf(stdout, "restore complete — restored backup %s (%s)\n", manifest.ID, manifest.DisplayLabel())
+	fmt.Fprintln(stdout, "the files it replaced are saved as a restore backup (see `brunnr-code restore --list`)")
+	return nil
+}
+
+// saveFilesBeforeRestore snapshots every path the restore will touch into a
+// new backup. It is not pruned here: pruning could remove the backup being
+// restored.
+func saveFilesBeforeRestore(homeDir string, manifest backup.Manifest) error {
+	paths := make([]string, 0, len(manifest.Entries))
+	for _, entry := range manifest.Entries {
+		paths = append(paths, entry.OriginalPath)
+	}
+	snapshotDir := filepath.Join(backupRootDir(homeDir), time.Now().UTC().Format("20060102150405.000000000"))
+	saved, err := backup.NewSnapshotter().Create(snapshotDir, paths)
+	if err != nil {
+		return fmt.Errorf("save current files before restore: %w", err)
+	}
+	saved.Source = backup.BackupSourceRestore
+	saved.Description = "before restoring " + manifest.ID
+	if err := backup.WriteManifest(filepath.Join(snapshotDir, backup.ManifestFilename), saved); err != nil {
+		return fmt.Errorf("save current files before restore: %w", err)
+	}
 	return nil
 }
 
@@ -212,39 +241,9 @@ func promptRestoreConfirm(manifest backup.Manifest, stdin io.Reader, stdout io.W
 	return strings.EqualFold(answer, "yes"), nil
 }
 
-// listBackupsFromDir reads and sorts backups from the given homeDir.
-// It is equivalent to app.ListBackups but operates on an explicit homeDir,
-// keeping the cli package independent from the app package.
+// listBackupsFromDir lists backups newest-first from the given homeDir.
 func listBackupsFromDir(homeDir string) []backup.Manifest {
-	backupRoot := backupRootDir(homeDir)
-	entries, err := os.ReadDir(backupRoot)
-	if err != nil {
-		return nil
-	}
-
-	manifests := make([]backup.Manifest, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		manifestPath := fmt.Sprintf("%s/%s/%s", backupRoot, entry.Name(), backup.ManifestFilename)
-		m, err := backup.ReadManifest(manifestPath)
-		if err != nil {
-			continue
-		}
-		manifests = append(manifests, m)
-	}
-
-	// Sort newest-first.
-	for i := 0; i < len(manifests); i++ {
-		for j := i + 1; j < len(manifests); j++ {
-			if manifests[j].CreatedAt.After(manifests[i].CreatedAt) {
-				manifests[i], manifests[j] = manifests[j], manifests[i]
-			}
-		}
-	}
-
-	return manifests
+	return backup.List(backupRootDir(homeDir))
 }
 
 // backupRootDir returns the path to the backup directory under homeDir, or

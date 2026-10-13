@@ -64,7 +64,7 @@ func TestClaudeAdapterUsesStdinAndReturnsUntouchedRawOutput(t *testing.T) {
 	if strings.Contains(string(arguments), "--bare") {
 		t.Fatal("claude arguments carry --bare: bare mode never reads OAuth or keychain credentials, so subscription-authenticated machines cannot run the reviewer")
 	}
-	for _, flag := range []string{"--print", "--output-format", "text", "--tools", "", "--setting-sources", "--system-prompt"} {
+	for _, flag := range []string{"--print", "--output-format", "text", "--tools", "", "--setting-sources", "--strict-mcp-config", "--system-prompt"} {
 		if !strings.Contains(string(arguments), flag) {
 			t.Fatalf("claude arguments = %q, missing %q", arguments, flag)
 		}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -351,5 +352,92 @@ func TestInjectClaudeCodeDefaultDenyRulesApplied(t *testing.T) {
 	mode, _ := perms["defaultMode"].(string)
 	if mode != "bypassPermissions" {
 		t.Errorf("expected defaultMode=bypassPermissions after overlay, got %q", mode)
+	}
+}
+
+func TestInjectClaudeCodeRefusesMalformedSettings(t *testing.T) {
+	home := t.TempDir()
+	settingsPath := filepath.Join(home, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	// Missing comma: the user's hooks and env must survive the failed merge.
+	malformed := `{"hooks": {"Stop": []} "env": {"A": "1"}}`
+	if err := os.WriteFile(settingsPath, []byte(malformed), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	if _, err := Inject(home, claudeAdapter()); err == nil {
+		t.Fatalf("Inject() error = nil; want refusal for malformed settings.json")
+	}
+
+	content, err := os.ReadFile(settingsPath)
+	if err != nil {
+		t.Fatalf("read settings file: %v", err)
+	}
+	if string(content) != malformed {
+		t.Fatalf("settings.json was rewritten:\n%s", content)
+	}
+}
+
+func TestInjectClaudeCodePreservesSettingsComments(t *testing.T) {
+	home := t.TempDir()
+	settingsPath := filepath.Join(home, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	existing := "{\n  // keep me\n  \"env\": {\"A\": \"1\"}\n}\n"
+	if err := os.WriteFile(settingsPath, []byte(existing), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	if _, err := Inject(home, claudeAdapter()); err != nil {
+		t.Fatalf("Inject() error = %v", err)
+	}
+
+	content, err := os.ReadFile(settingsPath)
+	if err != nil {
+		t.Fatalf("read settings file: %v", err)
+	}
+	if !strings.Contains(string(content), "// keep me") {
+		t.Fatalf("comment dropped from settings.json:\n%s", content)
+	}
+	if !strings.Contains(string(content), `"permissions"`) {
+		t.Fatalf("permissions not written:\n%s", content)
+	}
+}
+
+func TestInjectClaudeCodeKeepsUserDenyRules(t *testing.T) {
+	home := t.TempDir()
+	settingsPath := filepath.Join(home, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	existing := `{"permissions": {"deny": ["Read(~/.kube/*)", "Read(.env)"]}}`
+	if err := os.WriteFile(settingsPath, []byte(existing), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	if _, err := Inject(home, claudeAdapter()); err != nil {
+		t.Fatalf("Inject() error = %v", err)
+	}
+	first, err := os.ReadFile(settingsPath)
+	if err != nil {
+		t.Fatalf("read settings file: %v", err)
+	}
+	if !strings.Contains(string(first), `"Read(~/.kube/*)"`) {
+		t.Fatalf("user deny rule dropped:\n%s", first)
+	}
+	if strings.Count(string(first), `"Read(.env)"`) != 1 {
+		t.Fatalf("deny rule shared with the managed list is duplicated:\n%s", first)
+	}
+
+	result, err := Inject(home, claudeAdapter())
+	if err != nil {
+		t.Fatalf("second Inject() error = %v", err)
+	}
+	if result.Changed {
+		second, _ := os.ReadFile(settingsPath)
+		t.Fatalf("second Inject() changed settings.json:\nfirst:\n%s\nsecond:\n%s", first, second)
 	}
 }

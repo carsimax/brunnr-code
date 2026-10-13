@@ -6,7 +6,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
+
+	"github.com/carsimax/brunnr-code/internal/pathidentity"
 )
 
 // probeScratchParent returns the canonical system temp dir a probe scratch is
@@ -27,7 +28,9 @@ func probeScratchParent(sourceRoot string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve system temp dir for the refuter probe: %w", err)
 	}
-	if relative, err := filepath.Rel(source, parent); err == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+	// pathidentity compares by file identity, so a case-variant spelling on a
+	// case-insensitive filesystem is still recognized as inside the workspace.
+	if pathidentity.Contains(source, parent) {
 		return "", fmt.Errorf("refuter probe scratch would be inside the reviewed workspace: system temp dir %q resolves to %q under %q; point TMPDIR outside the repository", os.TempDir(), parent, source)
 	}
 	return parent, nil

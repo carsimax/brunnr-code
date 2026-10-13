@@ -27,7 +27,7 @@ func TestInstall_HappyPath_WritesFilesToBothDirs(t *testing.T) {
 		{AgentID: model.AgentCodex, SkillsDir: dir2},
 	}
 
-	results, err := Install(agent, adapters, "")
+	results, err := Install(agent, adapters)
 	if err != nil {
 		t.Fatalf("Install error: %v", err)
 	}
@@ -50,7 +50,7 @@ func TestInstall_FileContentMatchesAgentContent(t *testing.T) {
 		{AgentID: model.AgentClaudeCode, SkillsDir: dir},
 	}
 
-	results, err := Install(agent, adapters, "")
+	results, err := Install(agent, adapters)
 	if err != nil {
 		t.Fatalf("Install error: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestInstall_MissingDirectory_CreatedAutomatically(t *testing.T) {
 		{AgentID: model.AgentClaudeCode, SkillsDir: skillsDir},
 	}
 
-	results, err := Install(agent, adapters, "")
+	results, err := Install(agent, adapters)
 	if err != nil {
 		t.Fatalf("Install error: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestInstall_RollbackOnSecondWriteFailure(t *testing.T) {
 		{AgentID: model.AgentCodex, SkillsDir: dir2},
 	}
 
-	_, err := Install(agent, adapters, "")
+	_, err := Install(agent, adapters)
 	if err == nil {
 		t.Fatal("expected error when second write fails")
 	}
@@ -130,7 +130,7 @@ func TestInstall_RollbackOnSecondWriteFailure(t *testing.T) {
 func TestInstall_EmptyAdapters_NoErrorAndEmptyResults(t *testing.T) {
 	agent := makeAgent("my-agent", "# Agent\n")
 
-	results, err := Install(agent, []AdapterInfo{}, "")
+	results, err := Install(agent, []AdapterInfo{})
 	if err != nil {
 		t.Fatalf("unexpected error with empty adapters: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestInstall_EmptyAdapters_NoErrorAndEmptyResults(t *testing.T) {
 }
 
 func TestInstall_NilAgent_ReturnsError(t *testing.T) {
-	_, err := Install(nil, []AdapterInfo{}, "")
+	_, err := Install(nil, []AdapterInfo{})
 	if err == nil {
 		t.Fatal("expected error for nil agent")
 	}

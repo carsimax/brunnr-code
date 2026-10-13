@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/carsimax/brunnr-code/internal/model"
 )
@@ -34,11 +35,12 @@ func NewClaudeAdapter() *ClaudeAdapter {
 // `--setting-sources ""` drops user/project settings (hooks, plugins,
 // permissions), the explicit `--system-prompt` replaces default context
 // assembly including CLAUDE.md memory, `--tools ""` leaves no live tools, and
-// the empty scratch working directory carries no project state.
+// `--strict-mcp-config` keeps user MCP servers from starting, and the empty
+// scratch working directory carries no project state.
 var claudeReviewerArguments = []string{
 	"--print", "--output-format", "text", "--tools", "",
 	"--permission-mode", "dontAsk", "--no-session-persistence",
-	"--setting-sources", "",
+	"--setting-sources", "", "--strict-mcp-config",
 	"--system-prompt", "You are an isolated code reviewer process. Your only instructions are those delivered in the user message.",
 }
 
@@ -74,6 +76,8 @@ func (adapter *ClaudeAdapter) Review(ctx context.Context, invocation Invocation)
 		}
 	}
 	command := commandContext(ctx, binary, arguments...)
+	// A grandchild holding stdout must not keep Wait blocked after the context ends.
+	command.WaitDelay = time.Second
 	command.Dir = scratch
 	// On Windows, `claude` from an npm-style install resolves to a `.cmd`
 	// shim; launching it goes through cmd.exe's own command-line reparsing,

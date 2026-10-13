@@ -73,17 +73,3 @@ func (e *CodexEngine) Generate(ctx context.Context, prompt string) (string, erro
 	}
 	return string(out), nil
 }
-
-// MockEngine is a test double for GenerationEngine.
-type MockEngine struct {
-	AgentIDVal  model.AgentID
-	Output      string
-	Err         error
-	IsAvailable bool
-}
-
-func (e *MockEngine) Agent() model.AgentID { return e.AgentIDVal }
-func (e *MockEngine) Available() bool      { return e.IsAvailable }
-func (e *MockEngine) Generate(_ context.Context, _ string) (string, error) {
-	return e.Output, e.Err
-}

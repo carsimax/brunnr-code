@@ -22,6 +22,8 @@ const (
 	BackupSourceUpgrade BackupSource = "upgrade"
 	// BackupSourceUninstall indicates the backup was created before an uninstall run.
 	BackupSourceUninstall BackupSource = "uninstall"
+	// BackupSourceRestore indicates the backup saved the current files before a restore.
+	BackupSourceRestore BackupSource = "restore"
 )
 
 // Label returns a human-readable string for the BackupSource.
@@ -36,6 +38,8 @@ func (s BackupSource) Label() string {
 		return "upgrade"
 	case BackupSourceUninstall:
 		return "uninstall"
+	case BackupSourceRestore:
+		return "restore"
 	default:
 		return "unknown source"
 	}
@@ -136,7 +140,7 @@ type ManifestEntry struct {
 }
 
 func WriteManifest(path string, manifest Manifest) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create manifest directory %q: %w", path, err)
 	}
 
@@ -146,7 +150,7 @@ func WriteManifest(path string, manifest Manifest) error {
 	}
 
 	content = append(content, '\n')
-	if err := os.WriteFile(path, content, 0o644); err != nil {
+	if err := os.WriteFile(path, content, 0o600); err != nil {
 		return fmt.Errorf("write manifest %q: %w", path, err)
 	}
 

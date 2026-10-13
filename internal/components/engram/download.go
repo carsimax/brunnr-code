@@ -3,6 +3,7 @@ package engram
 import (
 	"archive/tar"
 	"archive/zip"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/json"
@@ -472,7 +473,7 @@ func engramExpectedChecksumFor(content, filename string) (string, error) {
 // extractZipBinary extracts the binary named binaryName from the zip data
 // and writes it to outPath.
 func extractZipBinary(data []byte, binaryName, outPath string) error {
-	zr, err := zip.NewReader(&byteReaderAt{data: data}, int64(len(data)))
+	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
 		return fmt.Errorf("open zip: %w", err)
 	}
@@ -596,27 +597,6 @@ func isWritableDir(dir string) bool {
 	return true
 }
 
-// downloadAndExtractTarGz downloads the asset at url, extracts the binary named binaryName,
-// and writes it to outPath with executable permissions.
-func downloadAndExtractTarGz(url, binaryName, outPath string) error {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return fmt.Errorf("build request: %w", err)
-	}
-
-	resp, err := engramHTTPClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("download %s: %w", url, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("download %s: HTTP %d", url, resp.StatusCode)
-	}
-
-	return extractBinaryFromTarGz(resp.Body, binaryName, outPath)
-}
-
 // extractBinaryFromTarGz reads a .tar.gz stream and extracts the first file
 // whose base name matches binaryName, writing it to outPath.
 func extractBinaryFromTarGz(r io.Reader, binaryName, outPath string) error {
@@ -644,65 +624,6 @@ func extractBinaryFromTarGz(r io.Reader, binaryName, outPath string) error {
 	}
 
 	return fmt.Errorf("binary %q not found in archive", binaryName)
-}
-
-// downloadAndExtractZip downloads the asset at url, extracts the binary named binaryName
-// from the .zip archive, and writes it to outPath.
-func downloadAndExtractZip(url, binaryName, outPath string) error {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return fmt.Errorf("build request: %w", err)
-	}
-
-	resp, err := engramHTTPClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("download %s: %w", url, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("download %s: HTTP %d", url, resp.StatusCode)
-	}
-
-	// zip.NewReader requires io.ReaderAt + size; read the entire body first.
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("read response body: %w", err)
-	}
-
-	zr, err := zip.NewReader(&byteReaderAt{data: data}, int64(len(data)))
-	if err != nil {
-		return fmt.Errorf("open zip: %w", err)
-	}
-
-	for _, f := range zr.File {
-		if filepath.Base(f.Name) == binaryName && !f.FileInfo().IsDir() {
-			rc, err := f.Open()
-			if err != nil {
-				return fmt.Errorf("open zip entry %q: %w", f.Name, err)
-			}
-			defer rc.Close()
-			return writeExecutable(rc, outPath)
-		}
-	}
-
-	return fmt.Errorf("binary %q not found in zip archive", binaryName)
-}
-
-// byteReaderAt implements io.ReaderAt over a byte slice.
-type byteReaderAt struct {
-	data []byte
-}
-
-func (b *byteReaderAt) ReadAt(p []byte, off int64) (int, error) {
-	if off < 0 || int(off) >= len(b.data) {
-		return 0, io.EOF
-	}
-	n := copy(p, b.data[off:])
-	if n < len(p) {
-		return n, io.EOF
-	}
-	return n, nil
 }
 
 // writeExecutable writes a binary to outPath using an atomic rename to avoid

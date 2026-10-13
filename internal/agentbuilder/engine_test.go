@@ -1,65 +1,10 @@
 package agentbuilder
 
 import (
-	"context"
-	"errors"
 	"testing"
 
 	"github.com/carsimax/brunnr-code/internal/model"
 )
-
-// ─── MockEngine tests ────────────────────────────────────────────────────────
-
-func TestMockEngine_Agent_ReturnsConfiguredID(t *testing.T) {
-	mock := &MockEngine{AgentIDVal: model.AgentClaudeCode}
-	if got := mock.Agent(); got != model.AgentClaudeCode {
-		t.Errorf("Agent() = %q, want %q", got, model.AgentClaudeCode)
-	}
-}
-
-func TestMockEngine_Available_ReturnsConfiguredValue(t *testing.T) {
-	tests := []struct {
-		available bool
-	}{
-		{true},
-		{false},
-	}
-	for _, tt := range tests {
-		mock := &MockEngine{IsAvailable: tt.available}
-		if got := mock.Available(); got != tt.available {
-			t.Errorf("Available() = %v, want %v", got, tt.available)
-		}
-	}
-}
-
-func TestMockEngine_Generate_ReturnsConfiguredResponse(t *testing.T) {
-	mock := &MockEngine{
-		Output:      "generated content",
-		IsAvailable: true,
-	}
-	out, err := mock.Generate(context.Background(), "some prompt")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if out != "generated content" {
-		t.Errorf("Generate() = %q, want %q", out, "generated content")
-	}
-}
-
-func TestMockEngine_Generate_ReturnsConfiguredError(t *testing.T) {
-	expectedErr := errors.New("generation failed")
-	mock := &MockEngine{
-		Err:         expectedErr,
-		IsAvailable: true,
-	}
-	_, err := mock.Generate(context.Background(), "some prompt")
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	if !errors.Is(err, expectedErr) {
-		t.Errorf("error = %v, want %v", err, expectedErr)
-	}
-}
 
 // ─── NewEngine tests ─────────────────────────────────────────────────────────
 

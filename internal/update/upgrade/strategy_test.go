@@ -38,7 +38,7 @@ func TestRunStrategy_UnsupportedMethodManualFallback(t *testing.T) {
 	}
 	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
 
-	_, err := runStrategy(context.Background(), r, profile)
+	err := runStrategy(context.Background(), r, profile)
 	// Unsupported method → manual fallback error.
 	if err == nil {
 		t.Errorf("expected error for unsupported install method, got nil")
@@ -80,7 +80,7 @@ func TestEngramUpgradeMacOSUsesDownload(t *testing.T) {
 	}
 	profile := system.PlatformProfile{OS: "darwin", Supported: true}
 
-	if _, err := runStrategy(context.Background(), r, profile); err != nil {
+	if err := runStrategy(context.Background(), r, profile); err != nil {
 		t.Fatalf("runStrategy engram macOS: unexpected error: %v", err)
 	}
 	if !downloadCalled {
@@ -127,7 +127,7 @@ func TestEngramUpgradeUsesDownloadNotGoInstall(t *testing.T) {
 	}
 	profile := system.PlatformProfile{OS: "windows", PackageManager: "winget"}
 
-	_, err := runStrategy(context.Background(), r, profile)
+	err := runStrategy(context.Background(), r, profile)
 	if err != nil {
 		t.Fatalf("runStrategy engram windows: unexpected error: %v", err)
 	}
@@ -176,7 +176,7 @@ func TestEngramUpgradeLinuxUsesDownload(t *testing.T) {
 	}
 	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
 
-	_, err := runStrategy(context.Background(), r, profile)
+	err := runStrategy(context.Background(), r, profile)
 	if err != nil {
 		t.Fatalf("runStrategy engram linux: unexpected error: %v", err)
 	}

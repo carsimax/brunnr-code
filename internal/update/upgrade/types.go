@@ -48,10 +48,6 @@ type ToolUpgradeResult struct {
 	// ManualHint is set when the tool requires manual intervention instead of
 	// automated upgrade (e.g. a disabled or unsupported binary path).
 	ManualHint string
-
-	// ExitRequested is reserved for strategies that require the parent process to
-	// exit immediately after success.
-	ExitRequested bool
 }
 
 // UpgradeReport is the top-level result returned by Execute.
@@ -67,8 +63,4 @@ type UpgradeReport struct {
 
 	Results []ToolUpgradeResult
 	DryRun  bool
-
-	// ExitRequested is true if any executed tool requested an immediate exit. The
-	// caller is responsible for exiting.
-	ExitRequested bool
 }

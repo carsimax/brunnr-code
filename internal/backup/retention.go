@@ -160,6 +160,19 @@ func Prune(backupDir string, retentionCount int) ([]string, error) {
 	return deleted, nil
 }
 
+// List returns every readable backup manifest under root, newest first.
+// An unreadable or missing root yields nil.
+func List(root string) []Manifest {
+	manifests, err := listManifests(root)
+	if err != nil {
+		return nil
+	}
+	sort.Slice(manifests, func(i, j int) bool {
+		return manifests[i].CreatedAt.After(manifests[j].CreatedAt)
+	})
+	return manifests
+}
+
 // listManifests reads all backup directories inside backupDir and returns the
 // parsed manifests. Subdirectories without a readable manifest.json are skipped.
 func listManifests(backupDir string) ([]Manifest, error) {
