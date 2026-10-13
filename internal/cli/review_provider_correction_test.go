@@ -594,3 +594,20 @@ func TestProviderCaptureCorrectiveRetryKeepsTheProbeWorkspace(t *testing.T) {
 		}
 	}
 }
+
+// A hung reviewer child must not block capture-result forever.
+func TestProviderLensCaptureRunsUnderADeadline(t *testing.T) {
+	_, binding, _, _ := newCandidateInspectionReview(t, "candidate\n", false)
+	previous := reviewProviderAdapterFor
+	reviewProviderAdapterFor = func(reviewerprovider.Contract, model.AgentID) (reviewerprovider.Adapter, error) {
+		return providerTestAdapterFunc(func(ctx context.Context, _ reviewerprovider.Invocation) ([]byte, error) {
+			if _, ok := ctx.Deadline(); !ok {
+				t.Error("lens reviewer context has no deadline")
+			}
+			return nil, errors.New("stop after the deadline check")
+		}), nil
+	}
+	t.Cleanup(func() { reviewProviderAdapterFor = previous })
+
+	_ = RunReviewCaptureResult(append(binding, "--agent", string(model.AgentClaudeCode)), io.Discard)
+}

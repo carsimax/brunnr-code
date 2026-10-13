@@ -189,7 +189,8 @@ func RunReviewCaptureResult(args []string, stdout io.Writer) error {
 			return reviewPreflightError(fmt.Errorf("review capture-result --agent %q has no compiled in-process reviewer adapter: its compiled transport is %q; collect its reviewer result through that live host transport instead", providerRuntime, providerTransport)) // refusal:by-design world-action: only compiled subprocess adapters use this capture path
 		}
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), reviewProviderRoleCaptureTimeout)
+	defer cancel()
 	var root string
 	var err error
 	if contextHandle != "" {

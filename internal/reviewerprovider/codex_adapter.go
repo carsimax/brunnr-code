@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/carsimax/brunnr-code/internal/model"
 )
@@ -85,6 +86,8 @@ func (adapter *CodexAdapter) Review(ctx context.Context, invocation Invocation) 
 		arguments = append(arguments, "--model", adapter.Model)
 	}
 	command := commandContext(ctx, binary, arguments...)
+	// A grandchild holding stdout must not keep Wait blocked after the context ends.
+	command.WaitDelay = time.Second
 	command.Dir = workdir
 	command.Stdin = bytes.NewReader(invocation.Prompt())
 	var stderr bytes.Buffer
