@@ -640,7 +640,7 @@ func resumeAuthorityDispositionRecord(ctx context.Context, record CompactReclaim
 // execution still refuses, by name.
 func readBackAuthorityDisposition(ctx context.Context, root string, record CompactReclaimRecord, retainedDiagnostics map[string]string) (CompactReclaimRecord, error) {
 	if record.Status != CompactReclaimCommitted {
-		return record, fmt.Errorf("authority disposition execution refused: readback observed a non-committed record; run `brunnr-code review inspect-authority --cwd %s` and escalate the report", pathquote.Quote(root))
+		return record, fmt.Errorf("authority disposition execution refused: readback observed a non-committed record; run `brunnr-code review inspect-authority --cwd %s` and escalate the report", pathquote.ShellWord(root))
 	}
 	report, err := InspectCompactRecoveryEdges(ctx, root)
 	if err != nil {
@@ -649,18 +649,18 @@ func readBackAuthorityDisposition(ctx context.Context, root string, record Compa
 	closureMembers := authorityDispositionClosureMembers(record)
 	for _, diagnostic := range report.EntryDiagnostics {
 		if closureMembers[diagnostic.LineageID] {
-			return record, fmt.Errorf("authority disposition execution refused: retained graph still carries a %q diagnostic for quarantined closure member %q; run `brunnr-code review inspect-authority --cwd %s` and escalate the report", diagnostic.Problem, diagnostic.LineageID, pathquote.Quote(root))
+			return record, fmt.Errorf("authority disposition execution refused: retained graph still carries a %q diagnostic for quarantined closure member %q; run `brunnr-code review inspect-authority --cwd %s` and escalate the report", diagnostic.Problem, diagnostic.LineageID, pathquote.ShellWord(root))
 		}
 		if problem, retained := retainedDiagnostics[diagnostic.LineageID]; !retained || problem != diagnostic.Problem {
-			return record, fmt.Errorf("authority disposition execution refused: retained-graph readback observed %q diagnostic on %q, which the disposed plan never scoped; run `brunnr-code review inspect-authority --cwd %s` and escalate the report", diagnostic.Problem, diagnostic.LineageID, pathquote.Quote(root))
+			return record, fmt.Errorf("authority disposition execution refused: retained-graph readback observed %q diagnostic on %q, which the disposed plan never scoped; run `brunnr-code review inspect-authority --cwd %s` and escalate the report", diagnostic.Problem, diagnostic.LineageID, pathquote.ShellWord(root))
 		}
 	}
 	for _, edge := range report.Edges {
 		if member := edge.PredecessorLineageID; closureMembers[member] {
-			return record, fmt.Errorf("authority disposition execution refused: retained graph still references quarantined closure member %q; run `brunnr-code review inspect-authority --cwd %s` and escalate the report", member, pathquote.Quote(root))
+			return record, fmt.Errorf("authority disposition execution refused: retained graph still references quarantined closure member %q; run `brunnr-code review inspect-authority --cwd %s` and escalate the report", member, pathquote.ShellWord(root))
 		}
 		if member := edge.SuccessorLineageID; closureMembers[member] {
-			return record, fmt.Errorf("authority disposition execution refused: retained graph still references quarantined closure member %q; run `brunnr-code review inspect-authority --cwd %s` and escalate the report", member, pathquote.Quote(root))
+			return record, fmt.Errorf("authority disposition execution refused: retained graph still references quarantined closure member %q; run `brunnr-code review inspect-authority --cwd %s` and escalate the report", member, pathquote.ShellWord(root))
 		}
 	}
 	return record, nil

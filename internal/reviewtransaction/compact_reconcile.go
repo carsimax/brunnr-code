@@ -145,7 +145,7 @@ func compactAbandonCommandText(repo, lineage string, eligibility CompactAbandonE
 	return fmt.Sprintf("`brunnr-code review abandon --cwd %s --lineage %q --expected-revision %q --reason %q --actor \"<actor>\" --maintainer-authorization \"<maintainer-authorization>\"`;"+
 		" the abandonment moves the entry into the audited quarantine and rewrites nothing, so the recorded authorization bytes survive exactly as persisted."+
 		" --maintainer-authorization is exactly these nine lines, joined by LF, with no trailing newline, using the same --actor:\n%s",
-		pathquote.Quote(repo), lineage, eligibility.Revision, CompactAbandonReasonOperatorDisposition,
+		pathquote.ShellWord(repo), lineage, eligibility.Revision, CompactAbandonReasonOperatorDisposition,
 		RenderCompactAbandonAuthorization(lineage, eligibility.Revision, eligibility.SnapshotIdentity, "<actor>", CompactAbandonReasonOperatorDisposition, eligibility.DiscardedWork))
 }
 
