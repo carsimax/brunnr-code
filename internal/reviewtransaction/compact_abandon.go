@@ -258,7 +258,8 @@ func AbandonPristineCompactStore(ctx context.Context, repo string, request Compa
 	}
 	versionRoot := filepath.Join(base, "v2")
 	dir := filepath.Join(versionRoot, request.LineageID)
-	lock, err := acquireStoreLock(filepath.Join(versionRoot, "LOCK"))
+	lockPath := filepath.Join(versionRoot, "LOCK")
+	lock, err := waitForStoreLock(ctx, maintenanceLockTimeout, func() (*storeLock, error) { return acquireStoreLock(lockPath) })
 	if err != nil {
 		return CompactReclaimRecord{}, err
 	}

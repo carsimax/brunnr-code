@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-	"time"
 )
 
 // ErrCapturedReviewerResultSlotConflict reports an immutable reviewer result
@@ -509,20 +508,7 @@ func (store CompactStore) mergeAdmittedLensResult(
 	if maintenance != nil {
 		defer maintenance.Release()
 	}
-	deadline := time.NewTimer(maintenanceLockTimeout)
-	defer deadline.Stop()
-	var lock *storeLock
-	for {
-		lock, err = acquireStoreLock(store.lockPath)
-		if !errors.Is(err, ErrConcurrentUpdate) {
-			break
-		}
-		select {
-		case <-deadline.C:
-			return CompactAdmittedReviewerCapture{}, &AuthorityLockTimeoutError{Timeout: maintenanceLockTimeout}
-		case <-time.After(10 * time.Millisecond):
-		}
-	}
+	lock, err := waitForStoreLock(ctx, maintenanceLockTimeout, func() (*storeLock, error) { return acquireStoreLock(store.lockPath) })
 	if err != nil {
 		return CompactAdmittedReviewerCapture{}, err
 	}
@@ -653,20 +639,7 @@ func (store CompactStore) mergeAdmittedNonLensRoleResult(
 	if maintenance != nil {
 		defer maintenance.Release()
 	}
-	deadline := time.NewTimer(maintenanceLockTimeout)
-	defer deadline.Stop()
-	var lock *storeLock
-	for {
-		lock, err = acquireStoreLock(store.lockPath)
-		if !errors.Is(err, ErrConcurrentUpdate) {
-			break
-		}
-		select {
-		case <-deadline.C:
-			return &AuthorityLockTimeoutError{Timeout: maintenanceLockTimeout}
-		case <-time.After(10 * time.Millisecond):
-		}
-	}
+	lock, err := waitForStoreLock(ctx, maintenanceLockTimeout, func() (*storeLock, error) { return acquireStoreLock(store.lockPath) })
 	if err != nil {
 		return err
 	}
@@ -931,20 +904,7 @@ func (store CompactStore) RecordInconclusiveTargetedValidatorAttempt(ctx context
 	if maintenance != nil {
 		defer maintenance.Release()
 	}
-	deadline := time.NewTimer(maintenanceLockTimeout)
-	defer deadline.Stop()
-	var lock *storeLock
-	for {
-		lock, err = acquireStoreLock(store.lockPath)
-		if !errors.Is(err, ErrConcurrentUpdate) {
-			break
-		}
-		select {
-		case <-deadline.C:
-			return false, &AuthorityLockTimeoutError{Timeout: maintenanceLockTimeout}
-		case <-time.After(10 * time.Millisecond):
-		}
-	}
+	lock, err := waitForStoreLock(ctx, maintenanceLockTimeout, func() (*storeLock, error) { return acquireStoreLock(store.lockPath) })
 	if err != nil {
 		return false, err
 	}
