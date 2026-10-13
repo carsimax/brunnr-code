@@ -30,9 +30,9 @@ var claudeModuleFiles = map[string]struct {
 	bytes  int
 	sha256 string
 }{
-	"orchestrator-delegation.md": {1171, "47f6a58cc2e6de22bbb4f3f8c9f5931b9b9678064465950a8bd43099cfa43935"},
-	"orchestrator-writer.md":     {1977, "9d99c3377dda8abade697327f6a2e515c3efdf83c570e4e4f2edf74fcef4047b"},
-	"orchestrator-skills.md":     {3018, "ad2be8ac4e5dd4b1913b6c328b9860b61ab080ea5852448c15157bef0e7bdd7c"},
+	"orchestrator-delegation.md": {1173, "58ac07d592077ba6a81116e82db62176be99e99435bf37eac9fdbc5c20157f2a"},
+	"orchestrator-writer.md":     {1979, "b12d607139fd41f7236e51e61366443e14e5e9145d8a3ee3698acff3bf6adc0a"},
+	"orchestrator-skills.md":     {2991, "d8ad8f0794734fea889f2928d9d2f25924710826a84a3b6f37f4ebd17456ed13"},
 }
 
 // TestOrchestratorModuleBudgetClaudeGlobal measures the real user-global
