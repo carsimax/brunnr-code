@@ -39,6 +39,7 @@ Full scope: remove the TUI Preset screen, Custom mode and Skill picker; remove `
 - [x] T1: TUI. Remove Preset screen, Custom mode and Skill picker; reroute Agents → DependencyTree and back. Tests. Route: delegated (writer trigger: 2+ non-trivial files in `internal/tui`).
 - [x] T2: CLI, model and state. Remove preset/component/skill flags from install and sync; force full in install, sync and restore; reduce `PresetID` values and `ComponentsForPreset`/`SkillsForPreset`; golden file. Tests. Route: delegated (writer trigger: 2+ non-trivial files across `cli`, `model`, `state`, `components/skills`).
 - [x] T3: e2e script and README. Route: delegated (writer; large shell script).
+- [x] T4: Docker e2e CodeGraph shim, so Tier 2/3 installs stop failing on the mandatory CodeGraph npm global install (pre-existing since `3c354609`; added on user request 2026-10-12). Route: delegated (writer; Dockerfiles plus shell).
 
 ## Acceptance criteria
 
@@ -64,6 +65,8 @@ Strategy: `single-pr`. Forecast: ~1000–1400 authored lines, mostly deletions i
 - Follow-up fix: `engramInstallCommand` (`internal/cli/run.go`) suggested the removed `--components engram`; it now suggests `brunnr-code install --agent <ids>`. Route: inline (one mechanical file plus test). RED observed (`TestEngramInstallCommandUsesSingleSetup` got the `--components` suffix), then GREEN.
 - Docker e2e (run during T3, before the last stale assertion was removed): all Tier 1 single-setup checks passed on ubuntu, arch and fedora. Tier 2/3 installs fail on the mandatory CodeGraph npm global install (EACCES as non-root testuser), which predates this feature (since `3c354609`). Not fixed here.
 
+- T4 done. Route: delegated (writer; Dockerfiles plus shell). `e2e/lib.sh` gains `setup_fake_codegraph_binary`, a node `codegraph` shim on PATH (opt out with `BRUNNR_CODE_E2E_REAL_CODEGRAPH=1`), enabled next to the Engram shim for Tier 2/3. It reports `CodeGraph v1.6.2`, the contract floor, so the installer skips npm and `codegraph upgrade`; on `install --target claude,codex --location global --yes` it merges the canonical entry (`command = "codegraph"`, args `serve --mcp`) into `~/.claude.json` `mcpServers.codegraph` and appends `[mcp_servers.codegraph]` to `$CODEX_HOME/config.toml`; `init <root>` creates `<root>/.codegraph/`; other subcommands exit 0. No Dockerfile or production Go change. The full-setup tests now assert the CodeGraph MCP entry for Claude and Codex. Verification: `bash -n` on `e2e/lib.sh` and `e2e/e2e_test.sh` ok; shellcheck not installed; local shim smoke test (merge preserves the existing engram entries, second install is idempotent) ok. `RUN_FULL_E2E=1 RUN_BACKUP_TESTS=1 ./e2e/docker-test.sh`: ubuntu 129 passed / 0 failed, fedora 129 / 0; arch's container exited mid-Tier-1 with no failing assertion (amd64 image under emulation on an arm64 host), and a direct rerun of the same arch image with both tiers gave 129 passed / 0 failed.
+
 ## Next step
 
-Feature complete. Open item outside this feature: the Docker e2e needs a CodeGraph shim (like the Engram fake) or a user-writable npm prefix. Push and PR are the maintainer's decision.
+Feature complete. Push and PR are the maintainer's decision.

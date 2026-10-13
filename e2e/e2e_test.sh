@@ -28,10 +28,11 @@ fi
 log_info "Using binary: $BINARY"
 
 # Side-effect E2E exercises install/injection behavior. Keep it deterministic by
-# satisfying the installer's "engram already exists on PATH" branch unless a
-# maintainer explicitly opts into the live GitHub release download path.
+# satisfying the installer's "engram/codegraph already exists on PATH" branches
+# unless a maintainer explicitly opts into the live download/npm install paths.
 if [ "${RUN_FULL_E2E:-0}" = "1" ] || [ "${RUN_BACKUP_TESTS:-0}" = "1" ]; then
     setup_fake_engram_binary
+    setup_fake_codegraph_binary
 fi
 
 # ===========================================================================
@@ -350,6 +351,7 @@ test_full_setup_claude_code() {
         assert_file_exists "$registry" "Claude user MCP registry (~/.claude.json)"
         assert_file_contains "$registry" '"mcpServers"' "Has MCP servers"
         assert_file_contains "$registry" '"engram"' "Has Engram MCP"
+        assert_file_contains "$registry" '"codegraph"' "Has CodeGraph MCP"
         assert_valid_json "$registry" "user registry is valid JSON"
 
         # Skills
@@ -376,6 +378,7 @@ test_full_setup_both_agents() {
         assert_file_contains "$HOME/.codex/AGENTS.md" "brunnr-code:agent-routing" "Codex has ODD routing"
         assert_file_count_min "$HOME/.codex/skills" "SKILL.md" 8 "Codex foundation skills"
         assert_file_contains "$HOME/.codex/config.toml" "[mcp_servers.engram]" "Codex Engram MCP"
+        assert_file_contains "$HOME/.codex/config.toml" '\[mcp_servers\.codegraph\]' "Codex CodeGraph MCP"
 
         log_pass "Full setup: both agents have matching components"
     else

@@ -133,6 +133,98 @@ EOF
     log_info "Using deterministic Engram E2E shim: $fake_engram"
 }
 
+# setup_fake_codegraph_binary — install a deterministic local codegraph shim.
+#
+# Every install runs the mandatory CodeGraph step. Without a `codegraph` on
+# PATH it runs `npm install -g @colbymchenry/codegraph@latest`, which fails with
+# EACCES as the non-root test user and would hit the network anyway. With a CLI
+# on PATH that reports a version at or above the contract floor (1.6.2 in
+# internal/components/communitytool/codegraph_contract.go), the installer skips
+# npm and `codegraph upgrade` and only runs
+# `codegraph install --target <claude,codex> --location global --yes`, then
+# checks that the MCP entry upstream writes is present. This shim writes that
+# exact entry (bare `codegraph` command, args `serve --mcp`) into
+# ~/.claude.json (mcpServers.codegraph) and $CODEX_HOME/config.toml
+# ([mcp_servers.codegraph]), preserving existing content. It is a node script
+# because node is already in every image and merges JSON safely.
+#
+# Set BRUNNR_CODE_E2E_REAL_CODEGRAPH=1 to opt out and exercise the live install.
+setup_fake_codegraph_binary() {
+    if [ "${BRUNNR_CODE_E2E_REAL_CODEGRAPH:-0}" = "1" ]; then
+        log_info "Using real CodeGraph install path for E2E"
+        return 0
+    fi
+
+    local fake_bin_dir="$HOME/.brunnr-code-e2e/bin"
+    local fake_codegraph="$fake_bin_dir/codegraph"
+
+    mkdir -p "$fake_bin_dir"
+    cat > "$fake_codegraph" <<'EOF'
+#!/usr/bin/env node
+'use strict';
+const fs = require('fs');
+const path = require('path');
+
+// Must stay at or above codeGraphUpstreamVersion so no upgrade is attempted.
+const VERSION = '1.6.2';
+const args = process.argv.slice(2);
+const home = process.env.HOME;
+
+function option(name) {
+  const index = args.indexOf(name);
+  return index >= 0 ? args[index + 1] : undefined;
+}
+
+function wireClaude() {
+  const file = path.join(home, '.claude.json');
+  const config = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
+  config.mcpServers = config.mcpServers || {};
+  config.mcpServers.codegraph = { type: 'stdio', command: 'codegraph', args: ['serve', '--mcp'] };
+  fs.writeFileSync(file, JSON.stringify(config, null, 2) + '\n');
+}
+
+function wireCodex() {
+  const dir = process.env.CODEX_HOME || path.join(home, '.codex');
+  const file = path.join(dir, 'config.toml');
+  fs.mkdirSync(dir, { recursive: true });
+  const current = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  if (/^\[mcp_servers\.codegraph\]\s*$/m.test(current)) return;
+  const separator = current === '' || current.endsWith('\n') ? '' : '\n';
+  fs.writeFileSync(file, current + separator +
+    '\n[mcp_servers.codegraph]\ncommand = "codegraph"\nargs = ["serve", "--mcp"]\n');
+}
+
+switch (args[0]) {
+  case '--version':
+  case '-v':
+  case 'version':
+    process.stdout.write(`CodeGraph v${VERSION} (e2e shim)\n`);
+    break;
+  case 'install': {
+    const targets = (option('--target') || '').split(',').filter(Boolean);
+    if (targets.includes('claude')) wireClaude();
+    if (targets.includes('codex')) wireCodex();
+    break;
+  }
+  case 'init':
+    // `brunnr-code codegraph init --cwd <root>` runs `codegraph init <root>`.
+    fs.mkdirSync(path.join(args[1] || process.cwd(), '.codegraph'), { recursive: true });
+    break;
+  default:
+    // upgrade, status, serve --mcp: succeed without side effects.
+    break;
+}
+EOF
+    chmod +x "$fake_codegraph"
+
+    case ":$PATH:" in
+        *":$fake_bin_dir:"*) ;;
+        *) export PATH="$fake_bin_dir:$PATH" ;;
+    esac
+
+    log_info "Using deterministic CodeGraph E2E shim: $fake_codegraph"
+}
+
 # setup_fake_configs — seed fake config files so backup tests have something
 # to snapshot and restore.
 setup_fake_configs() {
