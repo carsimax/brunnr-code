@@ -933,3 +933,27 @@ value = true
 		})
 	}
 }
+
+// A trailing comment on a table header must not hide the table: appending a
+// second table with the same name makes the TOML unparseable for Codex.
+func TestTOMLTableHeaderWithTrailingComment(t *testing.T) {
+	upserted := UpsertTOMLTableKey("[features] # my flags\nfoo = true\n", "features", "bar", "true")
+	if strings.Count(upserted, "[features]") != 1 || !strings.Contains(upserted, "bar = true") {
+		t.Fatalf("UpsertTOMLTableKey duplicated or missed the commented table:\n%s", upserted)
+	}
+
+	engram := UpsertCodexEngramBlock("[mcp_servers.engram] # pinned\ncommand = \"old\"\n", "engram")
+	if strings.Count(engram, "[mcp_servers.engram]") != 1 || strings.Contains(engram, `"old"`) {
+		t.Fatalf("UpsertCodexEngramBlock kept the commented table:\n%s", engram)
+	}
+
+	removedKeys := RemoveTOMLTableKeys("[features] # my flags\nfoo = true\nbar = 1\n", "features", []string{"foo"})
+	if strings.Contains(removedKeys, "foo") {
+		t.Fatalf("RemoveTOMLTableKeys missed the commented table:\n%s", removedKeys)
+	}
+
+	removed := RemoveTOMLTable("[mcp_servers.engram] # pinned\ncommand = \"engram\"\n", "mcp_servers.engram")
+	if strings.Contains(removed, "engram") {
+		t.Fatalf("RemoveTOMLTable missed the commented table:\n%s", removed)
+	}
+}
