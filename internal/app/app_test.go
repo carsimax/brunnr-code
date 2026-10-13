@@ -1731,3 +1731,24 @@ func TestRunArgs_UpgradeUnsupportedOptionStopsBeforeAnyEffect(t *testing.T) {
 		})
 	}
 }
+
+// A corrupt state.json must not be overwritten, but the caller must hear that
+// the assignments were not saved instead of reporting success.
+func TestPersistAssignmentsReportsUnreadableState(t *testing.T) {
+	home := t.TempDir()
+	statePath := filepath.Join(home, ".brunnr-code", "state.json")
+	if err := os.MkdirAll(filepath.Dir(statePath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(statePath, []byte("{bad"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := persistAssignments(home, model.Selection{ClearCodexOrchestratorAssignment: true})
+	if err == nil {
+		t.Fatal("persistAssignments() = nil; want an error for an unreadable state.json")
+	}
+	if raw, _ := os.ReadFile(statePath); string(raw) != "{bad" {
+		t.Fatalf("state.json was rewritten: %q", raw)
+	}
+}
