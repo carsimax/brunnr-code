@@ -29,6 +29,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/pipeline"
 	"github.com/carsimax/brunnr-code/internal/planner"
 	"github.com/carsimax/brunnr-code/internal/state"
+	"github.com/carsimax/brunnr-code/internal/statecoord"
 	"github.com/carsimax/brunnr-code/internal/system"
 	"github.com/carsimax/brunnr-code/internal/verify"
 )
@@ -259,7 +260,7 @@ func rollbackPostApplyError(orchestrator *pipeline.Orchestrator, execution pipel
 }
 
 func persistInstallState(homeDir string, newState state.InstallState, agentIDs []string, flags InstallFlags, writer string, codexServiceTier *string) error {
-	return withInstallStateLock(homeDir, func() error {
+	return statecoord.WithLock(homeDir, func() error {
 		if len(flags.Agents) > 0 {
 			merged, mergeErr := mergeExplicitAgentInstallState(homeDir, newState, agentIDs)
 			if mergeErr != nil {

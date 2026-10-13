@@ -61,7 +61,7 @@ A whole-repo audit (6 read-only Sonnet auditors, parent spot checks) found user-
 ### Lean
 
 - [x] T18: `internal/providercontractbundle` and `internal/providercontractbundlecmd` have no references outside themselves (~1,420 lines). Decision first (see Open decisions).
-- [ ] T19: delete dead code:
+- [x] T19: delete dead code:
   - `internal/filecoord` (no importers, ~600 lines with tests); inline `cli/install_state_lock.go`.
   - `installcmd.ResolveComponentInstall`, `ResolveDependencyInstall`, `resolveEngramInstall` (~55 lines).
   - `engram/download.go:599-706` unverified download helpers (~108 lines).
@@ -139,7 +139,8 @@ main
 - T16 done on `fix/audit-remediation-t16`. Route: inline (shared helper plus one call site). `reviewerTransportFailureDetail` returned stderr unchanged for Claude as well; it now keeps the last `reviewerTransportFailureStderrLimit` (4096) bytes, and the Codex adapter uses the helper. RED observed first: `TestReviewerTransportFailureDetailBoundsStderr` (220020 bytes), then GREEN. Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok.
 - T17 decision (user, 2026-10-13): shipped skills stay installer-owned; document that edits are overwritten and that customizations belong under another skill ID.
 - T17 done on `fix/audit-remediation-t17`. Route: inline (docs plus one code comment). README states that the eight shipped skills' files are rewritten by every install and sync and that customizations go under another skill ID; `components/skills/inject.go` says the same at the write. No test (documentation only). Verification: `go build ./...` ok; `go run ./internal/gofmtcheck` ok; `go test ./internal/components/skills` ok; `go test ./internal/app -run Documented` ok. PR #18, merged.
-- T18 decision (user, 2026-10-13): delete both packages, accepting the loss of the bundle drift test (the bundle is published nowhere). Done on `fix/audit-remediation-t18`. Route: inline (deletion). `internal/providercontractbundle` and `internal/providercontractbundlecmd` removed, -1415 lines; `contracts/review-provider-contract/` kept per CLAUDE.md. No other reference besides `odd/` history. Verification: `go build ./...` ok; `go vet ./...` ok; `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok.
+- T18 decision (user, 2026-10-13): delete both packages, accepting the loss of the bundle drift test (the bundle is published nowhere). Done on `fix/audit-remediation-t18`. Route: inline (deletion). `internal/providercontractbundle` and `internal/providercontractbundlecmd` removed, -1415 lines; `contracts/review-provider-contract/` kept per CLAUDE.md. No other reference besides `odd/` history. Verification: `go build ./...` ok; `go vet ./...` ok; `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok. PR #19, merged.
+- T19 done on `fix/audit-remediation-t19`. Route: delegated (writer trigger: deletions across 12 files; Sonnet writer proved each item dead with `git grep`, parent spot check of the persona diff). Deleted `internal/filecoord`; `cli/install_state_lock.go` inlined as direct `statecoord.WithLock` calls; `installcmd` keeps only `ResolveAgentInstall`; `engram` unverified `downloadAndExtractTarGz`/`downloadAndExtractZip`/`byteReaderAt` removed (`extractZipBinary` uses `bytes.NewReader`); `persona` drops the unreachable non-Codex `StrategyFileReplace` fallthrough and `preserveManagedSections`. -939 lines. Test-first exception: pure deletion. Verification: `go build ./...` ok; `go vet ./...` ok; `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok (parent).
 
 ## Next step
 

@@ -17,6 +17,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/pathquote"
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 	"github.com/carsimax/brunnr-code/internal/state"
+	"github.com/carsimax/brunnr-code/internal/statecoord"
 )
 
 // ReviewModeSchema identifies the user-facing kill-switch projection.
@@ -462,7 +463,7 @@ func writeGlobalRDDMode(operation string) error {
 	if err != nil {
 		return fmt.Errorf("resolve user home directory: %w", err)
 	}
-	return withInstallStateLock(home, func() error {
+	return statecoord.WithLock(home, func() error {
 		persisted, err := state.Read(home)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("read global review mode: %w", err)
