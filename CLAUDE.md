@@ -22,6 +22,8 @@ go test ./...                                # full unit suite; run it after eve
 go build -o brunnr-code ./cmd/brunnr-code         # local build; version via -ldflags "-X main.version=..."
 ```
 
+For local runs, `scripts/test-fast.sh` runs the same suite in about 2 minutes instead of about 5. It splits `internal/cli` and `internal/reviewtransaction` into shards that run as separate processes, and the `CLI_SHARDS` and `REVIEW_SHARDS` variables tune the shard counts. CI still runs `go test ./...`.
+
 Single test: `go test -v ./internal/<pkg> -count=1 -run '<Regex>'`
 
 Golden and baseline files:
