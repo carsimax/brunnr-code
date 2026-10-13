@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -22,9 +23,8 @@ func (claudeHooksRollbackFailureStep) ID() string   { return "test:fail-after-cl
 func (s claudeHooksRollbackFailureStep) Run() error { return s.run() }
 
 // TestInstallClaudeHooksRollback injects a failure after the scoped Claude
-// hooks are written and checks that rollback restores settings. The managed
-// persona is mandatory, so every install also selects it; the component-free
-// snapshot of the hook settings is pinned separately by
+// hooks are written and checks that rollback restores settings. Every install
+// applies the full setup; the component-free snapshot of the hook settings is pinned separately by
 // TestInstallBackupTargetsSnapshotClaudeSettingsWithoutPersona.
 func TestInstallClaudeHooksRollback(t *testing.T) {
 	for _, scope := range []InstallScope{ScopeWorkspace, ScopeGlobal} {
@@ -55,8 +55,8 @@ func TestInstallClaudeHooksRollback(t *testing.T) {
 				failure := errors.New("injected failure after scoped Claude hooks")
 				observed := false
 				installStagePlan = func(rt *installRuntime) pipeline.StagePlan {
-					if want := []model.ComponentID{model.ComponentSkills, model.ComponentPersona}; !slices.Equal(rt.selection.Components, want) {
-						t.Fatalf("selection = %v, want %v (skills plus the mandatory persona)", rt.selection.Components, want)
+					if want := model.SetupComponents(); !slices.Equal(rt.selection.Components, want) {
+						t.Fatalf("selection = %v, want the setup %v", rt.selection.Components, want)
 					}
 					plan := priorPlan(rt)
 					plan.Apply = append(plan.Apply, claudeHooksRollbackFailureStep{run: func() error {
@@ -65,7 +65,7 @@ func TestInstallClaudeHooksRollback(t *testing.T) {
 					}})
 					return plan
 				}
-				result, err := RunInstall([]string{"--scope=" + string(scope), "--agent=claude-code", "--components=skills", "--skills=go-testing"}, system.DetectionResult{})
+				result, err := RunInstall([]string{"--scope=" + string(scope), "--agent=claude-code"}, system.DetectionResult{})
 				if err == nil || !strings.Contains(err.Error(), failure.Error()) || !result.Execution.Rollback.Success {
 					t.Fatalf("RunInstall() = %v, rollback=%+v; want injected failure and successful rollback", err, result.Execution.Rollback)
 				}
@@ -144,7 +144,7 @@ func TestInstallClaudeHooksRespectScope(t *testing.T) {
 			}
 			install := func() {
 				t.Helper()
-				_, err := RunInstall([]string{"--scope=" + string(scope), "--agent=claude-code", "--components=persona"}, system.DetectionResult{})
+				_, err := RunInstall([]string{"--scope=" + string(scope), "--agent=claude-code"}, system.DetectionResult{})
 				if err != nil {
 					t.Fatalf("RunInstall() error = %v", err)
 				}
@@ -187,16 +187,39 @@ func TestInstallClaudeHooksRespectScope(t *testing.T) {
 				t.Error("install changed personal settings or hooks")
 			}
 			untouchedPath := filepath.Join(untouched, ".claude", "settings.json")
-			if readTextFile(t, untouchedPath) != original {
-				t.Error("install modified settings outside the selected scope")
+			// The permissions overlay is managed only globally, so a workspace
+			// install may add it to the global settings; hooks stay scoped.
+			assertHooksUnchanged := func(when string) {
+				t.Helper()
+				var want, got map[string]json.RawMessage
+				if err := json.Unmarshal([]byte(original), &want); err != nil {
+					t.Fatal(err)
+				}
+				if err := json.Unmarshal([]byte(readTextFile(t, untouchedPath)), &got); err != nil {
+					t.Fatal(err)
+				}
+				if !sameJSONValue(t, want["hooks"], got["hooks"]) || string(got["custom"]) != "true" {
+					t.Errorf("%s modified hooks outside the selected scope: %s", when, got["hooks"])
+				}
 			}
+			assertHooksUnchanged("install")
 			install()
 			if readTextFile(t, path) != first {
 				t.Error("second install changed hook settings")
 			}
-			if readTextFile(t, untouchedPath) != original {
-				t.Error("second install modified settings outside the selected scope")
-			}
+			assertHooksUnchanged("second install")
 		})
 	}
+}
+
+func sameJSONValue(t *testing.T, a, b json.RawMessage) bool {
+	t.Helper()
+	var left, right any
+	if err := json.Unmarshal(a, &left); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(b, &right); err != nil {
+		t.Fatal(err)
+	}
+	return reflect.DeepEqual(left, right)
 }

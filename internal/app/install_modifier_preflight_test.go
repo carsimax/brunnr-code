@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,14 +12,16 @@ import (
 	"github.com/carsimax/brunnr-code/internal/system"
 )
 
-func TestRunArgsOrphanInstallModifiersRejectedWithoutEffects(t *testing.T) {
+// TestRunArgsRemovedSetupFlagsRejectedWithoutEffects pins that the retired
+// setup flags fail at flag parsing, before any state or file is written.
+func TestRunArgsRemovedSetupFlagsRejectedWithoutEffects(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		args []string
-		want string
 	}{
-		{"skill", []string{"--skill", "go-testing"}, "--skill/--skills requires component skills in the resolved install plan; rerun brunnr-code install with --component skills added to your existing component list, or remove --skill/--skills"},
-		{"skills", []string{"--skills", "go-testing"}, "--skill/--skills requires component skills in the resolved install plan; rerun brunnr-code install with --component skills added to your existing component list, or remove --skill/--skills"},
+		{"preset", []string{"--preset", "full"}},
+		{"component", []string{"--component", "engram"}},
+		{"skill", []string{"--skill", "go-testing"}},
 	} {
 		for _, dryRun := range []bool{false, true} {
 			name := tc.name + "/real"
@@ -43,14 +46,14 @@ func TestRunArgsOrphanInstallModifiersRejectedWithoutEffects(t *testing.T) {
 				detectSystem = func(context.Context) (system.DetectionResult, error) {
 					return system.DetectionResult{System: system.SystemInfo{Supported: true, Profile: system.PlatformProfile{OS: "windows", Supported: true}}}, nil
 				}
-				args := append([]string{"install", "--agent", "claude-code", "--component", "permissions"}, tc.args...)
+				args := append([]string{"install", "--agent", "claude-code"}, tc.args...)
 				if dryRun {
 					args = append(args, "--dry-run")
 				}
 				var out bytes.Buffer
 				err = RunArgs(args, &out)
-				if err == nil || err.Error() != tc.want {
-					t.Fatalf("error = %v, want %q", err, tc.want)
+				if err == nil || !strings.Contains(err.Error(), "flag provided but not defined") {
+					t.Fatalf("error = %v, want unknown flag error", err)
 				}
 				if out.String() != "" {
 					t.Fatalf("stdout = %q, want empty", out.String())

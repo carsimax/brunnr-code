@@ -126,9 +126,6 @@ func PrepareInstall(args []string, detection system.DetectionResult) (PreparedIn
 	if err != nil {
 		return PreparedInstall{}, err
 	}
-	if err := validateInstallModifierConsumers(flags, input.Selection, resolved.OrderedComponents); err != nil {
-		return PreparedInstall{}, err
-	}
 	return PreparedInstall{flags: flags, input: input, resolved: resolved}, nil
 }
 
@@ -267,7 +264,7 @@ func rollbackPostApplyError(orchestrator *pipeline.Orchestrator, execution pipel
 func persistInstallState(homeDir string, newState state.InstallState, agentIDs []string, flags InstallFlags, writer string) error {
 	return withInstallStateLock(homeDir, func() error {
 		if len(flags.Agents) > 0 {
-			merged, mergeErr := mergeExplicitAgentInstallState(homeDir, newState, agentIDs, flags)
+			merged, mergeErr := mergeExplicitAgentInstallState(homeDir, newState, agentIDs)
 			if mergeErr != nil {
 				return fmt.Errorf("merge explicit agent install state: %w", mergeErr)
 			}
@@ -311,7 +308,7 @@ func mergeFullInstallState(existing, fresh state.InstallState) state.InstallStat
 // data would itself be wrong, so this does not attempt best-effort recovery
 // — it fails loudly instead, matching the original conservative intent of
 // refusing to merge from data that cannot be trusted.
-func mergeExplicitAgentInstallState(homeDir string, newState state.InstallState, agentIDs []string, flags InstallFlags) (state.InstallState, error) {
+func mergeExplicitAgentInstallState(homeDir string, newState state.InstallState, agentIDs []string) (state.InstallState, error) {
 	existing, readErr := state.Read(homeDir)
 	if readErr != nil {
 		if errors.Is(readErr, os.ErrNotExist) {
@@ -341,21 +338,12 @@ func mergeExplicitAgentInstallState(homeDir string, newState state.InstallState,
 	if newState.CodexPhaseModelAssignments != nil {
 		merged.CodexPhaseModelAssignments = newState.CodexPhaseModelAssignments
 	}
-	if !merged.SelectionConfigured && newState.SelectionConfigured {
-		// A metadata-only or legacy state has no selection to preserve.
+	// The setup is the only selection: an older state's preset, components or
+	// skills are replaced by the fresh install's full selection.
+	if newState.SelectionConfigured {
 		merged.SelectionConfigured = true
 		merged.Components, merged.Skills = newState.Components, newState.Skills
 		merged.Preset = newState.Preset
-	} else if merged.SelectionConfigured {
-		if len(flags.Components) > 0 {
-			merged.Components = newState.Components
-		}
-		if len(flags.Skills) > 0 {
-			merged.Skills = newState.Skills
-		}
-		if flags.Preset != "" {
-			merged.Preset = newState.Preset
-		}
 	}
 	return merged, nil
 }
@@ -1506,14 +1494,14 @@ func executeCommand(name string, args ...string) error {
 	return nil
 }
 
-// selectedSkillIDs returns the skill IDs to install. If the selection
-// has explicit skills, those are used; otherwise skills are derived from the preset.
+// selectedSkillIDs returns the skill IDs to install: the selection's skills,
+// or the setup skills when a caller built the selection without them.
 func selectedSkillIDs(selection model.Selection) []model.SkillID {
 	if len(selection.Skills) > 0 {
 		return selection.Skills
 	}
 
-	return skills.SkillsForPreset(selection.Preset)
+	return skills.SetupSkills()
 }
 
 // installBackupTargets lists every path an install is about to rewrite. An

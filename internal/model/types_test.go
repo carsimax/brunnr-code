@@ -24,11 +24,3 @@ func TestSupportedAgentIDsDropsRemovedAgentsInOrder(t *testing.T) {
 		})
 	}
 }
-
-func TestKnownComponentIDsDropsUnknownInOrder(t *testing.T) {
-	in := []ComponentID{"retired-component", ComponentSkills, "", ComponentEngram}
-	want := []ComponentID{ComponentSkills, ComponentEngram}
-	if got := KnownComponentIDs(in); !reflect.DeepEqual(got, want) {
-		t.Fatalf("KnownComponentIDs(%v) = %v, want %v", in, got, want)
-	}
-}

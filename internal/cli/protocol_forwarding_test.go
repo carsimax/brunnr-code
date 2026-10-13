@@ -48,7 +48,7 @@ func TestRunInstallThreadsEngramVersionIntoClaudeSlimSelection(t *testing.T) {
 	}
 
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		macOSDetectionResult(),
 	)
 	if err != nil {
@@ -96,7 +96,7 @@ func TestRunInstallBelowFloorVersionKeepsClaudeFullSelection(t *testing.T) {
 	verifyEngramVersion = func() (string, error) { return "engram 1.3.9", nil }
 
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		macOSDetectionResult(),
 	)
 	if err != nil {
@@ -149,7 +149,7 @@ func TestRunInstallForwardsProtocolSlimForClaudeCodeWhenSupported(t *testing.T) 
 	runCommand = recorder.record
 
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		macOSDetectionResult(),
 	)
 	if err != nil {
@@ -199,7 +199,7 @@ func TestRunInstallOmitsProtocolFlagWhenProbeFails(t *testing.T) {
 	runCommand = recorder.record
 
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		macOSDetectionResult(),
 	)
 	if err != nil {
@@ -263,7 +263,7 @@ func TestRunInstallSkipsProtocolProbeWhenSetupModeOff(t *testing.T) {
 	}
 
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		macOSDetectionResult(),
 	)
 	if err != nil {
@@ -310,7 +310,7 @@ func TestRunInstallShellsOutEngramVersionOnlyOnce(t *testing.T) {
 	callCount := engram.CountVersionCallsForTest(t, "engram 1.18.0")
 
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		macOSDetectionResult(),
 	)
 	if err != nil {

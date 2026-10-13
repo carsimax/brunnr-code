@@ -50,7 +50,7 @@ func TestInstallWithoutReviewContractSourceFailsAndKeepsPromptUnchanged(t *testi
 	seed := []byte("# My own rules\n\nAlways answer briefly.\n")
 	mustWriteFile(t, promptPath, seed)
 
-	_, err := RunInstall([]string{"--agent", "claude-code", "--components", "persona"}, system.DetectionResult{})
+	_, err := RunInstall([]string{"--agent", "claude-code"}, system.DetectionResult{})
 	if err == nil {
 		t.Fatal("RunInstall succeeded without a review contract source; want the routing step to fail closed")
 	}

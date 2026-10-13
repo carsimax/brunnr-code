@@ -1,56 +1,32 @@
 package skills
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/carsimax/brunnr-code/internal/model"
 )
 
-func TestSkillsForPresetMinimalRetainsJudgmentDay(t *testing.T) {
-	skills := SkillsForPreset(model.PresetMinimal)
-	if len(skills) != 1 || skills[0] != model.SkillJudgmentDay {
-		t.Fatalf("SkillsForPreset(minimal) = %v, want judgment-day only", skills)
+func TestSetupSkillsIsTheFixedSetupSet(t *testing.T) {
+	want := []model.SkillID{
+		model.SkillJudgmentDay,
+		model.SkillGoTesting,
+		model.SkillCreator,
+		model.SkillImprover,
+		model.SkillSkillRegistry,
+		model.SkillChainedPR,
+		model.SkillCognitiveDoc,
+		model.SkillWorkUnitCommits,
+	}
+	if got := SetupSkills(); !slices.Equal(got, want) {
+		t.Fatalf("SetupSkills() = %v, want %v", got, want)
 	}
 }
 
-func TestSkillsForPresetEcosystemIncludesFrameworks(t *testing.T) {
-	skills := SkillsForPreset(model.PresetEcosystemOnly)
-
-	hasGoTesting := false
-	hasSkillCreator := false
-	for _, skill := range skills {
-		if skill == model.SkillGoTesting {
-			hasGoTesting = true
-		}
-		if skill == model.SkillCreator {
-			hasSkillCreator = true
-		}
-	}
-
-	if !hasGoTesting {
-		t.Fatalf("ecosystem preset should include go-testing")
-	}
-	if !hasSkillCreator {
-		t.Fatalf("ecosystem preset should include skill-creator")
-	}
-}
-
-func TestSkillsForPresetFullIncludesAll(t *testing.T) {
-	preset := SkillsForPreset(model.PresetFull)
-	all := AllSkillIDs()
-
-	presetSet := make(map[model.SkillID]bool, len(preset))
-	for _, id := range preset {
-		presetSet[id] = true
-	}
-
-	var selectableOnly []model.SkillID
-	for _, id := range all {
-		if !presetSet[id] {
-			selectableOnly = append(selectableOnly, id)
-		}
-	}
-
+// TestSetupSkillsExcludeOnlyContributorSkills pins that every retained skill
+// outside the setup is a contributor skill.
+func TestSetupSkillsExcludeOnlyContributorSkills(t *testing.T) {
+	setup := SetupSkills()
 	contributorOnly := map[model.SkillID]bool{
 		model.SkillBranchPR:            true,
 		model.SkillIssueCreation:       true,
@@ -58,54 +34,33 @@ func TestSkillsForPresetFullIncludesAll(t *testing.T) {
 		model.SkillRDDDefectWorkflow:   true,
 		model.SkillSystemicIssueTriage: true,
 	}
-	if len(selectableOnly) != len(contributorOnly) {
-		t.Fatalf("selectable inventory has %d skills outside the full preset (%v), want exactly the %d contributor skills", len(selectableOnly), selectableOnly, len(contributorOnly))
+
+	var outside []model.SkillID
+	for _, id := range AllSkillIDs() {
+		if !slices.Contains(setup, id) {
+			outside = append(outside, id)
+		}
 	}
-	for _, id := range selectableOnly {
+	if len(outside) != len(contributorOnly) {
+		t.Fatalf("inventory has %d skills outside the setup (%v), want exactly the %d contributor skills", len(outside), outside, len(contributorOnly))
+	}
+	for _, id := range outside {
 		if !contributorOnly[id] {
-			t.Fatalf("selectable inventory contains unexpected non-preset skill %q; only contributor skills may live outside the presets", id)
+			t.Fatalf("inventory contains unexpected non-setup skill %q; only contributor skills may live outside the setup", id)
+		}
+	}
+	for id := range contributorOnly {
+		if slices.Contains(setup, id) {
+			t.Fatalf("SetupSkills() includes contributor skill %q", id)
 		}
 	}
 }
 
-func TestSkillsForPresetExcludesContributorSkills(t *testing.T) {
-	excluded := []model.SkillID{
-		model.SkillBranchPR,
-		model.SkillIssueCreation,
-		model.SkillSystemicIssueTriage,
-		model.SkillRDDDefectWorkflow,
-		model.SkillCommentWriter,
-	}
-	required := []model.SkillID{
-		model.SkillChainedPR,
-		model.SkillSkillRegistry,
-		model.SkillWorkUnitCommits,
-		model.SkillCognitiveDoc,
-	}
-	for _, preset := range []model.PresetID{model.PresetFull, model.PresetEcosystemOnly, "", "unknown"} {
-		t.Run(string(preset), func(t *testing.T) {
-			present := make(map[model.SkillID]bool)
-			for _, skill := range SkillsForPreset(preset) {
-				present[skill] = true
-			}
-			for _, skill := range excluded {
-				if present[skill] {
-					t.Errorf("SkillsForPreset(%q) includes contributor skill %q", preset, skill)
-				}
-			}
-			for _, skill := range required {
-				if !present[skill] {
-					t.Errorf("SkillsForPreset(%q) missing product skill %q", preset, skill)
-				}
-			}
-		})
-	}
-}
-
-func TestSkillsForPresetCustomReturnsNil(t *testing.T) {
-	skills := SkillsForPreset(model.PresetCustom)
-	if skills != nil {
-		t.Fatalf("custom preset should return nil, got %v", skills)
+func TestSetupSkillsReturnsAFreshSlice(t *testing.T) {
+	first := SetupSkills()
+	first[0] = model.SkillCommentWriter
+	if got := SetupSkills(); got[0] != model.SkillJudgmentDay {
+		t.Fatalf("SetupSkills() shares its backing array: %v", got)
 	}
 }
 
@@ -132,31 +87,5 @@ func TestAllSkillIDsIncludesEveryKnownSkill(t *testing.T) {
 		if _, ok := skillSet[req]; !ok {
 			t.Fatalf("AllSkillIDs() missing %q", req)
 		}
-	}
-}
-
-func TestRequestedBundledSkillsAreInPresetSkillSets(t *testing.T) {
-	required := []model.SkillID{
-		model.SkillCreator,
-		model.SkillSkillRegistry,
-		model.SkillCognitiveDoc,
-		model.SkillJudgmentDay,
-		model.SkillWorkUnitCommits,
-		model.SkillImprover,
-	}
-
-	for _, preset := range []model.PresetID{model.PresetEcosystemOnly, model.PresetFull} {
-		t.Run(string(preset), func(t *testing.T) {
-			skillSet := make(map[model.SkillID]struct{})
-			for _, skill := range SkillsForPreset(preset) {
-				skillSet[skill] = struct{}{}
-			}
-
-			for _, req := range required {
-				if _, ok := skillSet[req]; !ok {
-					t.Fatalf("SkillsForPreset(%q) missing requested bundled skill %q", preset, req)
-				}
-			}
-		})
 	}
 }

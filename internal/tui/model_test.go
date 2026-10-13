@@ -3158,7 +3158,7 @@ func TestCodexPicker_EscBackNavToAgents(t *testing.T) {
 	m.ModelConfigMode = false
 	m.Selection.Preset = model.PresetFull
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = componentsForPreset(model.PresetFull)
+	m.Selection.Components = model.SetupComponents()
 	m.CodexModelPicker = screens.NewCodexModelPickerStateFromAssignments(m.Selection.CodexModelAssignments)
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
@@ -3177,7 +3177,7 @@ func TestCodexPicker_EscBackNavToClaudeWhenClaudeSelected(t *testing.T) {
 	m.ModelConfigMode = false
 	m.Selection.Preset = model.PresetFull
 	m.Selection.Agents = []model.AgentID{model.AgentClaudeCode, model.AgentCodex}
-	m.Selection.Components = componentsForPreset(model.PresetFull)
+	m.Selection.Components = model.SetupComponents()
 	m.CodexModelPicker = screens.NewCodexModelPickerStateFromAssignments(m.Selection.CodexModelAssignments)
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
@@ -3197,7 +3197,7 @@ func TestCodexPicker_EscBackNavToAgentsWithoutClaude(t *testing.T) {
 	m.ModelConfigMode = false
 	m.Selection.Preset = model.PresetFull
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = componentsForPreset(model.PresetFull)
+	m.Selection.Components = model.SetupComponents()
 	m.CodexModelPicker = screens.NewCodexModelPickerStateFromAssignments(m.Selection.CodexModelAssignments)
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})

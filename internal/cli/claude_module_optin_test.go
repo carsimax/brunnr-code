@@ -23,7 +23,7 @@ const claudeModulesFlag = "--claude-orchestrator-modules"
 const absentPilotFile = "<absent>"
 
 func claudeInstallArgs(extra ...string) []string {
-	return append([]string{"--agent", "claude-code", "--components", "persona"}, extra...)
+	return append([]string{"--agent", "claude-code"}, extra...)
 }
 
 // plannedClaudeModulePaths returns the nine paths a pilot-enabled global
@@ -87,7 +87,7 @@ func TestClaudeModuleOptInRejectsWorkspaceAndNonClaudeBeforeWriting(t *testing.T
 		agents string
 	}{
 		{name: "workspace scope", args: claudeInstallArgs("--scope", "workspace", claudeModulesFlag), want: "--scope global", agents: "claude-code"},
-		{name: "selection without Claude", args: []string{"--agent", "codex", "--components", "persona", claudeModulesFlag}, want: string(model.AgentClaudeCode), agents: "codex,claude-code"},
+		{name: "selection without Claude", args: []string{"--agent", "codex", claudeModulesFlag}, want: string(model.AgentClaudeCode), agents: "codex,claude-code"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			home := installTestHome(t)

@@ -155,7 +155,7 @@ func TestRunSyncDryRunPropagatesCompatibilityManagedPathError(t *testing.T) {
 	}
 	t.Cleanup(func() { lstatCompatibilityDestination = originalLstat })
 
-	result, err := RunSync([]string{"--dry-run", "--skill", "go-testing"})
+	result, err := RunSync([]string{"--dry-run"})
 	if !errors.Is(err, pathErr) || result.NoOp {
 		t.Fatalf("RunSync(--dry-run) no-op = %t, error = %v; want propagated managed-path failure", result.NoOp, err)
 	}

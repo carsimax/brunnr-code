@@ -80,7 +80,7 @@ func TestInstallThenSyncConverges(t *testing.T) {
 	for _, agent := range []string{"claude-code", "codex"} {
 		t.Run(agent, func(t *testing.T) {
 			home := convergenceTestHome(t)
-			if _, err := RunInstall([]string{"--agent", agent, "--preset", "full"}, system.DetectionResult{}); err != nil {
+			if _, err := RunInstall([]string{"--agent", agent}, system.DetectionResult{}); err != nil {
 				t.Fatalf("RunInstall() error = %v", err)
 			}
 			installed := snapshotManagedTree(t, home)
@@ -99,7 +99,7 @@ func TestInstallThenSyncConverges(t *testing.T) {
 
 func TestCodexReinstallKeepsConfigTOML(t *testing.T) {
 	home := convergenceTestHome(t)
-	args := []string{"--agent", "codex", "--preset", "full"}
+	args := []string{"--agent", "codex"}
 	if _, err := RunInstall(args, system.DetectionResult{}); err != nil {
 		t.Fatalf("first RunInstall() error = %v", err)
 	}
@@ -135,7 +135,7 @@ func TestCodeGraphInstallThenSyncConverges(t *testing.T) {
 				return communitytool.Result{Tool: id}, err
 			}
 
-			if _, err := RunInstall([]string{"--agent", string(agent), "--preset", "full"}, system.DetectionResult{}); err != nil {
+			if _, err := RunInstall([]string{"--agent", string(agent)}, system.DetectionResult{}); err != nil {
 				t.Fatalf("RunInstall() error = %v", err)
 			}
 			if !communitytool.HasManagedCodeGraphGuidance(home) {

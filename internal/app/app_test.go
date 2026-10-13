@@ -19,6 +19,8 @@ import (
 
 	"github.com/carsimax/brunnr-code/internal/agents/codex"
 	"github.com/carsimax/brunnr-code/internal/backup"
+	"github.com/carsimax/brunnr-code/internal/cli"
+	"github.com/carsimax/brunnr-code/internal/components/skills"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/planner"
 	"github.com/carsimax/brunnr-code/internal/state"
@@ -285,9 +287,14 @@ func TestRunArgsInstallHelpPrintsInstallSpecificHelp(t *testing.T) {
 	}
 
 	out := buf.String()
-	for _, want := range []string{"--agent", "--component", "--dry-run"} {
+	for _, want := range []string{"--agent", "--dry-run"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("install help missing %q; output:\n%s", want, out)
+		}
+	}
+	for _, removed := range []string{"--preset", "--component", "--skill"} {
+		if strings.Contains(out, removed) {
+			t.Fatalf("install help still advertises the removed %s flag; output:\n%s", removed, out)
 		}
 	}
 	if strings.Contains(out, "--channel") {
@@ -556,15 +563,22 @@ func TestTuiSyncTargetAgentsFallsBackToDiscoveredAgents(t *testing.T) {
 	}
 }
 
-func TestTuiSyncSelectionPreservesCustomPermissionExclusion(t *testing.T) {
+// TestTuiSyncSelectionIgnoresLegacyCustomState pins that a state.json from an
+// older custom install never narrows the TUI sync selection: it stays the
+// single setup, permissions included.
+func TestTuiSyncSelectionIgnoresLegacyCustomState(t *testing.T) {
 	home := t.TempDir()
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"codex"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSkills}, Skills: []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom}); err != nil {
+	legacy := `{"installed_agents":["codex"],"selection_configured":true,"components":["skills"],"skills":["comment-writer"],"preset":"custom"}`
+	if err := os.MkdirAll(filepath.Dir(state.Path(home)), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	selection := model.Selection{Agents: []model.AgentID{model.AgentCodex}, Components: []model.ComponentID{model.ComponentPermission}, Preset: model.PresetFull}
+	if err := os.WriteFile(state.Path(home), []byte(legacy), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	selection := cli.BuildSyncSelection([]model.AgentID{model.AgentClaudeCode})
 	loadPersistedAssignments(home, &selection)
-	if selection.HasComponent(model.ComponentPermission) || !reflect.DeepEqual(selection.Skills, []model.SkillID{model.SkillCommentWriter}) || selection.Preset != model.PresetCustom {
-		t.Fatalf("TUI sync replaced custom selection: %#v", selection)
+	if !slices.Equal(selection.Components, model.SetupComponents()) || !slices.Equal(selection.Skills, skills.SetupSkills()) || selection.Preset != model.PresetFull {
+		t.Fatalf("TUI sync selection = %#v, want the full setup", selection)
 	}
 }
 
@@ -574,10 +588,10 @@ func TestTUIExecutePersistsConfiguredSelection(t *testing.T) {
 	if err := state.Write(home, state.InstallState{RDDMode: "off"}); err != nil {
 		t.Fatal(err)
 	}
-	selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}, Preset: model.PresetCustom, Components: []model.ComponentID{}, Skills: []model.SkillID{}, StrictTDD: true}
+	selection := model.Selection{Agents: []model.AgentID{model.AgentClaudeCode}, Preset: model.PresetFull, Components: model.SetupComponents(), Skills: skills.SetupSkills(), StrictTDD: true}
 	result := tuiExecute(selection, planner.ResolvedPlan{}, system.DetectionResult{}, nil)
 	got, err := state.Read(home)
-	if result.Err != nil || err != nil || !got.SelectionConfigured || got.Preset != model.PresetCustom || got.StrictTDD || got.RDDMode != "off" || !slices.Equal(got.InstalledAgents, []string{string(model.AgentClaudeCode)}) || len(got.Components) != 0 || len(got.Skills) != 0 {
+	if result.Err != nil || err != nil || !got.SelectionConfigured || got.Preset != model.PresetFull || got.StrictTDD || got.RDDMode != "off" || !slices.Equal(got.InstalledAgents, []string{string(model.AgentClaudeCode)}) || !slices.Equal(got.Components, model.SetupComponents()) || !slices.Equal(got.Skills, skills.SetupSkills()) {
 		t.Fatalf("persisted selection = %#v, execute err = %v, read err = %v", got, result.Err, err)
 	}
 	persisted, err := os.ReadFile(state.Path(home))

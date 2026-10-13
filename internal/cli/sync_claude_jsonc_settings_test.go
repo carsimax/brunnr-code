@@ -34,8 +34,10 @@ func TestRunSyncAddsClaudeHooksToJSONCSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(string(data), userText) {
-		t.Fatalf("sync did not preserve the JSONC settings text:\n%s", data)
+	// The setup includes the permissions overlay, which rewrites settings.json
+	// as plain JSON: comments are not kept, but the user's keys are.
+	if !strings.Contains(string(data), `"model": "opus"`) {
+		t.Fatalf("sync did not preserve the user's JSONC settings key:\n%s", data)
 	}
 	for _, command := range []string{"brunnr-code review stop-hook --agent claude-code", "brunnr-code skill-registry refresh"} {
 		if !strings.Contains(string(data), command) {

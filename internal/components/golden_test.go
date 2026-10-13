@@ -22,7 +22,7 @@ func claudeAdapter() agents.Adapter { return claude.NewAdapter() }
 func codexAdapter() agents.Adapter  { return codexagent.NewAdapter() }
 
 // ---------------------------------------------------------------------------
-// Existing golden tests (presets)
+// Existing golden tests (setup)
 // ---------------------------------------------------------------------------
 
 func TestGoldenConfigs(t *testing.T) {
@@ -32,9 +32,7 @@ func TestGoldenConfigs(t *testing.T) {
 	}
 
 	presets := []presetMapping{
-		{Preset: "full", Skills: toStringSlice(skills.SkillsForPreset("full"))},
-		{Preset: "ecosystem-only", Skills: toStringSlice(skills.SkillsForPreset("ecosystem-only"))},
-		{Preset: "minimal", Skills: toStringSlice(skills.SkillsForPreset("minimal"))},
+		{Preset: "full", Skills: toStringSlice(skills.SetupSkills())},
 	}
 	presetsJSON, err := json.MarshalIndent(presets, "", "  ")
 	if err != nil {

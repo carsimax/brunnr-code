@@ -37,8 +37,11 @@ type InstallState struct {
 	SelectionConfigured    bool                `json:"selection_configured,omitempty"`
 	Components             []model.ComponentID `json:"components,omitempty"`
 	Skills                 []model.SkillID     `json:"skills,omitempty"`
-	Preset                 model.PresetID      `json:"preset,omitempty"`
-	StrictTDD              bool                `json:"-"` // decoded only for legacy compatibility; never persisted or used for routing
+	// Preset records the setup that was written. It is always "full"; values
+	// from older binaries ("minimal", "custom", ...) still decode because
+	// PresetID is a plain string, and nothing restores a selection from them.
+	Preset    model.PresetID `json:"preset,omitempty"`
+	StrictTDD bool           `json:"-"` // decoded only for legacy compatibility; never persisted or used for routing
 	// ClaudeModelAssignments maps sub-agent role names (e.g. "odd-explorer") to a
 	// Claude model alias ("fable", "opus", "sonnet", "haiku"). Persisted so that
 	// `brunnr-code sync` preserves the user's model choices instead of falling
@@ -151,15 +154,6 @@ func (s *InstallState) SetSelection(selection model.Selection) {
 	s.Components = append([]model.ComponentID(nil), selection.Components...)
 	s.Skills = append([]model.SkillID(nil), selection.Skills...)
 	s.Preset, s.StrictTDD = selection.Preset, false
-}
-
-func (s InstallState) RestoreSelection(selection *model.Selection) {
-	if !s.SelectionConfigured {
-		return
-	}
-	selection.Components = append([]model.ComponentID(nil), model.KnownComponentIDs(s.Components)...)
-	selection.Skills = append([]model.SkillID(nil), s.Skills...)
-	selection.Preset, selection.StrictTDD = s.Preset, false
 }
 
 // MergeAgents returns a new InstallState that combines existing with the

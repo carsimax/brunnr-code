@@ -36,16 +36,12 @@ import (
 
 // SyncFlags holds parsed CLI flags for the sync command.
 type SyncFlags struct {
-	Agents             []string
-	Skills             []string
-	StrictTDD          bool
-	IncludePermissions bool
-	Scope              string
-	DryRun             bool
+	Agents    []string
+	StrictTDD bool
+	Scope     string
+	DryRun    bool
 
-	skillsSet      bool
-	strictTDDSet   bool
-	permissionsSet bool
+	strictTDDSet bool
 }
 
 // SyncResult holds the outcome of a sync execution.
@@ -135,10 +131,7 @@ func ParseSyncFlags(args []string) (SyncFlags, error) {
 	fs.SetOutput(&usage)
 	registerListFlag(fs, "agent", &opts.Agents)
 	registerListFlag(fs, "agents", &opts.Agents)
-	registerListFlag(fs, "skill", &opts.Skills)
-	registerListFlag(fs, "skills", &opts.Skills)
 	fs.BoolVar(&opts.StrictTDD, "strict-tdd", false, "retired: ODD uses applicable test-first development by default")
-	fs.BoolVar(&opts.IncludePermissions, "include-permissions", false, "include permissions component in sync")
 	fs.StringVar(&opts.Scope, "scope", "", "sync scope: global (default) or workspace — env: BRUNNR_CODE_INSTALL_SCOPE")
 	fs.BoolVar(&opts.DryRun, "dry-run", false, "preview plan without executing")
 
@@ -157,13 +150,8 @@ func ParseSyncFlags(args []string) (SyncFlags, error) {
 		return SyncFlags{}, fmt.Errorf("%w — run `brunnr-code sync --help` for the supported flags", err)
 	}
 	fs.Visit(func(f *flag.Flag) {
-		switch f.Name {
-		case "skill", "skills":
-			opts.skillsSet = true
-		case "strict-tdd":
+		if f.Name == "strict-tdd" {
 			opts.strictTDDSet = true
-		case "include-permissions":
-			opts.permissionsSet = true
 		}
 	})
 
@@ -184,55 +172,33 @@ func PrintSyncHelp(w io.Writer) {
 
 FLAGS
   --agent, --agents <list>           Agents to sync
-  --skill, --skills <list>           Skills to sync
   --strict-tdd                       Retired (rejected); applicable test-first ODD is default
-  --include-permissions              Include permissions component
   --scope global|workspace           Sync scope (env: BRUNNR_CODE_INSTALL_SCOPE)
                                      workspace refreshes only workspace-scoped files and never mutates global state, backups, plugins, or routing guidance; components managed only globally are skipped
   --dry-run                          Preview plan without executing
   --help, -h                         Show this help
+
+SETUP
+  Every sync applies the single setup, Dev Stack + Permissions: Engram,
+  skills, permissions and the managed persona, with the fixed skill set.
 `)
 }
 
-// BuildSyncSelection builds a model.Selection for the sync command.
+// BuildSyncSelection builds the model.Selection for the sync command: the
+// single setup (model.SetupComponents and skills.SetupSkills) for agentIDs.
+// Persisted state never narrows it; a state.json written by an older binary
+// with another preset or a smaller component or skill list syncs the full
+// setup too.
 //
-// Default sync scope: Persona, Engram, Skills.
-// Excluded by default: Permissions (no markers; managed via a JSON overlay
-// where user customization cannot be safely diff-merged).
-// Permissions can be opted-in via a flag.
-//
-// Persona is included because its content lives between
-// <!-- brunnr-code:persona --> markers — that block is harness-managed and
-// must propagate embedded-asset changes across versions. Content outside
-// the markers (user-authored sections) is preserved by InjectMarkdownSection.
-//
-// This is the reusable managed-asset sync contract. A future `upgrade --sync`
-// flow can call this function to get the same managed-only selection semantics.
-func BuildSyncSelection(flags SyncFlags, agentIDs []model.AgentID) model.Selection {
-	// Persona runs first so its marker section precedes the sections that
-	// Engram injects afterwards.
-	components := []model.ComponentID{
-		model.ComponentPersona,
-		model.ComponentEngram,
-		model.ComponentSkills,
-	}
-
-	if flags.IncludePermissions {
-		components = append(components, model.ComponentPermission)
-	}
-
-	var skillIDs []model.SkillID
-	for _, raw := range flags.Skills {
-		skillIDs = append(skillIDs, model.SkillID(raw))
-	}
-
+// Persona content lives between <!-- brunnr-code:persona --> markers, so sync
+// propagates embedded-asset changes while preserving user-authored sections
+// outside them. Components apply in install order (installOrderedComponents).
+func BuildSyncSelection(agentIDs []model.AgentID) model.Selection {
 	return model.Selection{
 		Agents:     agentIDs,
-		Components: components,
-		Skills:     skillIDs,
-		// Preset is set to full so selectedSkillIDs() returns the
-		// correct default skill set when no explicit skills are provided.
-		Preset: model.PresetFull,
+		Components: model.SetupComponents(),
+		Skills:     skills.SetupSkills(),
+		Preset:     model.PresetFull,
 	}
 }
 
@@ -267,38 +233,6 @@ func installOrderedComponents(components []model.ComponentID) []model.ComponentI
 		}
 	}
 	return ordered
-}
-
-func RestorePersistedSelection(selection *model.Selection, persisted state.InstallState, flags SyncFlags) {
-	if !persisted.SelectionConfigured {
-		return
-	}
-	explicit := *selection
-	persisted.RestoreSelection(selection)
-	// State written before persona became mandatory may lack it; sync
-	// installs it like every other selection path.
-	selection.Components = model.WithMandatoryComponents(selection.Components)
-	if flags.skillsSet {
-		selection.Skills = explicit.Skills
-		setSelectionComponent(selection, model.ComponentSkills, true, true)
-	}
-	setSelectionComponent(selection, model.ComponentPermission, flags.permissionsSet, flags.IncludePermissions)
-}
-
-func setSelectionComponent(selection *model.Selection, component model.ComponentID, configured, included bool) {
-	if !configured {
-		return
-	}
-	filtered := selection.Components[:0]
-	for _, current := range selection.Components {
-		if current != component {
-			filtered = append(filtered, current)
-		}
-	}
-	selection.Components = filtered
-	if included {
-		selection.Components = append(selection.Components, component)
-	}
 }
 
 // DiscoverAgents returns the agent IDs to sync. Persisted selections are
@@ -990,7 +924,6 @@ func (s componentSyncStep) Run() error {
 		return nil
 
 	case model.ComponentPermission:
-		// Opt-in only — reached when --include-permissions is set.
 		for _, adapter := range adapters {
 			res, err := permissions.Inject(s.homeDir, adapter)
 			if err != nil {
@@ -1384,6 +1317,11 @@ func persistSyncManagedAssetState(homeDir string, selection model.Selection, wri
 			latest.ManagedAssetDigest = writer
 			shouldWrite = true
 		}
+		// A selection persisted by an older binary (another preset, fewer
+		// components or skills) is rewritten as the setup this sync applied.
+		if latest.SelectionConfigured {
+			latest.SetSelection(selection)
+		}
 		now := time.Now().UTC()
 		latest.LastSyncedAt = &now
 		shouldWrite = true
@@ -1431,7 +1369,7 @@ func RunSync(args []string) (SyncResult, error) {
 	}
 	agentIDs = unique(agentIDs)
 
-	selection := BuildSyncSelection(flags, agentIDs)
+	selection := BuildSyncSelection(agentIDs)
 
 	// Read state once for both model-assignment restoration and persona resolution.
 	// A missing state file is treated as a fresh home; other read/validation
@@ -1440,7 +1378,6 @@ func RunSync(args []string) (SyncResult, error) {
 	if err := validatePersistedSyncState(persistedStateErr); err != nil {
 		return SyncResult{Agents: agentIDs, Selection: selection}, err
 	}
-	RestorePersistedSelection(&selection, persistedState, flags)
 	restoreCodexServiceTier(&selection, persistedState)
 
 	// Load persisted model assignments from state when not provided via flags.

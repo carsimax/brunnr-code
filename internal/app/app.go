@@ -628,8 +628,7 @@ func tuiSyncDetailed(homeDir string) tui.SyncDetailedFunc {
 // when some selected agent was skipped.
 func runTUISync(homeDir string, overrides *model.SyncOverrides) ([]string, []string, error) {
 	agentIDs := syncAgentIDs(homeDir, overrides)
-	syncFlags := cli.SyncFlags{IncludePermissions: syncShouldIncludePermissions(agentIDs)}
-	selection := cli.BuildSyncSelection(syncFlags, agentIDs)
+	selection := cli.BuildSyncSelection(agentIDs)
 
 	// Load persisted model assignments so a plain sync (no overrides)
 	// preserves the user's previous choices instead of falling back
@@ -692,15 +691,6 @@ func syncAgentIDs(homeDir string, overrides *model.SyncOverrides) []model.AgentI
 	return ids
 }
 
-func syncShouldIncludePermissions(agentIDs []model.AgentID) bool {
-	for _, id := range agentIDs {
-		if id == model.AgentCodex {
-			return true
-		}
-	}
-	return false
-}
-
 // applyOverrides merges non-nil fields from overrides into selection.
 // A nil overrides pointer is a no-op.
 func applyOverrides(selection *model.Selection, overrides *model.SyncOverrides) {
@@ -747,7 +737,6 @@ func loadPersistedAssignments(homeDir string, selection *model.Selection) {
 	if err != nil {
 		return
 	}
-	cli.RestorePersistedSelection(selection, s, cli.SyncFlags{})
 	if len(selection.ClaudePhaseAssignments) == 0 && len(s.ClaudePhaseAssignments) > 0 {
 		m := make(map[string]model.ClaudePhaseAssignment, len(s.ClaudePhaseAssignments))
 		for k, v := range s.ClaudePhaseAssignments {

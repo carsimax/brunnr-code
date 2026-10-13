@@ -42,7 +42,7 @@ func TestRunInstallLinuxEngramUsesDownloadNotGoInstall(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -94,7 +94,7 @@ func TestRunInstallEngramDownloadAddsBinDirToPath(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	_, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -156,7 +156,7 @@ func TestRunInstallFreshEngramDownloadUsesDownloadedBinaryForVersionProbeAndSetu
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	_, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -230,7 +230,7 @@ func TestRunInstallWindowsEngramUsesDownloadNotGoInstall(t *testing.T) {
 	}
 
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -585,7 +585,7 @@ func TestRunInstallMacOSEngramDownloadsReleaseBinary(t *testing.T) {
 	t.Cleanup(func() { engramDownloadFn = origDownloadFn })
 
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		macOSDetectionResult(),
 	)
 	if err != nil {
@@ -607,33 +607,6 @@ func TestRunInstallMacOSEngramDownloadsReleaseBinary(t *testing.T) {
 
 // Make sure the engram package's DownloadLatestBinary is accessible.
 var _ = engram.DownloadLatestBinary
-
-// Engram is user-owned: installing ordinary guidance does not attempt an implicit download.
-func TestRunInstallClaudeGuidanceDoesNotAutoInstallEngram(t *testing.T) {
-	home := t.TempDir()
-	restoreHome, restoreCommand, restoreLookPath, restoreDownload := osUserHomeDir, runCommand, cmdLookPath, engramDownloadFn
-	t.Cleanup(func() {
-		osUserHomeDir, runCommand, cmdLookPath, engramDownloadFn = restoreHome, restoreCommand, restoreLookPath, restoreDownload
-	})
-	osUserHomeDir = func() (string, error) { return home, nil }
-	runCommand = func(string, ...string) error { return nil }
-	cmdLookPath = missingBinaryLookPath
-	engramDownloadFn = func(system.PlatformProfile) (string, error) {
-		t.Fatal("ordinary guidance must not download Engram")
-		return "", nil
-	}
-	result, err := RunInstall([]string{"--agent", "claude-code", "--components", "persona"}, linuxDetectionResult(system.LinuxDistroUbuntu, "apt"))
-	if err != nil || !result.Verify.Ready {
-		t.Fatalf("install: %v, report: %#v", err, result.Verify)
-	}
-	path := filepath.Join(home, ".claude", "CLAUDE.md")
-	if !verifyReportRequiresFile(result.Verify, path) {
-		t.Fatalf("guidance not verified at %q: %#v", path, result.Verify)
-	}
-	if _, err := os.Stat(filepath.Join(home, ".claude.json")); !os.IsNotExist(err) {
-		t.Fatalf("implicit Engram MCP config: %v", err)
-	}
-}
 
 // verifyReportRequiresFile reports whether the post-apply verification listed
 // path as a required file, regardless of whether that check passed.

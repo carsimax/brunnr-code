@@ -78,9 +78,6 @@ func TestParseSyncFlagsDefaults(t *testing.T) {
 	if flags.DryRun {
 		t.Errorf("DryRun = true, want false")
 	}
-	if flags.IncludePermissions {
-		t.Errorf("IncludePermissions = true, want false")
-	}
 }
 
 func TestParseSyncFlagsAgentsCSV(t *testing.T) {
@@ -128,16 +125,6 @@ func TestRunSyncRejectsUnsupportedAgent(t *testing.T) {
 	}
 }
 
-func TestParseSyncFlagsIncludePermissions(t *testing.T) {
-	flags, err := ParseSyncFlags([]string{"--include-permissions"})
-	if err != nil {
-		t.Fatalf("ParseSyncFlags() error = %v", err)
-	}
-	if !flags.IncludePermissions {
-		t.Errorf("IncludePermissions = false, want true")
-	}
-}
-
 func TestParseSyncFlagsDryRun(t *testing.T) {
 	flags, err := ParseSyncFlags([]string{"--dry-run"})
 	if err != nil {
@@ -145,18 +132,6 @@ func TestParseSyncFlagsDryRun(t *testing.T) {
 	}
 	if !flags.DryRun {
 		t.Errorf("DryRun = false, want true")
-	}
-}
-
-func TestParseSyncFlagsSkillsCSV(t *testing.T) {
-	flags, err := ParseSyncFlags([]string{"--skills", "branch-pr,go-testing"})
-	if err != nil {
-		t.Fatalf("ParseSyncFlags() error = %v", err)
-	}
-
-	want := []string{"branch-pr", "go-testing"}
-	if !reflect.DeepEqual(flags.Skills, want) {
-		t.Errorf("Skills = %v, want %v", flags.Skills, want)
 	}
 }
 
@@ -232,82 +207,25 @@ func TestParseSyncFlagsPositionalArgumentNamesTheAgentFlag(t *testing.T) {
 
 // ─── Phase 1: BuildSyncSelection ──────────────────────────────────────────
 
-func TestBuildSyncSelectionDefaultScopeIncludesManagedComponents(t *testing.T) {
-	agents := []model.AgentID{model.AgentCodex}
-	flags := SyncFlags{}
-
-	sel := BuildSyncSelection(flags, agents)
-
-	// Default sync includes managed ODD dependencies.
-	// Persona is included because the content between <!-- brunnr-code:persona -->
-	// markers is harness-managed; sync must propagate embedded-asset changes to
-	// users who already have a persona installed. Content outside the markers
-	// is preserved by InjectMarkdownSection.
-	mandatoryComponents := []model.ComponentID{
-		model.ComponentEngram,
-		model.ComponentSkills,
-		model.ComponentPersona,
-	}
-
-	for _, want := range mandatoryComponents {
-		found := false
-		for _, got := range sel.Components {
-			if got == want {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("BuildSyncSelection() missing mandatory component %q in %v", want, sel.Components)
-		}
-	}
-}
-
-func TestBuildSyncSelectionDefaultExcludesPermissions(t *testing.T) {
-	agents := []model.AgentID{model.AgentCodex}
-	flags := SyncFlags{}
-
-	sel := BuildSyncSelection(flags, agents)
-
-	excluded := []model.ComponentID{
-		model.ComponentPermission,
-	}
-
-	for _, comp := range excluded {
-		for _, got := range sel.Components {
-			if got == comp {
-				t.Errorf("BuildSyncSelection() default should exclude %q but it was included", comp)
-			}
-		}
-	}
-}
-
-func TestBuildSyncSelectionIncludePermissionsWhenFlagSet(t *testing.T) {
+func TestBuildSyncSelectionIsTheSetup(t *testing.T) {
 	agents := []model.AgentID{model.AgentClaudeCode}
-	flags := SyncFlags{IncludePermissions: true}
 
-	sel := BuildSyncSelection(flags, agents)
-
-	found := false
-	for _, comp := range sel.Components {
-		if comp == model.ComponentPermission {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("BuildSyncSelection() expected ComponentPermission when --include-permissions is set")
-	}
-}
-
-func TestBuildSyncSelectionAgentsForwarded(t *testing.T) {
-	agents := []model.AgentID{model.AgentClaudeCode}
-	flags := SyncFlags{}
-
-	sel := BuildSyncSelection(flags, agents)
+	sel := BuildSyncSelection(agents)
 
 	if !reflect.DeepEqual(sel.Agents, agents) {
 		t.Errorf("Agents = %v, want %v", sel.Agents, agents)
+	}
+	// Persona content between <!-- brunnr-code:persona --> markers is
+	// harness-managed, so sync propagates it like every other component.
+	want := []model.ComponentID{model.ComponentEngram, model.ComponentSkills, model.ComponentPermission, model.ComponentPersona}
+	if !slices.Equal(sel.Components, want) {
+		t.Errorf("Components = %v, want %v", sel.Components, want)
+	}
+	if !slices.Equal(sel.Skills, setupSkillIDs) {
+		t.Errorf("Skills = %v, want %v", sel.Skills, setupSkillIDs)
+	}
+	if sel.Preset != model.PresetFull || sel.StrictTDD {
+		t.Errorf("Preset = %q, StrictTDD = %v, want full and false", sel.Preset, sel.StrictTDD)
 	}
 }
 
@@ -1605,47 +1523,6 @@ func TestParseSyncFlagsStrictTDD(t *testing.T) {
 	}
 }
 
-// TestBuildSyncSelectionStrictTDD verifies legacy callers cannot enable the retired toggle.
-func TestBuildSyncSelectionStrictTDD(t *testing.T) {
-	flags := SyncFlags{StrictTDD: true}
-	sel := BuildSyncSelection(flags, nil)
-	if sel.StrictTDD {
-		t.Fatal("retired StrictTDD flag propagated into selection")
-	}
-
-	flagsDisabled := SyncFlags{StrictTDD: false}
-	selDisabled := BuildSyncSelection(flagsDisabled, nil)
-	if selDisabled.StrictTDD {
-		t.Errorf("Selection.StrictTDD = true, want false")
-	}
-}
-
-func TestRunSyncRestoresConfiguredSelectionAndExplicitOverrides(t *testing.T) {
-	home := t.TempDir()
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"cursor"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentEngram}, Skills: []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom}); err != nil {
-		t.Fatal(err)
-	}
-	original := osUserHomeDir
-	osUserHomeDir = func() (string, error) { return home, nil }
-	t.Cleanup(func() { osUserHomeDir = original })
-	plain, err := RunSync([]string{"--dry-run"})
-	// Restored state gains the mandatory persona.
-	if err != nil || !reflect.DeepEqual(plain.Selection.Components, []model.ComponentID{model.ComponentEngram, model.ComponentPersona}) || !reflect.DeepEqual(plain.Selection.Skills, []model.SkillID{model.SkillCommentWriter}) || plain.Selection.Preset != model.PresetCustom {
-		t.Fatalf("plain sync selection = %#v, err = %v", plain.Selection, err)
-	}
-	overridden, err := RunSync([]string{"--dry-run", "--skill", "go-testing"})
-	if err != nil || !reflect.DeepEqual(overridden.Selection.Skills, []model.SkillID{model.SkillID("go-testing")}) || !overridden.Selection.HasComponent(model.ComponentSkills) {
-		t.Fatalf("overridden sync selection = %#v, err = %v", overridden.Selection, err)
-	}
-	if err := state.Write(home, state.InstallState{InstalledAgents: []string{"cursor"}}); err != nil {
-		t.Fatal(err)
-	}
-	result, err := RunSync([]string{"--dry-run"})
-	if err != nil || result.Selection.Preset != model.PresetFull || !result.Selection.HasComponent(model.ComponentSkills) {
-		t.Fatalf("legacy sync selection = %#v, err = %v", result.Selection, err)
-	}
-}
-
 // ─── Phase 5: Profile CLI flags ───────────────────────────────────────────────
 
 // Retired profile flags must not be accepted by the public sync parser.
@@ -1713,27 +1590,6 @@ func TestParseSyncFlagsProfilePhaseUnknownPhaseReturnsError(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatalf("expected error for --profile-phase with unknown phase 'unknown-phase', got nil")
-	}
-}
-
-func TestRestorePersistedSelectionIgnoresLegacyStrictTDD(t *testing.T) {
-	selection := model.Selection{}
-	persisted := state.InstallState{SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSkills}, StrictTDD: true}
-	RestorePersistedSelection(&selection, persisted, SyncFlags{})
-	if selection.StrictTDD || !selection.HasComponent(model.ComponentSkills) {
-		t.Fatalf("retained sync options lost: %+v", selection)
-	}
-}
-
-// TestRestorePersistedSelectionAddsMandatoryPersona covers state written by a
-// custom install before persona became mandatory: sync installs it again.
-func TestRestorePersistedSelectionAddsMandatoryPersona(t *testing.T) {
-	selection := model.Selection{}
-	persisted := state.InstallState{SelectionConfigured: true, Components: []model.ComponentID{model.ComponentEngram}}
-	RestorePersistedSelection(&selection, persisted, SyncFlags{})
-	want := []model.ComponentID{model.ComponentEngram, model.ComponentPersona}
-	if !slices.Equal(selection.Components, want) {
-		t.Fatalf("components = %v, want %v", selection.Components, want)
 	}
 }
 
@@ -1885,7 +1741,7 @@ func TestSyncBackupManifestIncludesCodexHooksJSON(t *testing.T) {
 
 func TestSyncCodexConvergesWithHooksJSON(t *testing.T) {
 	home := t.TempDir()
-	selection := BuildSyncSelection(SyncFlags{}, []model.AgentID{model.AgentCodex, model.AgentClaudeCode})
+	selection := BuildSyncSelection([]model.AgentID{model.AgentCodex, model.AgentClaudeCode})
 	run := func() (int, []string) {
 		rt, err := newSyncRuntimeWithScope(home, selection, ScopeGlobal)
 		if err != nil {
@@ -2884,5 +2740,83 @@ func TestRunSyncSilentlyIgnoresUnsupportedPersistedAgents(t *testing.T) {
 	}
 	if !reflect.DeepEqual(result.Agents, want) {
 		t.Fatalf("RunSync() agents = %v, want %v", result.Agents, want)
+	}
+}
+
+// setupSkillIDs is the fixed skill set of the single setup.
+var setupSkillIDs = []model.SkillID{
+	model.SkillJudgmentDay,
+	model.SkillGoTesting,
+	model.SkillCreator,
+	model.SkillImprover,
+	model.SkillSkillRegistry,
+	model.SkillChainedPR,
+	model.SkillCognitiveDoc,
+	model.SkillWorkUnitCommits,
+}
+
+// TestParseSyncFlagsRejectsRemovedSetupFlags pins that sync has one setup:
+// the skill and permission flags no longer exist.
+func TestParseSyncFlagsRejectsRemovedSetupFlags(t *testing.T) {
+	for _, args := range [][]string{
+		{"--include-permissions"},
+		{"--skill", "go-testing"},
+		{"--skills", "go-testing"},
+	} {
+		t.Run(args[0], func(t *testing.T) {
+			_, err := ParseSyncFlags(args)
+			if err == nil || !strings.Contains(err.Error(), "flag provided but not defined") {
+				t.Fatalf("ParseSyncFlags(%v) error = %v, want unknown flag error", args, err)
+			}
+		})
+	}
+}
+
+func TestRunSyncWithoutStateUsesSetup(t *testing.T) {
+	home := t.TempDir()
+	original := osUserHomeDir
+	osUserHomeDir = func() (string, error) { return home, nil }
+	t.Cleanup(func() { osUserHomeDir = original })
+
+	result, err := RunSync([]string{"--dry-run", "--agent", "claude-code"})
+	if err != nil {
+		t.Fatalf("RunSync() error = %v", err)
+	}
+	if !result.Selection.HasComponent(model.ComponentPermission) {
+		t.Fatalf("components = %v, want permission included", result.Selection.Components)
+	}
+	if got := selectedSkillIDs(result.Selection); !slices.Equal(got, setupSkillIDs) {
+		t.Fatalf("skills = %v, want %v", got, setupSkillIDs)
+	}
+}
+
+// TestRunSyncNormalizesLegacyStateToSetup pins that a state.json written with
+// another preset or a narrower selection decodes and syncs the full setup.
+func TestRunSyncNormalizesLegacyStateToSetup(t *testing.T) {
+	home := t.TempDir()
+	legacy := `{"installed_agents":["claude-code"],"selection_configured":true,"components":["engram"],"skills":["comment-writer"],"preset":"minimal"}`
+	if err := os.MkdirAll(filepath.Dir(state.Path(home)), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(state.Path(home), []byte(legacy), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	original := osUserHomeDir
+	osUserHomeDir = func() (string, error) { return home, nil }
+	t.Cleanup(func() { osUserHomeDir = original })
+
+	result, err := RunSync([]string{"--dry-run"})
+	if err != nil {
+		t.Fatalf("RunSync() error = %v", err)
+	}
+	want := []model.ComponentID{model.ComponentEngram, model.ComponentSkills, model.ComponentPermission, model.ComponentPersona}
+	if !slices.Equal(result.Selection.Components, want) {
+		t.Fatalf("components = %v, want %v", result.Selection.Components, want)
+	}
+	if got := selectedSkillIDs(result.Selection); !slices.Equal(got, setupSkillIDs) {
+		t.Fatalf("skills = %v, want %v", got, setupSkillIDs)
+	}
+	if result.Selection.Preset != model.PresetFull {
+		t.Fatalf("preset = %q, want %q", result.Selection.Preset, model.PresetFull)
 	}
 }

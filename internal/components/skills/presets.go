@@ -2,12 +2,11 @@ package skills
 
 import "github.com/carsimax/brunnr-code/internal/model"
 
-// Retained orchestration skill installed by every non-custom preset.
+// Retained orchestration skill installed by the setup.
 var orchestrationSkills = []model.SkillID{model.SkillJudgmentDay}
 
-// contributorSkills are this repository's own workflow skills. They stay
-// selectable through the TUI skill picker and explicit `--skills` resolution,
-// but no default preset installs them.
+// contributorSkills are this repository's own workflow skills. They stay in
+// the embedded inventory (AllSkillIDs) but the setup does not install them.
 var contributorSkills = []model.SkillID{
 	model.SkillBranchPR,
 	model.SkillIssueCreation,
@@ -16,8 +15,8 @@ var contributorSkills = []model.SkillID{
 	model.SkillSystemicIssueTriage,
 }
 
-// selectableFoundationSkills is the canonical display order of the retained
-// general skills. Contributor skills keep their historical positions.
+// selectableFoundationSkills is the canonical order of the retained general
+// skills. Contributor skills keep their historical positions.
 var selectableFoundationSkills = []model.SkillID{
 	model.SkillGoTesting,
 	model.SkillCreator,
@@ -49,21 +48,15 @@ func excludeSkills(src, exclude []model.SkillID) []model.SkillID {
 	return out
 }
 
-// SkillsForPreset returns retained skills for a preset. Custom has no defaults;
-// unknown presets use the full product inventory.
-func SkillsForPreset(preset model.PresetID) []model.SkillID {
-	switch preset {
-	case model.PresetMinimal:
-		return copySkills(orchestrationSkills)
-	case model.PresetCustom:
-		return nil
-	default:
-		all := copySkills(orchestrationSkills)
-		return append(all, foundationSkills...)
-	}
+// SetupSkills returns the fixed skill set of the single setup, "Dev Stack +
+// Permissions": the orchestration skill plus every non-contributor foundation
+// skill. Every install and sync resolves to this list.
+func SetupSkills() []model.SkillID {
+	all := copySkills(orchestrationSkills)
+	return append(all, foundationSkills...)
 }
 
-// AllSkillIDs returns every selectable retained skill, including contributors.
+// AllSkillIDs returns every retained skill, including contributors.
 func AllSkillIDs() []model.SkillID {
 	all := copySkills(orchestrationSkills)
 	return append(all, selectableFoundationSkills...)

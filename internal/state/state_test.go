@@ -57,7 +57,7 @@ func fullyPopulatedInstallState() InstallState {
 		SelectionConfigured:    true,
 		Components:             []model.ComponentID{model.ComponentEngram, model.ComponentSkills},
 		Skills:                 []model.SkillID{model.SkillGoTesting, model.SkillWorkUnitCommits},
-		Preset:                 model.PresetCustom,
+		Preset:                 model.PresetFull,
 		StrictTDD:              true,
 		ClaudeModelAssignments: map[string]string{"odd-explorer": "sonnet"},
 		ClaudePhaseAssignments: map[string]ClaudePhaseAssignmentState{
@@ -220,8 +220,8 @@ func TestLegacyCodeGraphSelectionKeysAreIgnored(t *testing.T) {
 
 func TestSelectionRoundTripPreservesPresenceAndExplicitEmpty(t *testing.T) {
 	tests := []InstallState{
-		{SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSkills}, Skills: []model.SkillID{model.SkillGoTesting}, Preset: model.PresetCustom, StrictTDD: true},
-		{SelectionConfigured: true, Components: []model.ComponentID{}, Skills: []model.SkillID{}, Preset: model.PresetCustom},
+		{SelectionConfigured: true, Components: []model.ComponentID{model.ComponentSkills}, Skills: []model.SkillID{model.SkillGoTesting}, Preset: model.PresetFull, StrictTDD: true},
+		{SelectionConfigured: true, Components: []model.ComponentID{}, Skills: []model.SkillID{}, Preset: model.PresetFull},
 		{InstalledAgents: []string{"example-agent"}},
 	}
 	for i, want := range tests {
@@ -236,25 +236,44 @@ func TestSelectionRoundTripPreservesPresenceAndExplicitEmpty(t *testing.T) {
 	}
 }
 
-func TestLegacyStrictTDDValuesDecodeButNeverWriteOrRestore(t *testing.T) {
+func TestLegacyStrictTDDValuesDecodeButNeverWrite(t *testing.T) {
 	for _, value := range []string{"true", "false"} {
 		t.Run(value, func(t *testing.T) {
 			var legacy InstallState
-			if err := json.Unmarshal([]byte(`{"selection_configured":true,"strict_tdd":`+value+`,"preset":"minimal"}`), &legacy); err != nil {
+			if err := json.Unmarshal([]byte(`{"selection_configured":true,"strict_tdd":`+value+`,"preset":"full"}`), &legacy); err != nil {
 				t.Fatal(err)
-			}
-			selection := model.Selection{StrictTDD: true}
-			legacy.RestoreSelection(&selection)
-			if selection.StrictTDD {
-				t.Fatalf("legacy toggle leaked into selection: %+v", selection)
 			}
 			home := t.TempDir()
 			if err := Write(home, legacy); err != nil {
 				t.Fatal(err)
 			}
 			raw, err := os.ReadFile(Path(home))
-			if err != nil || bytes.Contains(raw, []byte(`"strict_tdd"`)) || !bytes.Contains(raw, []byte(`"preset": "minimal"`)) {
+			if err != nil || bytes.Contains(raw, []byte(`"strict_tdd"`)) || !bytes.Contains(raw, []byte(`"preset": "full"`)) {
 				t.Fatalf("migration lost unrelated state or wrote retired toggle: %s, %v", raw, err)
+			}
+		})
+	}
+}
+
+// TestLegacySetupPresetsDecode pins that a state.json written with a retired
+// setup preset still reads; sync and install replace the selection.
+func TestLegacySetupPresetsDecode(t *testing.T) {
+	for _, preset := range []string{"minimal", "ecosystem-only", "custom"} {
+		t.Run(preset, func(t *testing.T) {
+			home := t.TempDir()
+			raw := `{"installed_agents":["claude-code"],"selection_configured":true,"components":["engram"],"skills":["comment-writer"],"preset":"` + preset + `"}`
+			if err := os.MkdirAll(Dir(home), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(Path(home), []byte(raw), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			got, err := Read(home)
+			if err != nil {
+				t.Fatalf("Read() error = %v", err)
+			}
+			if !got.SelectionConfigured || string(got.Preset) != preset {
+				t.Fatalf("Read() = %#v", got)
 			}
 		})
 	}
@@ -1007,21 +1026,4 @@ func findSub(s, sub string) bool {
 		}
 	}
 	return false
-}
-
-// TestRestoreSelectionDropsUnknownComponents pins that a persisted component
-// ID this build no longer ships (for example a removed integration) is dropped
-// on restore, so stale state never reaches sync's unsupported-component path.
-func TestRestoreSelectionDropsUnknownComponents(t *testing.T) {
-	persisted := InstallState{
-		SelectionConfigured: true,
-		Components:          []model.ComponentID{model.ComponentEngram, "retired-component", model.ComponentSkills},
-	}
-	var selection model.Selection
-	persisted.RestoreSelection(&selection)
-
-	want := []model.ComponentID{model.ComponentEngram, model.ComponentSkills}
-	if !reflect.DeepEqual(selection.Components, want) {
-		t.Fatalf("RestoreSelection components = %v, want %v", selection.Components, want)
-	}
 }

@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/carsimax/brunnr-code/internal/agents/codex"
 	"github.com/carsimax/brunnr-code/internal/backup"
+	"github.com/carsimax/brunnr-code/internal/components/skills"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/pipeline"
 	"github.com/carsimax/brunnr-code/internal/system"
@@ -125,7 +125,7 @@ func TestRunInstallCodexKeepsOldRuntimeFailure(t *testing.T) {
 		}
 	}
 
-	_, err := RunInstall([]string{"--agent", "codex", "--component", "engram"}, macOSDetectionResult())
+	_, err := RunInstall([]string{"--agent", "codex"}, macOSDetectionResult())
 	if err == nil || !strings.Contains(err.Error(), "Codex >=0.144.0") {
 		t.Fatalf("RunInstall() error = %v, want old Codex runtime failure", err)
 	}
@@ -256,7 +256,7 @@ func TestRunInstallLinuxUbuntuResolvesAptCommands(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "permissions"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -294,7 +294,7 @@ func TestRunInstallLinuxArchResolvesPacmanCommands(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroArch, "pacman")
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "permissions"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -335,7 +335,7 @@ func TestRunInstallLinuxUbuntuWithEngramUsesDirectDownload(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -378,7 +378,7 @@ func TestRunInstallLinuxArchWithEngramUsesDirectDownload(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroArch, "pacman")
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -443,7 +443,7 @@ func TestRunInstallWorkspaceScopeRollback_SurfacesRealError(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	_, err = RunInstall(
-		[]string{"--scope", "workspace", "--agent", "claude-code", "--component", "engram"},
+		[]string{"--scope", "workspace", "--agent", "claude-code"},
 		detection,
 	)
 	if err == nil {
@@ -477,7 +477,7 @@ func TestRunInstallLinuxVerificationReportsReadyOnSuccess(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "permissions"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -509,7 +509,7 @@ func TestRunInstallLinuxArchVerificationReportsReadyOnSuccess(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroArch, "pacman")
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "permissions"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -603,7 +603,7 @@ func TestRunInstallMacOSVerificationMatchesPreLinuxBehavior(t *testing.T) {
 
 	detection := macOSDetectionResult()
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "permissions"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -641,7 +641,7 @@ func TestRunInstallEngramSkipsInstallWhenAlreadyOnPath(t *testing.T) {
 
 	detection := macOSDetectionResult()
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -708,7 +708,7 @@ func TestRunInstallEngramSetupStrictFailsWhenSetupFails(t *testing.T) {
 	}
 
 	_, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		macOSDetectionResult(),
 	)
 	if !setupFailureTriggered {
@@ -741,7 +741,7 @@ func TestRunInstallEngramDefaultModeAttemptsClaudeSetup(t *testing.T) {
 	runCommand = recorder.record
 
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		macOSDetectionResult(),
 	)
 	if err != nil {
@@ -794,7 +794,7 @@ func TestRunInstallEngramLinuxUsesDirectDownloadNoGoRequired(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -842,7 +842,7 @@ func TestRunInstallEngramLinuxNeverInstallsGo(t *testing.T) {
 
 	detection := linuxDetectionResult(system.LinuxDistroUbuntu, "apt")
 	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--component", "engram"},
+		[]string{"--agent", "claude-code"},
 		detection,
 	)
 	if err != nil {
@@ -873,7 +873,7 @@ func TestRunInstallEngramLinuxNeverInstallsGo(t *testing.T) {
 func TestRunInstallDryRunMatchesActualInstall(t *testing.T) {
 	// ── Phase 1: dry-run — resolve the plan ───────────────────────────────────
 	// We do NOT need temp dir or mocks for dry-run; it never touches the FS.
-	installArgs := []string{"--agent", "claude-code", "--component", "permissions"}
+	installArgs := []string{"--agent", "claude-code"}
 	dryRunArgs := append([]string{"--dry-run"}, installArgs...)
 	dryResult, err := RunInstall(dryRunArgs, system.DetectionResult{})
 	if err != nil {
@@ -1019,10 +1019,6 @@ func TestRunInstallUpgradeIdempotency(t *testing.T) {
 
 	args := []string{
 		"--agent", "claude-code",
-		"--component", "skills",
-		"--skills", "go-testing",
-		"--component", "engram",
-		"--component", "persona",
 	}
 
 	// --- Run 1 ---
@@ -1107,159 +1103,7 @@ func TestRunInstallUpgradeIdempotency(t *testing.T) {
 	}
 }
 
-// --- Custom preset integration tests ---
-
-func TestRunInstallCustomPresetNoComponentsInstallsOnlyPersona(t *testing.T) {
-	home := t.TempDir()
-	restoreHome := osUserHomeDir
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-	})
-
-	osUserHomeDir = func() (string, error) { return home, nil }
-	runCommand = func(string, ...string) error { return nil }
-	cmdLookPath = missingBinaryLookPath
-
-	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--preset", "custom"},
-		system.DetectionResult{},
-	)
-	if err != nil {
-		t.Fatalf("RunInstall() error = %v", err)
-	}
-
-	// Custom preset with no components resolves to only the mandatory persona.
-	if want := []model.ComponentID{model.ComponentPersona}; !slices.Equal(result.Resolved.OrderedComponents, want) {
-		t.Fatalf("ordered components for custom preset = %v, want %v", result.Resolved.OrderedComponents, want)
-	}
-}
-
-func TestRunInstallCustomPresetExplicitSkillsFlagPopulatesSelection(t *testing.T) {
-	home := t.TempDir()
-	restoreHome := osUserHomeDir
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-	})
-
-	osUserHomeDir = func() (string, error) { return home, nil }
-	runCommand = func(string, ...string) error { return nil }
-	cmdLookPath = func(name string) (string, error) {
-		return "/usr/local/bin/" + name, nil
-	}
-
-	result, err := RunInstall(
-		[]string{
-			"--agent", "claude-code",
-			"--preset", "custom",
-			"--component", "skills",
-			"--skills", "go-testing,branch-pr",
-		},
-		system.DetectionResult{},
-	)
-	if err != nil {
-		t.Fatalf("RunInstall() error = %v", err)
-	}
-
-	if !result.Verify.Ready {
-		t.Fatalf("verification ready = false, report = %#v", result.Verify)
-	}
-
-	// Verify the explicitly requested skills were installed.
-	goTestingPath := filepath.Join(home, ".claude", "skills", "go-testing", "SKILL.md")
-	branchPRPath := filepath.Join(home, ".claude", "skills", "branch-pr", "SKILL.md")
-	if _, err := os.Stat(goTestingPath); err != nil {
-		t.Fatalf("expected go-testing skill file %q: %v", goTestingPath, err)
-	}
-	if _, err := os.Stat(branchPRPath); err != nil {
-		t.Fatalf("expected branch-pr skill file %q: %v", branchPRPath, err)
-	}
-
-	// Total = 2 explicitly requested skills only.
-	skillsDir := filepath.Join(home, ".claude", "skills")
-	entries, err := os.ReadDir(skillsDir)
-	if err != nil {
-		t.Fatalf("ReadDir(%q) error = %v", skillsDir, err)
-	}
-	// Count SKILL.md files across all skill subdirectories.
-	var skillCount int
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		skillMD := filepath.Join(skillsDir, entry.Name(), "SKILL.md")
-		if _, statErr := os.Stat(skillMD); statErr == nil {
-			skillCount++
-		}
-	}
-	if skillCount != 2 {
-		t.Fatalf("expected 2 skill files (go-testing + branch-pr only), got %d", skillCount)
-	}
-}
-
-func TestRunInstallCustomPresetSkillsNoFlagInstallsNothing(t *testing.T) {
-	home := t.TempDir()
-	restoreHome := osUserHomeDir
-	restoreCommand := runCommand
-	restoreLookPath := cmdLookPath
-	t.Cleanup(func() {
-		osUserHomeDir = restoreHome
-		runCommand = restoreCommand
-		cmdLookPath = restoreLookPath
-	})
-
-	osUserHomeDir = func() (string, error) { return home, nil }
-	runCommand = func(string, ...string) error { return nil }
-	cmdLookPath = func(name string) (string, error) {
-		return "/usr/local/bin/" + name, nil
-	}
-
-	result, err := RunInstall(
-		[]string{
-			"--agent", "claude-code",
-			"--preset", "custom",
-			"--component", "skills",
-		},
-		system.DetectionResult{},
-	)
-	if err != nil {
-		t.Fatalf("RunInstall() error = %v", err)
-	}
-
-	if !result.Verify.Ready {
-		t.Fatalf("verification ready = false, report = %#v", result.Verify)
-	}
-
-	// Regression guard for #3554: selecting only --component skills without
-	// --skills (which leaves selectedSkillIDs() empty for the custom preset)
-	// truly installs nothing.
-	skillsDir := filepath.Join(home, ".claude", "skills")
-	// Count SKILL.md files (one per skill, excluding _shared and other non-skill dirs).
-	var skillCount int
-	if entries, readErr := os.ReadDir(skillsDir); readErr == nil {
-		for _, entry := range entries {
-			if !entry.IsDir() {
-				continue
-			}
-			skillMD := filepath.Join(skillsDir, entry.Name(), "SKILL.md")
-			if _, statErr := os.Stat(skillMD); statErr == nil {
-				skillCount++
-			}
-		}
-	}
-	if skillCount != 0 {
-		t.Fatalf("expected 0 skill files, got %d", skillCount)
-	}
-}
-
-// Ordinary standalone skills must not duplicate files when the selection is repeated.
+// Standalone skills must not duplicate files when the install is repeated.
 func TestRunInstallRepeatedOrdinarySkillsNoDuplicateSkillFiles(t *testing.T) {
 	home := t.TempDir()
 	restoreHome, restoreCommand, restoreLookPath := osUserHomeDir, runCommand, cmdLookPath
@@ -1267,7 +1111,7 @@ func TestRunInstallRepeatedOrdinarySkillsNoDuplicateSkillFiles(t *testing.T) {
 	osUserHomeDir = func() (string, error) { return home, nil }
 	runCommand = func(string, ...string) error { return nil }
 	cmdLookPath = func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
-	args := []string{"--agent", "claude-code", "--preset", "custom", "--component", "skills", "--skills", "go-testing,branch-pr"}
+	args := []string{"--agent", "claude-code"}
 	for i := 0; i < 2; i++ {
 		result, err := RunInstall(args, system.DetectionResult{})
 		if err != nil || !result.Verify.Ready {
@@ -1284,60 +1128,8 @@ func TestRunInstallRepeatedOrdinarySkillsNoDuplicateSkillFiles(t *testing.T) {
 			count++
 		}
 	}
-	if count != 2 {
-		t.Fatalf("expected exactly two standalone skills after repeat install, got %d", count)
-	}
-}
-
-func TestRunInstallCustomPresetDryRunShowsCustomPreset(t *testing.T) {
-	result, err := RunInstall(
-		[]string{"--agent", "claude-code", "--preset", "custom", "--dry-run"},
-		system.DetectionResult{},
-	)
-	if err != nil {
-		t.Fatalf("RunInstall() error = %v", err)
-	}
-
-	if !result.DryRun {
-		t.Fatalf("expected DryRun=true")
-	}
-
-	if result.Selection.Preset != model.PresetCustom {
-		t.Fatalf("preset = %q, want %q", result.Selection.Preset, model.PresetCustom)
-	}
-
-	// Only the mandatory persona when no --component flags provided.
-	if want := []model.ComponentID{model.ComponentPersona}; !slices.Equal(result.Resolved.OrderedComponents, want) {
-		t.Fatalf("ordered components = %v, want %v", result.Resolved.OrderedComponents, want)
-	}
-
-	output := RenderDryRun(result)
-	if !strings.Contains(output, "custom") {
-		t.Fatalf("dry-run output missing 'custom' preset name:\n%s", output)
-	}
-}
-
-func TestRunInstallCustomPresetExplicitComponentsResolveCorrectly(t *testing.T) {
-	result, err := RunInstall(
-		[]string{
-			"--agent", "claude-code",
-			"--preset", "custom",
-			"--component", "engram",
-			"--component", "skills",
-			"--component", "permissions",
-			"--dry-run",
-		},
-		system.DetectionResult{},
-	)
-	if err != nil {
-		t.Fatalf("RunInstall() error = %v", err)
-	}
-
-	// Custom selection contains the three explicitly requested components plus
-	// the mandatory persona, which runs before Engram (soft ordering).
-	want := []model.ComponentID{model.ComponentPersona, model.ComponentEngram, model.ComponentPermission, model.ComponentSkills}
-	if !slices.Equal(result.Resolved.OrderedComponents, want) {
-		t.Fatalf("ordered components = %v, want %v", result.Resolved.OrderedComponents, want)
+	if want := len(skills.SetupSkills()); count != want {
+		t.Fatalf("expected exactly %d standalone skills after repeat install, got %d", want, count)
 	}
 }
 
@@ -1376,13 +1168,10 @@ func TestRunInstallWorkspaceScopeVerification(t *testing.T) {
 		t.Fatalf("failed to change working directory to temp workspace: %v", err)
 	}
 
-	// Run install with workspace scope, installing Claude Code agent and skills component
+	// Run install with workspace scope for the Claude Code agent.
 	args := []string{
 		"--scope", "workspace",
 		"--agent", "claude-code",
-		"--component", "skills",
-		"--preset", "custom",
-		"--skill", "go-testing,branch-pr",
 	}
 
 	result, err := RunInstall(args, system.DetectionResult{})

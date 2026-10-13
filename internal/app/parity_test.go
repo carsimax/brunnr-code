@@ -357,20 +357,19 @@ func TestInstallPlannerParityLinuxPreservesComponentOrder(t *testing.T) {
 		},
 	}
 
-	result, err := runInstallForParity([]string{"--dry-run", "--agent", "codex", "--component", "persona,engram,skills"}, linuxDetection)
+	result, err := runInstallForParity([]string{"--dry-run", "--agent", "codex"}, linuxDetection)
 	if err != nil {
 		t.Fatalf("RunInstall() error = %v", err)
 	}
 
-	// Persona writes the base instructions; Engram appends to them. Skills
-	// remains independently installable. ODD and RDD are retained runtime
-	// guidance, not separate selectable installer components.
-	want := []model.ComponentID{model.ComponentPersona, model.ComponentEngram, model.ComponentSkills}
+	// Persona writes the base instructions; Engram appends to them. ODD and
+	// RDD are retained runtime guidance, not separate installer components.
+	want := []model.ComponentID{model.ComponentPersona, model.ComponentEngram, model.ComponentPermission, model.ComponentSkills}
 	if !reflect.DeepEqual(result.Resolved.OrderedComponents, want) {
 		t.Fatalf("ordered components = %v, want %v", result.Resolved.OrderedComponents, want)
 	}
-	if !reflect.DeepEqual(result.Selection.Components, []model.ComponentID{model.ComponentPersona, model.ComponentEngram, model.ComponentSkills}) {
-		t.Fatalf("selection components = %v, want %v", result.Selection.Components, want)
+	if !reflect.DeepEqual(result.Selection.Components, model.SetupComponents()) {
+		t.Fatalf("selection components = %v, want %v", result.Selection.Components, model.SetupComponents())
 	}
 	if result.Resolved.PlatformDecision.OS != "linux" || result.Resolved.PlatformDecision.PackageManager != "apt" || !result.Resolved.PlatformDecision.Supported {
 		t.Fatalf("Linux platform decision = %+v", result.Resolved.PlatformDecision)

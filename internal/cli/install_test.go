@@ -2,6 +2,7 @@ package cli
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/carsimax/brunnr-code/internal/model"
@@ -12,10 +13,6 @@ func TestParseInstallFlagsSupportsCSVAndRepeated(t *testing.T) {
 	flags, err := ParseInstallFlags([]string{
 		"--agent", "claude-code,codex",
 		"--agent", "cursor",
-		"--component", "engram,persona",
-		"--component", "skills",
-		"--skill", "go-testing",
-		"--preset", "minimal",
 		"--dry-run",
 	})
 	if err != nil {
@@ -24,10 +21,6 @@ func TestParseInstallFlagsSupportsCSVAndRepeated(t *testing.T) {
 
 	if !reflect.DeepEqual(flags.Agents, []string{"claude-code", "codex", "cursor"}) {
 		t.Fatalf("agents = %v", flags.Agents)
-	}
-
-	if !reflect.DeepEqual(flags.Components, []string{"engram", "persona", "skills"}) {
-		t.Fatalf("components = %v", flags.Components)
 	}
 
 	if !flags.DryRun {
@@ -50,41 +43,20 @@ func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 			model.ComponentPermission,
 			model.ComponentPersona,
 		},
+		Skills: []model.SkillID{
+			model.SkillJudgmentDay,
+			model.SkillGoTesting,
+			model.SkillCreator,
+			model.SkillImprover,
+			model.SkillSkillRegistry,
+			model.SkillChainedPR,
+			model.SkillCognitiveDoc,
+			model.SkillWorkUnitCommits,
+		},
 	}
 
 	if !reflect.DeepEqual(input.Selection, want) {
 		t.Fatalf("selection = %#v, want %#v", input.Selection, want)
-	}
-}
-
-func TestNormalizeInstallFlagsAcceptsBundledSkills(t *testing.T) {
-	input, err := NormalizeInstallFlags(InstallFlags{Skills: []string{
-		string(model.SkillSystemicIssueTriage),
-		string(model.SkillRDDDefectWorkflow),
-	}}, system.DetectionResult{})
-	if err != nil {
-		t.Fatalf("NormalizeInstallFlags() error = %v", err)
-	}
-
-	want := []model.SkillID{model.SkillSystemicIssueTriage, model.SkillRDDDefectWorkflow}
-	if !reflect.DeepEqual(input.Selection.Skills, want) {
-		t.Fatalf("skills = %v, want %v", input.Selection.Skills, want)
-	}
-}
-
-func TestNormalizeInstallFlagsCustomAcceptsOptionalInstallables(t *testing.T) {
-	input, err := NormalizeInstallFlags(InstallFlags{
-		Preset:     string(model.PresetCustom),
-		Components: []string{string(model.ComponentPermission)},
-	}, system.DetectionResult{})
-	if err != nil {
-		t.Fatalf("NormalizeInstallFlags() error = %v", err)
-	}
-
-	// The managed persona is mandatory, so it joins every explicit list.
-	want := []model.ComponentID{model.ComponentPermission, model.ComponentPersona}
-	if !reflect.DeepEqual(input.Selection.Components, want) {
-		t.Fatalf("components = %#v, want %#v", input.Selection.Components, want)
 	}
 }
 
@@ -182,6 +154,25 @@ func TestDefaultAgentsFromDetection_AllAgentsMappedCorrectly(t *testing.T) {
 			// Exactly one agent should be in the result (only one dir exists).
 			if len(agents) != 1 {
 				t.Errorf("defaultAgentsFromDetection() returned %d agents, want 1; got %v", len(agents), agents)
+			}
+		})
+	}
+}
+
+// TestParseInstallFlagsRejectsRemovedSetupFlags pins that install has one
+// setup: the preset, component and skill flags no longer exist.
+func TestParseInstallFlagsRejectsRemovedSetupFlags(t *testing.T) {
+	for _, args := range [][]string{
+		{"--preset", "full"},
+		{"--component", "engram"},
+		{"--components", "engram"},
+		{"--skill", "go-testing"},
+		{"--skills", "go-testing"},
+	} {
+		t.Run(args[0], func(t *testing.T) {
+			_, err := ParseInstallFlags(args)
+			if err == nil || !strings.Contains(err.Error(), "flag provided but not defined") {
+				t.Fatalf("ParseInstallFlags(%v) error = %v, want unknown flag error", args, err)
 			}
 		})
 	}

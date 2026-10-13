@@ -163,7 +163,7 @@ func TestPreparedInstallRejectsEngramBinaryThatDoesNotRun(t *testing.T) {
 	runCommand = recorder.record
 	cmdLookPath = missingBinaryLookPath
 
-	prepared, err := PrepareInstall([]string{"--agent", "claude-code", "--component", "engram"}, macOSDetectionResult())
+	prepared, err := PrepareInstall([]string{"--agent", "claude-code"}, macOSDetectionResult())
 	if err != nil {
 		t.Fatalf("PrepareInstall() error = %v", err)
 	}

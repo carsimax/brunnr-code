@@ -17,6 +17,7 @@ import (
 	"github.com/carsimax/brunnr-code/internal/backup"
 	"github.com/carsimax/brunnr-code/internal/catalog"
 	"github.com/carsimax/brunnr-code/internal/cli"
+	"github.com/carsimax/brunnr-code/internal/components/skills"
 	componentuninstall "github.com/carsimax/brunnr-code/internal/components/uninstall"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/pipeline"
@@ -654,12 +655,11 @@ func NewModel(detection system.DetectionResult, version string, installState ...
 		s = installState[0]
 	}
 	agents := preselectedAgents(detection, s)
-	components := componentsForPreset(model.PresetFull)
-
 	selection := model.Selection{
 		Agents:                 agents,
 		Preset:                 model.PresetFull,
-		Components:             components,
+		Components:             model.SetupComponents(),
+		Skills:                 skills.SetupSkills(),
 		ClaudeModelAssignments: installStateClaudeAssignments(s.ClaudeModelAssignments),
 		ClaudePhaseAssignments: installStateClaudePhaseAssignments(s.ClaudePhaseAssignments),
 		// The persisted tier is both the pre-selection and what Brunnr-Code manages.
@@ -3065,10 +3065,6 @@ func (m *Model) applyPickerEntry(next Screen) tea.Cmd {
 	}
 	m.setScreen(next)
 	return discoveryCmd
-}
-
-func componentsForPreset(preset model.PresetID) []model.ComponentID {
-	return model.ComponentsForPreset(preset)
 }
 
 func hasSelectedComponent(components []model.ComponentID, target model.ComponentID) bool {

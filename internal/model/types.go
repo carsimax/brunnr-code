@@ -59,29 +59,6 @@ func ShippedComponentIDs() []ComponentID {
 	return append([]ComponentID(nil), knownComponentIDs...)
 }
 
-// IsKnownComponentID reports whether id names a component this build ships.
-func IsKnownComponentID(id ComponentID) bool {
-	for _, known := range knownComponentIDs {
-		if id == known {
-			return true
-		}
-	}
-	return false
-}
-
-// KnownComponentIDs returns the persisted component IDs this build still
-// ships, preserving order. IDs of removed components are dropped silently so
-// stale persisted state never blocks sync or install.
-func KnownComponentIDs(ids []ComponentID) []ComponentID {
-	kept := make([]ComponentID, 0, len(ids))
-	for _, id := range ids {
-		if IsKnownComponentID(id) {
-			kept = append(kept, id)
-		}
-	}
-	return kept
-}
-
 type UninstallMode string
 
 const (
@@ -138,14 +115,11 @@ const (
 	StrategyTOMLFile
 )
 
+// PresetID names the setup a selection installs. Brunnr-Code has a single
+// setup, "Dev Stack + Permissions"; see SetupComponents.
 type PresetID string
 
-const (
-	PresetFull          PresetID = "full"
-	PresetEcosystemOnly PresetID = "ecosystem-only"
-	PresetMinimal       PresetID = "minimal"
-	PresetCustom        PresetID = "custom"
-)
+const PresetFull PresetID = "full"
 
 type CommunityToolID string
 

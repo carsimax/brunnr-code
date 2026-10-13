@@ -37,7 +37,7 @@ var v370SharedReferences = []string{
 func installFullPreset(t *testing.T, agent model.AgentID) string {
 	t.Helper()
 	home := installTestHome(t)
-	if _, err := RunInstall([]string{"--agent", string(agent), "--preset", "full"}, system.DetectionResult{}); err != nil {
+	if _, err := RunInstall([]string{"--agent", string(agent)}, system.DetectionResult{}); err != nil {
 		t.Fatalf("install %s: %v", agent, err)
 	}
 	return home
@@ -167,7 +167,7 @@ func TestInstallRefreshesSharedReferencesInCompatibilityRoot(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := RunInstall([]string{"--agent", "claude-code", "--preset", "full"}, system.DetectionResult{}); err != nil {
+	if _, err := RunInstall([]string{"--agent", "claude-code"}, system.DetectionResult{}); err != nil {
 		t.Fatal(err)
 	}
 	for _, name := range v370SharedReferences {

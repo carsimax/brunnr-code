@@ -1,15 +1,14 @@
 package cli
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/carsimax/brunnr-code/internal/backup"
+	"github.com/carsimax/brunnr-code/internal/components/skills"
 
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/state"
@@ -36,7 +35,7 @@ func TestMergeExplicitAgentInstallStatePreservesExistingAssignmentsWhenFreshStat
 		t.Fatalf("state.Write: %v", err)
 	}
 
-	merged, err := mergeExplicitAgentInstallState(home, state.InstallState{InstalledAgents: []string{"codex"}}, []string{"codex"}, InstallFlags{})
+	merged, err := mergeExplicitAgentInstallState(home, state.InstallState{InstalledAgents: []string{"codex"}}, []string{"codex"})
 	if err != nil {
 		t.Fatalf("mergeExplicitAgentInstallState() error = %v, want nil", err)
 	}
@@ -66,7 +65,7 @@ func TestMergeExplicitAgentInstallStateDropsUnsupportedAgents(t *testing.T) {
 		t.Fatalf("state.Write: %v", err)
 	}
 
-	merged, err := mergeExplicitAgentInstallState(home, state.InstallState{InstalledAgents: []string{"codex"}}, []string{"codex"}, InstallFlags{})
+	merged, err := mergeExplicitAgentInstallState(home, state.InstallState{InstalledAgents: []string{"codex"}}, []string{"codex"})
 	if err != nil {
 		t.Fatalf("mergeExplicitAgentInstallState() error = %v, want nil", err)
 	}
@@ -75,32 +74,30 @@ func TestMergeExplicitAgentInstallStateDropsUnsupportedAgents(t *testing.T) {
 	}
 }
 
-func TestMergeExplicitAgentInstallStateMergesOnlyExplicitSelectionField(t *testing.T) {
-	original := state.InstallState{InstalledAgents: []string{"claude-code"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentEngram}, Skills: []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom}
-	fresh := state.InstallState{InstalledAgents: []string{"codex"}, SelectionConfigured: true, Components: []model.ComponentID{model.ComponentPersona}, Skills: []model.SkillID{model.SkillGoTesting}, Preset: model.PresetFull}
-	cases := []InstallFlags{{Components: []string{"persona"}}, {Skills: []string{"go-testing"}}, {Preset: "full"}}
-	wants := []string{"[persona]|[comment-writer]|custom", "[engram]|[go-testing]|custom", "[engram]|[comment-writer]|full"}
-	for i, flags := range cases {
-		home := t.TempDir()
-		if err := state.Write(home, original); err != nil {
-			t.Fatal(err)
-		}
-		persisted, err := os.ReadFile(state.Path(home))
-		if err != nil {
-			t.Fatal(err)
-		}
-		legacy := strings.Replace(string(persisted), "{", `{"strict_tdd":true,`, 1)
-		if err := os.WriteFile(state.Path(home), []byte(legacy), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		got, err := mergeExplicitAgentInstallState(home, fresh, []string{"codex"}, flags)
-		if err != nil {
-			t.Fatalf("flags %#v merge error: %v", flags, err)
-		}
-		key := fmt.Sprintf("%v|%v|%s", got.Components, got.Skills, got.Preset)
-		if key != wants[i] || got.StrictTDD || !got.SelectionConfigured || len(got.InstalledAgents) != 2 || got.InstalledAgents[0] != "claude-code" || got.InstalledAgents[1] != "codex" {
-			t.Errorf("flags %#v merged state %#v, selection %s, want %s with legacy StrictTDD ignored and agents preserved", flags, got, key, wants[i])
-		}
+// TestMergeExplicitAgentInstallStateReplacesLegacySelection pins that an
+// incremental install replaces an older preset, component or skill selection
+// with the fresh setup while preserving agents and ignoring legacy StrictTDD.
+func TestMergeExplicitAgentInstallStateReplacesLegacySelection(t *testing.T) {
+	home := t.TempDir()
+	legacy := `{"strict_tdd":true,"installed_agents":["claude-code"],"selection_configured":true,"components":["engram"],"skills":["comment-writer"],"preset":"custom"}`
+	if err := os.MkdirAll(filepath.Dir(state.Path(home)), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(state.Path(home), []byte(legacy), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	fresh := state.InstallState{InstalledAgents: []string{"codex"}}
+	fresh.SetSelection(model.Selection{Preset: model.PresetFull, Components: model.SetupComponents(), Skills: skills.SetupSkills()})
+
+	got, err := mergeExplicitAgentInstallState(home, fresh, []string{"codex"})
+	if err != nil {
+		t.Fatalf("merge error: %v", err)
+	}
+	if !got.SelectionConfigured || got.StrictTDD || got.Preset != model.PresetFull || !slices.Equal(got.Components, model.SetupComponents()) || !slices.Equal(got.Skills, skills.SetupSkills()) {
+		t.Fatalf("merged selection = %#v, want the full setup", got)
+	}
+	if !slices.Equal(got.InstalledAgents, []string{"claude-code", "codex"}) {
+		t.Fatalf("InstalledAgents = %v, want [claude-code codex]", got.InstalledAgents)
 	}
 }
 
@@ -109,11 +106,11 @@ func TestRunInstallPersistsConfiguredSelection(t *testing.T) {
 	original := osUserHomeDir
 	osUserHomeDir = func() (string, error) { return home, nil }
 	t.Cleanup(func() { osUserHomeDir = original })
-	if _, err := RunInstall([]string{"--agent", "claude-code", "--preset", "custom"}, system.DetectionResult{}); err != nil {
+	if _, err := RunInstall([]string{"--agent", "claude-code"}, system.DetectionResult{}); err != nil {
 		t.Fatal(err)
 	}
 	got, err := state.Read(home)
-	if err != nil || !got.SelectionConfigured || got.Preset != model.PresetCustom || !slices.Equal(got.Components, []model.ComponentID{model.ComponentPersona}) || len(got.InstalledAgents) != 1 || got.InstalledAgents[0] != "claude-code" {
+	if err != nil || !got.SelectionConfigured || got.Preset != model.PresetFull || !slices.Equal(got.Components, model.SetupComponents()) || !slices.Equal(got.Skills, skills.SetupSkills()) || len(got.InstalledAgents) != 1 || got.InstalledAgents[0] != "claude-code" {
 		t.Fatalf("persisted selection = %#v, err = %v", got, err)
 	}
 	wantDigest, err := managedAssetDigest()
@@ -125,7 +122,7 @@ func TestRunInstallPersistsConfiguredSelection(t *testing.T) {
 	}
 }
 
-func TestRunInstallExplicitSelectionThenSync(t *testing.T) {
+func TestRunInstallThenSyncConverges(t *testing.T) {
 	lastCheck := time.Date(2026, 9, 30, 9, 0, 0, 0, time.UTC)
 	for _, tt := range []struct {
 		name     string
@@ -149,12 +146,7 @@ func TestRunInstallExplicitSelectionThenSync(t *testing.T) {
 				}
 			}
 
-			flags := InstallFlags{Agents: []string{"claude-code"}, Components: []string{"persona", "skills"}, Preset: "minimal"}
-			input, err := NormalizeInstallFlags(flags, system.DetectionResult{})
-			if err != nil {
-				t.Fatal(err)
-			}
-			installed, err := RunInstall([]string{"--agent", "claude-code", "--component", "persona,skills", "--preset", "minimal"}, system.DetectionResult{})
+			installed, err := RunInstall([]string{"--agent", "claude-code"}, system.DetectionResult{})
 			if err != nil || !installed.Verify.Ready {
 				t.Fatalf("RunInstall() error = %v, ready = %v", err, installed.Verify.Ready)
 			}
@@ -162,9 +154,9 @@ func TestRunInstallExplicitSelectionThenSync(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			wantComponents := []model.ComponentID{model.ComponentPersona, model.ComponentSkills}
-			if !got.SelectionConfigured || !slices.Equal(got.Components, wantComponents) || !slices.Equal(got.Skills, input.Selection.Skills) || got.Preset != model.PresetMinimal || !slices.Equal(got.InstalledAgents, []string{"claude-code"}) {
-				t.Fatalf("persisted selection = %#v, want explicit components, skills and minimal preset", got)
+			wantComponents, wantSkills := model.SetupComponents(), skills.SetupSkills()
+			if !got.SelectionConfigured || !slices.Equal(got.Components, wantComponents) || !slices.Equal(got.Skills, wantSkills) || got.Preset != model.PresetFull || !slices.Equal(got.InstalledAgents, []string{"claude-code"}) {
+				t.Fatalf("persisted selection = %#v, want the full setup", got)
 			}
 			if tt.existing != nil && (got.LastUpdateCheck == nil || !got.LastUpdateCheck.Equal(lastCheck)) {
 				t.Fatalf("LastUpdateCheck = %v, want %v", got.LastUpdateCheck, lastCheck)
@@ -174,10 +166,10 @@ func TestRunInstallExplicitSelectionThenSync(t *testing.T) {
 			if err != nil {
 				t.Fatalf("RunSync() error = %v", err)
 			}
-			if !slices.Equal(synced.Selection.Components, wantComponents) || !slices.Equal(synced.Selection.Skills, input.Selection.Skills) || synced.Selection.Preset != model.PresetMinimal {
-				t.Fatalf("sync selection = %#v, want recorded explicit selection", synced.Selection)
+			if !slices.Equal(synced.Selection.Components, wantComponents) || !slices.Equal(synced.Selection.Skills, wantSkills) || synced.Selection.Preset != model.PresetFull {
+				t.Fatalf("sync selection = %#v, want the full setup", synced.Selection)
 			}
-			assertSameManagedTree(t, "sync after explicit install", before, snapshotManagedTree(t, home))
+			assertSameManagedTree(t, "sync after install", before, snapshotManagedTree(t, home))
 			if synced.FilesChanged != 0 {
 				t.Errorf("sync changed %d files: %v", synced.FilesChanged, synced.ChangedFiles)
 			}
@@ -185,24 +177,24 @@ func TestRunInstallExplicitSelectionThenSync(t *testing.T) {
 	}
 }
 
-func TestRunInstallIncrementalSelectionPreservesUnspecifiedFields(t *testing.T) {
+func TestRunInstallIncrementalReplacesLegacySelection(t *testing.T) {
 	t.Chdir(t.TempDir())
 	home := convergenceTestHome(t)
 	if err := state.Write(home, state.InstallState{
 		InstalledAgents: []string{"codex"}, SelectionConfigured: true,
 		Components: []model.ComponentID{model.ComponentSkills, model.ComponentEngram},
-		Skills:     []model.SkillID{model.SkillCommentWriter}, Preset: model.PresetCustom}); err != nil {
+		Skills:     []model.SkillID{model.SkillCommentWriter}, Preset: "custom"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := RunInstall([]string{"--agent", "claude-code", "--component", "persona"}, system.DetectionResult{}); err != nil {
+	if _, err := RunInstall([]string{"--agent", "claude-code"}, system.DetectionResult{}); err != nil {
 		t.Fatalf("RunInstall() error = %v", err)
 	}
 	got, err := state.Read(home)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !got.SelectionConfigured || !slices.Equal(got.Components, []model.ComponentID{model.ComponentPersona}) || !slices.Equal(got.Skills, []model.SkillID{model.SkillCommentWriter}) || got.Preset != model.PresetCustom || !slices.Equal(got.InstalledAgents, []string{"codex", "claude-code"}) {
-		t.Fatalf("incremental selection = %#v, want explicit components with existing skills, preset and agents preserved", got)
+	if !got.SelectionConfigured || !slices.Equal(got.Components, model.SetupComponents()) || !slices.Equal(got.Skills, skills.SetupSkills()) || got.Preset != model.PresetFull || !slices.Equal(got.InstalledAgents, []string{"codex", "claude-code"}) {
+		t.Fatalf("incremental selection = %#v, want the full setup with existing agents preserved", got)
 	}
 }
 
@@ -230,7 +222,7 @@ func TestMergeExplicitAgentInstallStatePreservesFreshAssignments(t *testing.T) {
 		},
 	}
 
-	merged, err := mergeExplicitAgentInstallState(home, fresh, []string{"codex"}, InstallFlags{})
+	merged, err := mergeExplicitAgentInstallState(home, fresh, []string{"codex"})
 	if err != nil {
 		t.Fatalf("mergeExplicitAgentInstallState() error = %v, want nil", err)
 	}
@@ -266,7 +258,7 @@ func TestMergeExplicitAgentInstallStateFailsHonestlyOnCorruptState(t *testing.T)
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	_, err := mergeExplicitAgentInstallState(home, state.InstallState{InstalledAgents: []string{"codex"}}, []string{"codex"}, InstallFlags{})
+	_, err := mergeExplicitAgentInstallState(home, state.InstallState{InstalledAgents: []string{"codex"}}, []string{"codex"})
 	if err == nil {
 		t.Fatal("mergeExplicitAgentInstallState() error = nil for corrupt state, want a non-nil error")
 	}
@@ -293,7 +285,7 @@ func TestRunInstallFailsHonestlyWhenExistingStateIsCorruptDuringExplicitAgentIns
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	_, err := RunInstall([]string{"--agent", "claude-code", "--preset", "custom"}, system.DetectionResult{})
+	_, err := RunInstall([]string{"--agent", "claude-code"}, system.DetectionResult{})
 	if err == nil {
 		t.Fatal("RunInstall() error = nil, want an error naming the unreadable install state instead of a silent success")
 	}

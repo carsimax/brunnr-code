@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/carsimax/brunnr-code/internal/catalog"
+	"github.com/carsimax/brunnr-code/internal/components/skills"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/system"
 )
@@ -33,24 +34,9 @@ func NormalizeInstallFlags(flags InstallFlags, detection system.DetectionResult)
 	}
 	selection.Agents = unique(agents)
 
-	preset, err := normalizePreset(flags.Preset)
-	if err != nil {
-		return InstallInput{}, err
-	}
-	selection.Preset = preset
-
-	components, err := normalizeComponents(flags.Components, selection.Preset)
-	if err != nil {
-		return InstallInput{}, err
-	}
-
-	selection.Components = components
-
-	skills, err := normalizeSkills(flags.Skills)
-	if err != nil {
-		return InstallInput{}, err
-	}
-	selection.Skills = skills
+	selection.Preset = model.PresetFull
+	selection.Components = model.SetupComponents()
+	selection.Skills = skills.SetupSkills()
 
 	scope, err := ResolveInstallScope(flags.Scope)
 	if err != nil {
@@ -78,95 +64,6 @@ func NormalizeInstallFlags(flags InstallFlags, detection system.DetectionResult)
 	}
 
 	return InstallInput{Selection: selection, Scope: scope, DryRun: flags.DryRun, ClaudeOrchestratorModules: flags.ClaudeOrchestratorModules}, nil
-}
-
-// validateInstallModifierConsumers checks explicit payloads against the final plan,
-// after dependency expansion. Implicit defaults do not request a component payload.
-func validateInstallModifierConsumers(flags InstallFlags, selection model.Selection, components []model.ComponentID) error {
-	modifiers := []struct {
-		flag     string
-		explicit bool
-		consumer model.ComponentID
-	}{
-		{"--skill/--skills", len(flags.Skills) > 0, model.ComponentSkills},
-	}
-	for _, modifier := range modifiers {
-		if !modifier.explicit {
-			continue
-		}
-		found := false
-		for _, component := range components {
-			if component == modifier.consumer {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return fmt.Errorf("%s requires component %s in the resolved install plan; rerun brunnr-code install with --component %s added to your existing component list, or remove %s", modifier.flag, modifier.consumer, modifier.consumer, modifier.flag)
-		}
-	}
-	return nil
-}
-
-func normalizePreset(value string) (model.PresetID, error) {
-	if strings.TrimSpace(value) == "" {
-		return model.PresetFull, nil
-	}
-
-	switch model.PresetID(value) {
-	case model.PresetFull, model.PresetEcosystemOnly, model.PresetMinimal, model.PresetCustom:
-		return model.PresetID(value), nil
-	default:
-		return "", fmt.Errorf("unsupported preset %q", value)
-	}
-}
-
-func normalizeComponents(values []string, preset model.PresetID) ([]model.ComponentID, error) {
-	if len(values) == 0 {
-		return componentsForPreset(preset), nil
-	}
-
-	allowed := map[model.ComponentID]struct{}{}
-	for _, component := range catalog.MVPComponents() {
-		allowed[component.ID] = struct{}{}
-	}
-
-	components := []model.ComponentID{}
-	for _, raw := range values {
-		component := model.ComponentID(raw)
-		if _, ok := allowed[component]; !ok {
-			return nil, fmt.Errorf("unsupported component %q", raw)
-		}
-		components = append(components, component)
-	}
-
-	return model.WithMandatoryComponents(unique(components)), nil
-}
-
-func normalizeSkills(values []string) ([]model.SkillID, error) {
-	if len(values) == 0 {
-		return nil, nil
-	}
-
-	allowed := map[model.SkillID]struct{}{}
-	for _, skill := range catalog.MVPSkills() {
-		allowed[skill.ID] = struct{}{}
-	}
-
-	skills := []model.SkillID{}
-	for _, raw := range values {
-		skill := model.SkillID(raw)
-		if _, ok := allowed[skill]; !ok {
-			return nil, fmt.Errorf("unsupported skill %q", raw)
-		}
-		skills = append(skills, skill)
-	}
-
-	return unique(skills), nil
-}
-
-func componentsForPreset(preset model.PresetID) []model.ComponentID {
-	return model.ComponentsForPreset(preset)
 }
 
 func defaultAgentsFromDetection(detection system.DetectionResult) []model.AgentID {
