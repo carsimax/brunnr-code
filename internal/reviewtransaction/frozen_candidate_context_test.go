@@ -532,9 +532,10 @@ func TestPreparedCandidateInspectorReusesOneSetupForFourReads(t *testing.T) {
 	// numstat (-M) for the patch operation's rename pairing (#3208) on top of
 	// its setup and raw-diff reads. The fixture already resolved this
 	// repository, so its root, directory and object-format rev-parse calls
-	// are now answered from the verified cache.
-	if children != 9 {
-		t.Fatalf("Git children for prepare plus four reads = %d, want 9", children)
+	// are now answered from the verified cache. 9 before the object answer
+	// cache: the three tree queries the fixture's Build already ran are reused.
+	if children != 6 {
+		t.Fatalf("Git children for prepare plus four reads = %d, want 6", children)
 	}
 	builder := SnapshotBuilder{Repo: repo}
 	for _, inspection := range []struct {

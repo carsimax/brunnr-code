@@ -2002,6 +2002,12 @@ func runGitCapturedRange(ctx context.Context, repo string, extraEnv []string, st
 // positive timeout replaces it, zero keeps the existing selection unchanged
 // for every other caller.
 func runGitCapturedRangeWithTimeout(ctx context.Context, repo string, extraEnv []string, stdin []byte, outputOffset, outputLimit int, isolateConfig, rejectStderr, rejectOverflow bool, timeoutOverride time.Duration, args ...string) ([]byte, int, error) {
+	query, cacheable := reviewGitObjectQueryFor(ctx, repo, extraEnv, stdin, outputOffset, outputLimit, isolateConfig, rejectStderr, rejectOverflow, args)
+	if cacheable {
+		if output, ok := query.load(ctx); ok {
+			return output, len(output), nil
+		}
+	}
 	remote := len(args) > 0 && args[0] == "ls-remote"
 	timeout := LocalGitCommandTimeout
 	if timeoutOverride > 0 {
@@ -2079,6 +2085,9 @@ func runGitCapturedRangeWithTimeout(ctx context.Context, repo string, extraEnv [
 	}
 	if rejectStderr && len(diagnostic) != 0 {
 		return nil, 0, &GitInventoryDiagnosticsError{Diagnostics: strings.TrimSpace(string(diagnostic))}
+	}
+	if cacheable {
+		query.store(output)
 	}
 	return output, stdout.total, nil
 }

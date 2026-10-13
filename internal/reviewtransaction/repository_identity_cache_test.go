@@ -37,6 +37,9 @@ func forgetReviewGitAnswers() {
 	reviewObjectFormatCache.mu.Lock()
 	reviewObjectFormatCache.entries = nil
 	reviewObjectFormatCache.mu.Unlock()
+	reviewGitObjectAnswerCache.mu.Lock()
+	reviewGitObjectAnswerCache.entries = nil
+	reviewGitObjectAnswerCache.mu.Unlock()
 }
 
 func TestRepositoryIdentityCacheSkipsRevParseOnUnchangedRepository(t *testing.T) {
