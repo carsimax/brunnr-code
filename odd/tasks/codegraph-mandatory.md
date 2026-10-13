@@ -91,3 +91,10 @@ Strategy: `single-pr`. Forecast: ~600–900 authored lines, mostly deletions in 
   - No golden or orchestrator baseline embeds this block; only `tool_test.go` pins it. Tests: `TestCodeGraphGuidanceMatchesUpstreamDaemonFreshness`, `TestCodeGraphGuidanceSyncRulePrecedesCLIReads`, `TestCodeGraphGuidanceLeavesUpgradesToBrunnrInstall`. RED observed first: 3 tests failed against the old block.
   - Checks: gofmtcheck ok; go vet ok; `go test ./internal/components/... ./internal/assets/... ./internal/app` ok; full `internal/cli` suite ok (591s). `~/.codex` absent before and after.
 - Next: run `go test ./...`, check the acceptance grep, then deliver the branch as one PR (`single-pr`).
+- Acceptance (parent, 2026-10-12):
+  - gofmtcheck ok.
+  - `go test` ok for every package except `internal/cli`, which T4 ran separately (ok, 591s).
+  - The acceptance grep only hits the legacy-key test in `internal/state/state_test.go`.
+  - Branch diff vs main: 35 files, +1024/−1608.
+  - Docker e2e and real-agent e2e not run.
+  - Next: maintainer decides push and the single PR.
