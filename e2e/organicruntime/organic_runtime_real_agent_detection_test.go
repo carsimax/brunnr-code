@@ -51,7 +51,7 @@ func TestOrganicConfiguredAgentReceivesRoutingGuidanceRealAgents(t *testing.T) {
 			}
 			output, stderr, err := runOrganicCommand(
 				t, organicBinary, workspace, organicEnvironment(home),
-				"install", "--agent", agent.agentID, "--scope", "workspace", "--components", "permissions",
+				"install", "--agent", agent.agentID, "--scope", "workspace",
 			)
 			if err != nil {
 				t.Fatalf("install %s: %v\nstdout:\n%s\nstderr:\n%s", agent.agentID, err, output, stderr)

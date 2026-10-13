@@ -85,7 +85,6 @@ test_dry_run_output_format() {
 
     assert_output_contains "$output" "dry-run" "Output contains 'dry-run' marker"
     assert_output_contains "$output" "Agents:" "Output contains 'Agents:' header"
-    assert_output_contains "$output" "Persona:" "Output contains 'Persona:' header"
     assert_output_contains "$output" "Preset:" "Output contains 'Preset:' header"
     assert_output_contains "$output" "Components order:" "Output contains 'Components order:' header"
     assert_output_contains "$output" "Platform decision:" "Output contains 'Platform decision:' header"
@@ -142,97 +141,41 @@ test_dry_run_agent_csv() {
     assert_output_contains "$output" "codex" "CSV agents: shows codex"
 }
 
-# --- Category 1d: Preset flags ---
+# --- Category 1d: Single setup ---
 
-test_dry_run_preset_minimal() {
-    log_test "Dry-run with --preset minimal"
+test_dry_run_setup_is_full() {
+    log_test "Dry-run always resolves the full setup"
 
-    output=$($BINARY install --preset minimal --dry-run 2>&1) || true
+    output=$($BINARY install --dry-run 2>&1) || true
 
-    assert_output_contains "$output" "Preset: minimal" "Shows minimal preset"
+    assert_output_contains "$output" "Preset: full" "Shows the full setup"
 }
 
-test_dry_run_preset_ecosystem() {
-    log_test "Dry-run with --preset ecosystem-only"
+test_setup_components() {
+    log_test "Setup includes every component"
 
-    output=$($BINARY install --preset ecosystem-only --dry-run 2>&1) || true
-
-    assert_output_contains "$output" "Preset: ecosystem-only" "Shows ecosystem-only preset"
-}
-
-test_dry_run_preset_full() {
-    log_test "Dry-run with --preset full"
-
-    output=$($BINARY install --preset full --dry-run 2>&1) || true
-
-    assert_output_contains "$output" "Preset: full" "Shows full preset"
-}
-
-test_dry_run_preset_custom() {
-    log_test "Dry-run with --preset custom"
-
-    output=$($BINARY install --preset custom --dry-run 2>&1) || true
-
-    assert_output_contains "$output" "Preset: custom" "Shows custom preset"
-}
-
-# --- Category 1e: Preset component order validation ---
-
-
-test_preset_minimal_with_default_persona_includes_persona() {
-    log_test "Preset minimal includes the managed persona"
-
-    # The managed persona is installed with every preset.
-    output=$($BINARY install --preset minimal --agent claude-code --dry-run 2>&1) || true
+    output=$($BINARY install --agent claude-code --dry-run 2>&1) || true
 
     local components_line
     components_line=$(echo "$output" | grep "Components order:")
 
-    assert_output_contains "$components_line" "engram" "Minimal includes engram"
-    assert_output_contains "$components_line" "persona" "Minimal includes persona"
+    assert_output_contains "$components_line" "engram" "Setup includes engram"
+    assert_output_contains "$components_line" "skills" "Setup includes skills"
+    assert_output_contains "$components_line" "persona" "Setup includes persona"
+    assert_output_contains "$components_line" "permissions" "Setup includes permissions"
 }
 
-test_preset_ecosystem_components() {
-    log_test "Preset ecosystem-only includes ecosystem components"
-
-    output=$($BINARY install --preset ecosystem-only --agent claude-code --dry-run 2>&1) || true
-
-    # ecosystem-only includes engram, skills and the managed persona.
-    local components_line
-    components_line=$(echo "$output" | grep "Components order:")
-
-    assert_output_contains "$components_line" "engram" "Ecosystem includes engram"
-    assert_output_contains "$components_line" "skills" "Ecosystem includes skills"
-    assert_output_contains "$components_line" "persona" "Ecosystem includes persona"
-    assert_output_not_contains "$components_line" "permissions" "Ecosystem excludes permissions"
-}
-
-
-test_preset_full_components() {
-    log_test "Preset full includes core and optional components"
-
-    output=$($BINARY install --preset full --agent claude-code --dry-run 2>&1) || true
-
-    local components_line
-    components_line=$(echo "$output" | grep "Components order:")
-
-    assert_output_contains "$components_line" "engram" "Full includes engram"
-    assert_output_contains "$components_line" "skills" "Full includes skills"
-    assert_output_contains "$components_line" "persona" "Full includes persona"
-    assert_output_contains "$components_line" "permissions" "Full includes permissions"
-}
-
-test_dry_run_full_preset_persona_before_engram() {
+test_dry_run_setup_persona_before_engram() {
     log_test "Dry-run: persona appears before engram in component order"
 
-    output=$($BINARY install --preset full --agent claude-code --dry-run 2>&1) || true
+    output=$($BINARY install --agent claude-code --dry-run 2>&1) || true
 
     local components_line
     components_line=$(echo "$output" | grep "Components order:")
 
     # Verify all are present
-    assert_output_contains "$components_line" "persona" "Full preset has persona"
-    assert_output_contains "$components_line" "engram" "Full preset has engram"
+    assert_output_contains "$components_line" "persona" "Setup has persona"
+    assert_output_contains "$components_line" "engram" "Setup has engram"
 
     # Verify ordering: persona before engram
     # Extract the order string and check persona comes first
@@ -250,78 +193,24 @@ test_dry_run_full_preset_persona_before_engram() {
     fi
 }
 
-test_preset_custom_no_components() {
-    log_test "Preset custom with no --component installs only the mandatory persona"
+# --- Category 1e: Invalid input rejection ---
 
-    output=$($BINARY install --preset custom --agent claude-code --dry-run 2>&1) || true
+# The setup is fixed, so the flags that used to select presets, components,
+# skills or the permissions overlay must fail as unknown flags.
+test_removed_setup_flags_rejected() {
+    log_test "Removed setup flags are rejected as unknown flags"
 
-    # Custom preset without explicit components = mandatory persona only
-    local components_line
-    components_line=$(echo "$output" | grep "Components order:")
-    assert_output_not_contains "$components_line" "engram" "Custom preset without components excludes engram"
-    assert_output_not_contains "$components_line" "skills" "Custom preset without components excludes skills"
-    assert_output_contains "$components_line" "persona" "Custom preset without components includes mandatory persona"
-}
-
-test_preset_custom_explicit_components() {
-    log_test "Preset custom with explicit --component flags"
-
-    output=$($BINARY install --preset custom --agent claude-code --component engram --component skills --dry-run 2>&1) || true
-
-    local components_line
-    components_line=$(echo "$output" | grep "Components order:")
-    assert_output_contains "$components_line" "engram" "Custom + explicit components includes engram"
-    assert_output_contains "$components_line" "skills" "Custom + explicit components includes skills"
-    assert_output_contains "$components_line" "persona" "Custom + explicit components includes mandatory persona"
-}
-
-# --- Category 1f: Individual component flags ---
-
-test_dry_run_component_engram() {
-    log_test "Dry-run with --component engram"
-    output=$($BINARY install --agent claude-code --component engram --dry-run 2>&1) || true
-    assert_output_contains "$output" "engram" "Shows engram component"
-}
-
-test_dry_run_component_skills() {
-    log_test "Dry-run with --component skills"
-    output=$($BINARY install --agent claude-code --component skills --dry-run 2>&1) || true
-    assert_output_contains "$output" "skills" "Shows skills component"
-}
-
-test_dry_run_component_persona() {
-    log_test "Dry-run with --component persona"
-    output=$($BINARY install --agent claude-code --component persona --dry-run 2>&1) || true
-    assert_output_contains "$output" "persona" "Shows persona component"
-}
-
-test_dry_run_component_permissions() {
-    log_test "Dry-run with --component permissions"
-    output=$($BINARY install --agent claude-code --component permissions --dry-run 2>&1) || true
-    assert_output_contains "$output" "permissions" "Shows permissions component"
-}
-
-# --- Category 1g: Invalid input rejection ---
-
-
-test_invalid_component_rejected() {
-    log_test "Invalid component is rejected"
-
-    if $BINARY install --component fakecomp --dry-run 2>&1; then
-        log_fail "Invalid component should have been rejected"
-    else
-        log_pass "Invalid component correctly rejected"
-    fi
-}
-
-test_invalid_preset_rejected() {
-    log_test "Invalid preset is rejected"
-
-    if $BINARY install --preset nonexistent --dry-run 2>&1; then
-        log_fail "Invalid preset should have been rejected"
-    else
-        log_pass "Invalid preset correctly rejected"
-    fi
+    local args output
+    for args in "install --preset full" "install --component engram" "install --components engram" \
+        "install --skill go-testing" "install --skills go-testing" \
+        "sync --skill go-testing" "sync --skills go-testing" "sync --include-permissions"; do
+        # shellcheck disable=SC2086 # word splitting of $args is intended
+        if output=$($BINARY $args --dry-run 2>&1); then
+            log_fail "'$args' should have been rejected"
+        else
+            assert_output_contains "$output" "flag provided but not defined" "'$args' rejected as unknown flag"
+        fi
+    done
 }
 
 test_unknown_command_rejected() {
@@ -344,7 +233,7 @@ test_cc_engram_injection() {
     log_test "Claude Code: engram injection (MCP + CLAUDE.md)"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --component engram 2>&1; then
+    if $BINARY install --agent claude-code 2>&1; then
         # User-scope MCP registry
         local registry="$HOME/.claude.json"
         assert_file_exists "$registry" "Claude user MCP registry"
@@ -368,7 +257,7 @@ test_cc_persona() {
     log_test "Claude Code: persona injection (Principal Engineer output style)"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --component persona 2>&1; then
+    if $BINARY install --agent claude-code 2>&1; then
         assert_file_exists "$HOME/.claude/CLAUDE.md" "CLAUDE.md exists"
         assert_file_contains "$HOME/.claude/CLAUDE.md" "brunnr-code:persona" "CLAUDE.md has persona section marker"
         # Claude has an active output-style channel — the CLAUDE.md persona
@@ -386,47 +275,24 @@ test_cc_persona() {
 }
 
 
-test_cc_skills_minimal() {
-    log_test "Claude Code: minimal skills component retains only judgment-day"
-    cleanup_test_env
-
-    if $BINARY install --agent claude-code --component skills --preset minimal 2>&1; then
-        local skills_dir="$HOME/.claude/skills"
-        if [ -d "$skills_dir" ]; then
-            assert_file_count "$skills_dir" "SKILL.md" 1 "Minimal skills component installs only judgment-day"
-            assert_file_exists "$skills_dir/judgment-day/SKILL.md" "Minimal Claude skills include judgment-day"
-        else
-            log_fail "Minimal skills component did not create judgment-day skills directory"
-        fi
-
-        # No framework skills in minimal
-        if [ -f "$skills_dir/typescript/SKILL.md" ]; then
-            log_fail "Minimal preset should NOT include typescript skill"
-        else
-            log_pass "Minimal preset correctly excludes framework skills"
-        fi
-    else
-        log_fail "skills (minimal) install command failed"
-    fi
-}
-
 test_cc_skills_full() {
-    log_test "Claude Code: skills injection (full = 7 foundation skills)"
+    log_test "Claude Code: skills injection (8 fixed setup skills)"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --component skills --preset full 2>&1; then
+    if $BINARY install --agent claude-code 2>&1; then
         local skills_dir="$HOME/.claude/skills"
         assert_dir_exists "$skills_dir" "Claude skills directory"
 
-        # #4669: the six contributor workflow skills are selectable, never default.
-        assert_file_count "$skills_dir" "SKILL.md" 8 "Full preset (skills alone): 8 skill files"
+        assert_file_count "$skills_dir" "SKILL.md" 8 "Setup installs exactly 8 skill files"
 
-        # Verify foundation skills exist
-        assert_file_exists "$skills_dir/go-testing/SKILL.md" "go-testing SKILL.md"
-        assert_file_exists "$skills_dir/skill-creator/SKILL.md" "skill-creator SKILL.md"
-        assert_file_not_exists "$skills_dir/branch-pr/SKILL.md" "branch-pr NOT installed by default"
-        assert_file_not_exists "$skills_dir/issue-creation/SKILL.md" "issue-creation NOT installed by default"
-        assert_file_exists "$skills_dir/skill-registry/SKILL.md" "skill-registry SKILL.md"
+        # Every fixed setup skill is present
+        local skill
+        for skill in judgment-day go-testing skill-creator skill-improver skill-registry \
+            chained-pr cognitive-doc-design work-unit-commits; do
+            assert_file_exists "$skills_dir/$skill/SKILL.md" "$skill SKILL.md"
+        done
+        assert_file_not_exists "$skills_dir/branch-pr/SKILL.md" "branch-pr NOT installed"
+        assert_file_not_exists "$skills_dir/issue-creation/SKILL.md" "issue-creation NOT installed"
 
         # Real content check
         assert_file_size_min "$skills_dir/go-testing/SKILL.md" 200 "go-testing skill has real content"
@@ -439,72 +305,11 @@ test_cc_skills_full() {
     fi
 }
 
-test_cc_skills_ecosystem() {
-    log_test "Claude Code: skills injection (ecosystem-only = 7 foundation skills)"
-    cleanup_test_env
-
-    if $BINARY install --agent claude-code --component skills --preset ecosystem-only 2>&1; then
-        local skills_dir="$HOME/.claude/skills"
-        assert_dir_exists "$skills_dir" "Claude skills directory"
-
-        # #4669: contributor workflow skills are not part of this preset.
-        assert_file_count "$skills_dir" "SKILL.md" 8 "Ecosystem preset (skills alone): 8 skill files"
-        # Foundation skills present
-        assert_file_exists "$skills_dir/go-testing/SKILL.md" "Foundation skills present"
-        assert_file_exists "$skills_dir/skill-creator/SKILL.md" "skill-creator present"
-        assert_file_not_exists "$skills_dir/branch-pr/SKILL.md" "branch-pr NOT in ecosystem default"
-        assert_file_not_exists "$skills_dir/issue-creation/SKILL.md" "issue-creation NOT in ecosystem default"
-        # Stack-specific skills NOT present
-        if [ -f "$skills_dir/react-19/SKILL.md" ]; then
-            log_fail "Ecosystem preset should NOT include react-19"
-        else
-            log_pass "Ecosystem preset correctly excludes stack-specific skills"
-        fi
-    else
-        log_fail "skills (ecosystem) install command failed"
-    fi
-}
-
-test_cc_custom_skills_with_flag() {
-    log_test "Claude Code: custom preset + explicit --skills flag installs specified skills"
-    cleanup_test_env
-
-    if $BINARY install --agent claude-code --preset custom --component skills --skills go-testing,branch-pr 2>&1; then
-        local skills_dir="$HOME/.claude/skills"
-        assert_dir_exists "$skills_dir" "Claude skills directory"
-
-        # The explicitly requested skills must be present
-        assert_file_exists "$skills_dir/go-testing/SKILL.md" "go-testing SKILL.md"
-        assert_file_exists "$skills_dir/branch-pr/SKILL.md" "branch-pr SKILL.md"
-
-        assert_file_count "$skills_dir" "SKILL.md" 2 "Custom + explicit skills: 2 files"
-    else
-        log_fail "custom + skills flag install command failed"
-    fi
-}
-
-test_cc_custom_no_skills_flag_installs_nothing() {
-    log_test "Claude Code: custom preset + skills component without --skills flag installs nothing"
-    cleanup_test_env
-
-    if $BINARY install --agent claude-code --preset custom --component skills 2>&1; then
-        local skills_dir="$HOME/.claude/skills"
-        # Custom without --skills installs no skill files.
-        if [ -d "$skills_dir" ]; then
-            log_fail "Skills directory should NOT be created: skills alone has nothing to install"
-        else
-            log_pass "No skills directory created without --skills"
-        fi
-    else
-        log_fail "custom + skills component (no flag) install command failed"
-    fi
-}
-
 test_cc_permissions_injection() {
     log_test "Claude Code: permissions injection"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --component permissions 2>&1; then
+    if $BINARY install --agent claude-code 2>&1; then
         local settings="$HOME/.claude/settings.json"
         assert_file_exists "$settings" "Claude settings.json"
         assert_file_contains "$settings" '"permissions"' "Has permissions key"
@@ -515,14 +320,14 @@ test_cc_permissions_injection() {
     fi
 }
 
-# --- Category 4: Full preset integration ---
+# --- Category 4: Full setup integration ---
 
-test_full_preset_claude_code() {
-    log_test "Full preset: Claude Code (all components coexist)"
+test_full_setup_claude_code() {
+    log_test "Full setup: Claude Code (all components coexist)"
     cleanup_test_env
 
-    # Exercise independent injection components without invoking package downloads.
-    if $BINARY install --agent claude-code --component engram --component persona --component skills --component permissions --preset full 2>&1; then
+    # The fake Engram binary on PATH keeps this free of package downloads.
+    if $BINARY install --agent claude-code 2>&1; then
         local claude_md="$HOME/.claude/CLAUDE.md"
         local settings="$HOME/.claude/settings.json"
 
@@ -550,45 +355,17 @@ test_full_preset_claude_code() {
         # Skills
         assert_file_count_min "$HOME/.claude/skills" "SKILL.md" 8 "At least 8 foundation skill files"
 
-        log_pass "Full preset: all Claude Code injection-only components coexist"
+        log_pass "Full setup: all Claude Code components coexist"
     else
-        log_fail "Full preset (Claude Code) install command failed"
+        log_fail "Full setup (Claude Code) install command failed"
     fi
 }
 
-test_minimal_preset_claude_only_engram() {
-    log_test "Minimal preset: Claude Code (engram and persona only)"
+test_full_setup_both_agents() {
+    log_test "Full setup: both agents"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --preset minimal 2>&1; then
-        # Engram should be installed (MCP + CLAUDE.md)
-        assert_file_exists "$HOME/.claude/CLAUDE.md" "CLAUDE.md exists"
-        assert_file_contains "$HOME/.claude/CLAUDE.md" "brunnr-code:engram-protocol" "Engram protocol section"
-
-        # The managed persona is part of every preset
-        assert_file_contains "$HOME/.claude/CLAUDE.md" "brunnr-code:persona" "Persona in minimal"
-        # No permissions settings.json
-        if [ -f "$HOME/.claude/settings.json" ]; then
-            assert_file_not_contains "$HOME/.claude/settings.json" '"permissions"' "No permissions in minimal"
-        else
-            log_pass "No settings.json in minimal (correct)"
-        fi
-        # No skills directory (or empty)
-        if [ -d "$HOME/.claude/skills" ]; then
-            log_fail "Minimal preset should not create skills directory (skills component not in minimal preset)"
-        else
-            log_pass "No skills directory in minimal (correct)"
-        fi
-    else
-        log_fail "Minimal preset (Claude Code) install command failed"
-    fi
-}
-
-test_ecosystem_both_agents() {
-    log_test "Ecosystem preset: both agents"
-    cleanup_test_env
-
-    if $BINARY install --agent claude-code --agent codex --component engram --component skills --preset ecosystem-only 2>&1; then
+    if $BINARY install --agent claude-code --agent codex 2>&1; then
         # Claude Code
         assert_file_exists "$HOME/.claude/CLAUDE.md" "Claude CLAUDE.md"
         assert_file_contains "$HOME/.claude/CLAUDE.md" "brunnr-code:agent-routing" "Claude has ODD routing"
@@ -600,9 +377,9 @@ test_ecosystem_both_agents() {
         assert_file_count_min "$HOME/.codex/skills" "SKILL.md" 8 "Codex foundation skills"
         assert_file_contains "$HOME/.codex/config.toml" "[mcp_servers.engram]" "Codex Engram MCP"
 
-        log_pass "Ecosystem preset: both agents have matching components"
+        log_pass "Full setup: both agents have matching components"
     else
-        log_fail "Ecosystem preset (both agents) install command failed"
+        log_fail "Full setup (both agents) install command failed"
     fi
 }
 
@@ -612,9 +389,7 @@ test_content_claude_md_sections_substantial() {
     log_test "Content validation: CLAUDE.md sections are substantial"
     cleanup_test_env
 
-    # Install persona and engram alongside unconditional ODD routing guidance.
-    $BINARY install --agent claude-code --component persona 2>&1 || true
-    $BINARY install --agent claude-code --component engram 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
 
     local claude_md="$HOME/.claude/CLAUDE.md"
     if [ -f "$claude_md" ]; then
@@ -629,7 +404,7 @@ test_content_skills_are_real() {
     log_test "Content validation: skill files contain real instructions"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component skills --preset full 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
 
     local skills_dir="$HOME/.claude/skills"
     if [ -d "$skills_dir" ]; then
@@ -656,7 +431,7 @@ test_content_mcp_json_valid() {
     log_test "Content validation: MCP JSON files are parseable"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component engram 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
 
     # Claude Code reads user-scoped MCP servers from ~/.claude.json. The legacy
     # ~/.claude/mcp directory is intentionally no longer created.
@@ -673,8 +448,8 @@ test_idempotent_persona_claude() {
     log_test "Idempotency: persona on Claude Code (no duplicate sections)"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component persona 2>&1 || true
-    $BINARY install --agent claude-code --component persona 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
 
     local claude_md="$HOME/.claude/CLAUDE.md"
     if [ -f "$claude_md" ]; then
@@ -688,8 +463,8 @@ test_idempotent_engram_claude() {
     log_test "Idempotency: engram on Claude Code (no duplicate sections)"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component engram 2>&1 || true
-    $BINARY install --agent claude-code --component engram 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
 
     local claude_md="$HOME/.claude/CLAUDE.md"
     if [ -f "$claude_md" ]; then
@@ -711,7 +486,7 @@ test_codex_engram_injection() {
     log_test "Codex: engram injection writes config.toml + instruction files"
     cleanup_test_env
 
-    if $BINARY install --agent codex --component engram 2>&1; then
+    if $BINARY install --agent codex 2>&1; then
         local config_toml="$HOME/.codex/config.toml"
         local instructions="$HOME/.codex/engram-instructions.md"
         local compact="$HOME/.codex/engram-compact-prompt.md"
@@ -737,8 +512,8 @@ test_codex_engram_idempotent() {
     log_test "Codex: engram injection is idempotent (no duplicate blocks)"
     cleanup_test_env
 
-    $BINARY install --agent codex --component engram 2>&1 || true
-    $BINARY install --agent codex --component engram 2>&1 || true
+    $BINARY install --agent codex 2>&1 || true
+    $BINARY install --agent codex 2>&1 || true
 
     local config_toml="$HOME/.codex/config.toml"
     if [ -f "$config_toml" ]; then
@@ -755,17 +530,15 @@ test_codex_engram_idempotent() {
 }
 
 test_idempotent_skills_claude() {
-    log_test "Idempotency: ecosystem skills injection produces same files"
+    log_test "Idempotency: skills injection produces same files"
     cleanup_test_env
 
-    # Minimal intentionally selects no default skills; ecosystem installs the
-    # foundation catalog so byte-idempotency checks nonempty SKILL.md files.
-    $BINARY install --agent claude-code --component skills --preset ecosystem-only 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
     # Capture file hashes
     local first_hashes
     first_hashes=$(find "$HOME/.claude/skills" -name "SKILL.md" -exec md5sum {} \; 2>/dev/null | sort)
 
-    $BINARY install --agent claude-code --component skills --preset ecosystem-only 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
     local second_hashes
     second_hashes=$(find "$HOME/.claude/skills" -name "SKILL.md" -exec md5sum {} \; 2>/dev/null | sort)
 
@@ -777,10 +550,10 @@ test_idempotent_skills_claude() {
 }
 
 test_idempotent_full_claude() {
-    log_test "Idempotency: full injection-only on Claude Code"
+    log_test "Idempotency: full setup on Claude Code"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component persona --component permissions --preset full 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
     local first_md_hash
     first_md_hash=$(md5sum "$HOME/.claude/CLAUDE.md" 2>/dev/null | cut -d' ' -f1)
     # Snapshot settings.json for semantic comparison (engram setup may reorder
@@ -788,7 +561,7 @@ test_idempotent_full_claude() {
     # serialization). Byte-exact hashing would false-fail on harmless reorder.
     cp "$HOME/.claude/settings.json" /tmp/gai_settings_run1.json 2>/dev/null || true
 
-    $BINARY install --agent claude-code --component persona --component permissions --preset full 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
     local second_md_hash
     second_md_hash=$(md5sum "$HOME/.claude/CLAUDE.md" 2>/dev/null | cut -d' ' -f1)
 
@@ -811,56 +584,29 @@ test_idempotent_full_claude() {
 
 # --- Category 8: Edge cases ---
 
-test_edge_permissions_only_no_persona() {
-    log_test "Edge case: --component permissions alone"
+test_edge_multiple_agents() {
+    log_test "Edge case: multiple agents share the Engram MCP setup"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --component permissions 2>&1; then
-        assert_file_exists "$HOME/.claude/settings.json" "Permissions creates settings.json"
-        assert_file_contains "$HOME/.claude/settings.json" '"permissions"' "Permissions key present"
-        # The orchestrator, routing and remote authorization are
-        # unconditional agent guidance, not optional components. Require
-        # exactly those managed sections; permissions-only must not inject persona
-        # or other optional components.
-        if [ -f "$HOME/.claude/CLAUDE.md" ]; then
-            local sections
-            sections=$(grep -o '<!-- brunnr-code:[a-z0-9-]* -->' "$HOME/.claude/CLAUDE.md" | sort -u | tr '\n' ' ')
-            if [ "$(printf '%s' "$sections" | xargs)" = "<!-- brunnr-code:agent-routing --> <!-- brunnr-code:orchestrator --> <!-- brunnr-code:remote-authorization -->" ]; then
-                log_pass "Permissions-only: CLAUDE.md carries orchestrator, routing and remote authorization only"
-            else
-                log_fail "Permissions-only install wrote component sections: $sections"
-            fi
-        else
-            log_fail "Permissions-only: CLAUDE.md missing required orchestrator, routing and remote authorization"
-        fi
-    else
-        log_fail "Permissions-only install command failed"
-    fi
-}
-
-test_edge_multiple_agents_same_component() {
-    log_test "Edge case: multiple agents with same component"
-    cleanup_test_env
-
-    if $BINARY install --agent claude-code --agent codex --component engram 2>&1; then
+    if $BINARY install --agent claude-code --agent codex 2>&1; then
         # Both agents should register the Engram MCP server
         assert_file_contains "$HOME/.claude.json" '"engram"' "Claude Engram MCP"
         assert_file_contains "$HOME/.codex/config.toml" "[mcp_servers.engram]" "Codex Engram MCP"
     else
-        log_fail "Multiple agents + engram install command failed"
+        log_fail "Multiple agents install command failed"
     fi
 }
 
 
 # --- Category 7: Injection integrity (guards against issue #4 regression) ---
 
-test_integrity_full_preset_all_skills_nonempty() {
-    log_test "Integrity: full preset — every SKILL.md is non-empty"
+test_integrity_setup_all_skills_nonempty() {
+    log_test "Integrity: full setup — every SKILL.md is non-empty"
     cleanup_test_env
 
-    if $BINARY install --agent claude-code --component skills --preset full 2>&1; then
+    if $BINARY install --agent claude-code 2>&1; then
         local skill_dir="$HOME/.claude/skills"
-        assert_file_count "$skill_dir" "SKILL.md" 8 "Full preset installs 8 foundation skills"
+        assert_file_count "$skill_dir" "SKILL.md" 8 "Setup installs 8 foundation skills"
         local all_ok=true
         local empty_count=0
 
@@ -882,7 +628,7 @@ test_integrity_full_preset_all_skills_nonempty() {
             log_fail "Expected 8 non-empty foundation skills (found $total; $empty_count empty or corrupt)"
         fi
     else
-        log_fail "Full preset install for integrity check failed"
+        log_fail "Setup install for integrity check failed"
     fi
 }
 
@@ -895,7 +641,7 @@ test_backup_created_on_install() {
     cleanup_test_env
     setup_fake_configs
 
-    if $BINARY install --agent claude-code --component permissions 2>&1; then
+    if $BINARY install --agent claude-code 2>&1; then
         local backup_count
         backup_count=$(find "$HOME/.brunnr-code/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
         if [ "$backup_count" -gt 0 ]; then
@@ -913,7 +659,7 @@ test_backup_contains_original_files() {
     cleanup_test_env
     setup_fake_configs
 
-    if $BINARY install --agent claude-code --component permissions 2>&1; then
+    if $BINARY install --agent claude-code 2>&1; then
         local latest_backup
         latest_backup=$(find "$HOME/.brunnr-code/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)
         if [ -n "$latest_backup" ]; then
@@ -937,7 +683,7 @@ test_backup_manifest_exists() {
     cleanup_test_env
     setup_fake_configs
 
-    if $BINARY install --agent claude-code --component permissions 2>&1; then
+    if $BINARY install --agent claude-code 2>&1; then
         local latest_backup
         latest_backup=$(find "$HOME/.brunnr-code/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)
         if [ -n "$latest_backup" ]; then
@@ -958,11 +704,11 @@ test_backup_idempotent_install() {
     log_test "Idempotent: running install twice produces same result (with backup)"
     cleanup_test_env
 
-    $BINARY install --agent claude-code --component permissions 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
     local first_content
     first_content=$(cat "$HOME/.claude/settings.json" 2>/dev/null)
 
-    $BINARY install --agent claude-code --component permissions 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
     local second_content
     second_content=$(cat "$HOME/.claude/settings.json" 2>/dev/null)
 
@@ -978,9 +724,9 @@ test_backup_multiple_snapshots() {
     cleanup_test_env
     setup_fake_configs
 
-    $BINARY install --agent claude-code --component permissions 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
     sleep 0.1
-    $BINARY install --agent claude-code --component persona 2>&1 || true
+    $BINARY install --agent claude-code 2>&1 || true
 
     local backup_count
     backup_count=$(find "$HOME/.brunnr-code/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
@@ -996,7 +742,7 @@ test_backup_claude_code_files() {
     cleanup_test_env
     setup_fake_configs
 
-    if $BINARY install --agent claude-code --component permissions 2>&1; then
+    if $BINARY install --agent claude-code 2>&1; then
         local latest_backup
         latest_backup=$(find "$HOME/.brunnr-code/backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1)
         if [ -n "$latest_backup" ] && [ -f "$latest_backup/manifest.json" ]; then
@@ -1030,29 +776,13 @@ test_dry_run_agent_claude_code
 test_dry_run_agent_both
 test_dry_run_agent_csv
 
-# Category 1d: Preset flags
-test_dry_run_preset_minimal
-test_dry_run_preset_ecosystem
-test_dry_run_preset_full
-test_dry_run_preset_custom
+# Category 1d: Single setup
+test_dry_run_setup_is_full
+test_setup_components
+test_dry_run_setup_persona_before_engram
 
-# Category 1e: Preset component order validation
-test_preset_minimal_with_default_persona_includes_persona
-test_preset_ecosystem_components
-test_preset_full_components
-test_dry_run_full_preset_persona_before_engram
-test_preset_custom_no_components
-test_preset_custom_explicit_components
-
-# Category 1f: Individual component flags
-test_dry_run_component_engram
-test_dry_run_component_skills
-test_dry_run_component_persona
-test_dry_run_component_permissions
-
-# Category 1g: Invalid inputs
-test_invalid_component_rejected
-test_invalid_preset_rejected
+# Category 1e: Invalid inputs
+test_removed_setup_flags_rejected
 test_unknown_command_rejected
 
 if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
@@ -1062,17 +792,12 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
     # Category 2: Claude Code injection
     test_cc_engram_injection
     test_cc_persona
-    test_cc_skills_minimal
     test_cc_skills_full
-    test_cc_skills_ecosystem
-    test_cc_custom_skills_with_flag
-    test_cc_custom_no_skills_flag_installs_nothing
     test_cc_permissions_injection
-    
-    # Category 4: Full preset integration
-    test_full_preset_claude_code
-    test_minimal_preset_claude_only_engram
-    test_ecosystem_both_agents
+
+    # Category 4: Full setup integration
+    test_full_setup_claude_code
+    test_full_setup_both_agents
 
     # Category 5: Content validation
     test_content_claude_md_sections_substantial
@@ -1090,11 +815,10 @@ if [ "${RUN_FULL_E2E:-0}" = "1" ]; then
     test_codex_engram_idempotent
 
     # Category 8: Edge cases
-    test_edge_permissions_only_no_persona
-    test_edge_multiple_agents_same_component
+    test_edge_multiple_agents
 
     # Category 7: Injection integrity (issue #4 regression guard)
-    test_integrity_full_preset_all_skills_nonempty
+    test_integrity_setup_all_skills_nonempty
 else
     log_skip "Tier 2 tests (set RUN_FULL_E2E=1 to enable)"
 fi

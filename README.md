@@ -40,8 +40,8 @@ Run `brunnr-code` with no arguments to open the interactive TUI, or use a comman
 
 | Command | What it does |
 |---------|--------------|
-| `brunnr-code install` | Configure agents on this machine (`--agents`, `--components`, `--dry-run`). |
-| `brunnr-code sync` | Sync agent configs and skills to the current version. |
+| `brunnr-code install` | Configure agents on this machine (`--agents`, `--dry-run`). |
+| `brunnr-code sync` | Re-apply the setup to the current version. |
 | `brunnr-code uninstall` | Remove managed files from this machine. |
 | `brunnr-code doctor` | Run health diagnostics. |
 | `brunnr-code update` / `upgrade` | Check for Engram updates / apply them. |
@@ -50,6 +50,12 @@ Run `brunnr-code` with no arguments to open the interactive TUI, or use a comman
 | `brunnr-code version` | Print the version. |
 
 Every command supports `--help`.
+
+There is one setup, Dev Stack + Permissions. `install` and `sync` always apply
+Engram memory, the persona, the permissions overlay and eight skills
+(judgment-day, go-testing, skill-creator, skill-improver, skill-registry,
+chained-pr, cognitive-doc-design, work-unit-commits). Only the agents are
+selectable.
 
 ## Build from source
 
