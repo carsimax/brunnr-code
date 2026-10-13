@@ -38,7 +38,7 @@ A whole-repo audit (6 read-only Sonnet auditors, parent spot checks) found user-
 ### Must fix
 
 - [x] T1: `settings.json` malformed or JSONC is rewritten as only `permissions`. Use `filemerge.MergeJSONCObjects` in `components/permissions/inject.go:98`; drop the malformed-as-`{}` swallow in `filemerge/json_merge.go:11-19` and its pinning test (`json_merge_test.go:120`); confirm `agents/claude/adapter.go` and `engram/inject.go:472` still hold.
-- [ ] T2: user `permissions.deny` is replaced by the managed list. In `mergeObjectScope` (`filemerge/json_merge.go:905`), when base and overlay are both arrays, keep base entries and append missing overlay entries. Test with a user deny entry.
+- [x] T2: user `permissions.deny` is replaced by the managed list. In `mergeObjectScope` (`filemerge/json_merge.go:905`), when base and overlay are both arrays, keep base entries and append missing overlay entries. Test with a user deny entry.
 - [ ] T3: lens and correction-plan captures run with `context.Background()` (`cli/review_artifact.go:192`, `cli/review_correction_plan_capture.go:48`). Wrap in `WithTimeout(reviewProviderRoleCaptureTimeout)`; set `command.WaitDelay` in the Claude and Codex adapters.
 - [ ] T4: stop-hook prints `--cwd <root>` unquoted (`cli/review_stop_hook.go:294`). Use `pathquote.ShellWord(root)`. Test with a path containing a space and `;`.
 - [ ] T5: `backup.Restore` returns on the first failing entry (`backup/restore.go:310`, `:371`), also during rollback. Collect with `errors.Join` and continue. Test with an unrestorable entry followed by a restorable one.
@@ -90,6 +90,7 @@ A whole-repo audit (6 read-only Sonnet auditors, parent spot checks) found user-
   10. Stop-hook record write error returns non-zero after the block JSON was printed; `recordReviewStopHookReminder` returns an unused bool (`cli/review_stop_hook.go:243,394-420`).
   11. `install --agent ,` parses to an empty list and takes the full-install overwrite path (`cli/run.go:266`).
   12. The 2s store-lock budget can be outlasted by git work under the lock on big repos (`reviewtransaction/compact_store.go:39,1620`).
+  13. Found during T2: `uninstall` removes the whole `permissions` key from `~/.claude/settings.json` (`components/uninstall/service.go:647`), including the user's own `allow`, `ask` and `deny` rules.
 
 ## Acceptance criteria
 
@@ -119,7 +120,8 @@ main
 ## Progress
 
 - 2026-10-12: feature document created from the audit report. Integration branch `fix/audit-remediation`, draft PR #1 to `main`.
-- T1 done on `fix/audit-remediation-t01`. Route: inline (two small files plus tests). `permissions` merges `settings.json` with `MergeJSONCObjects`, so a malformed file is refused untouched and comments survive; `MergeJSONObjects` no longer treats a malformed base as `{}` (its other callers pre-validate or ignore the error). The full suite exposed a pre-existing `MergeJSONCObjects` bug: a replaced nested value kept its in-document indent and got the key indent again, so each sync added 2 spaces and broke sync idempotence; fixed by compacting and re-indenting the member. RED observed first: `TestInjectClaudeCodeRefusesMalformedSettings`, `TestInjectClaudeCodePreservesSettingsComments`, `TestMergeJSONCObjectsNestedValueIsIdempotent` (and the three `internal/cli` sync idempotence tests). Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok.
+- T1 done on `fix/audit-remediation-t01`. Route: inline (two small files plus tests). `permissions` merges `settings.json` with `MergeJSONCObjects`, so a malformed file is refused untouched and comments survive; `MergeJSONObjects` no longer treats a malformed base as `{}` (its other callers pre-validate or ignore the error). The full suite exposed a pre-existing `MergeJSONCObjects` bug: a replaced nested value kept its in-document indent and got the key indent again, so each sync added 2 spaces and broke sync idempotence; fixed by compacting and re-indenting the member. RED observed first: `TestInjectClaudeCodeRefusesMalformedSettings`, `TestInjectClaudeCodePreservesSettingsComments`, `TestMergeJSONCObjectsNestedValueIsIdempotent` (and the three `internal/cli` sync idempotence tests). Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok. Commit `2820d76b`, PR #2, merged into the integration branch.
+- T2 done on `fix/audit-remediation-t02`. Route: inline (one file plus test). Fix lives in `permissions` (`withUserDenyRules`), not in `mergeObjectScope`: a global array union would also merge MCP `args` and `hooks` arrays. The user's own `permissions.deny` entries are appended after the managed list, de-duplicated; a second inject is a no-op. RED observed first: `TestInjectClaudeCodeKeepsUserDenyRules` (user rule dropped), then GREEN. New finding recorded as T21 item 13 (uninstall removes the whole `permissions` key). Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok.
 
 ## Next step
 
