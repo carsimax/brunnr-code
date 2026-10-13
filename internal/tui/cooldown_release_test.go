@@ -26,7 +26,7 @@ func TestCooldownReleaseWelcomeDoesNotClaimCurrent(t *testing.T) {
 	next, _ := m.Update(m.Init()())
 	m = next.(Model)
 	view := m.View()
-	if strings.Contains(view, "Upgrade tools (up to date)") {
+	if strings.Contains(view, "Upgrade + Sync (up to date)") {
 		t.Fatalf("contradictory welcome: %s", view)
 	}
 	saved, err := state.Read(home)
@@ -38,14 +38,14 @@ func TestCooldownReleaseWelcomeDoesNotClaimCurrent(t *testing.T) {
 func TestFailedUpdateCheckDoesNotClaimCurrent(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "1.0.0")
 	next, _ := m.Update(UpdateCheckResultMsg{Results: []update.UpdateResult{{Status: update.CheckFailed}}})
-	if strings.Contains(next.(Model).View(), "Upgrade tools (up to date)") {
+	if strings.Contains(next.(Model).View(), "Upgrade + Sync (up to date)") {
 		t.Fatal("failed check rendered as up to date")
 	}
 }
 
 func TestCooldownReleaseRefreshOnUpgradeEntry(t *testing.T) {
-	for _, cursor := range []int{1, 3} {
-		t.Run(map[int]string{1: "upgrade", 3: "upgrade-and-sync"}[cursor], func(t *testing.T) {
+	for _, cursor := range []int{1} {
+		t.Run("upgrade-and-sync", func(t *testing.T) {
 			home := t.TempDir()
 			t.Setenv("HOME", home)
 			t.Setenv("USERPROFILE", home)
@@ -80,10 +80,7 @@ func TestCooldownReleaseRefreshOnUpgradeEntry(t *testing.T) {
 			if calls != 1 || !m.UpdateCheckDone || !update.HasUpdates(m.UpdateResults) {
 				t.Fatalf("fresh check not offered: calls=%d model=%+v", calls, m)
 			}
-			if cursor == 1 && (!strings.Contains(m.View(), "brunnr-code") || !strings.Contains(m.View(), "2.0.0")) {
-				t.Fatal("upgrade target not rendered")
-			}
-			if cursor == 3 && !strings.Contains(m.View(), "Updates available") {
+			if !strings.Contains(m.View(), "Updates available") {
 				t.Fatal("combined upgrade confirmation did not offer updates")
 			}
 			saved, err := state.Read(home)
@@ -101,15 +98,15 @@ func TestCooldownReleaseNavigationWhileStartupPending(t *testing.T) {
 	m = next.(Model)
 	next, cmd := m.Update(UpdateCheckResultMsg{State: update.CheckSkipped})
 	m = next.(Model)
-	if m.Screen != ScreenUpgrade || m.UpdateCheckDone || cmd == nil {
+	if m.Screen != ScreenUpgradeSync || m.UpdateCheckDone || cmd == nil {
 		t.Fatal("late skipped result left upgrade without a refresh")
 	}
 }
 
 func TestCooldownReleaseLateFailedStartupRefreshesOnce(t *testing.T) {
-	for _, cursor := range []int{1, 3} {
+	for _, cursor := range []int{1} {
 		for _, succeeds := range []bool{false, true} {
-			name := map[int]string{1: "upgrade", 3: "upgrade-and-sync"}[cursor]
+			name := "upgrade-and-sync"
 			if succeeds {
 				name += "/refresh-succeeds"
 			} else {
@@ -134,7 +131,7 @@ func TestCooldownReleaseLateFailedStartupRefreshesOnce(t *testing.T) {
 				m.Cursor = cursor
 				next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 				m = next.(Model)
-				wantScreen := map[int]Screen{1: ScreenUpgrade, 3: ScreenUpgradeSync}[cursor]
+				wantScreen := ScreenUpgradeSync
 				next, cmd := m.Update(startup())
 				m = next.(Model)
 				if calls != 1 || m.Screen != wantScreen || m.UpdateCheckDone || cmd == nil || !strings.Contains(m.View(), "Checking for updates") {
@@ -167,12 +164,12 @@ func TestCooldownReleaseVerifiedCheckRemainsCurrent(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "1.0.0")
 	next, _ := m.Update(UpdateCheckResultMsg{Results: []update.UpdateResult{makeUpdateResult(update.UpToDate, "")}})
 	m = next.(Model)
-	if !strings.Contains(m.View(), "Upgrade tools (up to date)") {
+	if !strings.Contains(m.View(), "Upgrade + Sync (up to date)") {
 		t.Fatal("verified up-to-date label disappeared")
 	}
 	m.Cursor = 1
 	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	if next.(Model).Screen != ScreenUpgrade || cmd != nil {
+	if next.(Model).Screen != ScreenUpgradeSync || cmd != nil {
 		t.Fatal("verified results unexpectedly refreshed")
 	}
 }

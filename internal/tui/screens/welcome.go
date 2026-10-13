@@ -15,11 +15,13 @@ const welcomeHelpText = "j/k: navigate • enter: select • q: quit"
 // When hasEngines is false, "Create your own Agent" is shown as disabled
 // (labelled "(no agents)") to signal that no supported AI engine is installed.
 func WelcomeOptions(updateResults []update.UpdateResult, updateCheckDone bool, hasEngines bool) []string {
-	upgradeLabel := "Upgrade tools"
+	// Upgrade + Sync is the only upgrade entry: an upgrade without a sync
+	// leaves the agent configs (status line included) behind the binary.
+	upgradeLabel := "Upgrade + Sync"
 	if updateCheckDone && update.HasUpdates(updateResults) {
-		upgradeLabel = "Upgrade tools ★"
+		upgradeLabel = "Upgrade + Sync ★"
 	} else if updateCheckDone && !update.HasUpdates(updateResults) {
-		upgradeLabel = "Upgrade tools (up to date)"
+		upgradeLabel = "Upgrade + Sync (up to date)"
 	}
 
 	agentLabel := "Create your own Agent"
@@ -30,8 +32,6 @@ func WelcomeOptions(updateResults []update.UpdateResult, updateCheckDone bool, h
 	opts := []string{
 		"Start installation",
 		upgradeLabel,
-		"Sync configs",
-		"Upgrade + Sync",
 		"Configure models",
 		agentLabel,
 	}

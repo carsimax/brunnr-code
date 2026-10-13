@@ -1527,20 +1527,6 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			m.setScreen(ScreenDetection)
 		case 1:
 			m = m.withResetOperationState()
-			m.setScreen(ScreenUpgrade)
-			if m.UpdateCheckDone && m.UpdateCheckState != update.CheckCompleted {
-				m.UpdateCheckDone = false
-				return m, tea.Batch(tickCmd(), m.updateCheckCommand(0))
-			}
-			// Start spinner for update check waiting state.
-			if !m.UpdateCheckDone {
-				return m, tickCmd()
-			}
-		case 2:
-			m = m.withResetOperationState()
-			m.setScreen(ScreenSync)
-		case 3:
-			m = m.withResetOperationState()
 			m.setScreen(ScreenUpgradeSync)
 			if m.UpdateCheckDone && m.UpdateCheckState != update.CheckCompleted {
 				m.UpdateCheckDone = false
@@ -1550,9 +1536,9 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			if !m.UpdateCheckDone {
 				return m, tickCmd()
 			}
-		case 4:
+		case 2:
 			m.setScreen(ScreenModelConfig)
-		case 5:
+		case 3:
 			// "Create your own Agent" — blocked when no engines are available.
 			if !m.hasAgentBuilderEngines() {
 				return m, nil
@@ -1567,7 +1553,7 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			m.AgentBuilder.Textarea = ta
 			m.setScreen(ScreenAgentBuilderEngine)
 		default:
-			next := 6
+			next := 4
 
 			if m.Cursor == next {
 				m.setScreen(ScreenBackups)
@@ -1969,13 +1955,7 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 		// Direct key presses (u/v/c) are handled separately in handleUpdatePromptKey.
 		switch m.Cursor {
 		case 0: // Update now — guard against duplicate/concurrent upgrades.
-			if m.OperationRunning {
-				return m, nil
-			}
-			m.OperationRunning = true
-			m.OperationMode = "upgrade"
-			m.setScreen(ScreenUpgrade)
-			return m, tea.Batch(tickCmd(), m.startUpgrade())
+			return m.startUpdatePromptUpgradeSync()
 		case 1: // View changes
 			return m.openUpdateReleaseURL()
 		default: // Keep current version (cursor=2) or any other position
@@ -2122,14 +2102,7 @@ func (m Model) handleUpdatePromptKey(keyStr string) (tea.Model, tea.Cmd) {
 		// Confirm the highlighted option — same as confirmSelection() for this screen.
 		return m.confirmSelection()
 	case "u":
-		// Guard against duplicate/concurrent upgrades — mirrors ScreenUpgrade behavior.
-		if m.OperationRunning {
-			return m, nil
-		}
-		m.OperationRunning = true
-		m.OperationMode = "upgrade"
-		m.setScreen(ScreenUpgrade)
-		return m, tea.Batch(tickCmd(), m.startUpgrade())
+		return m.startUpdatePromptUpgradeSync()
 	case "v":
 		return m.openUpdateReleaseURL()
 	case "c":
@@ -2137,6 +2110,19 @@ func (m Model) handleUpdatePromptKey(keyStr string) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	return m, nil
+}
+
+// startUpdatePromptUpgradeSync accepts the startup update prompt. It syncs
+// after the upgrade, like the menu's Upgrade + Sync, so the agent configs
+// never lag behind until a manual `brunnr-code sync`.
+func (m Model) startUpdatePromptUpgradeSync() (tea.Model, tea.Cmd) {
+	if m.OperationRunning {
+		return m, nil
+	}
+	m.OperationRunning = true
+	m.OperationMode = "upgrade-sync"
+	m.setScreen(ScreenUpgradeSync)
+	return m, tea.Batch(tickCmd(), m.startUpgradeSync())
 }
 
 // openUpdateReleaseURL attempts to open the release notes URL for the first
