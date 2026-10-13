@@ -407,8 +407,13 @@ func applyReviewMode(
 		return reviewModeStatus(ctx, repo)
 	}
 	global, err := readGlobalRDDMode()
-	if err != nil {
+	if err != nil && operation == "enable" {
 		return disabled, err
+	}
+	// A clone-scoped disable is off whatever the global source says, so an
+	// unreadable state.json must not take this kill switch with it.
+	if err != nil {
+		global = reviewtransaction.RDDGlobalMode{}
 	}
 	mode := reviewtransaction.RDDModeOff
 	if operation == "enable" {
@@ -447,7 +452,7 @@ func readGlobalRDDMode() (reviewtransaction.RDDGlobalMode, error) {
 		if errors.Is(err, os.ErrNotExist) {
 			return reviewtransaction.RDDGlobalMode{}, nil
 		}
-		return reviewtransaction.RDDGlobalMode{}, fmt.Errorf("read global review mode: %w", err)
+		return reviewtransaction.RDDGlobalMode{}, fmt.Errorf("read global review mode from %s: %w; repair that JSON file, or move it aside and run `brunnr-code sync` to rebuild it", state.Path(home), err)
 	}
 	global := reviewtransaction.RDDGlobalMode{Value: persisted.RDDMode}
 	if persisted.RDDModeRecordedAt != nil {

@@ -2,8 +2,12 @@ package cli
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/carsimax/brunnr-code/internal/state"
 
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
@@ -65,5 +69,32 @@ func TestCloneScopeDisableSaysWhenItReachedOnlyThisBuild(t *testing.T) {
 	if !strings.Contains(output.String(), "note:") ||
 		!strings.Contains(output.String(), "applied for this brunnr-code only") {
 		t.Fatalf("the human-readable disable claimed a machine-wide switch it did not publish:\n%s", output.String())
+	}
+}
+
+// A corrupt state.json must not take the kill switch with it: a clone-scoped
+// disable still works, and every other verb names the file to repair.
+func TestReviewModeSurvivesCorruptGlobalState(t *testing.T) {
+	home := reviewModeHome(t)
+	repo := initReviewCLIRepo(t)
+	statePath := state.Path(home)
+	if err := os.MkdirAll(filepath.Dir(statePath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(statePath, []byte("{bad"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var output bytes.Buffer
+	if err := RunReviewMode([]string{"disable", "--cwd", repo, "--scope", "clone", "--json"}, &output); err != nil {
+		t.Fatalf("clone-scoped disable with a corrupt state.json failed: %v", err)
+	}
+	if result := decodeReviewModeResult(t, output.Bytes()); result.Status.Effective != reviewtransaction.RDDModeOff {
+		t.Fatalf("clone-scoped disable effective = %q, want off", result.Status.Effective)
+	}
+
+	err := RunReviewMode([]string{"status", "--cwd", repo}, &bytes.Buffer{})
+	if err == nil || !strings.Contains(err.Error(), statePath) {
+		t.Fatalf("status with a corrupt state.json = %v, want an error naming %s", err, statePath)
 	}
 }
