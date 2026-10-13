@@ -610,7 +610,7 @@ test_integrity_setup_all_skills_nonempty() {
 
     if $BINARY install --agent claude-code 2>&1; then
         local skill_dir="$HOME/.claude/skills"
-        assert_file_count "$skill_dir" "SKILL.md" 8 "Setup installs 8 foundation skills"
+        assert_file_count "$skill_dir" "SKILL.md" 9 "Setup installs 9 foundation skills"
         local all_ok=true
         local empty_count=0
 
@@ -626,10 +626,10 @@ test_integrity_setup_all_skills_nonempty() {
 
         local total
         total=$(find "$skill_dir" -name "SKILL.md" -type f | wc -l | tr -d ' ')
-        if $all_ok && [ "$total" -eq 8 ]; then
-            log_pass "All 8 foundation skill files have >= 100 bytes of real content"
+        if $all_ok && [ "$total" -eq 9 ]; then
+            log_pass "All 9 foundation skill files have >= 100 bytes of real content"
         else
-            log_fail "Expected 8 non-empty foundation skills (found $total; $empty_count empty or corrupt)"
+            log_fail "Expected 9 non-empty foundation skills (found $total; $empty_count empty or corrupt)"
         fi
     else
         log_fail "Setup install for integrity check failed"
