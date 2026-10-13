@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/verify"
 )
 
@@ -62,5 +63,14 @@ func TestWithEngramPathNoteSkipsWithoutOffPathDownload(t *testing.T) {
 
 	if updated.FinalNote != report.FinalNote {
 		t.Fatalf("FinalNote should be unchanged, got: %q", updated.FinalNote)
+	}
+}
+
+// The engram hint must name a command that still parses: setup is fixed, so
+// install takes no component selection.
+func TestEngramInstallCommandUsesSingleSetup(t *testing.T) {
+	got := engramInstallCommand([]model.AgentID{model.AgentClaudeCode, model.AgentCodex})
+	if want := "brunnr-code install --agent claude-code,codex"; got != want {
+		t.Fatalf("engramInstallCommand() = %q, want %q", got, want)
 	}
 }

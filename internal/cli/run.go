@@ -1927,7 +1927,7 @@ func engramHealthChecks(state *runtimeState, agentIDs []model.AgentID) []verify.
 // engramInstallCommand names the install continuation for a missing engram
 // binary so the warning that reports it is actionable on its own.
 func engramInstallCommand(agentIDs []model.AgentID) string {
-	return fmt.Sprintf("brunnr-code install --agent %s --components engram", joinAgentIDs(agentIDs))
+	return fmt.Sprintf("brunnr-code install --agent %s", joinAgentIDs(agentIDs))
 }
 
 func engramPathGuidance(binDir, shellPath string) string {
