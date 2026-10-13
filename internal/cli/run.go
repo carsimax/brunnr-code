@@ -1076,7 +1076,7 @@ type codeGraphInstallStep struct {
 func (s codeGraphInstallStep) ID() string { return s.id }
 
 func (s codeGraphInstallStep) Run() error {
-	if _, err := installCodeGraph(model.CommunityToolCodeGraph, s.workspaceDir, s.homeDir, communitytool.RunnerFunc(runCommand), communitytool.DetectorFunc(cmdLookPath)); err != nil {
+	if _, err := installCodeGraph(model.CommunityToolCodeGraph, s.workspaceDir, s.homeDir, codeGraphHomeRunner{homeDir: s.homeDir}, communitytool.DetectorFunc(cmdLookPath)); err != nil {
 		return fmt.Errorf("install CodeGraph: %w", err)
 	}
 	return nil

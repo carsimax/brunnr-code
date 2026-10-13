@@ -2,6 +2,7 @@ package communitytool
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -41,13 +42,15 @@ func TestCodeGraphVersionLess(t *testing.T) {
 		b    string
 		want bool
 	}{
-		{name: "reported 0.9.3 predates the target contract", a: "0.9.3", b: codeGraphUpstreamVersion, want: true},
-		{name: "exact contract version is not older", a: "1.4.1", b: codeGraphUpstreamVersion, want: false},
-		{name: "newer patch is not older", a: "1.4.2", b: codeGraphUpstreamVersion, want: false},
+		{name: "the upstream floor is 1.6.2", a: codeGraphUpstreamVersion, b: "1.6.2", want: false},
+		{name: "reported 0.9.3 predates the floor", a: "0.9.3", b: codeGraphUpstreamVersion, want: true},
+		{name: "previous 1.4.1 contract predates the floor", a: "1.4.1", b: codeGraphUpstreamVersion, want: true},
+		{name: "older patch predates the floor", a: "1.6.1", b: codeGraphUpstreamVersion, want: true},
+		{name: "exact floor version is not older", a: "1.6.2", b: codeGraphUpstreamVersion, want: false},
+		{name: "newer patch is not older", a: "1.6.3", b: codeGraphUpstreamVersion, want: false},
 		{name: "newer major is not older", a: "2.0.0", b: codeGraphUpstreamVersion, want: false},
 		{name: "minor compares numerically not lexicographically", a: "1.10.0", b: codeGraphUpstreamVersion, want: false},
-		{name: "older minor", a: "1.3.9", b: codeGraphUpstreamVersion, want: true},
-		{name: "shorter version pads with zeroes", a: "1.4", b: codeGraphUpstreamVersion, want: true},
+		{name: "shorter version pads with zeroes", a: "1.6", b: codeGraphUpstreamVersion, want: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -56,15 +59,6 @@ func TestCodeGraphVersionLess(t *testing.T) {
 			}
 		})
 	}
-}
-
-// stubCodeGraphVersion swaps the installed-version probe for the duration of a
-// test so no test ever shells out to a real codegraph binary.
-func stubCodeGraphVersion(t *testing.T, version string, ok bool) {
-	t.Helper()
-	previous := codeGraphInstalledVersion
-	codeGraphInstalledVersion = func(string) (string, bool) { return version, ok }
-	t.Cleanup(func() { codeGraphInstalledVersion = previous })
 }
 
 // installHomeWithTwoNativeTargets mirrors the reporter's machine: an already
@@ -78,107 +72,171 @@ func installHomeWithTwoNativeTargets(t *testing.T) string {
 	return home
 }
 
-func TestInstallDropsBlindTargetsWhenInstalledCodeGraphPredatesTheContract(t *testing.T) {
-	home := installHomeWithTwoNativeTargets(t)
-	stubCodeGraphVersion(t, "0.9.3", true)
-
-	result, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
-		mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
-		mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\n")
-		return nil
-	}), DetectorFunc(func(string) (string, error) { return "/bin/codegraph", nil }))
-	if err != nil {
-		t.Fatalf("InstallWithHome() error = %v", err)
+// stubCodeGraphVersionSequence makes successive probes return the given
+// versions in order; the last entry repeats. An empty string reads as an
+// undeterminable version.
+func stubCodeGraphVersionSequence(t *testing.T, versions ...string) *[]string {
+	t.Helper()
+	previous := codeGraphInstalledVersion
+	probed := make([]string, 0, len(versions))
+	codeGraphInstalledVersion = func(cliPath string) (string, bool) {
+		probed = append(probed, cliPath)
+		version := versions[len(versions)-1]
+		if len(probed) <= len(versions) {
+			version = versions[len(probed)-1]
+		}
+		return version, version != ""
 	}
+	t.Cleanup(func() { codeGraphInstalledVersion = previous })
+	return &probed
+}
 
-	want := []string{"codegraph install --yes"}
-	if !reflect.DeepEqual(result.CommandsRun, want) {
-		t.Fatalf("CommandsRun = %#v, want %#v (target ids must not be passed blind to an older CodeGraph)", result.CommandsRun, want)
+// wireBothNativeTargets simulates a successful targeted `codegraph install`.
+func wireBothNativeTargets(t *testing.T, home string) {
+	t.Helper()
+	mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
+	mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\n")
+}
+
+func TestInstallEnforcesTheUpstreamFloorBeforeTargetedInstall(t *testing.T) {
+	const targeted = "codegraph install --target claude,codex --location global --yes"
+	tests := []struct {
+		name         string
+		versions     []string
+		failUpgrade  bool
+		wantCommands []string
+		wantErr      []string
+	}{
+		{
+			name:         "floor version installs targeted without upgrading",
+			versions:     []string{"1.6.2"},
+			wantCommands: []string{targeted},
+		},
+		{
+			name:         "newer version installs targeted without upgrading",
+			versions:     []string{"1.7.0"},
+			wantCommands: []string{targeted},
+		},
+		{
+			name:         "older version is upgraded then installed targeted",
+			versions:     []string{"1.4.1", "1.6.2"},
+			wantCommands: []string{"codegraph upgrade", targeted},
+		},
+		{
+			name:         "undeterminable version is upgraded then installed targeted",
+			versions:     []string{"", "1.6.2"},
+			wantCommands: []string{"codegraph upgrade", targeted},
+		},
+		{
+			name:         "failed upgrade stops before install",
+			versions:     []string{"1.4.1"},
+			failUpgrade:  true,
+			wantCommands: []string{"codegraph upgrade"},
+			wantErr:      []string{"1.4.1", "1.6.2", "codegraph upgrade", "@colbymchenry/codegraph@latest"},
+		},
+		{
+			name:         "still older after upgrade stops before install",
+			versions:     []string{"1.4.1", "1.5.0"},
+			wantCommands: []string{"codegraph upgrade"},
+			wantErr:      []string{"1.5.0", "1.6.2", "@colbymchenry/codegraph@latest"},
+		},
+		{
+			name:         "still undeterminable after upgrade stops before install",
+			versions:     []string{"", ""},
+			wantCommands: []string{"codegraph upgrade"},
+			wantErr:      []string{"1.6.2", "@colbymchenry/codegraph@latest"},
+		},
 	}
-	if !hasManualActionContaining(result.ManualActions, "0.9.3") || !hasManualActionContaining(result.ManualActions, codeGraphUpstreamVersion) {
-		t.Fatalf("ManualActions = %#v, want the version gap named", result.ManualActions)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			home := installHomeWithTwoNativeTargets(t)
+			stubCodeGraphVersionSequence(t, tt.versions...)
+			var ran []string
+			result, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(name string, args ...string) error {
+				ran = append(ran, strings.Join(append([]string{name}, args...), " "))
+				if len(args) > 0 && args[0] == "upgrade" {
+					if tt.failUpgrade {
+						return errors.New("network unreachable")
+					}
+					return nil
+				}
+				wireBothNativeTargets(t, home)
+				return nil
+			}), DetectorFunc(func(string) (string, error) { return "/bin/codegraph", nil }))
+
+			if !reflect.DeepEqual(ran, tt.wantCommands) || !reflect.DeepEqual(result.CommandsRun, tt.wantCommands) {
+				t.Fatalf("ran = %#v, CommandsRun = %#v, want %#v", ran, result.CommandsRun, tt.wantCommands)
+			}
+			if len(tt.wantErr) == 0 {
+				if err != nil {
+					t.Fatalf("InstallWithHome() error = %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatal("InstallWithHome() error = nil, want the floor violation surfaced")
+			}
+			for _, want := range tt.wantErr {
+				if !strings.Contains(err.Error(), want) {
+					t.Fatalf("error = %q, want it to mention %q", err, want)
+				}
+			}
+			if _, statErr := os.Stat(filepath.Join(home, ".claude.json")); !os.IsNotExist(statErr) {
+				t.Fatalf("~/.claude.json stat = %v, want no wiring after a floor failure", statErr)
+			}
+		})
 	}
 }
 
-func TestInstallKeepsExplicitTargetsWhenInstalledCodeGraphMeetsTheContract(t *testing.T) {
+// An older CLI must be upgraded even when the agents already look wired:
+// Brunnr owns upgrades, so a satisfied status must not hide CLI drift.
+func TestInstallUpgradesAnOlderCLIEvenWhenAgentsAreAlreadyWired(t *testing.T) {
 	home := installHomeWithTwoNativeTargets(t)
-	stubCodeGraphVersion(t, codeGraphUpstreamVersion, true)
+	wireBothNativeTargets(t, home)
+	if _, err := InjectCodeGraphGuidance(home); err != nil {
+		t.Fatal(err)
+	}
+	stubCodeGraphVersionSequence(t, "1.4.1", "1.6.2")
 
 	result, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
-		mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
-		mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\n")
 		return nil
 	}), DetectorFunc(func(string) (string, error) { return "/bin/codegraph", nil }))
 	if err != nil {
 		t.Fatalf("InstallWithHome() error = %v", err)
 	}
-
-	want := []string{"codegraph install --target claude,codex --location global --yes"}
+	want := []string{"codegraph upgrade", "codegraph install --target claude,codex --location global --yes"}
 	if !reflect.DeepEqual(result.CommandsRun, want) {
 		t.Fatalf("CommandsRun = %#v, want %#v", result.CommandsRun, want)
 	}
-	if hasManualActionContaining(result.ManualActions, "older than") {
-		t.Fatalf("ManualActions = %#v, want no version-gap note", result.ManualActions)
-	}
-}
-
-func TestInstallKeepsExplicitTargetsWhenVersionProbeCannotDetermineAVersion(t *testing.T) {
-	home := installHomeWithTwoNativeTargets(t)
-	stubCodeGraphVersion(t, "", false)
-
-	result, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
-		mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
-		mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\n")
-		return nil
-	}), DetectorFunc(func(string) (string, error) { return "/bin/codegraph", nil }))
-	if err != nil {
-		t.Fatalf("InstallWithHome() error = %v", err)
-	}
-
-	want := []string{"codegraph install --target claude,codex --location global --yes"}
-	if !reflect.DeepEqual(result.CommandsRun, want) {
-		t.Fatalf("CommandsRun = %#v, want unchanged behaviour when the probe is inconclusive", result.CommandsRun)
+	if !hasManualActionContaining(result.ManualActions, "upgraded") {
+		t.Fatalf("ManualActions = %#v, want the upgrade reported", result.ManualActions)
 	}
 }
 
 func TestInstallProbesTheResolvedCLIPathNotABareName(t *testing.T) {
 	home := installHomeWithTwoNativeTargets(t)
-	previous := codeGraphInstalledVersion
-	probed := make([]string, 0, 1)
-	codeGraphInstalledVersion = func(cliPath string) (string, bool) {
-		probed = append(probed, cliPath)
-		return codeGraphUpstreamVersion, true
-	}
-	t.Cleanup(func() { codeGraphInstalledVersion = previous })
+	probed := stubCodeGraphVersionSequence(t, codeGraphUpstreamVersion)
 
 	if _, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
-		mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
-		mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\n")
+		wireBothNativeTargets(t, home)
 		return nil
 	}), DetectorFunc(func(string) (string, error) { return "/opt/tools/codegraph", nil })); err != nil {
 		t.Fatalf("InstallWithHome() error = %v", err)
 	}
 
-	if !reflect.DeepEqual(probed, []string{"/opt/tools/codegraph"}) {
-		t.Fatalf("probed = %#v, want the detector-resolved CLI path", probed)
+	if !reflect.DeepEqual(*probed, []string{"/opt/tools/codegraph"}) {
+		t.Fatalf("probed = %#v, want the detector-resolved CLI path", *probed)
 	}
 }
 
 func TestInstallSkipsTheVersionProbeWhenTheCLIIsNotYetInstalled(t *testing.T) {
 	home := installHomeWithTwoNativeTargets(t)
-	previous := codeGraphInstalledVersion
-	probeCalls := 0
-	codeGraphInstalledVersion = func(string) (string, bool) {
-		probeCalls++
-		return "0.9.3", true
-	}
-	t.Cleanup(func() { codeGraphInstalledVersion = previous })
+	probed := stubCodeGraphVersionSequence(t, "0.9.3")
 
 	available := false
 	if _, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
 		available = true
-		mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
-		mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\n")
+		wireBothNativeTargets(t, home)
 		return nil
 	}), DetectorFunc(func(string) (string, error) {
 		if !available {
@@ -189,30 +247,8 @@ func TestInstallSkipsTheVersionProbeWhenTheCLIIsNotYetInstalled(t *testing.T) {
 		t.Fatalf("InstallWithHome() error = %v", err)
 	}
 
-	if probeCalls != 0 {
-		t.Fatalf("probe calls = %d, want 0: a freshly installed @latest CLI already meets the contract", probeCalls)
-	}
-}
-
-// TestInstallCarriesTheVersionGapNoteThroughTheRollbackPath keeps the version
-// gap reportable on the path where it matters most. A step that fails still
-// returns the Result, so the reason and the resolving command survive the
-// rollback rather than being replaced by a raw upstream error.
-func TestInstallCarriesTheVersionGapNoteThroughTheRollbackPath(t *testing.T) {
-	home := installHomeWithTwoNativeTargets(t)
-	stubCodeGraphVersion(t, "0.9.3", true)
-
-	result, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
-		return errors.New("upstream install rejected the invocation")
-	}), DetectorFunc(func(string) (string, error) { return "/bin/codegraph", nil }))
-	if err == nil {
-		t.Fatal("InstallWithHome() error = nil, want the runner failure surfaced")
-	}
-	if !hasManualActionContaining(result.ManualActions, "0.9.3") {
-		t.Fatalf("ManualActions = %#v, want the version gap reported on the failure path", result.ManualActions)
-	}
-	if !hasManualActionContaining(result.ManualActions, "@colbymchenry/codegraph@latest") {
-		t.Fatalf("ManualActions = %#v, want the resolving command named", result.ManualActions)
+	if len(*probed) != 0 {
+		t.Fatalf("probes = %#v, want none: a freshly installed @latest CLI already meets the floor", *probed)
 	}
 }
 

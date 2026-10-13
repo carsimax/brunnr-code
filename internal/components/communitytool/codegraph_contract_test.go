@@ -38,7 +38,7 @@ func TestCodeGraphCompatibilityTableIsExhaustive(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("compatibility agents = %v, want registry agents %v", got, want)
 	}
-	if codeGraphUpstreamVersion != "1.4.1" {
+	if codeGraphUpstreamVersion != "1.6.2" {
 		t.Fatalf("upstream contract = %q", codeGraphUpstreamVersion)
 	}
 }

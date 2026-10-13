@@ -143,7 +143,14 @@ func InstallWithHome(id model.CommunityToolID, workspaceDir string, homeDir stri
 		}
 		return result, cause
 	}
-	if before.CodeGraphReconcileSatisfied() || codeGraphCanRepairWithoutFullInstall(homeDir, before) {
+	upgraded := false
+	if before.CLI == AvailabilityAvailable {
+		upgraded, err = upgradeCodeGraphToFloor(id, homeDir, before.CLIPath, runner, detector, &result)
+		if err != nil {
+			return rollback(err)
+		}
+	}
+	if !upgraded && (before.CodeGraphReconcileSatisfied() || codeGraphCanRepairWithoutFullInstall(homeDir, before)) {
 		guidanceResult, err := InjectCodeGraphGuidance(homeDir)
 		if err != nil {
 			return rollback(err)
@@ -162,30 +169,9 @@ func InstallWithHome(id model.CommunityToolID, workspaceDir string, homeDir stri
 	}
 
 	targets := detectedCodeGraphTargets(homeDir)
-	// The target ids come from a compatibility table written against
-	// codeGraphUpstreamVersion. Upstream rejects the whole comma-separated
-	// list when it does not recognise a single id, so passing them to an
-	// older CodeGraph takes down the targets it does support along with the
-	// ones it does not. When the installed CLI is provably older, drop the
-	// ids and let CodeGraph select targets itself instead of guessing which
-	// of ours it understands. A CLI that is not installed yet is exempt: the
-	// install command below fetches @latest, which meets the contract.
-	droppedBlindTargets := false
-	if before.CLI == AvailabilityAvailable && len(targets) > 0 {
-		if installed, ok := codeGraphInstalledVersion(before.CLIPath); ok && codeGraphVersionLess(installed, codeGraphUpstreamVersion) {
-			targets = nil
-			droppedBlindTargets = true
-			result.ManualActions = append(result.ManualActions, fmt.Sprintf(
-				"CodeGraph %s is older than the %s target contract Brunnr-Code is written against, so agent targets were left to CodeGraph's own detection. Run `npm install -g @colbymchenry/codegraph@latest` (or `pnpm add -g @colbymchenry/codegraph@latest`) and rerun Brunnr-Code to get explicit target selection.",
-				installed, codeGraphUpstreamVersion))
-		}
-	}
 	commands := make([][]string, 0, 2)
-	switch {
-	case len(targets) > 0:
+	if len(targets) > 0 {
 		commands = append(commands, []string{"codegraph", "install", "--target", strings.Join(targets, ","), "--location", "global", "--yes"})
-	case droppedBlindTargets:
-		commands = append(commands, []string{"codegraph", "install", "--yes"})
 	}
 	if before.CLI != AvailabilityAvailable {
 		var err error
@@ -223,6 +209,50 @@ func InstallWithHome(id model.CommunityToolID, workspaceDir string, homeDir stri
 	}
 	result.ManualActions = append(result.ManualActions, "CodeGraph CLI was installed and supported agents were connected. Project indexes will be created automatically when an enabled agent opens inside a project.")
 	return result, nil
+}
+
+// codeGraphManualUpgradeHint names every supported way to bring the CLI up to
+// the floor by hand when Brunnr-Code cannot do it.
+const codeGraphManualUpgradeHint = "Run `codegraph upgrade`, or reinstall with `npm install -g @colbymchenry/codegraph@latest` (or `pnpm add -g @colbymchenry/codegraph@latest`), then rerun Brunnr-Code."
+
+// upgradeCodeGraphToFloor runs `codegraph upgrade` when the installed CLI is
+// below codeGraphUpstreamVersion, then re-probes the CLI. An undeterminable
+// version is treated as below the floor: the targeted install below passes
+// agent ids that an older CLI rejects as a whole, so only a proven version is
+// trusted. Upgrading an already-current CLI is a no-op upstream ("Already up
+// to date", exit 0), so this choice costs one extra command at worst. The
+// upgrade never prompts: upstream only offers its beta signup when both stdin
+// and stdout are TTYs, and the runner gives it no stdin. It reports whether an
+// upgrade ran, and fails without falling back to an untargeted install when
+// the CLI still does not meet the floor.
+func upgradeCodeGraphToFloor(id model.CommunityToolID, homeDir, cliPath string, runner Runner, detector Detector, result *Result) (bool, error) {
+	installed, ok := codeGraphInstalledVersion(cliPath)
+	if ok && !codeGraphVersionLess(installed, codeGraphUpstreamVersion) {
+		return false, nil
+	}
+	current := codeGraphVersionLabel(installed, ok)
+	command := []string{"codegraph", "upgrade"}
+	result.CommandsRun = append(result.CommandsRun, strings.Join(command, " "))
+	if err := runner.Run(command[0], command[1:]...); err != nil {
+		return true, fmt.Errorf("CodeGraph %s is older than the required %s and `codegraph upgrade` failed: %w. %s", current, codeGraphUpstreamVersion, err, codeGraphManualUpgradeHint)
+	}
+	after := DetectStatus(id, homeDir, detector)
+	if after.CLI != AvailabilityAvailable {
+		return true, fmt.Errorf("`codegraph upgrade` did not leave a runnable codegraph CLI available. %s", codeGraphManualUpgradeHint)
+	}
+	upgradedVersion, ok := codeGraphInstalledVersion(after.CLIPath)
+	if !ok || codeGraphVersionLess(upgradedVersion, codeGraphUpstreamVersion) {
+		return true, fmt.Errorf("CodeGraph is still %s after `codegraph upgrade`, below the required %s. %s", codeGraphVersionLabel(upgradedVersion, ok), codeGraphUpstreamVersion, codeGraphManualUpgradeHint)
+	}
+	result.ManualActions = append(result.ManualActions, fmt.Sprintf("CodeGraph was upgraded from %s to %s.", current, upgradedVersion))
+	return true, nil
+}
+
+func codeGraphVersionLabel(version string, ok bool) string {
+	if !ok {
+		return "at an undeterminable version"
+	}
+	return version
 }
 
 func codeGraphCanRepairWithoutFullInstall(homeDir string, status Status) bool {
@@ -498,7 +528,7 @@ func detectCodeGraphPackageManager(detector Detector) (string, error) {
 		}
 		return "pnpm", nil
 	}
-	return "", fmt.Errorf("CodeGraph installation requires either `npm` or `pnpm` in PATH")
+	return "", fmt.Errorf("CodeGraph installation requires `npm` or `pnpm` in PATH, and neither was found. Install Node.js (which ships npm) or pnpm, then rerun Brunnr-Code; it installs the CLI with `npm install -g @colbymchenry/codegraph@latest` or `pnpm add -g @colbymchenry/codegraph@latest`")
 }
 
 func codeGraphCommands(packageManager string, targets []string) [][]string {

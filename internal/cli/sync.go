@@ -823,19 +823,30 @@ func (s *codeGraphGuidanceSyncStep) Rollback() error {
 	return restoreSyncFiles(s.before)
 }
 
+// codeGraphHomeRunner runs CodeGraph commands (package install, upgrade,
+// `codegraph install`) against a runtime home. Install and sync share it so an
+// install into a non-real home never writes the real one.
 type codeGraphHomeRunner struct {
 	homeDir string
 }
 
 func (r codeGraphHomeRunner) Run(name string, args ...string) error {
+	return runCodeGraphCommand(codeGraphCommandEnvironment(r.homeDir), name, args...)
+}
+
+// runCodeGraphCommand is a seam so tests never execute codegraph, npm or pnpm.
+var runCodeGraphCommand = executeCodeGraphCommand
+
+func executeCodeGraphCommand(environment map[string]string, name string, args ...string) error {
 	command := exec.Command(name, args...)
 	system.EnsureCommandDir(command)
-	actualHome, _ := os.UserHomeDir()
-	if filepath.Clean(r.homeDir) != filepath.Clean(actualHome) {
-		command.Env = overrideCommandEnvironment(os.Environ(), map[string]string{
-			"HOME":            r.homeDir,
-			"XDG_CONFIG_HOME": codeGraphConfigHome(r.homeDir),
-		})
+	if len(environment) > 0 {
+		command.Env = overrideCommandEnvironment(os.Environ(), environment)
+	}
+	if streamCommandOutput {
+		command.Stdout = os.Stdout
+		command.Stderr = os.Stderr
+		return command.Run()
 	}
 	output, err := command.CombinedOutput()
 	if err != nil {
@@ -845,6 +856,23 @@ func (r codeGraphHomeRunner) Run(name string, args ...string) error {
 		}
 	}
 	return err
+}
+
+// codeGraphCommandEnvironment returns the environment overrides that point
+// CodeGraph at homeDir. The real user home inherits the process environment
+// untouched. Any other home redirects HOME, XDG_CONFIG_HOME and CODEX_HOME
+// (upstream writes Codex config to $CODEX_HOME/config.toml, falling back to
+// ~/.codex), so an ambient CODEX_HOME cannot leak writes outside homeDir.
+func codeGraphCommandEnvironment(homeDir string) map[string]string {
+	actualHome, _ := os.UserHomeDir()
+	if filepath.Clean(homeDir) == filepath.Clean(actualHome) {
+		return nil
+	}
+	return map[string]string{
+		"HOME":            homeDir,
+		"XDG_CONFIG_HOME": codeGraphConfigHome(homeDir),
+		"CODEX_HOME":      filepath.Join(homeDir, ".codex"),
+	}
 }
 
 // codeGraphConfigHome resolves the XDG config root CodeGraph uses for

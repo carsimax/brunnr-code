@@ -12,7 +12,10 @@ import (
 	"github.com/carsimax/brunnr-code/internal/model"
 )
 
-const codeGraphUpstreamVersion = "1.4.1"
+// codeGraphUpstreamVersion is the minimum CodeGraph release Brunnr-Code is
+// written against. An installed CLI below it is upgraded with `codegraph
+// upgrade` before any targeted `codegraph install`.
+const codeGraphUpstreamVersion = "1.6.2"
 
 type codeGraphStrategy string
 

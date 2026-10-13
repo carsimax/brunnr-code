@@ -35,6 +35,9 @@ func TestMain(m *testing.M) {
 		return "/bin", nil
 	}
 	codeGraphCLIUsable = func(string) bool { return true }
+	// No test may execute a real codegraph binary. The default probe reports
+	// the floor, so tests that do not care about versions take the normal path.
+	codeGraphInstalledVersion = func(string) (string, bool) { return codeGraphUpstreamVersion, true }
 	os.Exit(m.Run())
 }
 
@@ -143,8 +146,13 @@ func TestCodeGraphCommandsForDetectorFailsWhenNpmAndPnpmAreMissing(t *testing.T)
 	_, err := CodeGraphCommandsForDetector(DetectorFunc(func(string) (string, error) {
 		return "", errors.New("not found")
 	}))
-	if err == nil || !strings.Contains(err.Error(), "npm") || !strings.Contains(err.Error(), "pnpm") {
-		t.Fatalf("CodeGraphCommandsForDetector() error = %v, want npm/pnpm requirement", err)
+	if err == nil {
+		t.Fatal("CodeGraphCommandsForDetector() error = nil, want npm/pnpm requirement")
+	}
+	for _, want := range []string{"npm install -g @colbymchenry/codegraph@latest", "pnpm add -g @colbymchenry/codegraph@latest", "Node.js"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("CodeGraphCommandsForDetector() error = %q, want it to name %q", err, want)
+		}
 	}
 }
 

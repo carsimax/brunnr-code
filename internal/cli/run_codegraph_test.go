@@ -201,3 +201,83 @@ func TestNativeReviewAgentStepAlwaysGrantsCodeGraphExplore(t *testing.T) {
 		t.Fatalf("no reviewer in %v grants mcp__codegraph__codegraph_explore", changed)
 	}
 }
+
+func TestCodeGraphCommandEnvironment(t *testing.T) {
+	realHome, err := os.UserHomeDir()
+	if err != nil {
+		t.Skipf("no home directory available: %v", err)
+	}
+	runtimeHome := t.TempDir()
+	tests := []struct {
+		name    string
+		homeDir string
+		xdg     string
+		want    map[string]string
+	}{
+		{name: "real home inherits the process environment", homeDir: realHome, want: nil},
+		{name: "real home keeps an absolute XDG_CONFIG_HOME", homeDir: realHome, xdg: "/custom/xdg", want: nil},
+		{
+			name:    "runtime home redirects every config root",
+			homeDir: runtimeHome,
+			want: map[string]string{
+				"HOME":            runtimeHome,
+				"XDG_CONFIG_HOME": filepath.Join(runtimeHome, ".config"),
+				"CODEX_HOME":      filepath.Join(runtimeHome, ".codex"),
+			},
+		},
+		{
+			name:    "runtime home ignores the real user's XDG_CONFIG_HOME",
+			homeDir: runtimeHome,
+			xdg:     "/custom/xdg",
+			want: map[string]string{
+				"HOME":            runtimeHome,
+				"XDG_CONFIG_HOME": filepath.Join(runtimeHome, ".config"),
+				"CODEX_HOME":      filepath.Join(runtimeHome, ".codex"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("XDG_CONFIG_HOME", tt.xdg)
+			if got := codeGraphCommandEnvironment(tt.homeDir); !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("codeGraphCommandEnvironment(%q) = %#v, want %#v", tt.homeDir, got, tt.want)
+			}
+		})
+	}
+}
+
+// The install step must run every CodeGraph command (package install,
+// upgrade, `codegraph install`) against the runtime home, exactly like sync,
+// so an install into a non-real home never touches the real one.
+func TestCodeGraphInstallAndSyncRunAgainstTheRuntimeHome(t *testing.T) {
+	home := t.TempDir()
+	previousInstall := installCodeGraph
+	previousRun := runCodeGraphCommand
+	t.Cleanup(func() {
+		installCodeGraph = previousInstall
+		runCodeGraphCommand = previousRun
+	})
+	var envs []map[string]string
+	runCodeGraphCommand = func(env map[string]string, name string, args ...string) error {
+		envs = append(envs, env)
+		return nil
+	}
+	installCodeGraph = func(_ model.CommunityToolID, _ string, _ string, r communitytool.Runner, _ communitytool.Detector) (communitytool.Result, error) {
+		return communitytool.Result{}, r.Run("codegraph", "install", "--yes")
+	}
+
+	if err := (codeGraphInstallStep{id: "codegraph:install", workspaceDir: "/work/project", homeDir: home}).Run(); err != nil {
+		t.Fatalf("install step Run() error = %v", err)
+	}
+	if err := (codeGraphHomeRunner{homeDir: home}).Run("codegraph", "install", "--yes"); err != nil {
+		t.Fatalf("sync runner Run() error = %v", err)
+	}
+
+	want := codeGraphCommandEnvironment(home)
+	if len(envs) != 2 || !reflect.DeepEqual(envs[0], want) || !reflect.DeepEqual(envs[1], want) {
+		t.Fatalf("command environments = %#v, want install and sync both to use %#v", envs, want)
+	}
+	if envs[0]["HOME"] != home {
+		t.Fatalf("install HOME = %q, want runtime home %q", envs[0]["HOME"], home)
+	}
+}
