@@ -1,3 +1,3 @@
-//go:build unix
+//go:build darwin
 
 package reviewtransaction

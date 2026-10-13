@@ -15,11 +15,10 @@ import (
 )
 
 var (
-	// refusal:by-design world-action: the exit is a filesystem repair (chown, takeown, icacls /setowner, or deleting the offending link) that only the operator can perform; no brunnr-code command may rewrite ownership of paths it refuses to trust
+	// refusal:by-design world-action: the exit is a filesystem repair (chown, or deleting the offending link) that only the operator can perform; no brunnr-code command may rewrite ownership of paths it refuses to trust
 	errUnsafeRARAuthorityPath = errors.New(
 		"unsafe RAR authority path; restore trusted ownership of the reported " +
-			"path (chown on POSIX; takeown or icacls /setowner on Windows) or " +
-			"remove the symlink/reparse point, then rerun the command",
+			"path (chown) or remove the symlink, then rerun the command",
 	)
 	errRARAuthorityPathReplaced = errors.New("RAR authority path changed during access")
 )
@@ -48,8 +47,7 @@ func unsafeRARPathError(path string, directory bool) error {
 // PrivateModeIneffectiveError reports a private RAR path whose validation
 // fails because the filesystem hosting it cannot represent private POSIX
 // modes at all: a successful chmod does not change the reported mode, so the
-// chmod repair the generic refusal prints can never take effect (#5112, WSL
-// DrvFS/9p without the metadata option being the reported instance). It wraps
+// chmod repair the generic refusal prints can never take effect (#5112). It wraps
 // the generic unsafe-path refusal, so every fail-closed caller matching that
 // sentinel keeps refusing exactly as before; only the operator-facing wording
 // changes, from a repair to a real continuation.
@@ -67,7 +65,7 @@ func (err *PrivateModeIneffectiveError) Error() string {
 	return fmt.Sprintf(
 		"the filesystem hosting the private RAR %s %q cannot represent private POSIX modes: "+
 			"permissions stay world-accessible even after a successful chmod, so no chmod can repair it; "+
-			"remount the volume with POSIX metadata enabled (WSL DrvFS: add the metadata mount option), "+
+			"remount the volume with POSIX metadata enabled, "+
 			"or move the repository to a filesystem that persists per-file permission modes",
 		kind, err.Path,
 	)

@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -52,7 +51,7 @@ func TestRARPlanAuthorityPublishesResolvesAndReplaysExactLivePlan(t *testing.T) 
 	if err != nil || !info.Mode().IsRegular() {
 		t.Fatalf("plan object = %#v, %v", info, err)
 	}
-	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
+	if info.Mode().Perm() != 0o600 {
 		t.Fatalf("plan object mode = %o, want 600", info.Mode().Perm())
 	}
 	for _, path := range []string{fixture.repository.root, fixture.repository.planObjectsRoot()} {
@@ -60,7 +59,7 @@ func TestRARPlanAuthorityPublishesResolvesAndReplaysExactLivePlan(t *testing.T) 
 		if err != nil || !info.IsDir() {
 			t.Fatalf("plan directory %q = %#v, %v", path, info, err)
 		}
-		if runtime.GOOS != "windows" && info.Mode().Perm() != 0o700 {
+		if info.Mode().Perm() != 0o700 {
 			t.Fatalf("plan directory %q mode = %o, want 700", path, info.Mode().Perm())
 		}
 	}

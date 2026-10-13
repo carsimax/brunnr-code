@@ -3,7 +3,6 @@ package storage_test
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -55,9 +54,6 @@ func TestAvailableBytes_NonExistentChild(t *testing.T) {
 // TestAvailableBytes_PermissionDenied verifies that a chmod-000 directory
 // returns a "permission denied" error, not a misleading space-check failure.
 func TestAvailableBytes_PermissionDenied(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("chmod 000 is not meaningful on Windows")
-	}
 	dir := t.TempDir()
 	restricted := filepath.Join(dir, "restricted")
 	if err := os.Mkdir(restricted, 0o000); err != nil {

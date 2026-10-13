@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -555,9 +554,6 @@ func TestSnapshotsEqualExactIncludesEverySnapshotField(t *testing.T) {
 }
 
 func TestVerificationClassifierExecutableModeIntegration(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Git executable-bit transitions are POSIX-only")
-	}
 	repo := initSnapshotRepo(t)
 	gitSnapshot(t, repo, "config", "core.filemode", "true")
 	if err := os.Chmod(filepath.Join(repo, "tracked.txt"), 0o755); err != nil {

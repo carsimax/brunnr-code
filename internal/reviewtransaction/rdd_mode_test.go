@@ -6,7 +6,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -527,9 +526,6 @@ func TestUnknownRDDModeFailsClosedAsDisabled(t *testing.T) {
 }
 
 func TestResolveRDDModeUnsafePrivatePathIsNotACorruptHead(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permissions are covered by the Windows ACL test")
-	}
 	repo := initSnapshotRepo(t)
 	if _, err := SetCloneLocalRDDMode(context.Background(), repo, RDDModeOff, "", RDDGlobalMode{}); err != nil {
 		t.Fatalf("disable clone-local mode: %v", err)

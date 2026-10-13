@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -81,9 +80,6 @@ func TestCodexAdapterUsesStdinAndReturnsUntouchedRawOutput(t *testing.T) {
 }
 
 func TestCodexAdapterModelArgumentPreservesIsolation(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("helper process uses POSIX argument handling")
-	}
 	t.Setenv(codexAdapterHelperEnvironment, "1")
 	t.Setenv(codexAdapterPromptPathEnvironment, filepath.Join(t.TempDir(), "prompt"))
 	t.Setenv(codexAdapterArgumentsPathEnvironment, filepath.Join(t.TempDir(), "arguments"))
@@ -253,9 +249,6 @@ func codexProbeAdapterForTest(t *testing.T, commandArguments *[]string) *CodexAd
 // Codex runs there with workspace-write confined to that directory, network
 // access disabled explicitly, and the temp-dir writable roots excluded.
 func TestCodexAdapterRunsRefuterProbeInIsolatedScratchWithoutNetwork(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("helper process uses POSIX permissions")
-	}
 	workdirPath := filepath.Join(t.TempDir(), "workdir")
 	t.Setenv(codexAdapterHelperEnvironment, "1")
 	t.Setenv(codexAdapterPromptPathEnvironment, filepath.Join(t.TempDir(), "prompt"))
@@ -317,9 +310,6 @@ func TestCodexAdapterRunsRefuterProbeInIsolatedScratchWithoutNetwork(t *testing.
 // materialization failure, a failing or timed-out Codex process, and probe
 // output left read-only inside the copy.
 func TestCodexAdapterRemovesProbeScratchOnError(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("helper process uses POSIX permissions")
-	}
 	t.Setenv(codexAdapterHelperEnvironment, "1")
 	t.Setenv(codexAdapterPromptPathEnvironment, filepath.Join(t.TempDir(), "prompt"))
 	t.Setenv(codexAdapterArgumentsPathEnvironment, filepath.Join(t.TempDir(), "arguments"))
@@ -395,9 +385,6 @@ func TestCodexAdapterRemovesProbeScratchOnError(t *testing.T) {
 // before any scratch is created, the candidate is materialized, or Codex runs.
 // A probe without a source root is refused the same way.
 func TestCodexAdapterRefusesProbeScratchInsideTheSourceWorkspace(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("symlink aliases need POSIX permissions")
-	}
 	for _, tt := range []struct {
 		name  string
 		setup func(t *testing.T, source, outside string) (root, tmpdir string)
@@ -455,9 +442,6 @@ func TestCodexAdapterRefusesProbeScratchInsideTheSourceWorkspace(t *testing.T) {
 // whose path merely shares the workspace's string prefix, and an invocation
 // without a probe is never checked.
 func TestCodexAdapterProbeConfinementComparesCanonicalPathsNotPrefixes(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("helper process uses POSIX permissions")
-	}
 	parent := t.TempDir()
 	source := mkdirForTest(t, filepath.Join(parent, "repo"))
 	sibling := mkdirForTest(t, filepath.Join(parent, "repo-tmp"))

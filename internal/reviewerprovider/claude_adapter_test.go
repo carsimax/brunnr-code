@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -151,9 +150,6 @@ func TestClaudeAdapterExecutesWithSavedModelAndEffortOnlyWhenValid(t *testing.T)
 // exactly the shape of a "Program Files" or per-user-profile install path --
 // and asserts it launches and returns output normally.
 func TestClaudeAdapterLaunchesBinaryWhosePathContainsASpace(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("uses a POSIX shebang script; the Windows .cmd/.bat quoting path is covered by windows_batch_cmdline_test.go")
-	}
 	scriptDir := filepath.Join(t.TempDir(), "Program Files", "claude cli")
 	if err := os.MkdirAll(scriptDir, 0o755); err != nil {
 		t.Fatal(err)
