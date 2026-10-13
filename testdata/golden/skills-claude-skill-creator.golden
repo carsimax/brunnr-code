@@ -4,7 +4,7 @@ description: "Trigger: new skills, agent instructions, documenting AI usage patt
 license: Apache-2.0
 metadata:
   author: gentleman-programming
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Activation Contract
@@ -64,7 +64,7 @@ metadata:
   version: "1.0"
 ---
 ```
-6. Write sections in this order: Activation Contract, Hard Rules, Decision Gates, Execution Steps, Output Contract, References.
+6. Write sections in this order: Activation Contract, Hard Rules, Decision Gates, Execution Steps, Common Rationalizations, Red Flags, Verification, Output Contract, References.
 7. Register the skill in `AGENTS.md` when it is a project skill.
 
 ## Inline Fallback Rules
@@ -74,6 +74,9 @@ metadata:
 - Frontmatter MUST include `name`, `description`, `license`, `metadata.author`, and `metadata.version`.
 - Use imperative instructions, not tutorials or background prose.
 - Put supporting material in `assets/` or `references/`, not the main skill body.
+- `## Common Rationalizations` MUST be a `| Rationalization | Reality |` table: excuses an agent uses to skip the skill's steps, each with its factual rebuttal.
+- `## Red Flags` MUST list observable signs that the skill is being violated.
+- `## Verification` MUST be a checklist of evidence that proves the skill's outcome.
 
 Good:
 
@@ -89,6 +92,25 @@ description: >
   Trigger: Jira task, ticket, issue, or task creation.
 Keywords: jira, task
 ```
+
+## Common Rationalizations
+
+| Rationalization | Reality |
+|-----------------|---------|
+| "This skill is too small for rationalizations" | Every skill has steps an agent wants to skip; name those excuses. |
+| "Verification is obvious" | Unstated evidence is never collected. List it. |
+
+## Red Flags
+
+- A new skill without `## Common Rationalizations`, `## Red Flags`, or `## Verification`.
+- Red flags that cannot be observed in a diff, command output, or transcript.
+- A description that is multi-line, unquoted, or missing trigger words.
+
+## Verification
+
+- [ ] Frontmatter is complete and the description is one quoted line.
+- [ ] Sections appear in the required order, including the three anatomy sections.
+- [ ] Every reference points to a local file.
 
 ## Output Contract
 

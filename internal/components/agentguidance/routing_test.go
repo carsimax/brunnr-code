@@ -933,3 +933,34 @@ func TestRenderRoutingDelegatesForReason(t *testing.T) {
 		})
 	}
 }
+
+// TestRenderRoutingHoldsTheQualityFloor pins the quality floor: a failing check
+// is fixed, never weakened. The bullet sits outside every RDD branch and tells
+// the orchestrator to forward it, which is how it reaches the writer prompt.
+func TestRenderRoutingHoldsTheQualityFloor(t *testing.T) {
+	t.Parallel()
+
+	for _, agent := range catalog.AllAgents() {
+		t.Run(string(agent.ID), func(t *testing.T) {
+			t.Parallel()
+
+			rendered, err := RenderRouting(agent.ID)
+			if err != nil {
+				t.Fatalf("RenderRouting(%q) error = %v", agent.ID, err)
+			}
+			for _, want := range []string{
+				"- Hold the quality floor: a check is fixed, never weakened.",
+				"Do not add `t.Skip` or `//nolint`",
+				"delete tests or assertions",
+				"lower thresholds or timeouts to pass",
+				"regenerate golden and baseline files with `-update` without first stating why the expected output changed",
+				"If the floor blocks progress, report the check as failed instead.",
+				"Forward this same rule to workers when delegating.",
+			} {
+				if !strings.Contains(rendered, want) {
+					t.Errorf("RenderRouting(%q) missing quality-floor phrase %q", agent.ID, want)
+				}
+			}
+		})
+	}
+}

@@ -470,6 +470,59 @@ func TestRetiredLedgerGuidanceAbsentFromDistributedAssets(t *testing.T) {
 	}
 }
 
+func TestWorkUnitSkillCarriesGitWorkflowRules(t *testing.T) {
+	skill := MustRead("skills/work-unit-commits/SKILL.md")
+	for _, want := range []string{
+		"## Branches and Worktrees",
+		"## Release Relationship",
+		"## Common Rationalizations",
+		"## Red Flags",
+		"never run `git reset --hard` without the user's approval",
+		"git diff --cached",
+		"git worktree add ../<repo>-worktrees/<feature>",
+		"Never force-push",
+		"-ldflags",
+	} {
+		if !strings.Contains(skill, want) {
+			t.Errorf("work-unit skill missing git workflow rule %q", want)
+		}
+	}
+}
+
+// The anatomy sections give an agent the excuses to reject, the signs of a
+// violated skill, and the evidence that proves its outcome.
+func TestSkillsCarryAnatomySections(t *testing.T) {
+	sections := []string{"## Common Rationalizations", "## Red Flags", "## Verification"}
+	for _, path := range []string{
+		"skills/skill-creator/SKILL.md",
+		"skills/skill-improver/SKILL.md",
+		"skills/go-testing/SKILL.md",
+		"skills/work-unit-commits/SKILL.md",
+		"skills/debugging/SKILL.md",
+	} {
+		skill := MustRead(path)
+		for _, want := range sections {
+			if !strings.Contains(skill, want) {
+				t.Errorf("%s missing section %q", path, want)
+			}
+		}
+	}
+
+	// skill-creator and skill-improver must require the sections in the
+	// skills they produce or audit, not only carry them.
+	for _, path := range []string{
+		"skills/skill-creator/SKILL.md",
+		"skills/skill-improver/SKILL.md",
+	} {
+		skill := MustRead(path)
+		for _, name := range []string{"Common Rationalizations", "Red Flags", "Verification"} {
+			if strings.Count(skill, name) < 2 {
+				t.Errorf("%s does not require %q in the skills it shapes", path, name)
+			}
+		}
+	}
+}
+
 func TestClaudeManagedOutputStylesAnchorReplyLanguageToLatestUserRequest(t *testing.T) {
 	tests := []struct {
 		path              string
@@ -605,8 +658,8 @@ func TestEmbeddedAssetCount(t *testing.T) {
 		}
 	}
 
-	if skillDirs != 14 {
-		t.Fatalf("expected 14 retained skill directories, got %d", skillDirs)
+	if skillDirs != 15 {
+		t.Fatalf("expected 15 retained skill directories, got %d", skillDirs)
 	}
 
 	// Verify each skill directory has a SKILL.md.

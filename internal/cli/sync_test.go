@@ -2747,6 +2747,7 @@ func TestRunSyncSilentlyIgnoresUnsupportedPersistedAgents(t *testing.T) {
 var setupSkillIDs = []model.SkillID{
 	model.SkillJudgmentDay,
 	model.SkillGoTesting,
+	model.SkillDebugging,
 	model.SkillCreator,
 	model.SkillImprover,
 	model.SkillSkillRegistry,

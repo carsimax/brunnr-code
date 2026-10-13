@@ -11,8 +11,11 @@ Every `SKILL.md` MUST use this order unless a section is truly irrelevant:
 3. **Hard Rules** — constraints the LLM MUST NOT violate.
 4. **Decision Gates** — short tables or bullets for branching choices.
 5. **Execution Steps** — ordered operational workflow.
-6. **Output Contract** — required final format or artifacts.
-7. **References** — local files only; supporting detail lives outside the skill.
+6. **Common Rationalizations** — `| Rationalization | Reality |` table of excuses for skipping steps, each with its factual rebuttal.
+7. **Red Flags** — observable signs that the skill is being violated.
+8. **Verification** — checklist of evidence that proves the skill's outcome.
+9. **Output Contract** — required final format or artifacts.
+10. **References** — local files only; supporting detail lives outside the skill.
 
 `## Compact Rules` is not required. The skill registry indexes skill names, triggers, scopes, and paths; agents load the full `SKILL.md` as the source of truth.
 
@@ -67,6 +70,7 @@ Every `SKILL.md` MUST use this order unless a section is truly irrelevant:
 - Required sections exist in the expected order.
 - Hard rules are testable or observable.
 - Decision gates cover meaningful forks only.
+- Common Rationalizations, Red Flags, and Verification exist; red flags are observable and verification names concrete evidence.
 - Output contract tells the LLM exactly what to return.
 - References point to local files.
 

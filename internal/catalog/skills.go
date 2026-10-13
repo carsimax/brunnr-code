@@ -12,6 +12,7 @@ type Skill struct {
 var mvpSkills = []Skill{
 	// Foundation skills
 	{ID: model.SkillGoTesting, Name: "go-testing", Category: "testing", Priority: "p0"},
+	{ID: model.SkillDebugging, Name: "debugging", Category: "testing", Priority: "p0"},
 	{ID: model.SkillCreator, Name: "skill-creator", Category: "workflow", Priority: "p0"},
 	{ID: model.SkillImprover, Name: "skill-improver", Category: "workflow", Priority: "p0"},
 	{ID: model.SkillJudgmentDay, Name: "judgment-day", Category: "workflow", Priority: "p0"},

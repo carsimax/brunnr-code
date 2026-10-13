@@ -4,7 +4,7 @@ description: "Trigger: improve skills, audit skills, refactor skills, skill qual
 license: Apache-2.0
 metadata:
   author: gentleman-programming
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Activation Contract
@@ -29,15 +29,35 @@ Use this skill when asked to audit, refactor, normalize, or improve existing `SK
 | Skill reads like tutorial docs | Convert to runtime instructions and move background to `references/` |
 | Body exceeds budget | Preserve rules, move examples/background to supporting files |
 | Branching logic hidden in prose | Convert to a compact decision table |
+| Missing Common Rationalizations, Red Flags, or Verification | Add the missing section from the skill's own steps and rules; mark invented content for human review |
 | Rules conflict or intent is unclear | Report the issue; do not rewrite that rule automatically |
 
 ## Execution Steps
 
-1. Read `docs/skill-style-guide.md`; if unavailable, read `references/skill-style-guide.md`; if neither exists, enforce the core LLM-first structure: frontmatter, Activation Contract, Hard Rules, Decision Gates, Execution Steps, Output Contract, References.
+1. Read `docs/skill-style-guide.md`; if unavailable, read `references/skill-style-guide.md`; if neither exists, enforce the core LLM-first structure: frontmatter, Activation Contract, Hard Rules, Decision Gates, Execution Steps, Common Rationalizations, Red Flags, Verification, Output Contract, References.
 2. Read `.atl/skill-registry.md`; use listed paths to select skills. If missing, scan known skill directories for `*/SKILL.md`.
-3. For each selected skill, audit metadata, trigger clarity, section order, body budget, actionability, decision gates, output contract, and local references.
+3. For each selected skill, audit metadata, trigger clarity, section order, body budget, actionability, decision gates, the Common Rationalizations, Red Flags, and Verification sections, output contract, and local references.
 4. Return an audit report grouped by skill with severity and exact proposed changes.
 5. In apply mode, edit only safe issues, preserve content, create supporting files when needed, then rerun or request `brunnr-code skill-registry refresh`.
+
+## Common Rationalizations
+
+| Rationalization | Reality |
+|-----------------|---------|
+| "The skill works, so the anatomy sections are optional" | Without them an agent has no rebuttal to its own shortcuts and no proof of the outcome. Report them as missing. |
+| "I'll just rewrite the whole skill" | Rewrites lose author intent. Change only audited issues. |
+
+## Red Flags
+
+- An audit report that does not mention missing Common Rationalizations, Red Flags, or Verification sections.
+- Files edited while in audit-only mode.
+- Rules or triggers removed without being moved to a supporting file.
+
+## Verification
+
+- [ ] Every selected skill has a finding or an explicit "no issues" line.
+- [ ] Each skill was checked for Common Rationalizations, Red Flags, and Verification.
+- [ ] In apply mode, the diff touches only reported issues and frontmatter still passes the repo lint.
 
 ## Output Contract
 

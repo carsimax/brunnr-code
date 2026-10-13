@@ -121,7 +121,7 @@ func TestRegistry_FindByName_ReturnsNilWhenNotFound(t *testing.T) {
 }
 
 func TestHasConflictWithBuiltin_TrueForBuiltin(t *testing.T) {
-	builtins := []string{"branch-pr", "work-unit-commits", "chained-pr", "go-testing", "skill-creator", "judgment-day"}
+	builtins := []string{"branch-pr", "work-unit-commits", "chained-pr", "go-testing", "debugging", "skill-creator", "judgment-day"}
 	for _, name := range builtins {
 		if !HasConflictWithBuiltin(name) {
 			t.Errorf("HasConflictWithBuiltin(%q) = false, want true", name)

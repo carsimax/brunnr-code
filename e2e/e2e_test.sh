@@ -277,18 +277,18 @@ test_cc_persona() {
 
 
 test_cc_skills_full() {
-    log_test "Claude Code: skills injection (8 fixed setup skills)"
+    log_test "Claude Code: skills injection (9 fixed setup skills)"
     cleanup_test_env
 
     if $BINARY install --agent claude-code 2>&1; then
         local skills_dir="$HOME/.claude/skills"
         assert_dir_exists "$skills_dir" "Claude skills directory"
 
-        assert_file_count "$skills_dir" "SKILL.md" 8 "Setup installs exactly 8 skill files"
+        assert_file_count "$skills_dir" "SKILL.md" 9 "Setup installs exactly 9 skill files"
 
         # Every fixed setup skill is present
         local skill
-        for skill in judgment-day go-testing skill-creator skill-improver skill-registry \
+        for skill in judgment-day go-testing debugging skill-creator skill-improver skill-registry \
             chained-pr cognitive-doc-design work-unit-commits; do
             assert_file_exists "$skills_dir/$skill/SKILL.md" "$skill SKILL.md"
         done
@@ -297,6 +297,7 @@ test_cc_skills_full() {
 
         # Real content check
         assert_file_size_min "$skills_dir/go-testing/SKILL.md" 200 "go-testing skill has real content"
+        assert_file_size_min "$skills_dir/debugging/SKILL.md" 200 "debugging skill has real content"
         assert_file_size_min "$skills_dir/skill-creator/SKILL.md" 200 "skill-creator skill has real content"
         assert_file_size_min "$skills_dir/chained-pr/SKILL.md" 200 "chained-pr skill has real content"
         assert_file_size_min "$skills_dir/work-unit-commits/SKILL.md" 200 "work-unit-commits skill has real content"
