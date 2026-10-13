@@ -6,8 +6,13 @@ import "strings"
 // child contributes to its transport error.
 const reviewerTransportFailureExcerptLimit = 512
 
+// reviewerTransportFailureStderrLimit bounds the stderr a failing child
+// contributes; a child may echo its whole prompt there.
+const reviewerTransportFailureStderrLimit = 4096
+
 // reviewerTransportFailureDetail names why a reviewer child failed. stderr is
-// the conventional channel and is returned unchanged when it carries anything.
+// the conventional channel and is returned, bounded to its last
+// reviewerTransportFailureStderrLimit bytes, when it carries anything.
 // A child that explains itself on stdout instead (claude prints `Not logged
 // in` there and exits 1) contributes its first line, bounded to
 // reviewerTransportFailureExcerptLimit bytes, so the operator never reads an
@@ -16,6 +21,9 @@ const reviewerTransportFailureExcerptLimit = 512
 // and nothing is parsed, classified, or retried.
 func reviewerTransportFailureDetail(stderr, stdout string) string {
 	if strings.TrimSpace(stderr) != "" {
+		if len(stderr) > reviewerTransportFailureStderrLimit {
+			stderr = strings.ToValidUTF8(stderr[len(stderr)-reviewerTransportFailureStderrLimit:], "")
+		}
 		return stderr
 	}
 	excerpt := strings.TrimSpace(stdout)
