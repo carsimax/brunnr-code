@@ -14,7 +14,6 @@ import (
 	"io"
 	"io/fs"
 	"log"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -65,55 +64,6 @@ type ExecuteOptions struct {
 	Progress          io.Writer
 	BackupDiagnostics io.Writer
 	SkipBackup        bool
-}
-
-// backupExcludeSubdirs lists subdirectory base names that should be skipped
-// when walking agent config root directories for backup. These directories
-// contain runtime state, caches, or session data that is not configuration
-// and can be extremely large (e.g. ~/.claude/projects/ can exceed 1 GB).
-//
-// Only the base name is matched — e.g. "projects" skips any directory named
-// "projects" at any depth within the walked tree.
-//
-// Known limitation: some names are generic (e.g. "tasks", "debug", "cache",
-// "plans") and could theoretically match legitimate config subdirectories in
-// future agent versions. This is an accepted tradeoff — the risk of hanging
-// the upgrade on multi-GB runtime dirs outweighs the risk of missing a
-// niche config subdir. Skipped directories can be written to an injected
-// diagnostic writer for auditability.
-//
-// Must not be mutated after init. Tests must not modify this map; use a local
-// copy or pass a separate map to enumerateFilesInDir instead.
-var backupExcludeSubdirs = map[string]bool{
-	// === Shared across agents ===
-	"backups":      true, // backup snapshots themselves — never recurse into backups
-	"cache":        true, // cached data
-	"debug":        true, // debug logs
-	"downloads":    true, // downloaded files
-	"plugins":      true, // MCP plugin binaries (can be 60+ MB)
-	"sessions":     true, // conversation session data
-	"tasks":        true, // task tracking state
-	"telemetry":    true, // telemetry data
-	"node_modules": true, // npm dependencies (any Node-based agent)
-
-	// === Claude Code (~/.claude/) ===
-	"file-history":    true, // file change tracking
-	"ide":             true, // IDE integration state
-	"paste-cache":     true, // clipboard cache
-	"plans":           true, // conversation plans
-	"projects":        true, // per-project conversation state (can be 1+ GB)
-	"session-env":     true, // session environment snapshots
-	"shell-snapshots": true, // shell state snapshots
-	"troubleshooting": true, // troubleshooting artifacts
-
-	// === Other large runtime state ===
-	"browser_recordings":          true, // browser recordings (can be 3+ GB)
-	"antigravity-browser-profile": true, // Chromium profile data (250+ MB)
-	"brain":                       true, // memory/brain data (300+ MB)
-	"conversations":               true, // conversation history
-	"context_state":               true, // context state
-	"html_artifacts":              true, // generated HTML artifacts
-	"tmp":                         true, // temporary runtime artifacts
 }
 
 // configPathsForBackup returns the explicit Brunnr-Code-managed file paths that
@@ -311,68 +261,6 @@ func walkEmbeddedFiles(embedDir string, diagnostics io.Writer, visit func(relPat
 	}
 }
 
-// enumerateFilesInDir returns the paths of all regular files (recursively) in dir.
-// Returns an error if dir cannot be read (e.g. it doesn't exist).
-//
-// excludeDirNames is a set of directory base names to skip entirely at ANY depth.
-// When a directory's base name matches, the entire subtree is pruned via
-// filepath.SkipDir. The names in this set are chosen to be unambiguously
-// runtime/cache directories (e.g. "projects", "browser_recordings", "node_modules")
-// that would never be confused with legitimate config directories.
-// Skipped directories can be written to an injected diagnostic writer for
-// auditability. By default, enumeration is silent so TUI callers are safe.
-//
-// Symlink handling:
-//   - Symlinks to directories (including Windows junctions/reparse points) are
-//     skipped entirely — their targets are not traversed. This prevents backup
-//     failures when agent config directories contain junctioned skill directories
-//     (e.g. ~/.claude/skills → some other directory).
-//   - Symlinks to regular files ARE included — this supports dotfile managers
-//     (stow, chezmoi, bare git) where config files like CLAUDE.md may be symlinks
-//     to files in a dotfiles repository.
-func enumerateFilesInDir(dir string, excludeDirNames map[string]bool, diagnostics ...io.Writer) ([]string, error) {
-	var files []string
-	cleanDir := filepath.Clean(dir)
-	dw := firstWriter(diagnostics...)
-
-	err := filepath.WalkDir(cleanDir, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			// Log unreadable entries but don't abort the walk — partial backup
-			// is better than no backup.
-			writeBackupDiagnostic(dw, "backup: skipping unreadable path %s: %v", path, err)
-			return nil
-		}
-		// Symlink handling: skip directory symlinks, include file symlinks.
-		if d.Type()&os.ModeSymlink != 0 {
-			// Resolve the symlink to determine if it points to a file or directory.
-			resolved, statErr := os.Stat(path)
-			if statErr != nil {
-				// Broken symlink — skip silently.
-				return nil
-			}
-			if resolved.IsDir() {
-				// Symlink to directory — skip to avoid traversing into external trees.
-				return nil
-			}
-			// Symlink to regular file — include it (supports dotfile managers).
-			files = append(files, path)
-			return nil
-		}
-		// Skip excluded directories at any depth. The root dir itself is never
-		// excluded (path == cleanDir on the first callback invocation).
-		if d.IsDir() && path != cleanDir && excludeDirNames[strings.ToLower(d.Name())] {
-			writeBackupDiagnostic(dw, "backup: excluding directory %s (matched exclude list)", path)
-			return filepath.SkipDir
-		}
-		if !d.IsDir() {
-			files = append(files, path)
-		}
-		return nil
-	})
-
-	return files, err
-}
-
 func firstWriter(writers ...io.Writer) io.Writer {
 	for _, w := range writers {
 		if w != nil {
@@ -510,21 +398,6 @@ func ExecuteWithOptions(ctx context.Context, results []update.UpdateResult, prof
 		sp := NewSpinner(pw, msg)
 		toolResult := executeOne(ctx, r, profile, dryRun)
 
-		// Check if the upgrade succeeded but requires immediate exit.
-		// This must be handled BEFORE calling sp.Finish() so the spinner can terminate properly.
-		if toolResult.Status == UpgradeSucceeded && toolResult.ExitRequested {
-			// Finish the spinner with success before exiting.
-			sp.Finish(true)
-			toolResults = append(toolResults, toolResult)
-			return UpgradeReport{
-				BackupID:      backupID,
-				BackupWarning: backupWarning,
-				Results:       toolResults,
-				DryRun:        dryRun,
-				ExitRequested: true,
-			}
-		}
-
 		switch toolResult.Status {
 		case UpgradeSucceeded:
 			sp.Finish(true)
@@ -567,7 +440,7 @@ func executeOne(ctx context.Context, r update.UpdateResult, profile system.Platf
 		base.Status = UpgradeSkipped
 		return base
 	}
-	outcome, err := runStrategyWithOutcome(ctx, r, profile)
+	err := runStrategy(ctx, r, profile)
 	if err != nil {
 		// Distinguish manual fallback (informational skip) from real failures.
 		if hint, ok := AsManualFallback(err); ok {
@@ -581,7 +454,6 @@ func executeOne(ctx context.Context, r update.UpdateResult, profile system.Platf
 	} else {
 		base.NewVersion = r.LatestVersion
 		base.Status = UpgradeSucceeded
-		base.ExitRequested = outcome.exitRequested
 	}
 
 	return base

@@ -342,9 +342,9 @@ func AbandonPristineCompactStore(ctx context.Context, repo string, request Compa
 }
 
 // replayCommittedCompactAbandonment resolves an abandon request whose lineage
-// no longer holds a v2 entry: an exact replay finishes a prepared or
-// re-emits the committed record so repeated identical requests converge
-// without minting a second quarantine; anything else is refused.
+// no longer holds a v2 entry: an exact replay re-emits the committed record so
+// repeated identical requests converge without minting a second quarantine;
+// anything else is refused.
 func replayCommittedCompactAbandonment(base string, request CompactAbandonRequest) (CompactReclaimRecord, error) {
 	quarantineRoot := filepath.Join(base, "quarantine")
 	entries, err := os.ReadDir(quarantineRoot)
@@ -378,17 +378,6 @@ func replayCommittedCompactAbandonment(base string, request CompactAbandonReques
 		}
 		if request.MaintainerAuthorization != binding {
 			continue
-		}
-		if record.Status == CompactReclaimPrepared {
-			quarantineDir := filepath.Join(quarantineRoot, entry.Name())
-			residue, statErr := os.Lstat(filepath.Join(quarantineDir, "residue"))
-			if record.LineageID != request.LineageID || record.SourcePath != filepath.Join(base, "v2", request.LineageID) || record.QuarantinePath != quarantineDir || statErr != nil || !residue.IsDir() {
-				continue
-			}
-			record.Status = CompactReclaimCommitted
-			if persistErr := persistReclaimRecord(record); persistErr != nil {
-				return record, fmt.Errorf("commit prepared abandonment replay: %w", persistErr)
-			}
 		}
 		return record, nil
 	}

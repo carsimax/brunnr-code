@@ -120,44 +120,6 @@ func TestRegistry_FindByName_ReturnsNilWhenNotFound(t *testing.T) {
 	}
 }
 
-func TestRegistry_RemoveByName_EntryRemoved(t *testing.T) {
-	reg := &Registry{
-		Version: 1,
-		Agents: []RegistryEntry{
-			{Name: "keep-me"},
-			{Name: "remove-me"},
-		},
-	}
-
-	removed := reg.RemoveByName("remove-me")
-	if !removed {
-		t.Fatal("RemoveByName returned false, expected true")
-	}
-	if len(reg.Agents) != 1 {
-		t.Fatalf("Agents len = %d, want 1", len(reg.Agents))
-	}
-	if reg.Agents[0].Name != "keep-me" {
-		t.Errorf("remaining agent = %q, want %q", reg.Agents[0].Name, "keep-me")
-	}
-}
-
-func TestRegistry_RemoveByName_NonExistentReturnsFalse(t *testing.T) {
-	reg := &Registry{
-		Version: 1,
-		Agents: []RegistryEntry{
-			{Name: "keep-me"},
-		},
-	}
-
-	removed := reg.RemoveByName("does-not-exist")
-	if removed {
-		t.Fatal("RemoveByName returned true for non-existent entry")
-	}
-	if len(reg.Agents) != 1 {
-		t.Errorf("Agents len = %d, want 1 (unchanged)", len(reg.Agents))
-	}
-}
-
 func TestHasConflictWithBuiltin_TrueForBuiltin(t *testing.T) {
 	builtins := []string{"branch-pr", "work-unit-commits", "chained-pr", "go-testing", "skill-creator", "judgment-day"}
 	for _, name := range builtins {

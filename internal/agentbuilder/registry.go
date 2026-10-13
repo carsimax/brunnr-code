@@ -62,18 +62,6 @@ func (r *Registry) FindByName(name string) *RegistryEntry {
 	return nil
 }
 
-// RemoveByName removes the first entry matching name.
-// Returns true when an entry was found and removed.
-func (r *Registry) RemoveByName(name string) bool {
-	for i, entry := range r.Agents {
-		if entry.Name == name {
-			r.Agents = append(r.Agents[:i], r.Agents[i+1:]...)
-			return true
-		}
-	}
-	return false
-}
-
 // HasConflictWithBuiltin reports whether name collides with a known built-in skill.
 func HasConflictWithBuiltin(name string) bool {
 	_, ok := builtinSkills()[name]

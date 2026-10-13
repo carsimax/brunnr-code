@@ -60,7 +60,7 @@ const reviewLensContextByteBudget = reviewtransaction.MaxFrozenCandidateDiffByte
 // larger budget.
 func reviewLensContextRuntimeBudget(runtime string) int {
 	ceiling := reviewLensContextByteBudget
-	if runtimeBudget := reviewerprovider.RuntimeContextBudget(model.AgentID(runtime)); runtimeBudget < ceiling {
+	if runtimeBudget := reviewerprovider.ApprovedRuntimeContextBudget; runtimeBudget < ceiling {
 		return runtimeBudget
 	}
 	return ceiling

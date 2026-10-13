@@ -241,39 +241,9 @@ func promptRestoreConfirm(manifest backup.Manifest, stdin io.Reader, stdout io.W
 	return strings.EqualFold(answer, "yes"), nil
 }
 
-// listBackupsFromDir reads and sorts backups from the given homeDir.
-// It is equivalent to app.ListBackups but operates on an explicit homeDir,
-// keeping the cli package independent from the app package.
+// listBackupsFromDir lists backups newest-first from the given homeDir.
 func listBackupsFromDir(homeDir string) []backup.Manifest {
-	backupRoot := backupRootDir(homeDir)
-	entries, err := os.ReadDir(backupRoot)
-	if err != nil {
-		return nil
-	}
-
-	manifests := make([]backup.Manifest, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		manifestPath := fmt.Sprintf("%s/%s/%s", backupRoot, entry.Name(), backup.ManifestFilename)
-		m, err := backup.ReadManifest(manifestPath)
-		if err != nil {
-			continue
-		}
-		manifests = append(manifests, m)
-	}
-
-	// Sort newest-first.
-	for i := 0; i < len(manifests); i++ {
-		for j := i + 1; j < len(manifests); j++ {
-			if manifests[j].CreatedAt.After(manifests[i].CreatedAt) {
-				manifests[i], manifests[j] = manifests[j], manifests[i]
-			}
-		}
-	}
-
-	return manifests
+	return backup.List(backupRootDir(homeDir))
 }
 
 // backupRootDir returns the path to the backup directory under homeDir, or

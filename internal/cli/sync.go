@@ -1302,17 +1302,14 @@ func persistSyncManagedAssetState(homeDir string, selection model.Selection, wri
 				err, state.Path(homeDir))
 		}
 
-		shouldWrite := false
 		// #2685: stamp the binary version that performed this sync, so doctor
 		// can report managed assets older than the running binary instead of
 		// the user discovering the skew mid-review at START preflight.
 		if latest.InstalledBinaryVersion != AppVersion {
 			latest.InstalledBinaryVersion = AppVersion
-			shouldWrite = true
 		}
 		if latest.ManagedAssetDigest != writer {
 			latest.ManagedAssetDigest = writer
-			shouldWrite = true
 		}
 		// A selection persisted by an older binary (another preset, fewer
 		// components or skills) is rewritten as the setup this sync applied.
@@ -1322,10 +1319,6 @@ func persistSyncManagedAssetState(homeDir string, selection model.Selection, wri
 		applyCodexServiceTier(&latest, codexServiceTier)
 		now := time.Now().UTC()
 		latest.LastSyncedAt = &now
-		shouldWrite = true
-		if !shouldWrite {
-			return nil
-		}
 		if err := state.WriteReconciled(homeDir, latest); err != nil {
 			return fmt.Errorf("persist managed asset provenance: %w", err)
 		}

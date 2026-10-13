@@ -13,8 +13,6 @@ var (
 	reCodeFenceClose = regexp.MustCompile("(?m)^```\\s*$")
 	// reH1 matches a Markdown H1 line
 	reH1 = regexp.MustCompile(`(?m)^#\s+(.+)$`)
-	// reH2Section extracts content from a ## section until the next ## or EOF
-	reH2Section = regexp.MustCompile(`(?ms)^##\s+%s\s*\n(.*?)(?:^##\s|\z)`)
 )
 
 // Parse converts raw AI output into a GeneratedAgent.

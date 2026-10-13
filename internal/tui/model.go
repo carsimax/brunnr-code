@@ -941,9 +941,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Err == nil {
 			report := msg.Report
 			m.UpgradeReport = &report
-			if report.ExitRequested {
-				return m, tea.Quit
-			}
 		}
 		m.UpdateResults = nil
 		m.UpdateCheckDone = false
@@ -980,9 +977,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Err == nil {
 			report := msg.Report
 			m.UpgradeReport = &report
-			if report.ExitRequested {
-				return m, tea.Quit
-			}
 		}
 		m.UpdateResults = nil
 		m.UpdateCheckDone = false
@@ -3262,10 +3256,7 @@ func (m Model) startInstallation() (tea.Model, tea.Cmd) {
 			}
 		}()
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
-		_ = ctx // timeout enforced; Install itself is synchronous
-
+		// Install is synchronous file I/O; no timeout is enforced.
 		// Resolve agent name, applying conflict suffix if needed.
 		installAgent := agent
 		if agentbuilder.HasConflictWithBuiltin(agent.Name) {
@@ -3275,7 +3266,7 @@ func (m Model) startInstallation() (tea.Model, tea.Cmd) {
 			installAgent = &copy
 		}
 
-		results, err := agentbuilder.Install(installAgent, adapters, "")
+		results, err := agentbuilder.Install(installAgent, adapters)
 		if err != nil {
 			return AgentBuilderInstallDoneMsg{Results: results, Err: err}
 		}

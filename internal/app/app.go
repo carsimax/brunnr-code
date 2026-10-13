@@ -8,7 +8,6 @@ import (
 	"io"
 	"maps"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/carsimax/brunnr-code/internal/backup"
@@ -917,36 +916,7 @@ func ListBackups() []backup.Manifest {
 		return nil
 	}
 
-	backupRoot := state.BackupsDir(homeDir)
-	entries, err := os.ReadDir(backupRoot)
-	if err != nil {
-		return nil
-	}
-
-	manifests := make([]backup.Manifest, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-
-		manifestPath := filepath.Join(backupRoot, entry.Name(), backup.ManifestFilename)
-		manifest, err := backup.ReadManifest(manifestPath)
-		if err != nil {
-			continue
-		}
-		manifests = append(manifests, manifest)
-	}
-
-	// Sort by creation time (newest first) — the IDs are timestamps.
-	for i := 0; i < len(manifests); i++ {
-		for j := i + 1; j < len(manifests); j++ {
-			if manifests[j].CreatedAt.After(manifests[i].CreatedAt) {
-				manifests[i], manifests[j] = manifests[j], manifests[i]
-			}
-		}
-	}
-
-	return manifests
+	return backup.List(state.BackupsDir(homeDir))
 }
 
 func codexOrchestratorToState(a *model.CodexOrchestratorAssignment) *state.CodexOrchestratorAssignmentState {

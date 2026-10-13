@@ -3613,72 +3613,6 @@ func TestUpdatePromptScreen_SkippedWhenCheckFailed(t *testing.T) {
 	}
 }
 
-// TestUpdatePromptScreen_KeyU_RunsUpgradeThenQuits verifies that pressing "u"
-// on ScreenUpdatePrompt invokes UpgradeFn and on success (ExitRequested=true)
-// eventually produces a tea.QuitMsg via the UpgradeDoneMsg two-step flow.
-func TestUpdatePromptScreen_KeyU_RunsUpgradeThenQuits(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenUpdatePrompt
-	m.UpdateResults = []update.UpdateResult{makeUpdateResult(update.UpdateAvailable, "https://example.com/releases")}
-	m.UpdateCheckDone = true
-
-	upgraded := false
-	m.UpgradeFn = func(_ context.Context, results []update.UpdateResult) upgrade.UpgradeReport {
-		upgraded = true
-		return upgrade.UpgradeReport{ExitRequested: true}
-	}
-
-	m2Raw, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
-	if cmd == nil {
-		t.Fatal("cmd should not be nil after pressing 'u' on ScreenUpdatePrompt")
-	}
-	m2 := m2Raw.(Model)
-
-	// Step 1: execute the goroutine cmd → should produce UpgradeDoneMsg.
-	// The cmd may be a BatchMsg (tickCmd + upgrade goroutine); search all items
-	// in the batch to find the UpgradeDoneMsg rather than stopping at the first
-	// non-nil result (which could be a TickMsg from the spinner).
-	var msg tea.Msg
-	raw := cmd()
-	if batch, ok := raw.(tea.BatchMsg); ok {
-		for _, fn := range batch {
-			if inner := fn(); inner != nil {
-				if _, isDone := inner.(UpgradeDoneMsg); isDone {
-					msg = inner
-					break
-				}
-			}
-		}
-		if msg == nil {
-			msg = raw // fallback: use the batch result itself
-		}
-	} else {
-		msg = raw
-	}
-
-	if !upgraded {
-		t.Error("UpgradeFn should have been called when pressing 'u'")
-	}
-
-	// Step 2: feed UpgradeDoneMsg into the model returned by the keypress
-	// Update (m2), not the pre-keypress model, to avoid masking false positives.
-	doneMsg, ok := msg.(UpgradeDoneMsg)
-	if !ok {
-		t.Fatalf("expected UpgradeDoneMsg from upgrade goroutine, got %T", msg)
-	}
-	_, quitCmd := m2.Update(doneMsg)
-	if quitCmd == nil {
-		t.Fatal("cmd must not be nil after UpgradeDoneMsg with ExitRequested=true")
-	}
-	gotQuit := false
-	if _, ok := quitCmd().(tea.QuitMsg); ok {
-		gotQuit = true
-	}
-	if !gotQuit {
-		t.Error("expected QuitMsg after UpgradeDoneMsg with ExitRequested=true")
-	}
-}
-
 // TestUpdatePromptScreen_KeyC_TransitionsToWelcome verifies that pressing "c"
 // on ScreenUpdatePrompt transitions to ScreenWelcome.
 func TestUpdatePromptScreen_KeyC_TransitionsToWelcome(t *testing.T) {
@@ -3823,7 +3757,7 @@ func TestUpdatePromptScreen_EnterWithCursorOnUpdate_RunsUpgrade(t *testing.T) {
 	upgraded := false
 	m.UpgradeFn = func(_ context.Context, results []update.UpdateResult) upgrade.UpgradeReport {
 		upgraded = true
-		return upgrade.UpgradeReport{ExitRequested: true}
+		return upgrade.UpgradeReport{}
 	}
 
 	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -3917,7 +3851,7 @@ func TestUpdatePromptScreen_ShortcutU_WorksRegardlessOfCursor(t *testing.T) {
 	upgraded := false
 	m.UpgradeFn = func(_ context.Context, _ []update.UpdateResult) upgrade.UpgradeReport {
 		upgraded = true
-		return upgrade.UpgradeReport{ExitRequested: true}
+		return upgrade.UpgradeReport{}
 	}
 
 	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
@@ -4007,65 +3941,6 @@ func TestUpdatePromptScreen_UpgradeError_IsSurfaced(t *testing.T) {
 
 	if got.UpgradeErr == nil {
 		t.Fatal("UpgradeErr must be set after UpgradeDoneMsg with non-nil Err")
-	}
-}
-
-// TestUpdatePromptScreen_UpgradeSuccess_EmitsQuit verifies that when UpgradeFn
-// succeeds with ExitRequested=true, a QuitMsg is eventually produced.
-func TestUpdatePromptScreen_UpgradeSuccess_EmitsQuit(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenUpdatePrompt
-	m.UpdateResults = []update.UpdateResult{makeUpdateResult(update.UpdateAvailable, "https://example.com/releases")}
-	m.UpdateCheckDone = true
-	m.Cursor = 0
-
-	m.UpgradeFn = func(_ context.Context, _ []update.UpdateResult) upgrade.UpgradeReport {
-		return upgrade.UpgradeReport{ExitRequested: true}
-	}
-
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
-	if cmd == nil {
-		t.Fatal("cmd must not be nil after pressing 'u'")
-	}
-
-	// Execute the command to get UpgradeDoneMsg.
-	// The cmd may be a BatchMsg (tickCmd + upgrade goroutine); search all items
-	// to find the UpgradeDoneMsg rather than stopping at the first non-nil result.
-	var msg tea.Msg
-	raw := cmd()
-	if batch, ok := raw.(tea.BatchMsg); ok {
-		for _, fn := range batch {
-			if inner := fn(); inner != nil {
-				if _, isDone := inner.(UpgradeDoneMsg); isDone {
-					msg = inner
-					break
-				}
-			}
-		}
-		if msg == nil {
-			msg = raw
-		}
-	} else {
-		msg = raw
-	}
-
-	doneMsg, ok := msg.(UpgradeDoneMsg)
-	if !ok {
-		t.Fatalf("expected UpgradeDoneMsg from upgrade goroutine, got %T", msg)
-	}
-
-	// Feed the UpgradeDoneMsg into the model — should trigger tea.Quit.
-	_, quitCmd := m.Update(doneMsg)
-	if quitCmd == nil {
-		t.Fatal("cmd must not be nil after UpgradeDoneMsg with ExitRequested=true")
-	}
-	gotQuit := false
-	quitMsg := quitCmd()
-	if _, ok := quitMsg.(tea.QuitMsg); ok {
-		gotQuit = true
-	}
-	if !gotQuit {
-		t.Error("expected QuitMsg after UpgradeDoneMsg with ExitRequested=true")
 	}
 }
 

@@ -17,7 +17,7 @@ type AdapterInfo struct {
 // Install writes the SKILL.md for agent into each adapter's skills directory.
 // On any write failure all previously written files are rolled back (deleted).
 // Returns one InstallResult per adapter.
-func Install(agent *GeneratedAgent, adapters []AdapterInfo, _ string) ([]InstallResult, error) {
+func Install(agent *GeneratedAgent, adapters []AdapterInfo) ([]InstallResult, error) {
 	if agent == nil {
 		return nil, fmt.Errorf("install: agent must not be nil")
 	}
