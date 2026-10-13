@@ -1,6 +1,7 @@
 package permissions
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -111,12 +112,51 @@ func mergeJSONFile(path string, overlay []byte) (filemerge.WriteResult, error) {
 		return filemerge.WriteResult{}, err
 	}
 
+	overlay, err = withUserDenyRules(baseJSON, overlay)
+	if err != nil {
+		return filemerge.WriteResult{}, err
+	}
 	merged, err := filemerge.MergeJSONCObjects(baseJSON, overlay)
 	if err != nil {
 		return filemerge.WriteResult{}, err
 	}
 
 	return filemerge.WriteFileAtomic(path, merged, filemerge.ExistingFileMode(path, 0o644))
+}
+
+// withUserDenyRules appends the user's own permissions.deny entries to the
+// managed list, because the merge replaces arrays and deny rules are the only
+// guard left under bypassPermissions.
+func withUserDenyRules(baseJSON, overlay []byte) ([]byte, error) {
+	base, err := filemerge.UnmarshalJSONObject(baseJSON)
+	if err != nil {
+		return overlay, nil // the merge itself refuses a malformed base
+	}
+	basePermissions, _ := base["permissions"].(map[string]any)
+	userDeny, _ := basePermissions["deny"].([]any)
+	if len(userDeny) == 0 {
+		return overlay, nil
+	}
+	var result map[string]any
+	if err := json.Unmarshal(overlay, &result); err != nil {
+		return nil, fmt.Errorf("unmarshal permissions overlay: %w", err)
+	}
+	permissions, _ := result["permissions"].(map[string]any)
+	deny, _ := permissions["deny"].([]any)
+	seen := make(map[string]bool, len(deny)+len(userDeny))
+	for _, rule := range deny {
+		key, _ := json.Marshal(rule)
+		seen[string(key)] = true
+	}
+	for _, rule := range userDeny {
+		key, _ := json.Marshal(rule)
+		if !seen[string(key)] {
+			seen[string(key)] = true
+			deny = append(deny, rule)
+		}
+	}
+	permissions["deny"] = deny
+	return json.Marshal(result)
 }
 
 var osReadFile = func(path string) ([]byte, error) {
