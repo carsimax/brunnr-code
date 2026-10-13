@@ -21,6 +21,8 @@ The status line lives only in `~/.claude/statusline-command.sh` on one machine. 
 ## Tasks
 - [x] T1 Embedded statusline asset + installer step + uninstall + tests (route: delegated writer; trigger: 2+ non-trivial files)
 
+- [x] T2 Skip a fresh status line setup when `zsh` or `jq` is missing from PATH, warn on stderr (route: inline; small, understood change)
+
 ## Acceptance criteria
 - Fresh install writes the script and `statusLine`; script shows `brunnr-code <version>`.
 - Existing foreign `statusLine` is left untouched.
@@ -40,5 +42,8 @@ Strategy: single-pr (forecast < 400 authored lines).
 - Pending: Docker/real-agent e2e not run; GNU `date -d @` fallback not exercised on Linux. RDD disabled in this clone (no review).
 - Note: an existing unowned `~/.claude/statusline-command.sh` makes install a no-op; delete it and re-run sync to adopt the managed one.
 
+- T1 shipped in v0.2.0 (PR #29).
+- T2: installer does not install system packages (needs sudo, per-distro package managers). It detects `zsh`/`jq` with `exec.LookPath`; a missing tool skips a fresh setup and returns `Result.Missing`, which install/sync print as a warning. An already managed statusLine keeps being refreshed. Evidence: RED `undefined: SetStatusLineLookPathForTest`; GREEN agenthooks + uninstall tests; `gofmtcheck` ok; `scripts/test-fast.sh` PASS.
+
 ## Next step
-Push and open PR (user decision).
+Push and open PR for T2 (user decision).

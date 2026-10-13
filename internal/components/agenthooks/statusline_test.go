@@ -17,6 +17,7 @@ func claudeStatusLineFixture(t *testing.T) (agents.Adapter, string, string, stri
 	if err != nil {
 		t.Fatal(err)
 	}
+	SetStatusLineLookPathForTest(t)
 	home := t.TempDir()
 	settings := adapter.SettingsPath(home)
 	if err := os.MkdirAll(filepath.Dir(settings), 0o755); err != nil {
@@ -53,12 +54,16 @@ func TestInstallClaudeStatusLine(t *testing.T) {
 		script     string // seeded script; empty means absent
 		wantOwned  bool   // installer writes the script and owns statusLine
 		wantCustom string // a user statusLine field that must survive
+		missing    string // a render tool absent from PATH
 	}{
 		{name: "fresh install", wantOwned: true},
 		{name: "settings without statusLine", settings: `{"model":"opus"}`, wantOwned: true},
 		{name: "statusLine already on managed script", settings: `{"statusLine":{"type":"command","command":"zsh SCRIPT","padding":2}}`, wantOwned: true, wantCustom: `"padding":2`},
 		{name: "foreign statusLine", settings: `{"statusLine":{"type":"command","command":"bash ~/mine.sh"}}`},
 		{name: "user script at managed path", script: "#!/bin/zsh\necho mine\n"},
+		{name: "jq missing", settings: `{"model":"opus"}`, missing: "jq"},
+		{name: "zsh missing", missing: "zsh"},
+		{name: "jq missing keeps managed statusLine fresh", settings: `{"statusLine":{"type":"command","command":"zsh SCRIPT"}}`, missing: "jq", wantOwned: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			adapter, home, settings, script := claudeStatusLineFixture(t)
@@ -73,11 +78,17 @@ func TestInstallClaudeStatusLine(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
+			if tc.missing != "" {
+				SetStatusLineLookPathForTest(t, tc.missing)
+			}
 			beforeSettings, _ := os.ReadFile(settings)
 
 			result, err := InstallClaudeStatusLine(home, adapter, "v1.2.3")
 			if err != nil {
 				t.Fatalf("install: %v", err)
+			}
+			if wantMissing := tc.missing != "" && !tc.wantOwned; (len(result.Missing) == 1 && result.Missing[0] == tc.missing) != wantMissing {
+				t.Fatalf("Missing = %v, want [%s] only when the status line is skipped", result.Missing, tc.missing)
 			}
 			if result.Changed != tc.wantOwned {
 				t.Fatalf("Changed = %v, want %v (%+v)", result.Changed, tc.wantOwned, result)

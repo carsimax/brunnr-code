@@ -782,6 +782,9 @@ func (s agentRoutingGuidanceStep) Run() error {
 	if s.changedFiles != nil && statusLine.Changed {
 		*s.changedFiles = append(*s.changedFiles, statusLine.Files...)
 	}
+	if len(statusLine.Missing) > 0 {
+		fmt.Fprintf(os.Stderr, "WARNING: Claude status line skipped: %s not found on PATH. Install it and run `brunnr-code sync`.\n", strings.Join(statusLine.Missing, " and "))
+	}
 	hooks, err := agenthooks.InstallSkillRegistry(hookRoot, adapter)
 	if err != nil {
 		return fmt.Errorf("install skill-registry hook for %q: %w", s.agent, err)

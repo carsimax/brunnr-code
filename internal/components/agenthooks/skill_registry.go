@@ -15,6 +15,8 @@ import (
 type Result struct {
 	Changed bool
 	Files   []string
+	// Missing names the tools a skipped install needs on PATH.
+	Missing []string
 }
 
 const claudeLegacySkillRegistryCommand = `brunnr-code skill-registry refresh --quiet --no-gitignore --cwd "${CLAUDE_PROJECT_DIR:-$PWD}" || true`
