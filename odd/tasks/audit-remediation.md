@@ -42,7 +42,7 @@ A whole-repo audit (6 read-only Sonnet auditors, parent spot checks) found user-
 - [x] T3: lens and correction-plan captures run with `context.Background()` (`cli/review_artifact.go:192`, `cli/review_correction_plan_capture.go:48`). Wrap in `WithTimeout(reviewProviderRoleCaptureTimeout)`; set `command.WaitDelay` in the Claude and Codex adapters.
 - [x] T4: stop-hook prints `--cwd <root>` unquoted (`cli/review_stop_hook.go:294`). Use `pathquote.ShellWord(root)`. Test with a path containing a space and `;`.
 - [x] T5: `backup.Restore` returns on the first failing entry (`backup/restore.go:310`, `:371`), also during rollback. Collect with `errors.Join` and continue. Test with an unrestorable entry followed by a restorable one.
-- [ ] T6: two concurrent syncs: the loser's rollback reverts the winner's files (`statecoord/statecoord.go:27`, `cli/sync.go:1273-1291`, `cli/run.go:259-285`). Decision first (see Open decisions).
+- [x] T6: two concurrent syncs: the loser's rollback reverts the winner's files (`statecoord/statecoord.go:27`, `cli/sync.go:1273-1291`, `cli/run.go:259-285`). Decision first (see Open decisions).
 
 ### Should fix
 
@@ -125,7 +125,8 @@ main
 - T3 done on `fix/audit-remediation-t03`. Route: inline (two one-line CLI changes, two one-line adapter changes, one test). Lens and correction-plan captures now run under `reviewProviderRoleCaptureTimeout` (600s), like refuter and validator; both adapters set `command.WaitDelay = time.Second`. RED observed first: `TestProviderLensCaptureRunsUnderADeadline` (no deadline), then GREEN. `WaitDelay` has no dedicated test (one line per adapter). Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok. Commit `9a551ac6`, PR #4, merged.
 - T4 done on `fix/audit-remediation-t04`. Route: inline (one line plus test). The stop-hook STATUS line renders the root with `pathquote.ShellWord`, like its START line. RED observed first: `TestReviewStopHookReasonQuotesRepositoryRoot` (root `my repo;touch pwned` unquoted), then GREEN. Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok. Commit `af83cea5`, PR #5, merged.
 - T5 done on `fix/audit-remediation-t05`. Route: inline (one file plus test). `restoreCompressed` and `restorePlain` repeated the same loop (and an inline copy of `reconcileExistingSymlink`); both now call `restoreManifestEntries`, which restores every entry and returns `errors.Join` of the failures. Net -20 lines. RED observed first: `TestRestoreContinuesPastAFailingEntry` (later entry left modified), then GREEN. Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok.
-- T6 decision (user, 2026-10-12): accept the concurrent-sync race (single user, no hook runs sync); document it with a `shortcut:` comment only.
+- T6 decision (user, 2026-10-12): accept the concurrent-sync race (single user, no hook runs sync); document it with a `shortcut:` comment only. Commit for T5 is in PR #6, merged.
+- T6 done on `fix/audit-remediation-t06`. Route: inline (comment only). `statecoord.WithLock` carries a `shortcut:` comment naming the limit and when to upgrade. No test (no behavior change). Verification: `go build ./...` ok; `go run ./internal/gofmtcheck` ok.
 
 ## Next step
 

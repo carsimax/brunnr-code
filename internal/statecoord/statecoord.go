@@ -24,6 +24,11 @@ func LockPath(homeDir string) (string, error) {
 
 // WithLock runs operation while holding the canonical install-state lock shared
 // by every install-state read-modify-write operation for the resolved home.
+//
+// shortcut: the lock covers only the state.json write, not a run's file
+// writes, so two concurrent install/sync runs can race and the loser's
+// rollback can revert the winner's files; hold it across the whole run if
+// anything (a hook, a second tool) starts running sync concurrently.
 func WithLock(homeDir string, operation func() error) (err error) {
 	lockPath, err := LockPath(homeDir)
 	if err != nil {
