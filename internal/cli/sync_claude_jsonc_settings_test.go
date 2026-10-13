@@ -39,7 +39,7 @@ func TestRunSyncAddsClaudeHooksToJSONCSettings(t *testing.T) {
 	if !strings.Contains(string(data), `"model": "opus"`) {
 		t.Fatalf("sync did not preserve the user's JSONC settings key:\n%s", data)
 	}
-	for _, command := range []string{"brunnr-code review stop-hook --agent claude-code", "brunnr-code skill-registry refresh"} {
+	for _, command := range []string{"brunnr-code review stop-hook --agent claude-code", "brunnr-code skill-registry refresh", "brunnr-code hook branch-guard --agent claude-code"} {
 		if !strings.Contains(string(data), command) {
 			t.Fatalf("sync did not install hook %q:\n%s", command, data)
 		}

@@ -897,7 +897,8 @@ func rewriteSkillRegistryHook(path string) operation {
 func managedRetainedHookCommand(cmd string) bool {
 	return cmd == `brunnr-code skill-registry refresh --quiet --no-gitignore --cwd "${CLAUDE_PROJECT_DIR:-$PWD}" || true` ||
 		cmd == `brunnr-code skill-registry refresh --quiet --no-gitignore --cwd "$PWD" || true` ||
-		cmd == "brunnr-code review stop-hook --agent "+string(model.AgentClaudeCode)
+		cmd == "brunnr-code review stop-hook --agent "+string(model.AgentClaudeCode) ||
+		cmd == agenthooks.BranchGuardHookCommand
 }
 
 // removeSkillRegistryHook removes the managed hook commands. Strict JSON is

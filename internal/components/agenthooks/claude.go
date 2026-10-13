@@ -9,7 +9,17 @@ import (
 	"github.com/carsimax/brunnr-code/internal/model"
 )
 
-// InstallRetainedClaudeHooks installs the Claude Code review hooks.
+// BranchGuardHookCommand is the exact command of the managed PreToolUse hook
+// that denies file edits on the default branch. Install deduplicates and
+// uninstall removes the hook by this string.
+const BranchGuardHookCommand = "brunnr-code hook branch-guard --agent " + string(model.AgentClaudeCode)
+
+// branchGuardMatcher lists the Claude Code tools that edit files. Plain
+// names joined by "|" are matched exactly, not as a regex.
+const branchGuardMatcher = "Edit|Write|MultiEdit|NotebookEdit"
+
+// InstallRetainedClaudeHooks installs the Claude Code review hooks and the
+// default-branch write guard.
 func InstallRetainedClaudeHooks(homeDir string, adapter agents.Adapter) (Result, error) {
 	if adapter.Agent() != model.AgentClaudeCode {
 		return Result{}, nil
@@ -50,6 +60,7 @@ func InstallRetainedClaudeHooks(homeDir string, adapter agents.Adapter) (Result,
 	}{
 		{"Stop", "", command, 60},
 		{"SessionStart", "startup|resume|clear|compact", command, 30},
+		{"PreToolUse", branchGuardMatcher, BranchGuardHookCommand, 10},
 	}
 	changed := false
 	for _, e := range entries {

@@ -59,6 +59,7 @@ Run `brunnr-code` with no arguments to open the interactive TUI, or use a comman
 | `brunnr-code update` / `upgrade` | Check for Engram updates / apply them. |
 | `brunnr-code restore` | Restore a config backup. |
 | `brunnr-code review ...` | Native review workflow (`review mode status` shows whether it is on). |
+| `brunnr-code hook branch-guard --agent claude-code` | Claude Code hook command; denies edits on the default branch. |
 | `brunnr-code version` | Print the version. |
 
 Every command supports `--help`.
@@ -72,6 +73,14 @@ agents are selectable.
 For Claude Code they also install a status line that shows the `brunnr-code`
 version. It needs `zsh` and `jq`. A `statusLine` you already configured is
 left alone, and so is a status line script you edited.
+
+They also install a Claude Code `PreToolUse` hook, `brunnr-code hook
+branch-guard`, that denies `Edit`, `Write`, `MultiEdit` and `NotebookEdit` while
+the edited file's repository is on its default branch (`origin/HEAD`, else
+`init.defaultBranch`, else `main` or `master`). The agent has to create a
+feature branch before its first edit. Edits outside git, on other branches or
+on a detached HEAD are allowed, and so is any case the hook cannot decide.
+`uninstall` removes the hook.
 
 The files of those nine skills belong to the installer: every `install` and
 `sync` rewrites them, so local edits are lost. To customize one, copy it under a
