@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/carsimax/brunnr-code/internal/backup"
 	"github.com/carsimax/brunnr-code/internal/state"
@@ -140,12 +142,39 @@ func runRestoreWithHomeDir(args []string, restorer RestoreFunc, stdout io.Writer
 		}
 	}
 
+	// Save the current files first, so a restore can itself be undone.
+	if err := saveFilesBeforeRestore(homeDir, manifest); err != nil {
+		return err
+	}
+
 	// Execute restore.
 	if err := restorer(manifest); err != nil {
 		return fmt.Errorf("restore failed: %w", err)
 	}
 
 	fmt.Fprintf(stdout, "restore complete — restored backup %s (%s)\n", manifest.ID, manifest.DisplayLabel())
+	fmt.Fprintln(stdout, "the files it replaced are saved as a restore backup (see `brunnr-code restore --list`)")
+	return nil
+}
+
+// saveFilesBeforeRestore snapshots every path the restore will touch into a
+// new backup. It is not pruned here: pruning could remove the backup being
+// restored.
+func saveFilesBeforeRestore(homeDir string, manifest backup.Manifest) error {
+	paths := make([]string, 0, len(manifest.Entries))
+	for _, entry := range manifest.Entries {
+		paths = append(paths, entry.OriginalPath)
+	}
+	snapshotDir := filepath.Join(backupRootDir(homeDir), time.Now().UTC().Format("20060102150405.000000000"))
+	saved, err := backup.NewSnapshotter().Create(snapshotDir, paths)
+	if err != nil {
+		return fmt.Errorf("save current files before restore: %w", err)
+	}
+	saved.Source = backup.BackupSourceRestore
+	saved.Description = "before restoring " + manifest.ID
+	if err := backup.WriteManifest(filepath.Join(snapshotDir, backup.ManifestFilename), saved); err != nil {
+		return fmt.Errorf("save current files before restore: %w", err)
+	}
 	return nil
 }
 

@@ -77,7 +77,7 @@ func TestCodexHomeStandaloneRestoreExternalRoot(t *testing.T) {
 			if err := RunRestore([]string{"codex-root", "--yes"}, &output); err != nil {
 				t.Fatalf("restore: %v; output=%s", err, output.String())
 			}
-			wantOutput := fmt.Sprintf("restore complete — restored backup %s (%s)\n", manifest.ID, manifest.DisplayLabel())
+			wantOutput := fmt.Sprintf("restore complete — restored backup %s (%s)\n", manifest.ID, manifest.DisplayLabel()) + restoreSavedNote
 			if output.String() != wantOutput {
 				t.Fatalf("restore output = %q, want %q", output.String(), wantOutput)
 			}
@@ -161,7 +161,7 @@ func TestCodexHomeRestorePreservesOrdinaryHomeScope(t *testing.T) {
 	if err := RunRestore([]string{"ordinary", "--yes"}, &output); err != nil {
 		t.Fatalf("ordinary restore: %v", err)
 	}
-	wantOutput := fmt.Sprintf("restore complete — restored backup %s (%s)\n", manifest.ID, manifest.DisplayLabel())
+	wantOutput := fmt.Sprintf("restore complete — restored backup %s (%s)\n", manifest.ID, manifest.DisplayLabel()) + restoreSavedNote
 	if output.String() != wantOutput {
 		t.Fatalf("restore output = %q, want %q", output.String(), wantOutput)
 	}
