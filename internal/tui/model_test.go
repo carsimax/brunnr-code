@@ -1369,23 +1369,37 @@ func TestWelcomeMenu_InstallNavigation(t *testing.T) {
 	}
 }
 
-// TestWelcomeMenu_UpgradeNavigation verifies cursor 1 (Upgrade tools) goes to ScreenUpgrade.
-func TestWelcomeMenu_UpgradeNavigation(t *testing.T) {
+// TestWelcomeMenu_UpgradeSyncIsTheOnlyUpgradeOrSyncOption verifies the menu
+// offers Upgrade + Sync instead of separate upgrade-only and sync-only entries.
+func TestWelcomeMenu_UpgradeSyncIsTheOnlyUpgradeOrSyncOption(t *testing.T) {
+	opts := screens.WelcomeOptions(nil, true, true)
+	for _, opt := range opts {
+		if strings.HasPrefix(opt, "Upgrade tools") || opt == "Sync configs" {
+			t.Fatalf("WelcomeOptions() = %q, must not offer %q", opts, opt)
+		}
+	}
+	if opts[1] != "Upgrade + Sync (up to date)" {
+		t.Fatalf("WelcomeOptions()[1] = %q, want %q", opts[1], "Upgrade + Sync (up to date)")
+	}
+}
+
+// TestWelcomeMenu_UpgradeSyncNavigation verifies cursor 1 (Upgrade+Sync) goes to ScreenUpgradeSync.
+func TestWelcomeMenu_UpgradeSyncNavigation(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenWelcome
-	m.UpdateCheckDone = true // Skip update-check-pending spinner.
+	m.UpdateCheckDone = true
 	m.Cursor = 1
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
 
-	if state.Screen != ScreenUpgrade {
-		t.Fatalf("cursor=1 (Upgrade): screen = %v, want %v", state.Screen, ScreenUpgrade)
+	if state.Screen != ScreenUpgradeSync {
+		t.Fatalf("cursor=1 (Upgrade+Sync): screen = %v, want %v", state.Screen, ScreenUpgradeSync)
 	}
 }
 
-// TestWelcomeMenu_SyncNavigation verifies cursor 2 (Sync configs) goes to ScreenSync.
-func TestWelcomeMenu_SyncNavigation(t *testing.T) {
+// TestWelcomeMenu_ConfigureModelsNavigation verifies cursor 2 goes to ScreenModelConfig.
+func TestWelcomeMenu_ConfigureModelsNavigation(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenWelcome
 	m.Cursor = 2
@@ -1393,28 +1407,13 @@ func TestWelcomeMenu_SyncNavigation(t *testing.T) {
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
 
-	if state.Screen != ScreenSync {
-		t.Fatalf("cursor=2 (Sync): screen = %v, want %v", state.Screen, ScreenSync)
+	if state.Screen != ScreenModelConfig {
+		t.Fatalf("cursor=2 (Configure Models): screen = %v, want %v", state.Screen, ScreenModelConfig)
 	}
 }
 
-// TestWelcomeMenu_UpgradeSyncNavigation verifies cursor 3 (Upgrade+Sync) goes to ScreenUpgradeSync.
-func TestWelcomeMenu_UpgradeSyncNavigation(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenWelcome
-	m.UpdateCheckDone = true
-	m.Cursor = 3
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	if state.Screen != ScreenUpgradeSync {
-		t.Fatalf("cursor=3 (Upgrade+Sync): screen = %v, want %v", state.Screen, ScreenUpgradeSync)
-	}
-}
-
-// TestWelcomeMenu_ConfigureModelsNavigation verifies cursor 4 goes to ScreenModelConfig.
-func TestWelcomeMenu_ConfigureModelsNavigation(t *testing.T) {
+// TestWelcomeMenu_BackupsNavigation verifies cursor 4 goes to ScreenBackups.
+func TestWelcomeMenu_BackupsNavigation(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenWelcome
 	m.Cursor = 4
@@ -1422,44 +1421,30 @@ func TestWelcomeMenu_ConfigureModelsNavigation(t *testing.T) {
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
 
-	if state.Screen != ScreenModelConfig {
-		t.Fatalf("cursor=4 (Configure Models): screen = %v, want %v", state.Screen, ScreenModelConfig)
-	}
-}
-
-// TestWelcomeMenu_BackupsNavigation verifies cursor 6 goes to ScreenBackups.
-func TestWelcomeMenu_BackupsNavigation(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenWelcome
-	m.Cursor = 6
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
 	if state.Screen != ScreenBackups {
-		t.Fatalf("cursor=6 (Backups): screen = %v, want %v", state.Screen, ScreenBackups)
+		t.Fatalf("cursor=4 (Backups): screen = %v, want %v", state.Screen, ScreenBackups)
 	}
 }
 
 func TestWelcomeMenu_UninstallNavigation(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenWelcome
-	m.Cursor = 9
+	m.Cursor = 7
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
 
 	if state.Screen != ScreenUninstallMode {
-		t.Fatalf("cursor=9 (Managed uninstall): screen = %v, want %v", state.Screen, ScreenUninstallMode)
+		t.Fatalf("cursor=7 (Managed uninstall): screen = %v, want %v", state.Screen, ScreenUninstallMode)
 	}
 }
 
-// TestWelcomeMenu_OptionCount verifies the 11 retained welcome options.
+// TestWelcomeMenu_OptionCount verifies the 9 retained welcome options.
 func TestWelcomeMenu_OptionCount(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	opts := screens.WelcomeOptions(m.UpdateResults, m.UpdateCheckDone, true)
-	if len(opts) != 11 {
-		t.Fatalf("WelcomeOptions() len = %d, want 11; got %v", len(opts), opts)
+	if len(opts) != 9 {
+		t.Fatalf("WelcomeOptions() len = %d, want 9; got %v", len(opts), opts)
 	}
 }
 
@@ -3071,12 +3056,12 @@ func TestPinErrClearedOnScreenReentry(t *testing.T) {
 		t.Fatalf("Esc from ScreenBackups: screen = %v, want ScreenWelcome", afterEsc.Screen)
 	}
 
-	// Navigate back to ScreenBackups (cursor 6 on Welcome → enter).
-	afterEsc.Cursor = 6
+	// Navigate back to ScreenBackups (cursor 4 on Welcome → enter).
+	afterEsc.Cursor = 4
 	updated2, _ := afterEsc.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	afterReturn := updated2.(Model)
 	if afterReturn.Screen != ScreenBackups {
-		t.Fatalf("Enter cursor=6 from ScreenWelcome: screen = %v, want ScreenBackups", afterReturn.Screen)
+		t.Fatalf("Enter cursor=4 from ScreenWelcome: screen = %v, want ScreenBackups", afterReturn.Screen)
 	}
 
 	// PinErr must be cleared on re-entry.
@@ -3339,6 +3324,35 @@ func TestCodexModelPickerCustomModeEscResetsCursor(t *testing.T) {
 	if state.Cursor != 0 {
 		t.Fatalf("Cursor = %d, want 0 after Esc from Codex custom sub-mode (cursor not reset)", state.Cursor)
 	}
+}
+
+// runUpdatePromptCmd executes cmd and every command nested in its batches and
+// sequences, returning the leaf messages in order. Accepting the update prompt
+// returns tea.Batch(tick, tea.Sequence(upgrade, sync)), so a single level of
+// unwrapping never reaches the upgrade.
+func runUpdatePromptCmd(cmd tea.Cmd) []tea.Msg {
+	if cmd == nil {
+		return nil
+	}
+	msg := cmd()
+	if batch, ok := msg.(tea.BatchMsg); ok {
+		var msgs []tea.Msg
+		for _, inner := range batch {
+			msgs = append(msgs, runUpdatePromptCmd(inner)...)
+		}
+		return msgs
+	}
+	// sequenceMsg is an unexported []tea.Cmd.
+	if v := reflect.ValueOf(msg); v.Kind() == reflect.Slice {
+		var msgs []tea.Msg
+		for i := range v.Len() {
+			if inner, ok := v.Index(i).Interface().(tea.Cmd); ok {
+				msgs = append(msgs, runUpdatePromptCmd(inner)...)
+			}
+		}
+		return msgs
+	}
+	return []tea.Msg{msg}
 }
 
 // executeUpgradeSyncSequence runs the tea.Sequence returned by startUpgradeSync
@@ -3766,13 +3780,7 @@ func TestUpdatePromptScreen_EnterWithCursorOnUpdate_RunsUpgrade(t *testing.T) {
 	}
 
 	// Execute the command to trigger the upgrade goroutine.
-	msg := cmd()
-	// Accept BatchMsg: unwrap one level.
-	if batch, ok := msg.(tea.BatchMsg); ok {
-		for _, fn := range batch {
-			fn()
-		}
-	}
+	runUpdatePromptCmd(cmd)
 
 	if !upgraded {
 		t.Error("UpgradeFn should have been called when Enter is pressed with cursor on Update now (cursor=0)")
@@ -3795,8 +3803,8 @@ func TestUpdatePromptScreen_UpdateNowTransitionsToVisibleUpgradeProgress(t *test
 	if cmd == nil {
 		t.Fatal("cmd should not be nil when Update now is confirmed")
 	}
-	if got.Screen != ScreenUpgrade {
-		t.Fatalf("Screen = %v, want ScreenUpgrade for visible upgrade progress", got.Screen)
+	if got.Screen != ScreenUpgradeSync {
+		t.Fatalf("Screen = %v, want ScreenUpgradeSync for visible upgrade progress", got.Screen)
 	}
 	if !got.OperationRunning {
 		t.Fatal("OperationRunning must be true after confirming Update now")
@@ -3858,15 +3866,51 @@ func TestUpdatePromptScreen_ShortcutU_WorksRegardlessOfCursor(t *testing.T) {
 	if cmd == nil {
 		t.Fatal("cmd should not be nil after pressing 'u'")
 	}
-	msg := cmd()
-	if batch, ok := msg.(tea.BatchMsg); ok {
-		for _, fn := range batch {
-			fn()
-		}
-	}
+	runUpdatePromptCmd(cmd)
 
 	if !upgraded {
 		t.Error("UpgradeFn should have been called via 'u' shortcut regardless of cursor position")
+	}
+}
+
+// TestUpdatePromptScreen_UpdateNowAlsoSyncs verifies that accepting the
+// startup update prompt, by Enter or by "u", syncs the agent configs after the
+// upgrade, so nothing is left for a separate `brunnr-code sync`.
+func TestUpdatePromptScreen_UpdateNowAlsoSyncs(t *testing.T) {
+	keys := map[string]tea.KeyMsg{
+		"enter": {Type: tea.KeyEnter},
+		"u":     {Type: tea.KeyRunes, Runes: []rune("u")},
+	}
+	for name, key := range keys {
+		t.Run(name, func(t *testing.T) {
+			m := NewModel(system.DetectionResult{}, "dev")
+			m.Screen = ScreenUpdatePrompt
+			m.UpdateResults = []update.UpdateResult{makeUpdateResult(update.UpdateAvailable, "")}
+			m.UpdateCheckDone = true
+			m.Cursor = 0 // Update now
+			m.UpgradeFn = func(_ context.Context, _ []update.UpdateResult) upgrade.UpgradeReport {
+				return upgrade.UpgradeReport{}
+			}
+			synced := false
+			m.SyncFn = func(*model.SyncOverrides) ([]string, error) {
+				synced = true
+				return nil, nil
+			}
+
+			updated, cmd := m.Update(key)
+			got := updated.(Model)
+
+			if got.Screen != ScreenUpgradeSync {
+				t.Fatalf("Screen = %v, want ScreenUpgradeSync", got.Screen)
+			}
+			if got.OperationMode != "upgrade-sync" || !got.OperationRunning {
+				t.Fatalf("OperationMode = %q, OperationRunning = %v; want running upgrade-sync", got.OperationMode, got.OperationRunning)
+			}
+			runUpdatePromptCmd(cmd)
+			if !synced {
+				t.Fatal("SyncFn was not called after accepting the update prompt")
+			}
+		})
 	}
 }
 
@@ -3890,57 +3934,45 @@ func TestUpdatePromptScreen_ShortcutC_WorksRegardlessOfCursor(t *testing.T) {
 // ─── Upgrade error surfacing ──────────────────────────────────────────────────
 
 // TestUpdatePromptScreen_UpgradeError_IsSurfaced verifies that when UpgradeFn
-// is nil (infrastructure failure), the "u" key produces UpgradeDoneMsg with a
-// non-nil Err rather than a silent QuitMsg — the error is routed through the
-// existing UpgradeDoneMsg handler so it can be surfaced to the user.
+// is nil (infrastructure failure), the "u" key produces UpgradePhaseCompletedMsg
+// with a non-nil Err rather than a silent QuitMsg — the error is routed through
+// the Upgrade + Sync handler so it can be surfaced to the user.
 func TestUpdatePromptScreen_UpgradeError_IsSurfaced(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenUpdatePrompt
 	m.UpdateResults = []update.UpdateResult{makeUpdateResult(update.UpdateAvailable, "https://example.com/releases")}
 	m.UpdateCheckDone = true
 	m.Cursor = 0
-	m.UpgradeFn = nil // nil fn → startUpgrade returns UpgradeDoneMsg{Err: ...}
+	m.UpgradeFn = nil // nil fn → startUpgradeSync returns UpgradePhaseCompletedMsg{Err: ...}
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
+	pressed, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
 	if cmd == nil {
 		t.Fatal("cmd must not be nil after pressing 'u'")
 	}
 
-	// Execute the command: expect UpgradeDoneMsg (not a silent QuitMsg).
-	// The cmd may be a BatchMsg (tickCmd + upgrade goroutine); search all items
-	// to find the UpgradeDoneMsg rather than stopping at the first non-nil result.
+	// Execute the command: expect UpgradePhaseCompletedMsg (not a silent QuitMsg).
 	var msg tea.Msg
-	raw := cmd()
-	if batch, ok := raw.(tea.BatchMsg); ok {
-		for _, fn := range batch {
-			if inner := fn(); inner != nil {
-				if _, isDone := inner.(UpgradeDoneMsg); isDone {
-					msg = inner
-					break
-				}
-			}
+	for _, inner := range runUpdatePromptCmd(cmd) {
+		if _, isDone := inner.(UpgradePhaseCompletedMsg); isDone {
+			msg = inner
+			break
 		}
-		if msg == nil {
-			msg = raw
-		}
-	} else {
-		msg = raw
 	}
 
-	doneMsg, ok := msg.(UpgradeDoneMsg)
+	doneMsg, ok := msg.(UpgradePhaseCompletedMsg)
 	if !ok {
-		t.Fatalf("pressing 'u' must produce UpgradeDoneMsg (not %T) so errors are surfaced", msg)
+		t.Fatalf("pressing 'u' must produce UpgradePhaseCompletedMsg (not %T) so errors are surfaced", msg)
 	}
 	if doneMsg.Err == nil {
-		t.Fatal("UpgradeDoneMsg.Err must be non-nil when UpgradeFn is nil")
+		t.Fatal("UpgradePhaseCompletedMsg.Err must be non-nil when UpgradeFn is nil")
 	}
 
-	// Feed the UpgradeDoneMsg into the model — the error must be stored.
-	updated, _ := m.Update(doneMsg)
+	// Feed the UpgradePhaseCompletedMsg into the model — the error must be stored.
+	updated, _ := pressed.Update(doneMsg)
 	got := updated.(Model)
 
 	if got.UpgradeErr == nil {
-		t.Fatal("UpgradeErr must be set after UpgradeDoneMsg with non-nil Err")
+		t.Fatal("UpgradeErr must be set after UpgradePhaseCompletedMsg with non-nil Err")
 	}
 }
 
@@ -3974,7 +4006,7 @@ func TestUpdateCheckResult_DoesNotInterruptNonWelcomeScreen(t *testing.T) {
 
 // TestUpdatePromptScreen_KeyU_NilUpgradeFn_NoPanic verifies the contract when
 // UpgradeFn is nil: pressing "u" must NOT panic, must NOT silently quit, and
-// must produce an UpgradeDoneMsg carrying a non-nil error (so the error is
+// must produce an UpgradePhaseCompletedMsg carrying a non-nil error (so the error is
 // surfaced via the normal upgrade-done path rather than lost).
 func TestUpdatePromptScreen_KeyU_NilUpgradeFn_NoPanic(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
@@ -3992,38 +4024,25 @@ func TestUpdatePromptScreen_KeyU_NilUpgradeFn_NoPanic(t *testing.T) {
 
 	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
 	if cmd == nil {
-		t.Fatal("cmd must not be nil when UpgradeFn is nil: the contract requires an UpgradeDoneMsg to surface the error")
+		t.Fatal("cmd must not be nil when UpgradeFn is nil: the contract requires an UpgradePhaseCompletedMsg to surface the error")
 	}
 
-	// The cmd may be a BatchMsg (tickCmd + upgrade goroutine); search all items
-	// in the batch to find the UpgradeDoneMsg rather than stopping at the first
-	// non-nil result (which could be a TickMsg from the spinner).
+	// Search every leaf message for the UpgradePhaseCompletedMsg rather than
+	// stopping at the first one (which could be a TickMsg from the spinner).
 	var msg tea.Msg
-	raw := cmd()
-	if batch, ok := raw.(tea.BatchMsg); ok {
-		for _, fn := range batch {
-			if inner := fn(); inner != nil {
-				if _, isDone := inner.(UpgradeDoneMsg); isDone {
-					msg = inner
-					break
-				}
-			}
+	for _, inner := range runUpdatePromptCmd(cmd) {
+		if _, isDone := inner.(UpgradePhaseCompletedMsg); isDone {
+			msg = inner
+			break
 		}
-		if msg == nil {
-			msg = raw // fallback: use the batch result itself
-		}
-	} else {
-		msg = raw
 	}
 
-	// The ONLY acceptable outcome is UpgradeDoneMsg with a non-nil error.
-	// A silent quit or an untyped result means the error was swallowed.
-	doneMsgResult, ok := msg.(UpgradeDoneMsg)
+	doneMsgResult, ok := msg.(UpgradePhaseCompletedMsg)
 	if !ok {
-		t.Fatalf("expected UpgradeDoneMsg when UpgradeFn is nil, got %T — error must not be swallowed", msg)
+		t.Fatalf("expected UpgradePhaseCompletedMsg when UpgradeFn is nil, got %T — error must not be swallowed", msg)
 	}
 	if doneMsgResult.Err == nil {
-		t.Error("UpgradeDoneMsg.Err must be non-nil when UpgradeFn is nil")
+		t.Error("UpgradePhaseCompletedMsg.Err must be non-nil when UpgradeFn is nil")
 	}
 }
 
@@ -4059,22 +4078,12 @@ func TestUpdatePromptScreen_UpdateNow_NoDuplicateUpgrade(t *testing.T) {
 
 	if cmd2 != nil {
 		// Execute to check whether it would invoke UpgradeFn a second time.
-		msg := cmd2()
-		if batch, ok := msg.(tea.BatchMsg); ok {
-			for _, fn := range batch {
-				fn()
-			}
-		}
+		runUpdatePromptCmd(cmd2)
 	}
 	_ = m2
 
 	// Execute the first cmd so UpgradeFn runs (exactly once across all batch items).
-	raw1 := cmd1()
-	if batch, ok := raw1.(tea.BatchMsg); ok {
-		for _, fn := range batch {
-			fn()
-		}
-	}
+	runUpdatePromptCmd(cmd1)
 
 	if callCount != 1 {
 		t.Errorf("UpgradeFn call count = %d, want exactly 1 (duplicate upgrade guard failed)", callCount)
@@ -4100,23 +4109,12 @@ func TestUpdatePromptScreen_UpdateNow_NoDuplicateUpgrade(t *testing.T) {
 	if cmd3a == nil {
 		t.Fatal("first Enter on Update now should return a command")
 	}
-	if batch, ok := cmd3a().(tea.BatchMsg); ok {
-		for _, fn := range batch {
-			if fn != nil {
-				fn()
-			}
-		}
-	}
+	runUpdatePromptCmd(cmd3a)
 
 	// Second Enter while in progress — must be no-op.
 	_, cmd3b := m3a.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if cmd3b != nil {
-		msg := cmd3b()
-		if batch, ok := msg.(tea.BatchMsg); ok {
-			for _, fn := range batch {
-				fn()
-			}
-		}
+		runUpdatePromptCmd(cmd3b)
 	}
 
 	if enterCallCount != 1 {
