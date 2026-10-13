@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -95,7 +94,7 @@ func readRejectedResults(t *testing.T, dir string) map[string]reviewRejectedResu
 		if err != nil {
 			t.Fatal(err)
 		}
-		if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
+		if info.Mode().Perm() != 0o600 {
 			t.Fatalf("rejected result %s mode = %o, want 0600", path, info.Mode().Perm())
 		}
 		payload, err := os.ReadFile(path)

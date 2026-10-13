@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -85,15 +84,6 @@ func assertModuleFile(t *testing.T, path, want string, mode fs.FileMode) {
 	info, err := os.Lstat(path)
 	if err != nil {
 		t.Fatalf("stat %s: %v", path, err)
-	}
-	if runtime.GOOS == "windows" {
-		// Go exposes the Windows read-only attribute, not POSIX permission bits.
-		// Keep checking file type and whether the owner-write bit was requested.
-		writable := mode&0o200 != 0
-		mode = mode.Type() | 0o444
-		if writable {
-			mode |= 0o222
-		}
 	}
 	if string(data) != want || info.Mode() != mode {
 		t.Fatalf("%s = %q mode %v, want %q mode %v", path, data, info.Mode(), want, mode)
@@ -189,8 +179,7 @@ func TestOrchestratorModuleInstallStagesThenFinalizesLedger(t *testing.T) {
 				if err != nil || !info.IsDir() {
 					t.Fatalf("created directory %s = %v (%v), want real directory", created, info, err)
 				}
-				// Windows FileMode does not describe directory ACL privacy.
-				if runtime.GOOS != "windows" && info.Mode().Perm()&^0o700 != 0 {
+				if info.Mode().Perm()&^0o700 != 0 {
 					t.Fatalf("created directory %s mode = %v, want private directory", created, info.Mode())
 				}
 			}

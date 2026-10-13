@@ -37,7 +37,7 @@ var (
 	updateCheckFiltered       = update.CheckFiltered
 	upgradeExecute            = upgrade.Execute
 	upgradeExecuteWithOptions = upgrade.ExecuteWithOptions
-	ensureCurrentOSSupported  = system.EnsureCurrentOSSupported
+	ensureCurrentOSSupported  = system.EnsureCurrentPlatformSupported
 	detectSystem              = system.Detect
 	runTUI                    = func(m tea.Model, opts ...tea.ProgramOption) (tea.Model, error) {
 		p := tea.NewProgram(m, opts...)
@@ -156,7 +156,7 @@ func RunArgs(args []string, stdout io.Writer) error {
 	}
 
 	if !result.System.Supported {
-		return system.EnsureSupportedPlatform(result.System.Profile)
+		return system.EnsureSupportedPlatform(result.System.OS, result.System.Arch)
 	}
 
 	// Reject invalid install plans before any other effect. Dispatch reuses

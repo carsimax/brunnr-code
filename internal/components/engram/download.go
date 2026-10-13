@@ -2,8 +2,6 @@ package engram
 
 import (
 	"archive/tar"
-	"archive/zip"
-	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/json"
@@ -13,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"time"
 
@@ -25,15 +22,19 @@ const (
 	engramOwner = "Gentleman-Programming"
 	engramRepo  = "engram"
 	engramName  = "engram"
+
+	// engramReleaseOS and engramReleaseArch select the only release asset
+	// brunnr-code installs: it supports macOS on Apple Silicon only.
+	engramReleaseOS   = "darwin"
+	engramReleaseArch = "arm64"
 )
 
 // Package-level vars for testability.
 var (
-	engramHTTPClient      = &http.Client{Timeout: 5 * time.Minute}
-	engramGitHubBaseURL   = "https://github.com"
-	engramInstallDirFn    = engramInstallDir
-	engramChecksumURLFn   = engramChecksumURL
-	engramStopProcessesFn = stopEngramProcesses
+	engramHTTPClient    = &http.Client{Timeout: 5 * time.Minute}
+	engramGitHubBaseURL = "https://github.com"
+	engramInstallDirFn  = engramInstallDir
+	engramChecksumURLFn = engramChecksumURL
 )
 
 // engramCoreTagPattern matches only plain semver tags (vX.Y.Z) that identify
@@ -46,15 +47,15 @@ var (
 const engramCoreTagPattern = `^v[0-9]+\.[0-9]+\.[0-9]+$`
 
 // DownloadLatestBinary fetches the latest engram release from GitHub and
-// installs it to the appropriate directory for the given platform.
-// It returns the full path to the installed binary.
+// installs it. Only the darwin/arm64 asset is fetched; the profile does not
+// choose the asset. It returns the full path to the installed binary.
 //
 // Checksum verification is mandatory: the install fails if checksums.txt is
 // unavailable, if the archive is not listed, or if
 // the digest does not match.
 //
-// This is the Engram installation method on every platform.
-func DownloadLatestBinary(profile system.PlatformProfile) (string, error) {
+// This is the Engram installation method.
+func DownloadLatestBinary(_ system.PlatformProfile) (string, error) {
 	ctx := context.Background()
 
 	// 1. Fetch the latest version tag from GitHub API. Only tags matching the
@@ -65,25 +66,19 @@ func DownloadLatestBinary(profile system.PlatformProfile) (string, error) {
 		return "", fmt.Errorf("fetch latest engram version: %w", err)
 	}
 
-	// 2. Determine binary name and archive URL.
-	goos := profile.OS
-	goarch := normalizeArch(runtime.GOARCH)
-	assetURL := engramAssetURL(engramGitHubBaseURL, version, goos, goarch)
-	archiveName := engramArchiveName(version, goos, goarch)
+	// 2. Determine the archive URL.
+	assetURL := engramAssetURL(engramGitHubBaseURL, version)
+	archiveName := engramArchiveName(version)
 	checksumURL := engramChecksumURLFn(engramGitHubBaseURL, version)
 
 	// 3. Determine install directory.
-	installDir := engramInstallDirFn(goos)
+	installDir := engramInstallDirFn()
 	if err := os.MkdirAll(installDir, 0o755); err != nil {
 		return "", fmt.Errorf("create engram install dir %q: %w", installDir, err)
 	}
 
 	// 4. Download archive to a temp dir so we can verify before extracting.
-	binaryName := engramName
-	if goos == "windows" {
-		binaryName = engramName + ".exe"
-	}
-	outPath := filepath.Join(installDir, binaryName)
+	outPath := filepath.Join(installDir, engramName)
 
 	tmpDir, err := os.MkdirTemp("", "brunnr-code-engram-*")
 	if err != nil {
@@ -111,34 +106,15 @@ func DownloadLatestBinary(profile system.PlatformProfile) (string, error) {
 			archiveName, expectedDigest, actualDigest)
 	}
 
-	// 6. On Windows, stop running Engram processes before replacing engram.exe.
-	// Windows locks running executables, unlike POSIX where atomic rename can
-	// replace the directory entry while the old process keeps its inode.
-	if goos == "windows" {
-		if err := engramStopProcessesFn(); err != nil {
-			return "", fmt.Errorf("stop running engram processes before upgrade: %w", err)
-		}
-	}
-
-	// 7. Extract the verified binary.
+	// 6. Extract the verified binary.
 	f, err := os.Open(archivePath)
 	if err != nil {
 		return "", fmt.Errorf("open archive: %w", err)
 	}
 	defer f.Close()
 
-	if strings.HasSuffix(assetURL, ".zip") {
-		data, err := io.ReadAll(f)
-		if err != nil {
-			return "", fmt.Errorf("read zip archive: %w", err)
-		}
-		if err := extractZipBinary(data, binaryName, outPath); err != nil {
-			return "", fmt.Errorf("extract engram zip: %w", err)
-		}
-	} else {
-		if err := extractBinaryFromTarGz(f, engramName, outPath); err != nil {
-			return "", fmt.Errorf("extract engram tar.gz: %w", err)
-		}
+	if err := extractBinaryFromTarGz(f, engramName, outPath); err != nil {
+		return "", fmt.Errorf("extract engram tar.gz: %w", err)
 	}
 
 	return outPath, nil
@@ -160,7 +136,7 @@ func fetchLatestEngramVersion() (string, error) {
 	}
 
 	// GitHub Actions injects a repository-scoped GITHUB_TOKEN into CI. When that
-	// token is forwarded into our Linux E2E containers, the public engram releases
+	// token is forwarded into E2E runs, the public engram releases
 	// endpoint can respond 401/403 for a different repository. Retry anonymously
 	// before failing because the release metadata is public.
 	if token != "" && (status == http.StatusUnauthorized || status == http.StatusForbidden) {
@@ -348,21 +324,6 @@ func githubToken() string {
 	return os.Getenv("GH_TOKEN")
 }
 
-// normalizeArch maps Go's runtime.GOARCH to the architecture names used in
-// engram release assets. Engram only publishes amd64 and arm64 binaries.
-// If the current process runs as 386 (32-bit Go on a 64-bit system), we
-// map to amd64 since engram doesn't publish 386 builds.
-func normalizeArch(goarch string) string {
-	switch goarch {
-	case "386":
-		return "amd64"
-	case "arm":
-		return "arm64"
-	default:
-		return goarch
-	}
-}
-
 // engramAPIBaseURL returns the GitHub API base URL for fetching release info.
 // In tests, the mock server handles both API and download under the same URL,
 // so we derive the API base from engramGitHubBaseURL.
@@ -374,21 +335,17 @@ func engramAPIBaseURL() string {
 	return "https://api.github.com"
 }
 
-// engramArchiveName returns the GoReleaser archive filename for the given
-// version/os/arch combination.
+// engramArchiveName returns the GoReleaser darwin/arm64 archive filename for
+// the given version.
 //
-// Convention: engram_{version}_{os}_{arch}.tar.gz (or .zip on Windows)
-func engramArchiveName(version, goos, goarch string) string {
-	ext := ".tar.gz"
-	if goos == "windows" {
-		ext = ".zip"
-	}
-	return fmt.Sprintf("%s_%s_%s_%s%s", engramRepo, version, goos, goarch, ext)
+// Convention: engram_{version}_{os}_{arch}.tar.gz
+func engramArchiveName(version string) string {
+	return fmt.Sprintf("%s_%s_%s_%s.tar.gz", engramRepo, version, engramReleaseOS, engramReleaseArch)
 }
 
 // engramAssetURL constructs the download URL for the engram release asset.
-func engramAssetURL(baseURL, version, goos, goarch string) string {
-	filename := engramArchiveName(version, goos, goarch)
+func engramAssetURL(baseURL, version string) string {
+	filename := engramArchiveName(version)
 	return fmt.Sprintf("%s/%s/%s/releases/download/v%s/%s",
 		baseURL, engramOwner, engramRepo, version, filename)
 }
@@ -470,105 +427,9 @@ func engramExpectedChecksumFor(content, filename string) (string, error) {
 	return "", fmt.Errorf("%q not listed in checksums.txt", filename)
 }
 
-// extractZipBinary extracts the binary named binaryName from the zip data
-// and writes it to outPath.
-func extractZipBinary(data []byte, binaryName, outPath string) error {
-	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
-	if err != nil {
-		return fmt.Errorf("open zip: %w", err)
-	}
-
-	for _, f := range zr.File {
-		if filepath.Base(f.Name) == binaryName && !f.FileInfo().IsDir() {
-			rc, err := f.Open()
-			if err != nil {
-				return fmt.Errorf("open zip entry %q: %w", f.Name, err)
-			}
-			defer rc.Close()
-			return writeExecutable(rc, outPath)
-		}
-	}
-
-	return fmt.Errorf("binary %q not found in zip archive", binaryName)
-}
-
-// engramStopScript returns the PowerShell script that stops running Engram
-// processes so Windows can replace engram.exe during an upgrade.
-//
-// The script is written defensively so a clean install (no engram process
-// running) is a clean no-op instead of a failure:
-//  1. Get-Process uses -ErrorAction SilentlyContinue, so a missing process is
-//     not a terminating error.
-//  2. The Stop-Process call is guarded by `if ($procs)`, so the pipeline never
-//     runs on an empty result. This matters on Windows PowerShell 5.1, where
-//     piping an empty Get-Process result still flips `$?` and makes
-//     powershell.exe exit 1 with empty output — the clean-install regression in
-//     issue #815.
-//  3. Stop-Process uses -ErrorAction SilentlyContinue (never -ErrorAction Stop),
-//     so an access-denied condition (e.g. the binary is held by the running
-//     editor session) does not abort the install.
-//  4. If processes were found but could not all be stopped, the script emits a
-//     WARNING line so the caller can surface it without failing the install.
-func engramStopScript() string {
-	return `
-$procs = Get-Process -Name engram -ErrorAction SilentlyContinue
-if ($procs) {
-    $procs | Stop-Process -Force -ErrorAction SilentlyContinue
-    $remaining = Get-Process -Name engram -ErrorAction SilentlyContinue
-    if ($remaining) {
-        Write-Output "WARNING: $($remaining.Count) engram process(es) could not be stopped (access denied or still running). The upgrade may fail if the file is still locked."
-    }
-}
-exit 0
-`
-}
-
-// stopEngramProcesses runs the defensive stop script (see engramStopScript) and
-// returns a non-nil error only when PowerShell fails to launch or
-// exits non-zero. A WARNING line (processes found but not all stopped) is
-// surfaced to stderr but is treated as non-fatal.
-func stopEngramProcesses() error {
-	return stopEngramProcessesWith(system.NewPowerShellRunner())
-}
-
-func stopEngramProcessesWith(runner system.PowerShellRunner) error {
-	out, err := runner.Run(context.Background(),
-		"-NoProfile",
-		"-NonInteractive",
-		"-Command",
-		engramStopScript(),
-	)
-	if err != nil {
-		// PowerShell failed to launch or returned non-zero despite
-		// our SilentlyContinue guards — surface the raw output so the user
-		// has something actionable.
-		return fmt.Errorf("PowerShell Stop-Process engram: %w", err)
-	}
-	// If the script emitted a WARNING line, surface it but do not fail.
-	// The caller decides whether to abort based on the returned error being nil.
-	msg := strings.TrimSpace(string(out))
-	if strings.HasPrefix(msg, "WARNING:") {
-		// Non-fatal: log to stderr so operators can diagnose, but return nil.
-		fmt.Fprintf(os.Stderr, "brunnr-code: engram stop: %s\n", msg)
-	}
-	return nil
-}
-
-// engramInstallDir returns the directory where the engram binary should be installed
-// for the given OS.
-//   - Linux/macOS: /usr/local/bin (fallback: ~/.local/bin if not writable)
-//   - Windows: %LOCALAPPDATA%\engram\bin
-func engramInstallDir(goos string) string {
-	if goos == "windows" {
-		localAppData := os.Getenv("LOCALAPPDATA")
-		if localAppData == "" {
-			home, _ := os.UserHomeDir()
-			localAppData = filepath.Join(home, "AppData", "Local")
-		}
-		return filepath.Join(localAppData, "engram", "bin")
-	}
-
-	// Linux/macOS: try /usr/local/bin first.
+// engramInstallDir returns the directory where the engram binary should be
+// installed: /usr/local/bin, or ~/.local/bin when that is not writable.
+func engramInstallDir() string {
 	candidate := "/usr/local/bin"
 	if isWritableDir(candidate) {
 		return candidate
@@ -627,7 +488,7 @@ func extractBinaryFromTarGz(r io.Reader, binaryName, outPath string) error {
 }
 
 // writeExecutable writes a binary to outPath using an atomic rename to avoid
-// ETXTBSY ("text file busy") errors on Linux when the target binary is
+// ETXTBSY ("text file busy") errors when the target binary is
 // currently running (e.g. engram as an MCP server). The rename trick works
 // because os.Rename replaces the directory entry — the running process keeps
 // its open file descriptor to the old inode, while new executions pick up

@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -614,11 +613,9 @@ func TestRunSyncRollbackRestoresClaudeEngramMigrationSource(t *testing.T) {
 			if err != nil || !bytes.Equal(got, file.data) {
 				t.Fatalf("rollback attempt %d did not restore %q bytes: got=%q error=%v", attempt, file.path, got, err)
 			}
-			if runtime.GOOS != "windows" {
-				info, err := os.Stat(file.path)
-				if err != nil || info.Mode().Perm() != file.mode {
-					t.Fatalf("rollback attempt %d did not restore %q mode: got=%v error=%v want=%v", attempt, file.path, info, err, file.mode)
-				}
+			info, err := os.Stat(file.path)
+			if err != nil || info.Mode().Perm() != file.mode {
+				t.Fatalf("rollback attempt %d did not restore %q mode: got=%v error=%v want=%v", attempt, file.path, info, err, file.mode)
 			}
 		}
 	}
@@ -711,9 +708,6 @@ func TestRunSyncRollbackRestoresCodexEngramInstructionFiles(t *testing.T) {
 }
 
 func TestRestoreSyncFilesNeverWidensZeroMode(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("exact zero-mode restoration is a POSIX permission contract")
-	}
 	tests := []struct {
 		name  string
 		setup func(t *testing.T) (string, syncFileSnapshot)
@@ -2662,7 +2656,6 @@ func TestNativeReviewSyncPreservesUnknownAndSnapshotsLedger(t *testing.T) {
 		t.Fatalf("saved backup = %q, %v", savedBytes, err)
 	}
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 	originalHome, originalBackupHome := osUserHomeDir, backup.UserHomeDirFn
 	originalCommand, originalLookPath := runCommand, cmdLookPath
 	osUserHomeDir = func() (string, error) { return home, nil }

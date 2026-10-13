@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -28,8 +27,8 @@ func setStdioHelperProcess(t *testing.T, mode string, env ...string) func() *exe
 	execCommandContext = func(ctx context.Context, name string, args ...string) *exec.Cmd {
 		// -test.timeout keeps a pending runtime timer alive in the helper. An
 		// idle helper parked only in select{} has no syscall-blocked goroutine,
-		// so on Windows the child runtime declares "all goroutines are asleep",
-		// exits before the probe context ends, and the parent reads a clean
+		// so the child runtime can declare "all goroutines are asleep", exit
+		// before the probe context ends, and leave the parent reading a clean
 		// stdout EOF instead of the context cause.
 		cs := append([]string{"-test.run=TestHelperEngramMCPProcess", "-test.timeout=1m", "--", name}, args...)
 		cmd := exec.CommandContext(ctx, os.Args[0], cs...)
@@ -681,13 +680,12 @@ func TestProbeStdio_ClassifiesCommandNotFound(t *testing.T) {
 		wantNotInstalled bool
 	}{
 		{name: "bare Engram name", command: "engram", wantNotInstalled: true},
-		{name: "Windows bare executable", command: "engram.exe", wantNotInstalled: runtime.GOOS == "windows"},
-		{name: "Windows case-insensitive bare executable", command: "EnGrAm.ExE", wantNotInstalled: runtime.GOOS == "windows"},
+		{name: "other bare executable name", command: "engram.exe"},
+		{name: "case-variant bare name", command: "EnGrAm"},
 		{name: "relative path", command: `./engram`},
 		{name: "nested relative path", command: `bin/engram`},
-		{name: "Windows drive path", command: `C:\Engram\engram.exe`},
-		{name: "Windows drive-relative path", command: `C:Engram\engram.exe`},
-		{name: "Windows UNC path", command: `\\server\share\engram.exe`},
+		{name: "backslash path", command: `C:\Engram\engram`},
+		{name: "colon path", command: `C:engram`},
 		{name: "custom command", command: "custom-engram"},
 	}
 

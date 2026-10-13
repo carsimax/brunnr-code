@@ -107,7 +107,7 @@ func normalizeConsentFixtureCWD(t *testing.T, payload []byte, root string) []byt
 	return normalized
 }
 
-func TestInvocationArgsParsesQuotedWindowsConsentFollowUp(t *testing.T) {
+func TestInvocationArgsParsesQuotedBackslashConsentFollowUp(t *testing.T) {
 	root := `C:\Users\Jane Doe\repo`
 	invocation := "brunnr-code review start --cwd '" + root + "' --contract " + ReviewIntegrationContractV1
 
@@ -117,7 +117,7 @@ func TestInvocationArgsParsesQuotedWindowsConsentFollowUp(t *testing.T) {
 	}
 }
 
-func TestConsentFixtureNormalizationStripsRenderedWindowsCWDQuoting(t *testing.T) {
+func TestConsentFixtureNormalizationStripsRenderedQuotedCWD(t *testing.T) {
 	root := `C:\Users\Jane Doe\repo`
 	payload, err := json.Marshal(ReviewIntegrationConsentResult{Choices: []ReviewIntegrationConsentChoice{{
 		Invocation: "brunnr-code review start --cwd '" + root + "' --contract " + ReviewIntegrationContractV1,

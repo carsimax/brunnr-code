@@ -25,37 +25,6 @@ func TestResolveAgentInstall(t *testing.T) {
 			want:    CommandSequence{{"npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
 		},
 		{
-			name:    "claude-code on linux system npm uses sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt"},
-			agent:   model.AgentClaudeCode,
-			want:    CommandSequence{{"sudo", "npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
-		},
-		{
-			name:    "claude-code on linux nvm skips sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt", NpmWritable: true},
-			agent:   model.AgentClaudeCode,
-			want:    CommandSequence{{"npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
-		},
-		{
-			name:    "claude-code on arch system npm uses sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroArch, PackageManager: "pacman"},
-			agent:   model.AgentClaudeCode,
-			want:    CommandSequence{{"sudo", "npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
-		},
-		{
-			name:    "claude-code on fedora nvm skips sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroFedora, PackageManager: "dnf", NpmWritable: true},
-			agent:   model.AgentClaudeCode,
-			want:    CommandSequence{{"npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
-		},
-		{
-			name:    "claude-code on windows uses npm without sudo",
-			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget", NpmWritable: true},
-			agent:   model.AgentClaudeCode,
-			want:    CommandSequence{{"npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
-		},
-
-		{
 			name:    "unsupported agent returns error",
 			profile: system.PlatformProfile{OS: "darwin"},
 			agent:   "unsupported",
@@ -78,11 +47,5 @@ func TestResolveAgentInstall(t *testing.T) {
 				t.Fatalf("ResolveAgentInstall() = %v, want %v", command, tt.want)
 			}
 		})
-	}
-}
-
-func TestPowerShellSingleQuotedValue(t *testing.T) {
-	if got, want := system.PowerShellSingleQuoted(`C:\Users\O'Brien\Temp`), `C:\Users\O''Brien\Temp`; got != want {
-		t.Fatalf("PowerShellSingleQuoted() = %q, want %q", got, want)
 	}
 }

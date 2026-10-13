@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"testing"
 
 	"github.com/carsimax/brunnr-code/internal/components/filemerge"
@@ -18,9 +17,6 @@ import (
 // file was created insecurely, even though rewriting an existing file otherwise
 // preserves its current mode by default.
 func TestMergeUserConfigForcesOAuthFileTo0600OnContentChange(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permission bits are not meaningful on Windows")
-	}
 	home := t.TempDir()
 	configPath := UserConfigPath(home)
 	if err := os.WriteFile(configPath, []byte(`{"already":"set"}`+"\n"), 0o644); err != nil {
@@ -44,9 +40,6 @@ func TestMergeUserConfigForcesOAuthFileTo0600OnContentChange(t *testing.T) {
 // merge path: the file must still be tightened to 0600 even when the merged
 // bytes are byte-identical to what is already on disk.
 func TestMergeUserConfigForcesOAuthFileTo0600OnIdenticalContent(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permission bits are not meaningful on Windows")
-	}
 	home := t.TempDir()
 	configPath := UserConfigPath(home)
 	overlay := []byte(`{"already":"set"}`)
@@ -185,18 +178,8 @@ func TestInstallCommand(t *testing.T) {
 	}{
 		{
 			name:    "darwin profile uses npm without sudo",
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: ""},
+			profile: system.PlatformProfile{OS: "darwin"},
 			want:    [][]string{{"npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
-		},
-		{
-			name:    "ubuntu profile uses sudo npm",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt"},
-			want:    [][]string{{"sudo", "npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
-		},
-		{
-			name:    "arch profile uses sudo npm",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroArch, PackageManager: "pacman"},
-			want:    [][]string{{"sudo", "npm", "install", "-g", "--ignore-scripts", "@anthropic-ai/claude-code@latest"}},
 		},
 	}
 

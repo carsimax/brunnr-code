@@ -322,7 +322,7 @@ func TestIntendedUntrackedConsentFollowUpPreservesSelectedScope(t *testing.T) {
 	}
 }
 
-func TestConsentFollowUpPrintedPathFlagsRoundTripWindowsNativePaths(t *testing.T) {
+func TestConsentFollowUpPrintedPathFlagsRoundTripBackslashPaths(t *testing.T) {
 	for _, test := range []struct {
 		name, cwd, policy, trace string
 	}{
@@ -333,7 +333,7 @@ func TestConsentFollowUpPrintedPathFlagsRoundTripWindowsNativePaths(t *testing.T
 		t.Run(test.name, func(t *testing.T) {
 			command := reviewConsentFollowUpBase(
 				test.cwd, "sha256:target", "", reviewtransaction.ProjectionWorkspace,
-				"windows-path-roundtrip", "", test.policy, "reliability", test.trace, false, false,
+				"backslash-path-roundtrip", "", test.policy, "reliability", test.trace, false, false,
 				ReviewIntegrationContractV2, "", "", reviewIntendedUntrackedScope{},
 			)
 
@@ -347,7 +347,7 @@ func TestConsentFollowUpPrintedPathFlagsRoundTripWindowsNativePaths(t *testing.T
 				"--cwd", test.cwd,
 				"--target", "sha256:target",
 				"--projection", string(reviewtransaction.ProjectionWorkspace),
-				"--lineage", "windows-path-roundtrip",
+				"--lineage", "backslash-path-roundtrip",
 			}
 			if test.policy != "" {
 				want = append(want, "--policy", test.policy)

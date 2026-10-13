@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -17,79 +16,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/agents"
 	"github.com/carsimax/brunnr-code/internal/model"
 )
-
-func TestClaudeSkillRegistryCommandForWindows(t *testing.T) {
-	const want = `powershell -NoProfile -Command 'if (Test-Path env:CLAUDE_PROJECT_DIR) { $dir = $env:CLAUDE_PROJECT_DIR } else { $dir = $PWD }; brunnr-code skill-registry refresh --quiet --no-gitignore --cwd "$dir"; exit 0'`
-	if got := claudeSkillRegistryCommand("windows"); got != want {
-		t.Fatalf("Windows hook command = %q, want %q", got, want)
-	}
-}
-
-func TestClaudeSkillRegistryWindowsMigration(t *testing.T) {
-	adapter, err := agents.NewAdapter(model.AgentClaudeCode)
-	if err != nil {
-		t.Fatal(err)
-	}
-	canonical := claudeSkillRegistryCommand("windows")
-	for _, tc := range []struct {
-		name, userPromptHooks string
-		wantPromptHooks       int
-	}{
-		{"legacy alone", `[{"matcher":"","hooks":[{"type":"command","command":` + mustJSON(t, claudeLegacySkillRegistryCommand) + `}]}]`, 1},
-		{"legacy alongside canonical", `[{"matcher":"","hooks":[{"type":"command","command":` + mustJSON(t, claudeLegacySkillRegistryCommand) + `},{"type":"command","command":` + mustJSON(t, canonical) + `}]}]`, 1},
-		{"canonical only in another event", `[{"matcher":"","hooks":[{"type":"command","command":"echo keep"}]}]`, 2},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			home := t.TempDir()
-			settingsPath := adapter.SettingsPath(home)
-			if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-				t.Fatal(err)
-			}
-			seed := `{"hooks":{"SessionStart":[{"matcher":"","hooks":[{"type":"command","command":` + mustJSON(t, canonical) + `}]}],"UserPromptSubmit":` + tc.userPromptHooks + `}}`
-			if err := os.WriteFile(settingsPath, []byte(seed), 0o644); err != nil {
-				t.Fatal(err)
-			}
-			result, err := installSkillRegistry(home, adapter, "windows")
-			if err != nil || !result.Changed {
-				t.Fatalf("first Windows install: %+v %v", result, err)
-			}
-			data, err := os.ReadFile(settingsPath)
-			if err != nil {
-				t.Fatal(err)
-			}
-			var root struct {
-				Hooks map[string][]struct {
-					Hooks []struct {
-						Command string `json:"command"`
-					} `json:"hooks"`
-				} `json:"hooks"`
-			}
-			if err := json.Unmarshal(data, &root); err != nil {
-				t.Fatal(err)
-			}
-			if len(root.Hooks["UserPromptSubmit"]) != tc.wantPromptHooks || len(root.Hooks["SessionStart"]) != 1 || root.Hooks["SessionStart"][0].Hooks[0].Command != canonical {
-				t.Fatalf("unexpected hook events after migration: %s", data)
-			}
-			var commands []string
-			for _, entry := range root.Hooks["UserPromptSubmit"] {
-				for _, hook := range entry.Hooks {
-					commands = append(commands, hook.Command)
-				}
-			}
-			if strings.Count(strings.Join(commands, "\n"), canonical) != 1 || strings.Contains(strings.Join(commands, "\n"), claudeLegacySkillRegistryCommand) {
-				t.Fatalf("canonical command missing or legacy command retained: %q", commands)
-			}
-			second, err := installSkillRegistry(home, adapter, "windows")
-			if err != nil || second.Changed {
-				t.Fatalf("second Windows install: %+v %v", second, err)
-			}
-			after, err := os.ReadFile(settingsPath)
-			if err != nil || !bytes.Equal(data, after) {
-				t.Fatalf("migration not byte-idempotent: %v", err)
-			}
-		})
-	}
-}
 
 func mustJSON(t *testing.T, value string) string {
 	t.Helper()
@@ -100,23 +26,20 @@ func mustJSON(t *testing.T, value string) string {
 	return string(data)
 }
 
-// TestClaudeUserPromptSubmitHookExecutesPowerShellCommandWithSpecialChars
+// TestClaudeUserPromptSubmitHookExecutesCommandWithSpecialChars
 // exercises the generated hook command, not a reconstructed approximation.
-func TestClaudeUserPromptSubmitHookExecutesPowerShellCommandWithSpecialChars(t *testing.T) {
+func TestClaudeUserPromptSubmitHookExecutesCommandWithSpecialChars(t *testing.T) {
 	root := t.TempDir()
 	bin := filepath.Join(root, "bin")
 	if err := os.MkdirAll(bin, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	fakeName := "brunnr-code"
-	if runtime.GOOS == "windows" {
-		fakeName = "brunnr-code.exe"
-	}
 	testBinary, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	// A copy, not a symlink, works on Windows too.
+	// A copy, not a symlink, keeps the fake independent of the test binary.
 	if err := copyFakeExecutable(testBinary, filepath.Join(bin, fakeName)); err != nil {
 		t.Fatal(err)
 	}
@@ -157,25 +80,9 @@ func TestClaudeUserPromptSubmitHookExecutesPowerShellCommandWithSpecialChars(t *
 	}
 	settingsCommand := settings.Hooks.UserPromptSubmit[0].Hooks[0].Command
 
-	// PowerShell strips outer quotes from -Command; pass the body directly.
-	var execName string
-	var execArgs []string
-	if runtime.GOOS == "windows" {
-		const wrapper = `powershell -NoProfile -Command '`
-		if !strings.HasPrefix(settingsCommand, wrapper) || !strings.HasSuffix(settingsCommand, "'") {
-			t.Fatalf("Windows settings command lost the powershell wrapper: %q", settingsCommand)
-		}
-		body := strings.TrimSuffix(strings.TrimPrefix(settingsCommand, wrapper), "'")
-		execName = "powershell"
-		execArgs = []string{"-NoProfile", "-Command", body}
-	} else {
-		execName = "/bin/sh"
-		execArgs = []string{"-c", settingsCommand}
-	}
+	execName := "/bin/sh"
+	execArgs := []string{"-c", settingsCommand}
 	if _, err := exec.LookPath(execName); err != nil {
-		if runtime.GOOS == "windows" {
-			t.Fatalf("powershell.exe not found on PATH on a Windows host: %v", err)
-		}
 		t.Skipf("%s is not on PATH; cannot execute the hook command on this host", execName)
 	}
 

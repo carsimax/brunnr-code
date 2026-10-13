@@ -81,8 +81,7 @@ func buildOrchestratorModules(agent model.AgentID, source ReviewContractSource, 
 
 // validateOrchestratorModuleDir accepts only a home-relative or absolute
 // reference: a relative one would resolve against whatever project is open.
-// Absolute filesystem bindings use native path semantics, including Windows
-// drive-absolute paths. Installation scope and ownership are checked separately.
+// Absolute filesystem bindings use native path semantics. Installation scope and ownership are checked separately.
 func validateOrchestratorModuleDir(dir string) error {
 	switch {
 	case strings.TrimSpace(dir) == "":
@@ -140,11 +139,6 @@ func splitOrchestratorModules(annotated string, specs []orchestratorFragmentSpec
 		spec := byID[span.id]
 		module, _, _ := strings.Cut(span.id, ".")
 		modulePath := strings.TrimRight(moduleDir, "/") + "/" + orchestratorModuleFile(module)
-		// Native Windows references use the same separators as installed files.
-		// Keep Unix and home-relative pointer text byte-for-byte compatible.
-		if filepath.IsAbs(moduleDir) && filepath.VolumeName(moduleDir) != "" {
-			modulePath = filepath.Join(moduleDir, orchestratorModuleFile(module))
-		}
 		pointer := "On demand: when " + spec.reason + ", read `" + modulePath + "`, section \"" + spec.title + "\".\n"
 		body := annotated[span.bodyStart:span.bodyEnd]
 		fragments = append(fragments, orchestratorFragment{id: span.id, module: module, title: spec.title, pointer: pointer, body: body, offset: core.Len()})

@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -62,8 +61,6 @@ var (
 	lookPathFn          = exec.LookPath
 	availableBytesFn    = storage.AvailableBytes
 	osUserHomeDirDoctor = os.UserHomeDir
-	doctorGOOS          = runtime.GOOS
-	executableExtsFn    = executableExtensions
 	pathDirsFn          = func() []string {
 		return filepath.SplitList(os.Getenv("PATH"))
 	}
@@ -140,7 +137,7 @@ func requiredDoctorTools(installedAgents []string) []string {
 }
 
 func checkOneToolContext(ctx context.Context, tool string, pathDirs []string) CheckResult {
-	resolved, shim, err := resolveDoctorTool(tool)
+	resolved, err := lookPathFn(tool)
 	if err != nil {
 		// resolved is "" here: there is no PATH-resolved copy to name or to
 		// compare against, but the executable running THIS check is still
@@ -179,9 +176,6 @@ func checkOneToolContext(ctx context.Context, tool string, pathDirs []string) Ch
 	}
 
 	detail := tool + " found at " + resolved
-	if shim != "" {
-		detail += " (" + shim + ")"
-	}
 	if tool == "brunnr-code" {
 		detail += doctorInvokedBrunnrCodeClause(resolved)
 	}
@@ -243,21 +237,6 @@ func doctorSameExecutable(a, b string) bool {
 	return resolvedA == resolvedB
 }
 
-func resolveDoctorTool(tool string) (string, string, error) {
-	resolved, err := lookPathFn(tool)
-	if err == nil {
-		return resolved, "", nil
-	}
-	if doctorGOOS != "windows" {
-		return "", "", err
-	}
-	resolved, ps1Err := lookPathFn(tool + ".ps1")
-	if ps1Err != nil {
-		return "", "", err
-	}
-	return resolved, "PowerShell shim", nil
-}
-
 func doctorToolCopies(tool string, pathDirs []string) []string {
 	seenCopies := make(map[string]struct{}, len(pathDirs))
 	copies := make([]string, 0, len(pathDirs))
@@ -277,80 +256,17 @@ func doctorToolCopies(tool string, pathDirs []string) []string {
 	return copies
 }
 
-// executableExtensions returns the filename suffixes to probe when scanning a
-// PATH directory for a tool binary. On Windows it mirrors exec.LookPath, which
-// resolves a bare name like "brunnr-code" to "brunnr-code.exe"/".cmd" via PATHEXT;
-// on other platforms the bare name is used as-is. Without this, the duplicate
-// scan never matches real Windows binaries and PATH shadowing goes unreported.
-func executableExtensions() []string {
-	return executableExtensionsFor(doctorGOOS, os.Getenv("PATHEXT"))
-}
-
-func executableExtensionsFor(goos, pathext string) []string {
-	if goos != "windows" {
-		return []string{""}
-	}
-	if pathext == "" {
-		return []string{".com", ".exe", ".bat", ".cmd"}
-	}
-	var exts []string
-	for _, e := range strings.Split(pathext, ";") {
-		e = strings.ToLower(strings.TrimSpace(e))
-		if e == "" {
-			continue
-		}
-		if !strings.HasPrefix(e, ".") {
-			e = "." + e
-		}
-		exts = append(exts, e)
-	}
-	return exts
-}
-
 // toolInDir returns the path to tool's executable inside dir, or "" if absent.
-// It honors Windows executable extensions so the duplicate scan agrees with
-// exec.LookPath (used for the resolved path). On non-Windows platforms the
-// candidate must also have at least one execute bit set — files without the
-// execute bit (or directories whose name happens to match a tool, e.g. a
-// PATH entry named "brunnr-code") are not counted as binaries (#709).
-//
-// Windows executable resolution (#177, PATHEXT gaps) is intentionally out of
-// scope here; an extension match is treated as sufficient on Windows because
-// LookPath already enforces PATHEXT when reporting the resolved path.
+// The candidate must be a regular file with at least one execute bit set —
+// files without the execute bit (or directories whose name happens to match a
+// tool, e.g. a PATH entry named "brunnr-code") are not counted as binaries (#709).
 func toolInDir(dir, tool string) string {
-	for _, ext := range doctorToolExecutableExts() {
-		candidate := filepath.Join(dir, tool+ext)
-		info, err := os.Stat(candidate)
-		if err != nil {
-			continue
-		}
-		if !info.Mode().IsRegular() {
-			continue
-		}
-		if doctorGOOS != "windows" && info.Mode().Perm()&0o111 == 0 {
-			continue
-		}
-		return candidate
+	candidate := filepath.Join(dir, tool)
+	info, err := os.Stat(candidate)
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0o111 == 0 {
+		return ""
 	}
-	return ""
-}
-
-func doctorToolExecutableExts() []string {
-	exts := append([]string(nil), executableExtsFn()...)
-	if doctorGOOS == "windows" {
-		exts = appendUniqueExt(exts, "")
-		exts = appendUniqueExt(exts, ".ps1")
-	}
-	return exts
-}
-
-func appendUniqueExt(exts []string, ext string) []string {
-	for _, existing := range exts {
-		if strings.EqualFold(existing, ext) {
-			return exts
-		}
-	}
-	return append(exts, ext)
+	return candidate
 }
 
 // checkStateJSON validates ~/.brunnr-code/state.json and agent config dirs.
@@ -494,9 +410,9 @@ func danglingAncestor(homeDir, path string) (string, error) {
 				return "", nil // nearest existing ancestor is real; path is genuinely missing
 			}
 			// A non-directory ancestor blocks both inspection and restoration:
-			// sync cannot mkdir below a regular file. POSIX surfaces this as
-			// ENOTDIR at the final lstat, but Windows reports it as not-exist,
-			// which is how the walk gets here.
+			// sync cannot mkdir below a regular file. The final lstat usually
+			// surfaces this as ENOTDIR; the walk gets here when it reported
+			// not-exist instead.
 			return "", fmt.Errorf("ancestor %s is not a directory", ancestor) // refusal:by-design world-action: the caller embeds this cause in a warn that already names the continuation (inspect or repair the path, re-run 'brunnr-code doctor'); the repair itself happens on the filesystem, not through a command
 		}
 		if _, err := os.Stat(ancestor); os.IsNotExist(err) {
@@ -718,7 +634,7 @@ func doctorAssetSyncRemediation() string {
 		return "cannot determine the absolute invoked executable path; run sync using the absolute path of this running build to update installed assets"
 	}
 	remedy := fmt.Sprintf("run `%s sync` to update installed assets", managedAssetsExecutableToken(invoked))
-	if resolved, _, err := resolveDoctorTool("brunnr-code"); err == nil && !doctorSameExecutable(invoked, resolved) {
+	if resolved, err := lookPathFn("brunnr-code"); err == nil && !doctorSameExecutable(invoked, resolved) {
 		remedy += fmt.Sprintf("; brunnr-code on PATH resolves to %s, which differs from the running executable; use the invoked path above", resolved)
 	}
 	return remedy

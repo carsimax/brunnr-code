@@ -107,7 +107,6 @@ func TestPartialUpdateChecks(t *testing.T) {
 			t.Run(string(healthyStatus)+"/"+command, func(t *testing.T) {
 				home := t.TempDir()
 				t.Setenv("HOME", home)
-				t.Setenv("USERPROFILE", home)
 				results := []update.UpdateResult{
 					{Tool: update.ToolInfo{Name: "engram"}, Status: update.CheckFailed},
 					{Tool: update.ToolInfo{Name: "faketool"}, InstalledVersion: "1.0.0", LatestVersion: "2.0.0", Status: healthyStatus},

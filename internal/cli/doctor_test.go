@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -43,16 +42,13 @@ func TestCheckOneTool_ShadowedBinary(t *testing.T) {
 	stubDoctorToolProbe(t)
 	orig := lookPathFn
 	defer func() { lookPathFn = orig }()
-	origExts := executableExtsFn
-	defer func() { executableExtsFn = origExts }()
-	executableExtsFn = func() []string { return []string{""} }
 
 	dir1 := t.TempDir()
 	dir2 := t.TempDir()
 
 	// Create two copies of the "engram" binary in two dirs.
-	// chmod 0o755 so the Unix PATH-executable filter (#709) treats them as
-	// real binaries; Windows ignores the mode bit, so the chmod is a no-op there.
+	// chmod 0o755 so the PATH-executable filter (#709) treats them as
+	// real binaries.
 	for _, dir := range []string{dir1, dir2} {
 		p := filepath.Join(dir, "engram")
 		f, err := os.Create(p)
@@ -81,9 +77,6 @@ func TestCheckOneTool_ShadowedBinary(t *testing.T) {
 }
 
 func TestDoctorToolCopies_DeduplicatesSymlinkedPathDirectories(t *testing.T) {
-	origExts := executableExtsFn
-	defer func() { executableExtsFn = origExts }()
-	executableExtsFn = func() []string { return []string{""} }
 
 	root := t.TempDir()
 	usrBin := filepath.Join(root, "usr", "bin")
@@ -113,9 +106,6 @@ func TestCheckOneTool_OK(t *testing.T) {
 	stubDoctorToolProbe(t)
 	orig := lookPathFn
 	defer func() { lookPathFn = orig }()
-	origExts := executableExtsFn
-	defer func() { executableExtsFn = origExts }()
-	executableExtsFn = func() []string { return []string{""} }
 
 	dir := t.TempDir()
 	f, err := os.Create(filepath.Join(dir, "engram"))
@@ -130,172 +120,6 @@ func TestCheckOneTool_OK(t *testing.T) {
 
 	if got.Status != CheckStatusPass {
 		t.Errorf("expected pass, got %s: %s", got.Status, got.Detail)
-	}
-}
-
-// TestCheckOneTool_ShadowedWindowsExt reproduces the Windows bug: binaries on
-// disk carry an executable extension (e.g. brunnr-code.exe / brunnr-code.cmd), so a
-// bare-name scan misses them and shadowing is reported as [ok]. With PATHEXT
-// extensions the duplicate copies are detected and a warning is produced.
-func TestCheckOneTool_ShadowedWindowsExt(t *testing.T) {
-	stubDoctorToolProbe(t)
-	origLook := lookPathFn
-	origGOOS := doctorGOOS
-	origExts := executableExtsFn
-	defer func() {
-		lookPathFn = origLook
-		doctorGOOS = origGOOS
-		executableExtsFn = origExts
-	}()
-	doctorGOOS = "windows"
-	executableExtsFn = func() []string { return []string{".exe", ".cmd"} }
-
-	dir1 := t.TempDir()
-	dir2 := t.TempDir()
-	for _, p := range []string{filepath.Join(dir1, "brunnr-code.exe"), filepath.Join(dir2, "brunnr-code.cmd")} {
-		f, err := os.Create(p)
-		if err != nil {
-			t.Fatal(err)
-		}
-		_ = f.Close()
-	}
-
-	lookPathFn = func(string) (string, error) { return filepath.Join(dir1, "brunnr-code.exe"), nil }
-
-	got := checkOneTool("brunnr-code", []string{dir1, dir2})
-
-	if got.Status != CheckStatusWarn {
-		t.Fatalf("expected warn for extensioned shadow, got %s: %s", got.Status, got.Detail)
-	}
-	if !strings.Contains(got.Detail, "2 copies found") {
-		t.Errorf("unexpected detail: %s", got.Detail)
-	}
-}
-
-func TestCheckOneTool_WindowsPowerShellShimFallback(t *testing.T) {
-	stubDoctorToolProbe(t)
-	origLook := lookPathFn
-	origGOOS := doctorGOOS
-	origExts := executableExtsFn
-	defer func() {
-		lookPathFn = origLook
-		doctorGOOS = origGOOS
-		executableExtsFn = origExts
-	}()
-	doctorGOOS = "windows"
-	executableExtsFn = func() []string { return []string{".exe", ".cmd"} }
-
-	dir := t.TempDir()
-	ps1Path := filepath.Join(dir, "faketool.ps1")
-	if err := os.WriteFile(ps1Path, []byte("fake"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	lookPathFn = func(file string) (string, error) {
-		if file == "faketool.ps1" {
-			return ps1Path, nil
-		}
-		return "", errors.New("not found")
-	}
-
-	got := checkOneTool("faketool", []string{dir})
-
-	if got.Status != CheckStatusPass {
-		t.Fatalf("expected pass, got %s: %s", got.Status, got.Detail)
-	}
-	if !strings.Contains(got.Detail, "PowerShell shim") {
-		t.Fatalf("expected PowerShell shim detail, got %q", got.Detail)
-	}
-}
-
-func TestCheckOneTool_WindowsShimVariantsInSameDirAreNotDuplicates(t *testing.T) {
-	stubDoctorToolProbe(t)
-	origLook := lookPathFn
-	origGOOS := doctorGOOS
-	origExts := executableExtsFn
-	defer func() {
-		lookPathFn = origLook
-		doctorGOOS = origGOOS
-		executableExtsFn = origExts
-	}()
-	doctorGOOS = "windows"
-	executableExtsFn = func() []string { return []string{".cmd"} }
-
-	dir := t.TempDir()
-	cmdPath := filepath.Join(dir, "faketool.cmd")
-	for _, path := range []string{cmdPath, filepath.Join(dir, "faketool.ps1")} {
-		if err := os.WriteFile(path, []byte("fake"), 0o755); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	lookPathFn = func(file string) (string, error) {
-		if file == "faketool" {
-			return cmdPath, nil
-		}
-		return "", errors.New("not found")
-	}
-
-	got := checkOneTool("faketool", []string{dir})
-
-	if got.Status != CheckStatusPass {
-		t.Fatalf("expected pass for same-directory shim variants, got %s: %s", got.Status, got.Detail)
-	}
-}
-
-// TestExecutableExtensions verifies the per-platform extension set.
-func TestExecutableExtensions(t *testing.T) {
-	exts := executableExtensions()
-	if len(exts) == 0 {
-		t.Fatal("expected at least one extension")
-	}
-	if runtime.GOOS == "windows" {
-		var hasExe bool
-		for _, e := range exts {
-			if e == ".exe" {
-				hasExe = true
-			}
-		}
-		if !hasExe {
-			t.Errorf("expected .exe among Windows extensions, got %v", exts)
-		}
-	} else if len(exts) != 1 || exts[0] != "" {
-		t.Errorf(`expected [""] on non-Windows, got %v`, exts)
-	}
-}
-
-func TestExecutableExtensionsFor(t *testing.T) {
-	tests := []struct {
-		name    string
-		goos    string
-		pathext string
-		want    []string
-	}{
-		{
-			name: "non-windows uses bare name",
-			goos: "darwin",
-			want: []string{""},
-		},
-		{
-			name: "windows default PATHEXT",
-			goos: "windows",
-			want: []string{".com", ".exe", ".bat", ".cmd"},
-		},
-		{
-			name:    "windows normalizes PATHEXT case and missing dots",
-			goos:    "windows",
-			pathext: "EXE;.Cmd; ;BAT",
-			want:    []string{".exe", ".cmd", ".bat"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := executableExtensionsFor(tt.goos, tt.pathext)
-			if strings.Join(got, ",") != strings.Join(tt.want, ",") {
-				t.Fatalf("got %v, want %v", got, tt.want)
-			}
-		})
 	}
 }
 
@@ -607,25 +431,6 @@ func TestCheckEngramReachable_BinaryAbsent_Warns(t *testing.T) {
 	}
 }
 
-// TestCheckEngramReachable_MissingRelativeWindowsExecutableWarns proves the
-// persisted Windows executable spelling remains advisory when ProbeStdio maps
-// its missing-path error to ErrNotInstalled.
-func TestCheckEngramReachable_MissingRelativeWindowsExecutableWarns(t *testing.T) {
-	t.Setenv(engramHealthEnvVar, "")
-	setStdioProbeForTest(t, engram.ErrNotInstalled)
-	homeDir := t.TempDir()
-	configPath := writeDoctorEngramConfig(t, homeDir, "engram.exe", []string{"mcp", "--tools=agent"})
-
-	got := checkEngramReachable(context.Background(), homeDir, []string{"claude-code"})
-
-	if got.Status != CheckStatusWarn {
-		t.Fatalf("engram:reachable status = %q, detail = %q; want not-probed warning for missing relative engram.exe", got.Status, got.Detail)
-	}
-	if !strings.Contains(got.Detail, "not probed") || !strings.Contains(got.Detail, configPath) {
-		t.Fatalf("engram:reachable detail = %q, want documented not-probed warning for %q", got.Detail, configPath)
-	}
-}
-
 // TestCheckEngramReachable_StdioDefault_NoHTTPListener is matrix cell (a) of
 // #2078: a default install. brunnr-code only ever configures Engram as a stdio
 // MCP server (engram mcp --tools=agent, written by
@@ -890,14 +695,9 @@ func assertLauncherShadowed(t *testing.T, got CheckResult, target, launcher, bin
 func TestCheckToolBinaries_DerivesAgentsFromInstalled(t *testing.T) {
 	stubDoctorToolProbe(t)
 	orig := lookPathFn
-	origGOOS := doctorGOOS
 	defer func() {
 		lookPathFn = orig
-		doctorGOOS = origGOOS
 	}()
-	// Pin to a non-Windows platform so the PowerShell-shim fallback in
-	// resolveDoctorTool does not mask a missing binary.
-	doctorGOOS = "darwin"
 	lookPathFn = func(name string) (string, error) {
 		if name == "claude" {
 			return "", errors.New("not found")
@@ -991,15 +791,9 @@ func TestCheckToolBinaries_StateMissing_ChecksCoreOnly(t *testing.T) {
 func TestCheckOneTool_DirectoryWithToolName_NotCountedAsDuplicate(t *testing.T) {
 	stubDoctorToolProbe(t)
 	orig := lookPathFn
-	origExts := executableExtsFn
-	origGOOS := doctorGOOS
 	defer func() {
 		lookPathFn = orig
-		executableExtsFn = origExts
-		doctorGOOS = origGOOS
 	}()
-	doctorGOOS = "darwin"
-	executableExtsFn = func() []string { return []string{""} }
 
 	dirWithFile := t.TempDir()
 	dirWithDir := t.TempDir()
@@ -1025,26 +819,16 @@ func TestCheckOneTool_DirectoryWithToolName_NotCountedAsDuplicate(t *testing.T) 
 	}
 }
 
-// TestCheckOneTool_FileWithoutExecBit_NotCountedAsDuplicate verifies that on
-// non-Windows platforms a regular file without an execute bit is not counted
+// TestCheckOneTool_FileWithoutExecBit_NotCountedAsDuplicate verifies that a
+// regular file without an execute bit is not counted
 // as a binary by the doctor — only directories were excluded before #709;
 // non-executable files were still flagged as duplicates.
 func TestCheckOneTool_FileWithoutExecBit_NotCountedAsDuplicate(t *testing.T) {
 	stubDoctorToolProbe(t)
-	if runtime.GOOS == "windows" {
-		t.Skip("Unix execute-bit semantics do not apply on Windows")
-	}
-
 	orig := lookPathFn
-	origExts := executableExtsFn
-	origGOOS := doctorGOOS
 	defer func() {
 		lookPathFn = orig
-		executableExtsFn = origExts
-		doctorGOOS = origGOOS
 	}()
-	doctorGOOS = "darwin"
-	executableExtsFn = func() []string { return []string{""} }
 
 	dir1 := t.TempDir()
 	dir2 := t.TempDir()
@@ -1080,19 +864,13 @@ func TestRunDoctor_OnlySelectedAgentsAreRequired(t *testing.T) {
 	origHTTP := httpGetFn
 	origPath := pathDirsFn
 	origHome := osUserHomeDirDoctor
-	origGOOS := doctorGOOS
-	origExts := executableExtsFn
 	defer func() {
 		lookPathFn = origLook
 		availableBytesFn = origAvail
 		httpGetFn = origHTTP
 		pathDirsFn = origPath
 		osUserHomeDirDoctor = origHome
-		doctorGOOS = origGOOS
-		executableExtsFn = origExts
 	}()
-	doctorGOOS = "darwin"
-	executableExtsFn = func() []string { return []string{""} }
 
 	homeDir := t.TempDir()
 	stateDir := filepath.Join(homeDir, ".brunnr-code")

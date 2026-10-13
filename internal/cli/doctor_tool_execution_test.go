@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -31,8 +30,8 @@ func TestRunDoctorToolExecution(t *testing.T) {
 		t.Skip("runs executable launchers")
 	}
 	cases := []struct {
-		name, tool, arg                             string
-		broken, hangs, launcher, powershell, cancel bool
+		name, tool, arg                 string
+		broken, hangs, launcher, cancel bool
 	}{
 		{name: "missing launcher target", tool: "engram", arg: "version", broken: true},
 		{name: "valid engram version subcommand", tool: "engram", arg: "version"},
@@ -40,14 +39,9 @@ func TestRunDoctorToolExecution(t *testing.T) {
 		{name: "hanging executable", tool: "engram", hangs: true},
 		{name: "hanging launcher child", tool: "engram", hangs: true, launcher: true},
 		{name: "canceled launcher child", tool: "engram", hangs: true, launcher: true, cancel: true},
-		{name: "valid PowerShell launcher", tool: "engram", arg: "version", powershell: true},
-		{name: "hanging PowerShell child", tool: "engram", hangs: true, launcher: true, powershell: true},
 	}
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.powershell && runtime.GOOS != "windows" {
-				t.Skip("Windows PowerShell shim")
-			}
 			home := t.TempDir()
 			bin := filepath.Join(t.TempDir(), "bin with spaces & symbols")
 			if err := os.Mkdir(bin, 0o755); err != nil {
@@ -58,23 +52,9 @@ func TestRunDoctorToolExecution(t *testing.T) {
 			if tt.broken {
 				script = "#!/bin/sh\nexec \"" + filepath.ToSlash(filepath.Join(bin, "missing-target")) + "\" \"$@\"\n"
 			}
-			if runtime.GOOS == "windows" {
-				filename += ".cmd"
-				script = "@echo off\r\nif not \"%~1\"==\"" + tt.arg + "\" exit /b 2\r\nif not \"%~2\"==\"\" exit /b 3\r\nexit /b 0\r\n"
-				if tt.broken {
-					script = "@echo off\r\n\"" + filepath.Join(bin, "missing-target.exe") + "\" %*\r\nexit /b %errorlevel%\r\n"
-				}
-			}
-			if tt.powershell {
-				filename = tt.tool + ".ps1"
-				script = "if ($args.Count -ne 1 -or $args[0] -ne '" + tt.arg + "') { exit 2 }; exit 0\n"
-			}
 			pidFile := filepath.Join(t.TempDir(), "child.pid")
 			if tt.hangs {
 				filename = tt.tool
-				if runtime.GOOS == "windows" {
-					filename += ".exe"
-				}
 				executable, err := os.Executable()
 				if err != nil {
 					t.Fatal(err)
@@ -88,22 +68,11 @@ func TestRunDoctorToolExecution(t *testing.T) {
 				t.Setenv("BRUNNR_DOCTOR_PID_FILE", pidFile)
 				if tt.launcher {
 					target := filepath.Join(bin, "hanging-child")
-					if runtime.GOOS == "windows" {
-						target += ".exe"
-					}
 					if err := os.WriteFile(target, data, 0o755); err != nil {
 						t.Fatal(err)
 					}
 					filename = tt.tool
 					script = fmt.Sprintf("#!/bin/sh\n\"%s\" \"$@\"\n", target)
-					if runtime.GOOS == "windows" {
-						filename += ".cmd"
-						script = fmt.Sprintf("@echo off\r\n\"%s\" %%*\r\n", target)
-						if tt.powershell {
-							filename = tt.tool + ".ps1"
-							script = fmt.Sprintf("& '%s' @args; exit $LASTEXITCODE\n", strings.ReplaceAll(target, "'", "''"))
-						}
-					}
 				}
 				t.Cleanup(func() {
 					data, _ := os.ReadFile(pidFile)
@@ -131,11 +100,7 @@ func TestRunDoctorToolExecution(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			probePath := bin
-			if tt.powershell {
-				probePath += string(os.PathListSeparator) + filepath.Join(os.Getenv("SystemRoot"), "System32", "WindowsPowerShell", "v1.0")
-			}
-			t.Setenv("PATH", probePath)
+			t.Setenv("PATH", bin)
 			t.Setenv(engramHealthEnvVar, "http://doctor-test.invalid")
 			origHome, origHTTP, origDisk := osUserHomeDirDoctor, httpGetFn, availableBytesFn
 			t.Cleanup(func() { osUserHomeDirDoctor, httpGetFn, availableBytesFn = origHome, origHTTP, origDisk })

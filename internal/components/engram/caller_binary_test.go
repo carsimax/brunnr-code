@@ -3,7 +3,6 @@ package engram
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -25,19 +24,15 @@ func TestValidateCallerBinary(t *testing.T) {
 		name    string
 		value   string
 		wantErr string
-		posix   bool
 	}{
 		{name: "unset", value: ""},
 		{name: "absolute executable", value: executable},
 		{name: "relative path", value: "bin/engram", wantErr: "absolute"},
 		{name: "missing file", value: filepath.Join(dir, "missing"), wantErr: "missing"},
 		{name: "directory", value: dir, wantErr: "not a regular file"},
-		{name: "not executable", value: plain, wantErr: "not executable", posix: true},
+		{name: "not executable", value: plain, wantErr: "not executable"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.posix && runtime.GOOS == "windows" {
-				t.Skip("Windows has no executable bit")
-			}
 			t.Setenv(system.EngramBinEnv, tt.value)
 			err := ValidateCallerBinary()
 			if tt.wantErr == "" {

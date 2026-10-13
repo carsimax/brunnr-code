@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -63,7 +62,7 @@ func TestInjectClaudeWritesUserRegistryPreservingUnrelatedData(t *testing.T) {
 	assertNestedStrings(t, registry, []string{"mcp", "--tools=agent"}, "mcpServers", "engram", "args")
 	if info, statErr := os.Stat(registryPath); statErr != nil {
 		t.Fatalf("Stat(user registry) error = %v", statErr)
-	} else if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
+	} else if info.Mode().Perm() != 0o600 {
 		t.Fatalf("user registry mode = %o; want 0600", info.Mode().Perm())
 	}
 	legacyPath := filepath.Join(home, ".claude", "mcp", "engram.json")
@@ -194,11 +193,11 @@ func TestInjectCodexWritesTOMLMCP(t *testing.T) {
 	if cmdLine == "" {
 		t.Fatalf("config.toml missing command line; got:\n%s", text)
 	}
-	// The command value must end with "engram" or "engram.exe".
+	// The command value must end with "engram".
 	cmdVal := strings.TrimPrefix(cmdLine, "command = ")
 	cmdVal = strings.Trim(cmdVal, `"`)
 	base := filepath.Base(cmdVal)
-	if base != "engram" && base != "engram.exe" {
+	if base != "engram" {
 		t.Fatalf("config.toml command %q does not reference engram binary; got:\n%s", cmdVal, text)
 	}
 	if !strings.Contains(text, `"--tools=agent"`) {

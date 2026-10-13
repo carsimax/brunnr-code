@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/carsimax/brunnr-code/internal/agents"
@@ -657,14 +656,11 @@ func isEngramCommand(cmd string) bool {
 		return false
 	}
 	base := filepath.Base(cmd)
-	if runtime.GOOS == "windows" {
-		return strings.EqualFold(base, "engram.exe") || strings.EqualFold(base, "engram")
-	}
 	return base == "engram"
 }
 
 // isStableEngramPath reports whether path is the system-wide location the
-// Engram release download installs to on Linux and macOS.
+// Engram release download installs to on macOS.
 func isStableEngramPath(path string) bool {
 	return filepath.ToSlash(filepath.Clean(path)) == "/usr/local/bin/engram"
 }

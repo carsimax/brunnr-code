@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -17,20 +16,14 @@ import (
 func recordProbes(t *testing.T) func() []string {
 	t.Helper()
 	bin := t.TempDir()
-	// apt stands in for the package manager Linux support requires.
-	for _, name := range []string{"git", "curl", "node", "npm", "go", "apt"} {
-		file := name
-		if runtime.GOOS == "windows" {
-			file += ".exe"
-		}
-		if err := os.WriteFile(filepath.Join(bin, file), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+	for _, name := range []string{"git", "curl", "node", "npm", "go"} {
+		if err := os.WriteFile(filepath.Join(bin, name), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
 	t.Setenv("PATH", bin)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 
 	var mu sync.Mutex
 	var ran []string
@@ -58,10 +51,7 @@ func TestDetectProbesToolsByDefault(t *testing.T) {
 		t.Fatalf("Detect() error = %v", err)
 	}
 
-	want := []string{"git --version", "curl --version", "node --version", "npm --version", "go version"}
-	if runtime.GOOS != "windows" {
-		want = append(want, "npm config get prefix")
-	}
+	want := []string{"git --version", "curl --version", "node --version", "npm --version", "go version", "npm config get prefix"}
 	got := strings.Join(ran(), "\n")
 	for _, command := range want {
 		if !strings.Contains(got, command) {

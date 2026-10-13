@@ -63,7 +63,7 @@ func (s *CLISpinner) Finish(success bool) {
 
 // FinishSkipped stops the spinner and renders a skip marker (--) instead of
 // the failure marker (✗). Use this for intentional skips such as manual-update
-// fallbacks on Windows — these are NOT failures and must not be displayed as such.
+// fallbacks — these are NOT failures and must not be displayed as such.
 func (s *CLISpinner) FinishSkipped() {
 	close(s.stop)
 	s.done.Wait()

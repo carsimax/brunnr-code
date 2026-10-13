@@ -5,25 +5,18 @@ import (
 	"context"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/carsimax/brunnr-code/internal/system"
 )
 
 // Package-level vars for testability (swap in tests via t.Cleanup).
 var (
-	execCommand   = exec.Command
-	lookPath      = exec.LookPath
-	userHomeDir   = os.UserHomeDir
-	osStat        = os.Stat
-	osGetenv      = os.Getenv
-	runPowerShell = system.NewPowerShellRunner().Run
+	execCommand = exec.Command
+	lookPath    = exec.LookPath
+	userHomeDir = os.UserHomeDir
+	osStat      = os.Stat
 )
-
-const powerShellCommand = "<PowerShell>"
 
 // versionRegexp extracts a semver-like version from command output.
 // Same pattern as internal/system/deps.go for consistency.
@@ -42,10 +35,9 @@ func detectInstalledVersion(ctx context.Context, tool ToolInfo) string {
 
 	binary := tool.DetectCmd[0]
 	if _, err := lookPath(binary); err != nil {
-		// LookPath failed — the running process PATH may be stale (common on
-		// Windows immediately after install when AddToUserPath updates the
-		// registry but has not yet been picked up by the current process).
-		// Fall back to checking known install locations on disk.
+		// LookPath failed — the running process PATH may be stale (the binary
+		// installer may have placed engram in ~/.local/bin, which a shell only
+		// picks up in a new session). Fall back to checking known install locations on disk.
 		fullPath := findFallbackBinary(tool)
 		if fullPath == "" {
 			return "" // binary not found anywhere
@@ -59,16 +51,7 @@ func detectInstalledVersion(ctx context.Context, tool ToolInfo) string {
 	detectCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	execBinary, execArgs := buildExecCmd(binary, tool.DetectCmd[1:])
-	if execBinary == powerShellCommand {
-		out, err := runPowerShell(detectCtx, execArgs...)
-		if err != nil {
-			return ""
-		}
-		return parseVersionFromOutput(strings.TrimSpace(string(out)))
-	}
-
-	cmd := execCommand(execBinary, execArgs...)
+	cmd := execCommand(binary, tool.DetectCmd[1:]...)
 
 	// Start and wait on the command in this execution path so no goroutine reads
 	// mutable exec.Cmd state while Start initializes it. The cancellation callback
@@ -101,29 +84,18 @@ func detectInstalledVersion(ctx context.Context, tool ToolInfo) string {
 // findFallbackBinary checks the tool's FallbackPaths for a binary that exists
 // on disk. It returns the first path that stat succeeds on, or "" if none found.
 // This is used when exec.LookPath fails due to a stale process PATH (e.g.,
-// Windows immediately after install).
+// right after install, before a new shell session picks up ~/.local/bin).
 func findFallbackBinary(tool ToolInfo) string {
 	if tool.FallbackPaths == nil {
 		return ""
 	}
 	homeDir, _ := userHomeDir()
-	localAppData := osGetenv("LOCALAPPDATA")
-	for _, path := range tool.FallbackPaths(homeDir, localAppData) {
+	for _, path := range tool.FallbackPaths(homeDir) {
 		if _, err := osStat(path); err == nil {
 			return path
 		}
 	}
 	return ""
-}
-
-// buildExecCmd marks .ps1 commands for the central PowerShell runner. Other
-// executables pass through unchanged.
-func buildExecCmd(binary string, remainingArgs []string) (string, []string) {
-	if strings.EqualFold(filepath.Ext(binary), ".ps1") {
-		args := append([]string{"-NoProfile", "-File", binary}, remainingArgs...)
-		return powerShellCommand, args
-	}
-	return binary, remainingArgs
 }
 
 // parseVersionFromOutput extracts the first semver-like pattern from raw output.

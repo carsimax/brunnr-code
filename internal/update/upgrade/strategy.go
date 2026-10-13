@@ -39,8 +39,7 @@ func runStrategy(ctx context.Context, r update.UpdateResult, profile system.Plat
 
 // binaryUpgrade handles binary-release upgrades.
 //
-// engram has its own cross-platform binary downloader (DownloadLatestBinary)
-// that works on all platforms including Windows. No other managed tool ships
+// engram has its own binary downloader (DownloadLatestBinary). No other managed tool ships
 // a binary upgrade path, so any other tool returns ManualFallbackError and the
 // executor surfaces it as UpgradeSkipped.
 func binaryUpgrade(r update.UpdateResult, profile system.PlatformProfile) error {
@@ -57,15 +56,14 @@ func binaryUpgrade(r update.UpdateResult, profile system.PlatformProfile) error 
 }
 
 // engramBinaryUpgrade downloads the latest engram release binary via
-// engramDownloadFn. On Windows, PATH changes are persisted to the user
-// registry via PowerShell.
+// engramDownloadFn and adds its install dir to the process PATH.
 func engramBinaryUpgrade(profile system.PlatformProfile) error {
 	binaryPath, err := engramDownloadFn(profile)
 	if err != nil {
 		return fmt.Errorf("download engram binary: %w", err)
 	}
 
-	// Add install dir to PATH. On Windows this also persists via PowerShell (user registry).
+	// Add install dir to the process PATH.
 	binDir := filepath.Dir(binaryPath)
 	if err := system.AddToUserPath(binDir); err != nil {
 		// Non-fatal: the binary was downloaded successfully. Warn and continue.

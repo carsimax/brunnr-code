@@ -12,7 +12,6 @@ import (
 func TestClaudeReviewAdapterUsesSavedModelForEachNativeRole(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 	roles := []struct{ role, lens, model, effort string }{
 		{reviewProviderRoleLens, "review-risk", "opus", "low"},
 		{reviewProviderRoleLens, "review-readability", "haiku", ""},
@@ -51,7 +50,6 @@ func TestClaudeReviewAdapterUsesSavedModelForEachNativeRole(t *testing.T) {
 func TestClaudeReviewAdapterMissingAndInvalidAssignmentsUseNativeDefault(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 	for _, persisted := range []state.InstallState{
 		{},
 		{ClaudePhaseAssignments: map[string]state.ClaudePhaseAssignmentState{"risk": {Model: "invalid"}}},

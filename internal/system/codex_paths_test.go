@@ -16,9 +16,7 @@ func TestCodexHomeResolver(t *testing.T) {
 		t.Run(scenario, func(t *testing.T) {
 			home := t.TempDir()
 			for key, value := range map[string]string{
-				"HOME": home, "USERPROFILE": home,
-				"APPDATA":         filepath.Join(home, "appdata"),
-				"LOCALAPPDATA":    filepath.Join(home, "localappdata"),
+				"HOME":            home,
 				"XDG_CONFIG_HOME": filepath.Join(home, "xdg-config"),
 				"XDG_DATA_HOME":   filepath.Join(home, "xdg-data"),
 			} {

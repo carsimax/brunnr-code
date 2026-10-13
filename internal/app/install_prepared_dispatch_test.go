@@ -23,7 +23,7 @@ func TestRunArgsPreparedInstallPreservesValidDispatch(t *testing.T) {
 			t.Cleanup(func() { detectSystem, ensureCurrentOSSupported = oldDetect, oldEnsure })
 			ensureCurrentOSSupported = func() error { return nil }
 			detectSystem = func(context.Context) (system.DetectionResult, error) {
-				return system.DetectionResult{System: system.SystemInfo{Supported: true, Profile: system.PlatformProfile{OS: "windows", Supported: true}}}, nil
+				return system.DetectionResult{System: system.SystemInfo{Supported: true, Profile: system.PlatformProfile{OS: "darwin", Supported: true}}}, nil
 			}
 			var out bytes.Buffer
 			args := append([]string{"install", "--agent", "claude-code", "--dry-run"}, tc.args...)

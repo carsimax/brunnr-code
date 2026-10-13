@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"slices"
 	"sort"
 	"strings"
@@ -606,9 +605,6 @@ func TestTUIExecutePersistsConfiguredSelection(t *testing.T) {
 func buildAppCandidateBinary(t *testing.T) string {
 	t.Helper()
 	binary := filepath.Join(t.TempDir(), "brunnr-code")
-	if runtime.GOOS == "windows" {
-		binary += ".exe"
-	}
 	// A cold build of the whole binary on a shared CI runner can exceed
 	// 30s; the cap only guards against a hung toolchain, not build speed.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -1629,9 +1625,6 @@ func codexConfigAndStateTier(t *testing.T, home string) (string, string) {
 // and a Standard install in the session that wrote Fast retires exactly it.
 func TestTUIInstallRecordsOnlyTheCodexServiceTierEngramWrote(t *testing.T) {
 	t.Cleanup(codex.SetRuntimeVersionCommandForTest("codex-cli 0.144.0", nil))
-	if runtime.GOOS == "windows" {
-		t.Skip("fake engram runtime is a POSIX shell script")
-	}
 	home := t.TempDir()
 	previousUserHomeDir := appUserHomeDir
 	appUserHomeDir = func() (string, error) { return home, nil }

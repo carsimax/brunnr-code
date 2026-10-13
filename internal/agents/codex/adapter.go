@@ -71,11 +71,8 @@ func (a *Adapter) CapabilityManifest() capabilitymanifest.AgentCapabilityManifes
 // postinstall scripts are blocked to mitigate supply-chain risk. The version
 // advises "latest" rather than a pin: a human reads and runs this, and a
 // hardcoded version goes stale the moment a newer Codex ships.
-func (a *Adapter) InstallCommand(profile system.PlatformProfile) ([][]string, error) {
+func (a *Adapter) InstallCommand(_ system.PlatformProfile) ([][]string, error) {
 	const pkg = "@openai/codex@latest"
-	if profile.OS == "linux" && !profile.NpmWritable {
-		return [][]string{{"sudo", "npm", "install", "-g", "--ignore-scripts", pkg}}, nil
-	}
 	return [][]string{{"npm", "install", "-g", "--ignore-scripts", pkg}}, nil
 }
 

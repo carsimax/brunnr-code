@@ -2,7 +2,6 @@ package system
 
 import (
 	"context"
-	"runtime"
 	"testing"
 )
 
@@ -222,10 +221,6 @@ func TestRenderDependencyReportMissing(t *testing.T) {
 func TestDetectSingleDepWithEchoTrue(t *testing.T) {
 	binary := "echo"
 	args := []string{"v1.0.0"}
-	if runtime.GOOS == "windows" {
-		binary = "cmd"
-		args = []string{"/c", "echo v1.0.0"}
-	}
 	dep := Dependency{
 		Name:      binary,
 		Required:  true,
@@ -258,10 +253,6 @@ func TestDetectSingleDepNonExistentBinary(t *testing.T) {
 func TestDetectSingleDepMinVersionFail(t *testing.T) {
 	binary := "echo"
 	args := []string{"v1.0.0"}
-	if runtime.GOOS == "windows" {
-		binary = "cmd"
-		args = []string{"/c", "echo v1.0.0"}
-	}
 	dep := Dependency{
 		Name:       binary,
 		Required:   true,

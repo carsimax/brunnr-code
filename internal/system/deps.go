@@ -70,7 +70,7 @@ func defineDependencies(profile PlatformProfile) []Dependency {
 		},
 	}
 
-	// go is optional (needed for Engram on Linux via go install).
+	// go is optional (used only to auto-detect a go-install setup).
 	deps = append(deps, Dependency{
 		Name:        "go",
 		Required:    false,

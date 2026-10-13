@@ -9,12 +9,12 @@ import (
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
 
-func TestPowerShell51ReviewerPayloadBindsProviderArtifactSubject(t *testing.T) {
+func TestReviewerPayloadBindsProviderArtifactSubject(t *testing.T) {
 	reviewEnabledHome(t)
 	repo, started, _, record := newArtifactReview(t, false)
 	lens := record.State.SelectedLenses[0]
 	input := filepath.Join(t.TempDir(), "reviewer.json")
-	if err := os.WriteFile(input, powerShell51ReviewerPayloadForTest(t, repo, record, lens, 0), 0o600); err != nil {
+	if err := os.WriteFile(input, reviewerPayloadWithSummaryForTest(t, repo, record, lens, 0), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -27,17 +27,17 @@ func TestPowerShell51ReviewerPayloadBindsProviderArtifactSubject(t *testing.T) {
 		"--order", "0",
 		"--input", input,
 	}, &output); err != nil {
-		t.Fatalf("PowerShell reviewer fixture omitted its provider-owned artifact subject: %v", err)
+		t.Fatalf("reviewer fixture omitted its provider-owned artifact subject: %v", err)
 	}
 	var terminal reviewLastEventClosureResult
 	decodeStrictReviewJSON(t, output.Bytes(), &terminal)
 	if terminal.Operation != "review/capture-result" || terminal.State != reviewtransaction.StateApproved {
-		t.Fatalf("PowerShell reviewer terminal capture = %#v", terminal)
+		t.Fatalf("reviewer terminal capture = %#v", terminal)
 	}
 }
 
-func powerShell51ReviewerPayloadForTest(t *testing.T, repo string, record reviewtransaction.CompactRecord, lens string, order int) []byte {
+func reviewerPayloadWithSummaryForTest(t *testing.T, repo string, record reviewtransaction.CompactRecord, lens string, order int) []byte {
 	t.Helper()
 	return admittedReviewerPayloadForTest(t, repo, record, lens, order,
-		"checked exact target through Windows PowerShell 5.1")
+		"checked exact target")
 }

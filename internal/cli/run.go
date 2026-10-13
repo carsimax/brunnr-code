@@ -48,20 +48,13 @@ type InstallResult struct {
 
 var (
 	osUserHomeDir        = os.UserHomeDir
-	osSetenv             = os.Setenv
-	osStat               = os.Stat
 	runCommand           = executeCommand
 	cmdLookPath          = exec.LookPath
 	streamCommandOutput  = true
 	installCodeGraph     = communitytool.InstallWithHome
 	injectInstallPersona = persona.Inject
 	injectSyncPersona    = persona.InjectForSync
-	pathEnvEntries       = func(profile system.PlatformProfile) []string {
-		return splitPathForOS(os.Getenv("PATH"), profile.OS)
-	}
-	addUserPath         = system.AddToUserPath
-	ensureUserPathFirst = system.PrioritizeUserPath
-	userPathEntries     = system.UserPathEntries
+	addUserPath          = system.AddToUserPath
 
 	// engramDownloadFn downloads the engram release binary; tests replace it.
 	// Package-level var for testability — tests can replace this to avoid real HTTP calls.
@@ -175,7 +168,6 @@ func RunPreparedInstall(prepared PreparedInstall, detection system.DetectionResu
 	if err != nil {
 		return result, err
 	}
-	defer runtime.state.cleanupCompatibilityTransaction()
 	defer runtime.state.cleanupRollbackSnapshot()
 
 	// Print dependency warnings before the pipeline starts (CLI only).
@@ -501,10 +493,9 @@ type installRuntime struct {
 }
 
 type runtimeState struct {
-	manifest                 backup.Manifest
-	rollbackSnapshotDir      string
-	nativeReviewActions      []string
-	compatibilityTransaction compatibilityRefreshTransaction
+	manifest            backup.Manifest
+	rollbackSnapshotDir string
+	nativeReviewActions []string
 
 	// engramVersionResolved, engramVersion, and engramVersionErr cache the
 	// single `engram version` invocation performed by componentApplyStep.Run
@@ -516,8 +507,8 @@ type runtimeState struct {
 	engramVersionErr      error
 
 	// engramOffPathDir is the directory the Engram release download used when
-	// that directory was not on PATH before the install (Unix only; Windows
-	// persists the user PATH itself). Empty means no PATH note is needed.
+	// that directory was not on PATH before the install. Empty means no PATH
+	// note is needed.
 	engramOffPathDir string
 
 	// codexServiceTier is the tier the global engram injection left in Codex's
@@ -536,33 +527,10 @@ func (s *runtimeState) cleanupRollbackSnapshot() {
 	s.rollbackSnapshotDir = ""
 }
 
-func (s *runtimeState) cleanupCompatibilityTransaction() {
-	if s == nil || s.compatibilityTransaction == nil {
-		return
-	}
-	transaction := s.compatibilityTransaction
-	s.compatibilityTransaction = nil
-	if err := transaction.Close(); err != nil {
-		log.Printf("compatibility: close transaction: %v", err)
-	}
-}
-
-func (s *runtimeState) compatibilityChangedFiles() []string {
-	if s == nil || s.compatibilityTransaction == nil {
-		return nil
-	}
-	return s.compatibilityTransaction.ChangedFiles()
-}
-
 func newInstallRuntime(homeDir string, scope InstallScope, selection model.Selection, resolved planner.ResolvedPlan, profile system.PlatformProfile) (*installRuntime, error) {
 	backupRoot := state.BackupsDir(homeDir)
-	compatibilityTransaction, err := newCompatibilityRefreshTransaction(homeDir, resolved.OrderedComponents, selection)
-	if err != nil {
-		return nil, err
-	}
-	state := &runtimeState{compatibilityTransaction: compatibilityTransaction}
+	state := &runtimeState{}
 	if err := os.MkdirAll(backupRoot, 0o755); err != nil {
-		state.cleanupCompatibilityTransaction()
 		return nil, fmt.Errorf("create backup root directory %q: %w", backupRoot, err)
 	}
 
@@ -658,12 +626,10 @@ func (r *installRuntime) stagePlan() pipeline.StagePlan {
 
 	if needsCompatibilitySkillsRefresh(r.resolved.OrderedComponents) {
 		apply = append(apply, compatibilitySkillsRefreshStep{
-			id:          "component:compatibility-skills-refresh",
-			homeDir:     r.homeDir,
-			components:  r.resolved.OrderedComponents,
-			selection:   r.selection,
-			transaction: r.state.compatibilityTransaction,
-			anchored:    usesAnchoredCompatibilityTransaction(),
+			id:         "component:compatibility-skills-refresh",
+			homeDir:    r.homeDir,
+			components: r.resolved.OrderedComponents,
+			selection:  r.selection,
 		})
 	}
 
@@ -1096,63 +1062,6 @@ func resolveAdapters(agentIDs []model.AgentID) []agents.Adapter {
 	return adapters
 }
 
-func shouldRefreshWindowsEngram(profile system.PlatformProfile, resolvedPath string, pathEntries []string) bool {
-	if profile.OS != "windows" || strings.TrimSpace(resolvedPath) == "" {
-		return false
-	}
-	return len(engramBinaryDirsOnPath(pathEntries, profile.OS)) > 1
-}
-
-func ensureRepairableWindowsEngramShadowing(profile system.PlatformProfile, installedPath, managedDir string) error {
-	userEntries, err := userPathEntries(profile.OS)
-	if err != nil {
-		return fmt.Errorf("read user PATH: %w", err)
-	}
-
-	staleDir := filepath.Dir(installedPath)
-	if !pathEntriesContainDir(userEntries, staleDir) {
-		return fmt.Errorf("%s is not in the user PATH, so user-scoped PATH repair cannot guarantee future shells will resolve %s before %s", staleDir, managedDir, staleDir)
-	}
-
-	return nil
-}
-
-func pathEntriesContainDir(entries []string, dir string) bool {
-	dir = strings.Trim(strings.TrimSpace(dir), `"`)
-	if dir == "" {
-		return false
-	}
-	for _, entry := range entries {
-		entry = strings.Trim(strings.TrimSpace(entry), `"`)
-		if entry == "" {
-			continue
-		}
-		if strings.EqualFold(filepath.Clean(entry), filepath.Clean(dir)) {
-			return true
-		}
-	}
-	return false
-}
-
-func engramBinaryDirsOnPath(pathEntries []string, goos string) []string {
-	var dirs []string
-	for _, entry := range pathEntries {
-		entry = strings.Trim(strings.TrimSpace(entry), `"`)
-		if entry == "" {
-			continue
-		}
-		binaryName := "engram"
-		if goos == "windows" {
-			binaryName = "engram.exe"
-		}
-		candidate := filepath.Join(entry, binaryName)
-		if _, err := os.Stat(candidate); err == nil {
-			dirs = append(dirs, entry)
-		}
-	}
-	return dirs
-}
-
 func resolveEngramVersion(command string) (string, error) {
 	if strings.TrimSpace(command) == "" || command == "engram" {
 		return verifyEngramVersion()
@@ -1165,17 +1074,6 @@ func resolveEngramProtocolFlag(ctx context.Context, command string) (string, err
 		return probeEngramProtocolFlag(ctx)
 	}
 	return probeEngramProtocolFlagCommand(ctx, command)
-}
-
-func splitPathForOS(value, goos string) []string {
-	separator := string(os.PathListSeparator)
-	if goos == "windows" {
-		separator = ";"
-	}
-	if value == "" {
-		return nil
-	}
-	return strings.Split(value, separator)
 }
 
 func (s componentApplyStep) Run() error {
@@ -1195,11 +1093,10 @@ func (s componentApplyStep) Run() error {
 			if binaryPath, err := engramDownloadFn(s.profile); err != nil {
 				installErr = fmt.Errorf("download engram binary: %w", err)
 			} else {
-				// Add the install directory to PATH so subsequent commands
-				// (engram setup, engram.Inject → resolveEngramCommand) can find it.
-				// On Windows this also persists the change to the user registry via PowerShell.
+				// Add the install directory to the process PATH so subsequent
+				// commands (engram setup, engram.Inject → resolveEngramCommand) can find it.
 				binDir := filepath.Dir(binaryPath)
-				if s.profile.OS != "windows" && !isInPATH(binDir) && s.state != nil {
+				if !isInPATH(binDir) && s.state != nil {
 					s.state.engramOffPathDir = binDir
 				}
 				if err := addUserPath(binDir); err != nil {
@@ -1224,20 +1121,6 @@ func (s componentApplyStep) Run() error {
 				}
 				return nil
 			}
-		} else if shouldRefreshWindowsEngram(s.profile, installedPath, pathEnvEntries(s.profile)) {
-			binaryPath, err := engramDownloadFn(s.profile)
-			if err != nil {
-				return fmt.Errorf("refresh shadowed engram binary: %w", err)
-			}
-			engramCommand = binaryPath
-			binDir := filepath.Dir(binaryPath)
-			if err := ensureRepairableWindowsEngramShadowing(s.profile, installedPath, binDir); err != nil {
-				return fmt.Errorf("repair Windows Engram PATH shadowing: refreshed managed Engram at %s, but cannot safely repair PATH order: %w. Move %s before %s in your user PATH or remove the stale Machine/System PATH entry, then rerun install", binaryPath, err, binDir, filepath.Dir(installedPath))
-			}
-			if err := ensureUserPathFirst(binDir); err != nil {
-				return fmt.Errorf("repair Windows Engram PATH shadowing: refreshed managed Engram at %s, but could not move %s ahead of stale PATH entry %s: %w. Move %s before %s in your user PATH, then rerun install", binaryPath, binDir, installedPath, err, binDir, filepath.Dir(installedPath))
-			}
-			fmt.Fprintf(os.Stderr, "WARNING: multiple engram.exe entries were found on PATH and %s resolved first. Refreshed managed Engram at %s and moved %s ahead of the stale entry in the user PATH.\n", installedPath, binaryPath, binDir)
 		} else {
 			engramCommand = installedPath
 		}
@@ -1353,43 +1236,6 @@ func (s componentApplyStep) Run() error {
 	}
 }
 
-func ensureGoAvailableAfterInstall(profile system.PlatformProfile) error {
-	if _, err := cmdLookPath("go"); err == nil {
-		return nil
-	}
-
-	if profile.OS != "windows" {
-		return fmt.Errorf("go was installed but is still not available in PATH")
-	}
-
-	for _, candidate := range windowsGoCandidates() {
-		if candidate == "" {
-			continue
-		}
-		if _, err := osStat(candidate); err == nil {
-			binDir := filepath.Dir(candidate)
-			currentPath := os.Getenv("PATH")
-			if currentPath == "" {
-				return osSetenv("PATH", binDir)
-			}
-			return osSetenv("PATH", binDir+string(os.PathListSeparator)+currentPath)
-		}
-	}
-
-	return fmt.Errorf("go was installed but is still not available in PATH; restart the terminal and retry")
-}
-
-func windowsGoCandidates() []string {
-	programFiles := os.Getenv("ProgramFiles")
-	programFilesX86 := os.Getenv("ProgramFiles(x86)")
-
-	return []string{
-		filepath.Join(programFiles, "Go", "bin", "go.exe"),
-		filepath.Join(programFilesX86, "Go", "bin", "go.exe"),
-		`C:\Program Files\Go\bin\go.exe`,
-	}
-}
-
 // The seam lets native tests add a post-publication failure while still using
 // the public TUI execution boundary and the real compatibility writer.
 var tuiInstallStagePlan = func(runtime *installRuntime) pipeline.StagePlan {
@@ -1408,7 +1254,6 @@ func executeTUIInstall(homeDir string, selection model.Selection, resolved plann
 	if err != nil {
 		return pipeline.ExecutionResult{Err: err}, nil, nil
 	}
-	defer runtime.state.cleanupCompatibilityTransaction()
 	runtime.progress = onProgress
 	orchestrator := pipeline.NewOrchestrator(pipeline.DefaultRollbackPolicy(), pipeline.WithFailurePolicy(pipeline.ContinueOnError), pipeline.WithProgressFunc(onProgress), pipeline.WithTerminalCleanup(runtime.state.cleanupRollbackSnapshot))
 	result := orchestrator.Execute(tuiInstallStagePlan(runtime))
@@ -1587,7 +1432,7 @@ func installBackupTargets(homeDir, workspaceDir string, scope InstallScope, sele
 	for _, path := range adapterSkillPaths {
 		paths[path] = struct{}{}
 	}
-	if !usesAnchoredCompatibilityTransaction() && needsCompatibilitySkillsRefresh(resolved.OrderedComponents) {
+	if needsCompatibilitySkillsRefresh(resolved.OrderedComponents) {
 		skillDir, ok, err := compatibilitySkillsDir(homeDir)
 		if err != nil {
 			return nil, err

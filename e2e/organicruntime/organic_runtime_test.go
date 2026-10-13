@@ -16,10 +16,8 @@ import (
 	"fmt"
 	"io"
 	"maps"
-	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/netip"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,7 +26,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -317,351 +314,6 @@ func TestClaudeProviderAdapterUsesPinnedNetworkNoneRuntime(t *testing.T) {
 	}
 }
 
-func TestCodexProviderAdapterUsesPinnedLocalRuntime(t *testing.T) {
-	if testing.Short() || strings.TrimSpace(os.Getenv("BRUNNR_CODE_CODEX_RUNTIME_E2E")) != "1" {
-		t.Skip("set BRUNNR_CODE_CODEX_RUNTIME_E2E=1 to run the pinned local Codex transport proof")
-	}
-	if runtime.GOOS != "linux" {
-		t.Skip("the Codex egress proof requires Linux strace")
-	}
-	strace, err := exec.LookPath("strace")
-	if err != nil {
-		t.Fatalf("Codex egress isolation unavailable: strace is required: %v", err)
-	}
-	binary, err := exec.LookPath("codex")
-	if err != nil {
-		t.Fatal(err)
-	}
-	version, err := exec.Command(binary, "--version").Output()
-	if err != nil || strings.TrimSpace(string(version)) != "codex-cli 0.147.0" {
-		t.Fatalf("Codex version = %q, %v", strings.TrimSpace(string(version)), err)
-	}
-	harness := newOrganicHarness(t)
-	baseTree := strings.TrimSpace(harness.git("rev-parse", "HEAD^{tree}"))
-	harness.writeFiles(map[string]string{"internal/provider/candidate.go": "package provider\n\nfunc Value() int { return 1 }\n"})
-	harness.git("add", "--", "internal/provider/candidate.go")
-	harness.git("commit", "-qm", "feat: committed Codex correction candidate")
-	const lineage = "codex-loopback-egress-proof"
-	statusPayload := harness.run(
-		"review", "status", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2",
-		"--agent", "codex", "--lineage", lineage, "--base-ref", baseTree, "--committed-only", "--next-transition",
-	)
-	var negotiated organicProviderStatusResult
-	if err := json.Unmarshal(statusPayload, &negotiated); err != nil || negotiated.NextTransition == nil || negotiated.NextTransition.Execute == nil {
-		t.Fatalf("decode committed Codex START: %v\n%s", err, statusPayload)
-	}
-	start := negotiated.NextTransition.Execute
-	stdout, stderr, err := harness.runAllowFailure(
-		"review", "start", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2",
-		"--target", start.argument("target"), "--projection", start.argument("projection"), "--base-ref", baseTree, "--committed-only",
-		"--lineage", lineage, "--agent", "codex", "--consent", "granted", "--focus", "reliability",
-	)
-	if err != nil {
-		t.Fatalf("committed Codex START: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
-	}
-	var started organicStartResult
-	if err := json.Unmarshal([]byte(stdout), &started); err != nil || started.State != "reviewing" || len(started.SelectedLenses) != 1 {
-		t.Fatalf("committed Codex START = %#v, %v\n%s", started, err, stdout)
-	}
-	statusPayload = harness.run(
-		"review", "status", "--cwd", harness.repo.worktree, "--contract", "brunnr-code.review-integration/v2",
-		"--agent", "codex", "--lineage", lineage, "--base-ref", baseTree, "--committed-only", "--next-transition",
-	)
-	var reviewing organicProviderStatusResult
-	if err := json.Unmarshal(statusPayload, &reviewing); err != nil {
-		t.Fatalf("decode committed Codex capture STATUS: %v\n%s", err, statusPayload)
-	}
-	binding := organicProviderBinding(t, reviewing)
-	order, err := strconv.Atoi(binding["order"])
-	if err != nil {
-		t.Fatal(err)
-	}
-	response, err := json.Marshal(map[string]any{
-		"subject_hash": binding["subject-hash"],
-		"inspection":   map[string]any{"status": "completed", "paths": []string{"internal/provider/candidate.go"}},
-		"lens":         binding["lens"],
-		"findings": []any{map[string]any{
-			"location": "internal/provider/candidate.go:3", "severity": "CRITICAL",
-			"claim":          "the committed candidate returns the wrong value",
-			"proof_refs":     []string{"internal/provider/candidate.go:3 is introduced by the committed candidate"},
-			"evidence_class": "deterministic", "causal_disposition": "introduced",
-		}},
-		"evidence": []string{"loopback found a candidate-caused blocker in the frozen committed candidate"},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	var rootRequests, modelRequests, responseRequests int
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if request.Method == http.MethodGet && request.URL.Path == "/" {
-			rootRequests++
-			writer.WriteHeader(http.StatusNoContent)
-			return
-		}
-		if request.Method == http.MethodGet && request.URL.Path == "/v1/models" {
-			modelRequests++
-			writer.Header().Set("Content-Type", "application/json")
-			_, _ = fmt.Fprint(writer, `{"object":"list","data":[{"id":"gpt-5.6-terra","object":"model","created":0,"owned_by":"brunnr-code-loopback"}]}`)
-			return
-		}
-		if request.Method != http.MethodPost || request.URL.Path != "/v1/responses" {
-			t.Errorf("Codex request = %s %s, want GET /, GET /v1/models, or POST /v1/responses", request.Method, request.URL.Path)
-			writer.WriteHeader(http.StatusNotFound)
-			return
-		}
-		responseRequests++
-		body, err := io.ReadAll(request.Body)
-		if err != nil {
-			t.Errorf("read Codex request: %v", err)
-			writer.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		// The severe deterministic finding reaches the refuter inside the
-		// same compiled capture; it corroborates every claim it is asked about.
-		if refuter := codexLoopbackRefuterResponse(body); refuter != nil {
-			writeCodexResponsesLoopback(t, writer, refuter)
-			return
-		}
-		writeCodexResponsesLoopback(t, writer, response)
-	}))
-	defer server.Close()
-
-	proxy := newLoopbackDenyingProxy(t)
-	defer proxy.Close()
-
-	traceBase := filepath.Join(t.TempDir(), "codex-connect")
-	bin := t.TempDir()
-	wrapper := filepath.Join(bin, "codex")
-	if err := os.WriteFile(wrapper, []byte(`#!/bin/sh
-set -eu
-exec "$BRUNNR_CODE_RUNTIME_TRACE_BINARY" -ff -o "$BRUNNR_CODE_RUNTIME_TRACE_LOG" -e trace=connect "$BRUNNR_CODE_RUNTIME_TRACE_TARGET" "$@"
-`), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	environment := append(harness.environment(),
-		"PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"BRUNNR_CODE_CODEX_REVIEWER_LOOPBACK_BASE_URL="+server.URL+"/v1",
-		"BRUNNR_CODE_RUNTIME_TRACE_BINARY="+strace,
-		"BRUNNR_CODE_RUNTIME_TRACE_LOG="+traceBase,
-		"BRUNNR_CODE_RUNTIME_TRACE_TARGET="+binary,
-		"HTTP_PROXY="+proxy.URL,
-		"HTTPS_PROXY="+proxy.URL,
-		"ALL_PROXY="+proxy.URL,
-		"http_proxy="+proxy.URL,
-		"https_proxy="+proxy.URL,
-		"all_proxy="+proxy.URL,
-		"NO_PROXY=127.0.0.1,localhost,::1",
-		"no_proxy=127.0.0.1,localhost,::1",
-	)
-	arguments := []string{
-		"review", "capture-result", "--agent", "codex",
-		"--repository-context", binding["repository-context"], "--expected-revision", binding["expected-revision"],
-		"--lineage", binding["lineage"], "--target", binding["target"], "--lens", binding["lens"], "--order", strconv.Itoa(order),
-	}
-	stdout, stderr, err = runOrganicCommand(t, organicBinary, harness.repo.worktree, environment, arguments...)
-	if err != nil {
-		t.Fatalf("registered Codex provider route: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
-	}
-	if responseRequests != 2 {
-		t.Fatalf("registered Codex loopback made %d root, %d model, and %d Responses requests; want one reviewer and one refuter Responses request", rootRequests, modelRequests, responseRequests)
-	}
-	denied := proxy.deniedRequests()
-	if denied == 0 {
-		t.Fatal("Codex made no externally addressed request through the denying proxy; the external-refusal path was not exercised")
-	}
-	connections, err := codexTracedConnectAddresses(traceBase)
-	if err != nil {
-		t.Fatalf("Codex egress trace is unavailable: %v", err)
-	}
-	for _, address := range connections {
-		if !address.IsLoopback() {
-			t.Fatalf("Codex bypassed egress isolation with a non-loopback connect to %s", address)
-		}
-	}
-	t.Logf("Codex egress proof: %d external attempts denied by the loopback proxy; strace observed %d Internet-socket connects, all loopback: %v", denied, len(connections), connections)
-	var terminal struct {
-		organicFinalizeResult
-		StatusContinuation *organicProviderExecute `json:"status_continuation"`
-	}
-	if err := json.Unmarshal([]byte(stdout), &terminal); err != nil {
-		t.Fatalf("decode terminal Codex provider capture: %v\n%s", err, stdout)
-	}
-	if terminal.Operation != "review/capture-result" || terminal.State != organicStateCorrectionRequired || terminal.StatusContinuation == nil {
-		t.Fatalf("registered Codex provider capture did not open committed correction: %#v", terminal)
-	}
-	if terminal.StatusContinuation.Operation != "review.status" {
-		t.Fatalf("Codex committed correction continuation operation = %q, want review.status", terminal.StatusContinuation.Operation)
-	}
-	wantTokens := map[string]bool{
-		"--lineage=" + lineage: false, "--base-ref=" + baseTree: false,
-		"--committed-only=true": false, "--agent=codex": false,
-	}
-	continuationArguments := []string{"review", "status"}
-	for _, argument := range terminal.StatusContinuation.Arguments {
-		continuationArguments = append(continuationArguments, argument.Token)
-		if _, found := wantTokens[argument.Token]; found {
-			wantTokens[argument.Token] = true
-		}
-	}
-	for token, found := range wantTokens {
-		if !found {
-			t.Fatalf("Codex committed correction continuation omitted %q: %#v", token, terminal.StatusContinuation)
-		}
-	}
-	continuationPayload := harness.run(continuationArguments...)
-	var correction organicProviderStatusResult
-	if err := json.Unmarshal(continuationPayload, &correction); err != nil {
-		t.Fatalf("decode returned Codex correction STATUS: %v\n%s", err, continuationPayload)
-	}
-	if correction.Authority.LineageID != lineage || correction.Authority.State != organicStateCorrectionRequired ||
-		correction.Projection.BaseTree != baseTree || correction.NextTransition == nil ||
-		correction.NextTransition.ReasonCode != "correction_plan_required" {
-		t.Fatalf("returned Codex committed correction STATUS = %#v", correction)
-	}
-}
-
-// codexTracedConnectAddresses parses one trace per child process. strace -ff
-// avoids interleaving unfinished connect calls from Codex's concurrent workers.
-// Every Internet-socket connection is returned, including failed attempts, so
-// a direct external bypass is rejected before it can be mistaken for isolation.
-func codexTracedConnectAddresses(traceBase string) ([]netip.Addr, error) {
-	paths, err := filepath.Glob(traceBase + ".*")
-	if err != nil {
-		return nil, fmt.Errorf("discover strace output: %w", err)
-	}
-	if len(paths) == 0 {
-		return nil, errors.New("strace produced no child trace files")
-	}
-	sort.Strings(paths)
-	addresses := make([]netip.Addr, 0)
-	for _, path := range paths {
-		trace, err := os.ReadFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("read strace output %q: %w", path, err)
-		}
-		for _, line := range strings.Split(string(trace), "\n") {
-			address, internet, err := codexTracedConnectAddress(line)
-			if err != nil {
-				return nil, fmt.Errorf("parse strace connect %q: %w", line, err)
-			}
-			if internet {
-				addresses = append(addresses, address)
-			}
-		}
-	}
-	if len(addresses) == 0 {
-		return nil, errors.New("strace observed no Internet-socket connects")
-	}
-	return addresses, nil
-}
-
-func codexTracedConnectAddress(line string) (netip.Addr, bool, error) {
-	if !strings.Contains(line, "connect(") {
-		return netip.Addr{}, false, nil
-	}
-	prefix := ""
-	switch {
-	case strings.Contains(line, "sa_family=AF_INET,"):
-		prefix = `sin_addr=inet_addr("`
-	case strings.Contains(line, "sa_family=AF_INET6,"):
-		prefix = `sin6_addr=inet_pton(AF_INET6, "`
-	default:
-		return netip.Addr{}, false, nil
-	}
-	start := strings.Index(line, prefix)
-	if start < 0 {
-		return netip.Addr{}, false, errors.New("missing numeric address")
-	}
-	remaining := line[start+len(prefix):]
-	end := strings.IndexByte(remaining, '"')
-	if end < 0 {
-		return netip.Addr{}, false, errors.New("unterminated numeric address")
-	}
-	address, err := netip.ParseAddr(remaining[:end])
-	if err != nil {
-		return netip.Addr{}, false, err
-	}
-	return address, true, nil
-}
-
-type loopbackDenyingProxy struct {
-	*httptest.Server
-	lock     sync.Mutex
-	requests int
-}
-
-func newLoopbackDenyingProxy(t *testing.T) *loopbackDenyingProxy {
-	t.Helper()
-	proxy := &loopbackDenyingProxy{}
-	proxy.Server = httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if !denyingProxyTargetIsExternal(request) {
-			forwarded := request.Clone(request.Context())
-			forwarded.RequestURI = ""
-			transport := http.DefaultTransport.(*http.Transport).Clone()
-			transport.Proxy = nil
-			defer transport.CloseIdleConnections()
-			response, err := transport.RoundTrip(forwarded)
-			if err != nil {
-				http.Error(writer, fmt.Sprintf("loopback proxy forward: %v", err), http.StatusBadGateway)
-				return
-			}
-			defer response.Body.Close()
-			for name, values := range response.Header {
-				writer.Header()[name] = append([]string{}, values...)
-			}
-			writer.WriteHeader(response.StatusCode)
-			_, _ = io.Copy(writer, response.Body)
-			return
-		}
-		proxy.lock.Lock()
-		proxy.requests++
-		proxy.lock.Unlock()
-		// The proxy is process-scoped through a command's environment. Any
-		// attempted external request receives an explicit refusal instead of a
-		// route to the host network.
-		writer.WriteHeader(http.StatusForbidden)
-	}))
-	return proxy
-}
-
-func (proxy *loopbackDenyingProxy) deniedRequests() int {
-	proxy.lock.Lock()
-	defer proxy.lock.Unlock()
-	return proxy.requests
-}
-
-// loopbackDenyingProxyEnvironment routes every proxied protocol of a child
-// process through the loopback-denying proxy while loopback stays direct, so
-// an external request is refused instead of reaching the host network.
-func loopbackDenyingProxyEnvironment(proxy *loopbackDenyingProxy) []string {
-	return []string{
-		"HTTP_PROXY=" + proxy.URL,
-		"HTTPS_PROXY=" + proxy.URL,
-		"ALL_PROXY=" + proxy.URL,
-		"http_proxy=" + proxy.URL,
-		"https_proxy=" + proxy.URL,
-		"all_proxy=" + proxy.URL,
-		"NO_PROXY=127.0.0.1,localhost,::1",
-		"no_proxy=127.0.0.1,localhost,::1",
-	}
-}
-
-func denyingProxyTargetIsExternal(request *http.Request) bool {
-	host := request.URL.Hostname()
-	if host == "" {
-		host = request.Host
-		if hostname, _, err := net.SplitHostPort(host); err == nil {
-			host = hostname
-		}
-	}
-	host = strings.Trim(host, "[]")
-	if host == "" || strings.EqualFold(host, "localhost") {
-		return false
-	}
-	address, err := netip.ParseAddr(host)
-	return err != nil || !address.IsLoopback()
-}
-
 var (
 	codexLoopbackRequestHash = regexp.MustCompile(`request_hash\\*":\\*"(sha256:[0-9a-f]{64})`)
 	codexLoopbackFindingID   = regexp.MustCompile(`finding_id\\*":\\*"([A-Za-z0-9-]+)`)
@@ -945,38 +597,6 @@ func organicProviderBindings(t *testing.T, status organicProviderStatusResult) [
 	return bindings
 }
 
-func TestOrganicProviderCaptureFakeWindowsDispatch(t *testing.T) {
-	for _, test := range []struct {
-		name, goos, binary, wantExecutable, wantPathPrefix, wantPathExt string
-	}{
-		{name: "Unix Claude", goos: "linux", binary: "claude", wantExecutable: "claude", wantPathPrefix: "PATH=/fake-bin:"},
-		{name: "Windows Claude", goos: "windows", binary: "claude", wantExecutable: "claude.exe", wantPathPrefix: "PATH=/fake-bin;", wantPathExt: "PATHEXT=.EXE"},
-		{name: "Windows Codex", goos: "windows", binary: "codex", wantExecutable: "codex.exe", wantPathPrefix: "PATH=/fake-bin;", wantPathExt: "PATHEXT=.EXE"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			if got := organicProviderCaptureFakeExecutableName(test.binary, test.goos); got != test.wantExecutable {
-				t.Fatalf("fake executable = %q, want %q", got, test.wantExecutable)
-			}
-			environment := organicProviderCaptureFakeDispatchEnvironment("/fake-bin", test.goos)
-			if !strings.HasPrefix(environment[0], test.wantPathPrefix) {
-				t.Fatalf("fake PATH = %q, want prefix %q", environment[0], test.wantPathPrefix)
-			}
-			if got := strings.TrimPrefix(environment[0], test.wantPathPrefix); got != os.Getenv("PATH") {
-				t.Fatalf("fake inherited PATH = %q, want %q", got, os.Getenv("PATH"))
-			}
-			if test.wantPathExt == "" {
-				if len(environment) != 1 {
-					t.Fatalf("Unix fake environment = %q, want only PATH", environment)
-				}
-				return
-			}
-			if len(environment) != 2 || environment[1] != test.wantPathExt {
-				t.Fatalf("Windows fake environment = %q, want PATHEXT %q", environment, test.wantPathExt)
-			}
-		})
-	}
-}
-
 type organicProviderCaptureFake struct {
 	agent          string
 	payload        string
@@ -999,7 +619,7 @@ func organicWriteProviderCaptureFake(t *testing.T, directory, binary, agent stri
 		agent:          agent,
 		failure:        binding == nil,
 		invocationPath: filepath.Join(directory, "provider-capture-invocation.json"),
-		environment:    organicProviderCaptureFakeDispatchEnvironment(directory, runtime.GOOS),
+		environment:    []string{"PATH=" + directory + string(os.PathListSeparator) + os.Getenv("PATH")},
 	}
 	if binding != nil {
 		payload, err := json.Marshal(map[string]any{"subject_hash": binding["subject-hash"], "inspection": map[string]any{"status": "completed", "paths": paths}, "findings": []any{}, "evidence": []string{"inspected the complete frozen candidate"}})
@@ -1014,7 +634,7 @@ func organicWriteProviderCaptureFake(t *testing.T, directory, binary, agent stri
 		organicProviderCaptureFakeFailureEnvironment+"="+strconv.FormatBool(fake.failure),
 		organicProviderCaptureFakeInvocationEnvironment+"="+fake.invocationPath,
 	)
-	path := filepath.Join(directory, organicProviderCaptureFakeExecutableName(binary, runtime.GOOS))
+	path := filepath.Join(directory, binary)
 	source, err := os.Open(os.Args[0])
 	if err != nil {
 		t.Fatal(err)
@@ -1035,25 +655,6 @@ func organicWriteProviderCaptureFake(t *testing.T, directory, binary, agent stri
 		t.Fatal(err)
 	}
 	return fake
-}
-
-func organicProviderCaptureFakeExecutableName(binary, goos string) string {
-	if goos == "windows" {
-		return binary + ".exe"
-	}
-	return binary
-}
-
-func organicProviderCaptureFakeDispatchEnvironment(directory, goos string) []string {
-	separator := ":"
-	if goos == "windows" {
-		separator = ";"
-	}
-	environment := []string{"PATH=" + directory + separator + os.Getenv("PATH")}
-	if goos == "windows" {
-		environment = append(environment, "PATHEXT=.EXE")
-	}
-	return environment
 }
 
 func (fake organicProviderCaptureFake) assertInvoked(t *testing.T) {
@@ -1986,8 +1587,9 @@ func organicAcknowledgementArguments(t *testing.T, execution *organicProviderExe
 		}
 		tokens[index] = argument.Token
 	}
-	// Compared by directory identity, not by string: on Windows the harness
-	// holds the 8.3 short TEMP form while Go emits the canonical worktree root.
+	// Compared by directory identity, not by string: the harness may hold a
+	// symlinked TEMP form (/var vs /private/var) while Go emits the canonical
+	// worktree root.
 	if !sameOrganicDirectory(execution.Arguments[0].Value, repo) || execution.Arguments[1].Value != lineage ||
 		len(execution.Arguments[4].Value) != 64 || !strings.HasPrefix(execution.Arguments[4].Token, "--token=") {
 		t.Fatalf("acknowledgement binding = %#v, want exact repo/lineage and canonical token", execution)
@@ -2846,9 +2448,6 @@ func buildOrganicBinary(workspace string) (string, error) {
 		return "", err
 	}
 	name := "brunnr-code"
-	if runtime.GOOS == "windows" {
-		name += ".exe"
-	}
 	path := filepath.Join(workspace, name)
 	ctx, cancel := context.WithTimeout(context.Background(), organicSetupTimeout)
 	defer cancel()
@@ -2931,42 +2530,15 @@ func organicReviewToolCommand(t *testing.T, arguments ...string) string {
 
 // organicToolCommand turns one fixture-authored argv into the string the
 // agent's bash tool executes, without round-tripping the argv through a shell
-// flavour we do not control.
-//
-// On POSIX systems the agent's tool shell is sh-compatible, so the argv is
-// authored directly in sh syntax — byte-identical to what the journeys always
-// ran on Linux. On Windows the agent's tool shell is PowerShell (or cmd),
-// neither of which parses POSIX single-quoting (PowerShell fails with
-// "ParserError: Unexpected token" on a single-quoted argument such as
-// 'review'), so the argv is baked by Go into a generated .cmd trampoline
-// and the command becomes that script's bare path: a single token that
-// PowerShell and cmd both resolve as a plain invocation.
+// flavour we do not control. The agent's tool shell is sh-compatible, so the
+// argv is authored directly in sh syntax.
 func organicToolCommand(t *testing.T, binaryEnvironment string, arguments ...string) string {
 	t.Helper()
-	if runtime.GOOS != "windows" {
-		command := `"$` + binaryEnvironment + `"`
-		for _, argument := range arguments {
-			command += " '" + strings.ReplaceAll(argument, "'", `'\''`) + "'"
-		}
-		return command
-	}
-
-	invocation := `"%` + binaryEnvironment + `%"`
+	command := `"$` + binaryEnvironment + `"`
 	for _, argument := range arguments {
-		if strings.ContainsAny(argument, `"%`) {
-			t.Fatalf("tool argument %q cannot be embedded safely in a cmd trampoline", argument)
-		}
-		invocation += ` "` + argument + `"`
+		command += " '" + strings.ReplaceAll(argument, "'", `'\''`) + "'"
 	}
-	script := filepath.Join(t.TempDir(), "tool.cmd")
-	if strings.ContainsAny(script, " \t'\"") {
-		t.Fatalf("tool trampoline path %q would itself need shell quoting", script)
-	}
-	content := strings.Join([]string{"@echo off", invocation, "exit /b %ERRORLEVEL%"}, "\r\n") + "\r\n"
-	if err := os.WriteFile(script, []byte(content), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	return script
+	return command
 }
 
 type openAIRequest struct {

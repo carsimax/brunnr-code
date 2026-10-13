@@ -1,6 +1,7 @@
 package planner
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -17,10 +18,8 @@ func TestBuildReviewPayloadIncludesPlatformDecision(t *testing.T) {
 		Agents:            []model.AgentID{model.AgentClaudeCode},
 		OrderedComponents: []model.ComponentID{model.ComponentEngram},
 		PlatformDecision: PlatformDecision{
-			OS:             "linux",
-			LinuxDistro:    "arch",
-			PackageManager: "pacman",
-			Supported:      true,
+			OS:        "darwin",
+			Supported: true,
 		},
 	}
 
@@ -40,40 +39,17 @@ func TestPlatformDecisionFromProfileMatrix(t *testing.T) {
 		want    PlatformDecision
 	}{
 		{
-			name: "darwin profile maps to a decision without a package manager",
+			name: "darwin profile maps to a supported decision",
 			profile: system.PlatformProfile{
 				OS: "darwin", Supported: true,
 			},
 			want: PlatformDecision{
 				OS: "darwin", Supported: true,
 			},
-		},
-		{
-			name: "ubuntu profile maps to apt decision",
-			profile: system.PlatformProfile{
-				OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt", Supported: true,
-			},
-			want: PlatformDecision{
-				OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt", Supported: true,
-			},
-		},
-		{
-			name: "arch profile maps to pacman decision",
-			profile: system.PlatformProfile{
-				OS: "linux", LinuxDistro: system.LinuxDistroArch, PackageManager: "pacman", Supported: true,
-			},
-			want: PlatformDecision{
-				OS: "linux", LinuxDistro: system.LinuxDistroArch, PackageManager: "pacman", Supported: true,
-			},
-		},
-		{
-			name: "fedora profile maps to dnf decision",
-			profile: system.PlatformProfile{
-				OS: "linux", LinuxDistro: system.LinuxDistroFedora, PackageManager: "dnf", Supported: true,
-			},
-			want: PlatformDecision{
-				OS: "linux", LinuxDistro: system.LinuxDistroFedora, PackageManager: "dnf", Supported: true,
-			},
+		}, {
+			name:    "unsupported profile keeps the unsupported decision",
+			profile: system.PlatformProfile{OS: "darwin", Supported: false},
+			want:    PlatformDecision{OS: "darwin", Supported: false},
 		},
 	}
 
@@ -90,13 +66,11 @@ func TestPlatformDecisionFromProfileMatrix(t *testing.T) {
 func TestBuildReviewPayloadPlatformDecisionPropagatesPerProfile(t *testing.T) {
 	profiles := []PlatformDecision{
 		{OS: "darwin", Supported: true},
-		{OS: "linux", LinuxDistro: "ubuntu", PackageManager: "apt", Supported: true},
-		{OS: "linux", LinuxDistro: "arch", PackageManager: "pacman", Supported: true},
-		{OS: "linux", LinuxDistro: system.LinuxDistroFedora, PackageManager: "dnf", Supported: true},
+		{OS: "darwin", Supported: false},
 	}
 
 	for _, decision := range profiles {
-		t.Run(decision.OS+"/"+decision.LinuxDistro, func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s/supported=%t", decision.OS, decision.Supported), func(t *testing.T) {
 			selection := model.Selection{
 				Preset: model.PresetFull,
 			}

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -191,7 +190,7 @@ func TestComponentOperationsClaudeNeverDeleteUserRegistry(t *testing.T) {
 			t.Fatalf("registry still contains mcpServers.engram: %#v", registry)
 		}
 	}
-	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
+	if info.Mode().Perm() != 0o600 {
 		t.Fatalf("registry mode widened to %v, want 0600", info.Mode().Perm())
 	}
 }
@@ -248,7 +247,7 @@ func TestComponentOperationsEngramClaudePreservesRegistryAndRemovesManagedLegacy
 	}
 	if info, statErr := os.Stat(registryPath); statErr != nil {
 		t.Fatalf("Stat(user registry) error = %v", statErr)
-	} else if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
+	} else if info.Mode().Perm() != 0o600 {
 		t.Fatalf("user registry mode = %o; want 0600", info.Mode().Perm())
 	}
 }

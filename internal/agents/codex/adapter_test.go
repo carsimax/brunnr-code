@@ -98,22 +98,7 @@ func TestInstallCommand(t *testing.T) {
 	}{
 		{
 			name:    "darwin uses npm without sudo",
-			profile: system.PlatformProfile{OS: "darwin", PackageManager: ""},
-			want:    [][]string{{"npm", "install", "-g", "--ignore-scripts", "@openai/codex@latest"}},
-		},
-		{
-			name:    "linux system npm uses sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt"},
-			want:    [][]string{{"sudo", "npm", "install", "-g", "--ignore-scripts", "@openai/codex@latest"}},
-		},
-		{
-			name:    "linux nvm skips sudo",
-			profile: system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt", NpmWritable: true},
-			want:    [][]string{{"npm", "install", "-g", "--ignore-scripts", "@openai/codex@latest"}},
-		},
-		{
-			name:    "windows uses npm without sudo",
-			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget", NpmWritable: true},
+			profile: system.PlatformProfile{OS: "darwin"},
 			want:    [][]string{{"npm", "install", "-g", "--ignore-scripts", "@openai/codex@latest"}},
 		},
 	}
@@ -167,7 +152,7 @@ func TestConfigPathsCrossPlatform(t *testing.T) {
 // TestAdapterSystemPromptFile_UsesUppercaseAGENTSmd asserts that the system
 // prompt file path uses the exact uppercase filename "AGENTS.md" that the
 // codex CLI expects. Lowercase "agents.md" causes the file to be silently
-// ignored on case-sensitive filesystems (Linux) — regression for #299.
+// ignored on case-sensitive filesystems (e.g. case-sensitive APFS) — regression for #299.
 func TestAdapterSystemPromptFile_UsesUppercaseAGENTSmd(t *testing.T) {
 	a := NewAdapter()
 	got := a.SystemPromptFile("/home/user")

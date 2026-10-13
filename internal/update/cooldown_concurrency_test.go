@@ -65,7 +65,7 @@ func TestCheckAllWithCooldown_ConcurrentReviewModeDisablePreservesMode(t *testin
 
 	actorB := exec.CommandContext(ctx, binary, "review", "mode", "disable", "--scope", "global")
 	actorB.Dir = repositoryRoot(t)
-	actorB.Env = append(os.Environ(), "HOME="+home, "USERPROFILE="+home)
+	actorB.Env = append(os.Environ(), "HOME="+home)
 	if output, err := actorB.CombinedOutput(); err != nil {
 		t.Fatalf("actor B review mode disable failed: %v\n%s", err, output)
 	}
@@ -155,7 +155,7 @@ func TestCheckAllWithCooldown_ContendedPersistenceRejectsReviewModeDisable(t *te
 	defer cancelActorB()
 	actorB := exec.CommandContext(actorBContext, binary, "review", "mode", "disable", "--scope", "global")
 	actorB.Dir = repositoryRoot(t)
-	actorB.Env = append(os.Environ(), "HOME="+home, "USERPROFILE="+home)
+	actorB.Env = append(os.Environ(), "HOME="+home)
 	if output, err := actorB.CombinedOutput(); err == nil {
 		t.Fatalf("actor B unexpectedly disabled review mode while cooldown held the lock: %s", output)
 	}
@@ -183,7 +183,7 @@ func TestCheckAllWithCooldown_ContendedPersistenceRejectsReviewModeDisable(t *te
 	defer cancelRetry()
 	retry := exec.CommandContext(retryContext, binary, "review", "mode", "disable", "--scope", "global")
 	retry.Dir = repositoryRoot(t)
-	retry.Env = append(os.Environ(), "HOME="+home, "USERPROFILE="+home)
+	retry.Env = append(os.Environ(), "HOME="+home)
 	if output, err := retry.CombinedOutput(); err != nil {
 		t.Fatalf("actor B retry review mode disable failed: %v\n%s", err, output)
 	}
@@ -208,13 +208,9 @@ func awaitSignal(t *testing.T, ctx context.Context, signal <-chan struct{}, mess
 
 func buildCandidateBinary(t *testing.T) string {
 	t.Helper()
-	binaryName := "brunnr-code"
-	if runtime.GOOS == "windows" {
-		binaryName += ".exe"
-	}
-	binary := filepath.Join(t.TempDir(), binaryName)
-	// Building the CLI can approach 30 seconds even with a warm cache on
-	// Windows. Keep a bounded build budget separate from actor deadlines.
+	binary := filepath.Join(t.TempDir(), "brunnr-code")
+	// Building the CLI can approach 30 seconds even with a warm cache.
+	// Keep a bounded build budget separate from actor deadlines.
 	const buildTimeout = 2 * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), buildTimeout)
 	defer cancel()

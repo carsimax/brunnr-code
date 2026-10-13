@@ -22,13 +22,10 @@ func TestWriteFileAtomicReportsReplacementWhenParentSyncFails(t *testing.T) {
 		t.Fatalf("seed: %v", err)
 	}
 
-	origGOOS := runtimeGOOS
 	origSyncDir := syncDirFn
 	t.Cleanup(func() {
-		runtimeGOOS = origGOOS
 		syncDirFn = origSyncDir
 	})
-	runtimeGOOS = func() string { return "linux" }
 	syncDirFn = func(string) error { return errors.New("injected parent-directory sync failure") }
 
 	result, err := WriteFileAtomic(path, []byte("after"), 0o644)
@@ -58,13 +55,10 @@ func TestWriteFileAtomicReportsCreationWhenParentSyncFails(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "new.json")
 
-	origGOOS := runtimeGOOS
 	origSyncDir := syncDirFn
 	t.Cleanup(func() {
-		runtimeGOOS = origGOOS
 		syncDirFn = origSyncDir
 	})
-	runtimeGOOS = func() string { return "linux" }
 	syncDirFn = func(string) error { return errors.New("injected parent-directory sync failure") }
 
 	result, err := WriteFileAtomic(path, []byte("fresh"), 0o644)
@@ -79,7 +73,7 @@ func TestWriteFileAtomicReportsCreationWhenParentSyncFails(t *testing.T) {
 // TestWriteFileAtomicFailsWhenReplacementDoesNotLand is the hard direction: make
 // the underlying replacement silently fail to take effect and require the
 // function to report failure. A rename that returns nil without moving anything
-// is exactly the shape reported on Windows in #2319, and it is the only way to
+// is exactly the shape reported in #2319, and it is the only way to
 // prove the result is read back from disk rather than inferred from the attempt.
 func TestWriteFileAtomicFailsWhenReplacementDoesNotLand(t *testing.T) {
 	tests := []struct {

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -95,23 +94,6 @@ func TestCompatibilitySkillsRefreshRemovesLegacySharedSkillMarker(t *testing.T) 
 	}
 }
 
-func TestWindowsCompatibilityTransactionKeepsAnchoredRollback(t *testing.T) {
-	_, testFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller(0) failed")
-	}
-	sourcePath := filepath.Join(filepath.Dir(testFile), "compatibility_transaction_windows.go")
-	source, err := os.ReadFile(sourcePath)
-	if err != nil {
-		t.Fatalf("ReadFile(%q) error = %v", sourcePath, err)
-	}
-
-	const rollbackRemoval = "if _, err := t.writer.Remove(path); err != nil {"
-	if !strings.Contains(string(source), rollbackRemoval) {
-		t.Fatalf("Windows compatibility transaction does not consume the anchored remover changed-state result: missing %q", rollbackRemoval)
-	}
-}
-
 func TestRunSyncDryRunMatchesZeroAgentCompatibilityRefresh(t *testing.T) {
 	home := t.TempDir()
 	setSyncTestHome(t, home)
@@ -136,9 +118,6 @@ func TestRunSyncDryRunMatchesZeroAgentCompatibilityRefresh(t *testing.T) {
 }
 
 func TestRunSyncDryRunPropagatesCompatibilityManagedPathError(t *testing.T) {
-	if usesAnchoredCompatibilityTransaction() {
-		t.Skip("Windows compatibility discovery intentionally has no path-based lstat seam")
-	}
 	home := t.TempDir()
 	setSyncTestHome(t, home)
 	managedPath := filepath.Join(home, ".agents", "skills", "go-testing", "SKILL.md")
@@ -181,9 +160,6 @@ func TestCompatibilitySkillsRefreshRequiresPhysicalDirectory(t *testing.T) {
 		{name: "parent symlink", linkParent: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if runtime.GOOS == "windows" {
-				t.Skip("symlink creation may require elevated privileges")
-			}
 			home, target := t.TempDir(), t.TempDir()
 			targetSkills := target
 			if tc.linkParent {
@@ -218,9 +194,6 @@ func TestCompatibilitySkillsRefreshRequiresPhysicalDirectory(t *testing.T) {
 		{name: "ordinary descendant symlink", components: []model.ComponentID{model.ComponentSkills}, link: "go-testing"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if runtime.GOOS == "windows" {
-				t.Skip("symlink creation may require elevated privileges")
-			}
 			home, target := t.TempDir(), t.TempDir()
 			skillsDir := filepath.Join(home, ".agents", "skills")
 			if err := os.MkdirAll(skillsDir, 0o755); err != nil {
@@ -242,10 +215,6 @@ func TestCompatibilitySkillsRefreshRequiresPhysicalDirectory(t *testing.T) {
 }
 
 func TestCompatibilityRefreshDoesNotFollowParentSwappedAfterValidation(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("symlink creation may require elevated privileges")
-	}
-
 	home, outside := t.TempDir(), t.TempDir()
 	skillsDir := filepath.Join(home, ".agents", "skills")
 	inside := filepath.Join(skillsDir, "go-testing")
@@ -287,9 +256,6 @@ func TestCompatibilityRefreshDoesNotFollowParentSwappedAfterValidation(t *testin
 }
 
 func TestCompatibilityManagedPathErrorsReachBackupPreparation(t *testing.T) {
-	if usesAnchoredCompatibilityTransaction() {
-		t.Skip("Windows compatibility snapshots are anchored before generic backup")
-	}
 	home := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(home, ".agents", "skills"), 0o755); err != nil {
 		t.Fatal(err)
@@ -348,9 +314,6 @@ func TestCompatibilityManagedPathErrorsReachBackupPreparation(t *testing.T) {
 }
 
 func TestCompatibilityDirectoryStatErrorsReachBackupPreparation(t *testing.T) {
-	if usesAnchoredCompatibilityTransaction() {
-		t.Skip("Windows compatibility discovery intentionally has no path-based lstat seam")
-	}
 	for _, statTarget := range []string{".agents", filepath.Join(".agents", "skills")} {
 		t.Run(statTarget, func(t *testing.T) {
 			home := t.TempDir()
@@ -404,9 +367,6 @@ func TestCompatibilityDirectoryStatErrorsReachBackupPreparation(t *testing.T) {
 }
 
 func TestCompatibilityDirectoryStatErrorsPreventZeroAgentSyncNoOp(t *testing.T) {
-	if usesAnchoredCompatibilityTransaction() {
-		t.Skip("Windows compatibility discovery intentionally has no path-based lstat seam")
-	}
 	for _, statTarget := range []string{".agents", filepath.Join(".agents", "skills")} {
 		t.Run(statTarget, func(t *testing.T) {
 			home := t.TempDir()
@@ -510,11 +470,8 @@ func TestCompatibilitySkillFilesAreInstallAndSyncBackupTargets(t *testing.T) {
 	}
 	for _, targets := range [][]string{installTargets, syncTargets} {
 		for _, path := range files {
-			if !usesAnchoredCompatibilityTransaction() && !slices.Contains(targets, path) {
+			if !slices.Contains(targets, path) {
 				t.Errorf("backup targets missing prospective %q; targets=%v", path, targets)
-			}
-			if usesAnchoredCompatibilityTransaction() && slices.Contains(targets, path) {
-				t.Errorf("generic backup target includes anchored compatibility path %q; targets=%v", path, targets)
 			}
 		}
 	}

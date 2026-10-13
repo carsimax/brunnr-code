@@ -132,7 +132,7 @@ func TestRenderUpgrade_ErrorState(t *testing.T) {
 // containing ": " is split so the command appears on its own line and is not clipped
 // by BubbleTea at the terminal width.
 func TestRenderUpgrade_LongManualHintSplitsAcrossLines(t *testing.T) {
-	longHint := "Windows binary distribution is temporarily unavailable. Install/update from source with Go 1.25.10+:\n  go install github.com/carsimax/brunnr-code/cmd/brunnr-code@v1.1.0"
+	longHint := "Binary distribution is temporarily unavailable. Install/update from source with Go 1.25.10+:\n  go install github.com/carsimax/brunnr-code/cmd/brunnr-code@v1.1.0"
 	report := &upgrade.UpgradeReport{
 		Results: []upgrade.ToolUpgradeResult{
 			{

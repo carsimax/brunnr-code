@@ -1028,23 +1028,6 @@ func cloneReviewJSONDocument(t *testing.T, document map[string]any) map[string]a
 	return clone
 }
 
-func TestWindowsRuntimeIncludesRepairAndMaintenanceLockRegressions(t *testing.T) {
-	payload, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", "ci.yml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, name := range []string{
-		"TestAuthorityLockCancellationPreservesSentinelAndCallerDeadline",
-		"TestCompactStatusLoadContextCancelsUnderExclusiveMaintenance",
-		"TestRepairClassifiedAuthorityConcurrentExecutionCommitsAndReplays",
-		"TestRepairClassifiedAuthorityResumesEachDurablePhase",
-	} {
-		if !bytes.Contains(payload, []byte(name)) {
-			t.Fatalf("Windows PR runtime allowlist is missing %s", name)
-		}
-	}
-}
-
 // TestReviewRepairPreflightNamesAWayForwardWhenTheStoreExceedsTheBound is
 // issue #3409. `brunnr-code review repair --preflight` exists so a maintainer
 // can classify a damaged authority store and act on it. Its assessment is

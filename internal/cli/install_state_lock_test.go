@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -80,16 +79,12 @@ func TestPersistInstallStateMergesExplicitAgentsFromLatestState(t *testing.T) {
 // taken on the resolved real path so the no-follow property still holds and
 // the state lands under the real directory.
 func TestInstallStateLockAcceptsSymlinkedHome(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("directory symlinks need elevated privileges on Windows")
-	}
 	real := t.TempDir()
 	link := filepath.Join(t.TempDir(), "home-link")
 	if err := os.Symlink(real, link); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("HOME", link)
-	t.Setenv("USERPROFILE", link)
 
 	var output bytes.Buffer
 	if err := RunReviewMode([]string{"enable", "--cwd", t.TempDir(), "--scope", "global", "--json"}, &output); err != nil {
@@ -115,9 +110,6 @@ func mustInstallStateLockPath(t *testing.T, home string) string {
 
 // The lock is a function of the resolved home alone, not of filesystem state.
 func TestInstallStateLockPathIsStableAcrossStateDirectoryCreation(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("directory symlinks need elevated privileges on Windows")
-	}
 	real := t.TempDir()
 	resolvedReal, err := filepath.EvalSymlinks(real)
 	if err != nil {

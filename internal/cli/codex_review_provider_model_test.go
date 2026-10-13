@@ -11,7 +11,6 @@ import (
 func TestCodexReviewAdapterDispatchesSavedRoles(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 	roles := []struct{ role, lens, key, id string }{
 		{reviewProviderRoleLens, "review-risk", "rdd-risk", "gpt-6.1-astra"},
 		{reviewProviderRoleLens, "review-readability", "rdd-readability", "gpt-6.1-sol"},
@@ -41,7 +40,6 @@ func TestCodexReviewAdapterDispatchesSavedRoles(t *testing.T) {
 func TestCodexReviewAdapterInvalidOrMissingUsesDefault(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 	for _, id := range []string{"", "--danger", "model with spaces", "model\n--config"} {
 		if err := state.Write(home, state.InstallState{CodexPhaseModelAssignments: map[string]string{"rdd-risk": id, "risk": "gpt-6.1-sol", "refuter": "gpt-6.1-astra"}}); err != nil {
 			t.Fatal(err)

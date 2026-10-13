@@ -30,7 +30,7 @@ func TestRenderWelcome_StaysWithinViewport(t *testing.T) {
 		wantPrimary  string
 		wantControl  string
 	}{
-		{name: "Windows Terminal startup", width: 120, height: 30},
+		{name: "wide terminal startup", width: 120, height: 30},
 		{name: "narrow resize", width: 80, height: 24},
 		{name: "short viewport", width: 120, height: 19},
 		{name: "below compact height", width: 120, height: 2, minimum: true},
