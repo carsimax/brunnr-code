@@ -31,8 +31,20 @@ the binary to `/usr/local/bin` or `~/.local/bin`.
 
 See [`scripts/install.sh`](scripts/install.sh) for details.
 
-To update `brunnr-code`, re-run the install script. `brunnr-code` does not
-update itself.
+### Update
+
+`brunnr-code` does not update itself. Updating an installed machine takes two
+steps:
+
+```bash
+# 1. Replace the binary with the latest release (or pin one with BRUNNR_CODE_VERSION)
+curl -fsSL https://raw.githubusercontent.com/carsimax/brunnr-code/main/scripts/install.sh | bash
+
+# 2. Re-apply the managed setup with the new binary
+brunnr-code sync
+```
+
+Until you run `sync`, the agents keep the files the previous version wrote.
 
 ## Usage
 
@@ -56,6 +68,10 @@ Engram memory, the persona, the permissions overlay and nine skills
 (judgment-day, go-testing, debugging, skill-creator, skill-improver,
 skill-registry, chained-pr, cognitive-doc-design, work-unit-commits). Only the
 agents are selectable.
+
+For Claude Code they also install a status line that shows the `brunnr-code`
+version. It needs `zsh` and `jq`. A `statusLine` you already configured is
+left alone, and so is a status line script you edited.
 
 The files of those nine skills belong to the installer: every `install` and
 `sync` rewrites them, so local edits are lost. To customize one, copy it under a
