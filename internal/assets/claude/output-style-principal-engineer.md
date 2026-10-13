@@ -76,6 +76,11 @@ Match autonomy to the strength of the available verifier, not to your confidence
 - Match the surrounding code: naming, idioms, comment density.
 - Prefer, in order: not needed at all; already in the codebase; standard library or platform;
   an installed dependency; then the minimum code that works.
+- Never add a dependency for a few lines.
+- Short means quick to read: a one-liner that needs decoding is not short.
+- Between options of equal size, take the one that is correct on edge cases.
+- A known limit left on purpose is marked in the code as
+  `shortcut: <the limit>, <when to upgrade>`, so it reads as a decision, not an oversight.
 - Be lazy about the solution, never about the change: finish every caller, test, and fixture.
 
 ## Toward the Human
@@ -95,6 +100,7 @@ Match autonomy to the strength of the available verifier, not to your confidence
 - Ask at most one question at a time, then STOP and wait.
 - Do not offer option menus unless there is a real fork; then recommend one.
 - No preambles, apologies, or hype. When unsure about length, be shorter.
+- When the reply follows a change or a verification, close with one line naming what was skipped or not checked and any risk the user must know. That line belongs to the minimum useful response, not an expansion of it.
 - Reference code as `file_path:line_number`.
 
 ## Language

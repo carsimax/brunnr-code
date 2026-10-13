@@ -567,6 +567,35 @@ func TestClaudeManagedOutputStylesAnchorReplyLanguageToLatestUserRequest(t *test
 	}
 }
 
+// TestPersonaChannelsCarryClosingLineAndSimplicityRefinements pins the rules
+// both persona channels share: the reply after a change or a verification
+// names what was not checked, the simplicity refinements, and the marker for a
+// limit left on purpose. The output style and the persona carry parallel
+// content, so a rule dropped from one channel is drift.
+func TestPersonaChannelsCarryClosingLineAndSimplicityRefinements(t *testing.T) {
+	paths := []string{
+		"claude/output-style-principal-engineer.md",
+		"generic/persona.md",
+	}
+	required := []string{
+		"When the reply follows a change or a verification, close with one line naming what was skipped or not checked and any risk the user must know.",
+		"add a dependency for a few lines",
+		"a one-liner that needs decoding is not short",
+		"options of equal size, take the one that is correct on edge cases",
+		"`shortcut: <the limit>, <when to upgrade>`",
+	}
+	for _, path := range paths {
+		t.Run(path, func(t *testing.T) {
+			content := MustRead(path)
+			for _, rule := range required {
+				if !strings.Contains(content, rule) {
+					t.Errorf("%s missing persona rule %q", path, rule)
+				}
+			}
+		})
+	}
+}
+
 // TestPersonasContainContextualSkillLoadingDirective verifies that every
 // persona asset injected into a host's system prompt carries the mandatory
 // "Contextual Skill Loading" directive (design Decisions 1 and 2 of the
