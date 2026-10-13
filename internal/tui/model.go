@@ -400,11 +400,9 @@ const (
 	ScreenWelcome
 	ScreenDetection
 	ScreenAgents
-	ScreenPreset
 	ScreenClaudeModelPicker
 	ScreenCodexModelPicker
 	ScreenDependencyTree
-	ScreenSkillPicker
 	ScreenInstallReviewMode
 	ScreenReview
 	ScreenInstalling
@@ -464,7 +462,6 @@ type Model struct {
 	Backups           []backup.Manifest
 	ClaudeModelPicker screens.ClaudeModelPickerState
 	CodexModelPicker  screens.CodexModelPickerState
-	SkillPicker       []model.SkillID
 	Err               error
 
 	// SelectedBackup holds the manifest chosen on ScreenBackups, used by the
@@ -1188,16 +1185,12 @@ func (m Model) View() string {
 		return screens.RenderDetection(m.Detection, m.Cursor)
 	case ScreenAgents:
 		return screens.RenderAgents(m.Selection.Agents, m.Cursor)
-	case ScreenPreset:
-		return screens.RenderPreset(m.Selection.Preset, m.Cursor)
 	case ScreenClaudeModelPicker:
 		return screens.RenderClaudeModelPicker(m.ClaudeModelPicker, m.Cursor, m.Height)
 	case ScreenCodexModelPicker:
 		return screens.RenderCodexModelPicker(m.CodexModelPicker, m.Cursor, m.Height)
 	case ScreenDependencyTree:
-		return screens.RenderDependencyTree(m.DependencyPlan, m.Selection, m.Cursor)
-	case ScreenSkillPicker:
-		return screens.RenderSkillPicker(m.SkillPicker, m.Cursor, m.Height)
+		return screens.RenderDependencyTree(m.DependencyPlan, m.Cursor)
 	case ScreenInstallReviewMode:
 		return screens.RenderInstallReviewMode(m.InstallReviewModeStatus, m.InstallReviewModeLoadErr, m.Cursor)
 	case ScreenReview:
@@ -1478,12 +1471,6 @@ func (m Model) handleKeyPress(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.toggleCurrentUninstallComponent()
 		case ScreenUninstallEngramScope:
 			m.toggleCurrentUninstallEngramScope()
-		case ScreenDependencyTree:
-			if m.Selection.Preset == model.PresetCustom {
-				m.toggleCurrentComponent()
-			}
-		case ScreenSkillPicker:
-			m.toggleCurrentSkill()
 		}
 		return m, nil
 	case "r":
@@ -1799,29 +1786,14 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 		case m.Cursor < agentCount:
 			m.toggleCurrentAgent()
 		case m.Cursor == agentCount && len(m.Selection.Agents) > 0:
-			m.setScreen(ScreenPreset)
+			// The setup is fixed, so Agents leads straight into the picker
+			// chain, whose terminal anchor is the read-only Install Plan.
+			if next, ok := m.pickerNextScreen(); ok {
+				return m, m.advanceToNextPickerScreen(next)
+			}
 		case m.Cursor == agentCount+1:
 			m.setScreen(ScreenDetection)
 		}
-	case ScreenPreset:
-		options := screens.PresetOptions()
-		if m.Cursor < len(options) {
-			m.Selection.Preset = options[m.Cursor]
-			m.Selection.Components = componentsForPreset(options[m.Cursor])
-			// Enter the conditional picker chain through the single source of
-			// truth. pickerNextScreen(ScreenPreset) returns the first chain member
-			// for the current selection (Claude → Codex);
-			// applyPickerEntry initializes picker state.
-			// DependencyTree is the initial component picker for Custom and the
-			// terminal anchor for every other preset.
-			if next, ok := m.pickerNextScreen(); ok && (next != ScreenDependencyTree || m.Selection.Preset == model.PresetCustom) {
-				return m, m.applyPickerEntry(next)
-			}
-			m.buildDependencyPlan()
-			m.setScreen(ScreenDependencyTree)
-			return m, nil
-		}
-		m.setScreen(ScreenAgents)
 	case ScreenClaudeModelPicker:
 		if !m.ClaudeModelPicker.InCustomMode && m.Cursor == screens.ClaudeModelPickerOptionCount(m.ClaudeModelPicker)-1 {
 			// "Back" option: in ModelConfigMode return to the config menu,
@@ -1849,68 +1821,14 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	case ScreenDependencyTree:
-		if m.Selection.Preset == model.PresetCustom {
-			allComps := screens.AllComponents()
-			switch {
-			case m.Cursor < len(allComps):
-				m.toggleCurrentComponent()
-			case m.Cursor == len(allComps):
-				m.buildDependencyPlan()
-				// Advance to the next screen in the picker slice.
-				// applyPickerEntry handles Claude/Codex-first paths correctly,
-				// initializing each picker's state regardless of which agent is first.
-				if next, ok := m.pickerNextScreen(); ok {
-					m.applyPickerEntry(next)
-					return m, nil
-				}
-				// No slice member after DependencyTree (no picker agents selected):
-				// SkillPicker, or fall to Review.
-				if m.shouldShowSkillPickerScreen() {
-					if len(m.SkillPicker) == 0 {
-						m.initSkillPicker()
-					}
-					m.setScreen(ScreenSkillPicker)
-					return m, nil
-				}
-				m.Review = planner.BuildReviewPayload(m.Selection, m.DependencyPlan)
-				return m.startInstallReviewModeLoad()
-			default:
-				m.setScreen(ScreenPreset)
-			}
-			return m, nil
-		}
 		if m.Cursor == 0 {
 			m.Review = planner.BuildReviewPayload(m.Selection, m.DependencyPlan)
 			return m.startInstallReviewModeLoad()
 		}
-		// Non-custom Back: mirrors goBack (Esc) through pickerPreviousScreen.
+		// Back: mirrors goBack (Esc) through pickerPreviousScreen.
 		// INV-2: Enter-on-Back and Esc must produce identical results.
 		if prev, ok := m.pickerPreviousScreen(); ok {
-			// Step back through the picker slice.
 			m.applyPickerEntry(prev)
-		}
-	case ScreenSkillPicker:
-		allSkills := screens.AllSkillsOrdered()
-		switch {
-		case m.Cursor < len(allSkills):
-			m.toggleCurrentSkill()
-		case m.Cursor == len(allSkills):
-			// "Continue" — store selected skills into Selection and proceed to the RDD choice.
-			m.Selection.Skills = make([]model.SkillID, len(m.SkillPicker))
-			copy(m.Selection.Skills, m.SkillPicker)
-			m.Review = planner.BuildReviewPayload(m.Selection, m.DependencyPlan)
-			return m.startInstallReviewModeLoad()
-		default:
-			// "Back" — in custom preset, return to the screen that preceded SkillPicker.
-			if m.Selection.Preset == model.PresetCustom {
-				if m.shouldShowClaudeModelPickerScreen() {
-					m.setScreen(ScreenClaudeModelPicker)
-				} else {
-					m.setScreen(ScreenDependencyTree)
-				}
-			} else {
-				m.setScreen(ScreenDependencyTree)
-			}
 		}
 	case ScreenInstallReviewMode:
 		options := screens.InstallReviewModeOptions(m.InstallReviewModeLoadErr)
@@ -1931,23 +1849,9 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			m.Err = nil
 			return m.startInstalling()
 		}
-		// Back — in custom preset, walk back through the screens that were shown.
-		if m.Selection.Preset == model.PresetCustom {
-			if m.shouldShowSkillPickerScreen() {
-				if len(m.SkillPicker) == 0 {
-					m.initSkillPicker()
-				}
-				m.setScreen(ScreenSkillPicker)
-			} else if m.shouldShowClaudeModelPickerScreen() {
-				m.setScreen(ScreenClaudeModelPicker)
-			} else {
-				m.setScreen(ScreenDependencyTree)
-			}
-		} else {
-			m.setScreen(ScreenInstallReviewMode)
-			if m.InstallReviewModeChoiceSet && !m.InstallReviewModeEnabled {
-				m.Cursor = 1
-			}
+		m.setScreen(ScreenInstallReviewMode)
+		if m.InstallReviewModeChoiceSet && !m.InstallReviewModeEnabled {
+			m.Cursor = 1
 		}
 	case ScreenInstalling:
 		if m.Progress.Done() && !m.pipelineRunning && !m.InstallReviewModePersisting {
@@ -2673,26 +2577,10 @@ func (m Model) goBack(cmd *tea.Cmd) Model {
 		return m
 	}
 
-	// From SkillPicker, go back to the preceding screen.
-	// In custom preset, agent pickers precede SkillPicker.
-	if m.Screen == ScreenSkillPicker {
-		if m.Selection.Preset == model.PresetCustom {
-			if m.shouldShowClaudeModelPickerScreen() {
-				m.setScreen(ScreenClaudeModelPicker)
-			} else {
-				m.setScreen(ScreenDependencyTree)
-			}
-		} else {
-			m.setScreen(ScreenDependencyTree)
-		}
-		return m
-	}
-
-	// Non-custom DependencyTree Esc: step back through pickerPreviousScreen.
+	// DependencyTree Esc: step back through pickerPreviousScreen.
 	// INV-2: Esc and Enter-on-Back must produce identical results.
-	if m.Screen == ScreenDependencyTree && m.Selection.Preset != model.PresetCustom {
+	if m.Screen == ScreenDependencyTree {
 		if prev, ok := m.pickerPreviousScreen(); ok {
-			// Step back through the picker slice.
 			m.applyPickerEntry(prev)
 			return m
 		}
@@ -2719,24 +2607,6 @@ func (m Model) goBack(cmd *tea.Cmd) Model {
 		if m.InstallReviewModeChoiceSet && !m.InstallReviewModeEnabled {
 			m.Cursor = 1
 		}
-		return m
-	}
-
-	// In custom preset, going back from Review used to walk through intermediate
-	// screens. Review now returns above to the immediate RDD choice instead.
-	if m.Screen == ScreenReview && m.Selection.Preset == model.PresetCustom {
-		if m.shouldShowSkillPickerScreen() {
-			if len(m.SkillPicker) == 0 {
-				m.initSkillPicker()
-			}
-			m.setScreen(ScreenSkillPicker)
-			return m
-		}
-		if m.shouldShowClaudeModelPickerScreen() {
-			m.setScreen(ScreenClaudeModelPicker)
-			return m
-		}
-		m.setScreen(ScreenDependencyTree)
 		return m
 	}
 
@@ -2867,19 +2737,12 @@ func (m Model) optionCount() int {
 		return len(screens.DetectionOptions())
 	case ScreenAgents:
 		return len(screens.AgentOptions()) + 2
-	case ScreenPreset:
-		return len(screens.PresetOptions()) + 1
 	case ScreenClaudeModelPicker:
 		return screens.ClaudeModelPickerOptionCount(m.ClaudeModelPicker)
 	case ScreenCodexModelPicker:
 		return screens.CodexModelPickerOptionCount(m.CodexModelPicker)
 	case ScreenDependencyTree:
-		if m.Selection.Preset == model.PresetCustom {
-			return len(screens.AllComponents()) + len(screens.DependencyTreeOptions())
-		}
 		return len(screens.DependencyTreeOptions())
-	case ScreenSkillPicker:
-		return screens.SkillPickerOptionCount()
 	case ScreenInstallReviewMode:
 		return len(screens.InstallReviewModeOptions(m.InstallReviewModeLoadErr))
 	case ScreenReview:
@@ -2967,23 +2830,6 @@ func (m *Model) toggleCurrentAgent() {
 	m.Selection.Agents = append(m.Selection.Agents, agent)
 }
 
-func (m *Model) toggleCurrentComponent() {
-	allComps := screens.AllComponents()
-	if m.Cursor >= len(allComps) {
-		return
-	}
-
-	compID := allComps[m.Cursor].ID
-	for idx, selected := range m.Selection.Components {
-		if selected == compID {
-			m.Selection.Components = append(m.Selection.Components[:idx], m.Selection.Components[idx+1:]...)
-			return
-		}
-	}
-
-	m.Selection.Components = append(m.Selection.Components, compID)
-}
-
 func (m *Model) toggleCurrentUninstallAgent() {
 	options := screens.UninstallAgentOptions()
 	if m.Cursor >= len(options) {
@@ -3030,37 +2876,6 @@ func (m *Model) toggleCurrentUninstallEngramScope() {
 	if idx == 1 {
 		m.UninstallEngramScope = model.EngramUninstallScopeGlobal
 	}
-}
-
-func (m *Model) toggleCurrentSkill() {
-	allSkills := screens.AllSkillsOrdered()
-	if m.Cursor >= len(allSkills) {
-		return
-	}
-
-	skillID := allSkills[m.Cursor]
-	for idx, selected := range m.SkillPicker {
-		if selected == skillID {
-			m.SkillPicker = append(m.SkillPicker[:idx], m.SkillPicker[idx+1:]...)
-			return
-		}
-	}
-
-	m.SkillPicker = append(m.SkillPicker, skillID)
-}
-
-// initSkillPicker pre-selects ALL available skills (custom mode default).
-func (m *Model) initSkillPicker() {
-	all := screens.AllSkillsOrdered()
-	m.SkillPicker = make([]model.SkillID, len(all))
-	copy(m.SkillPicker, all)
-}
-
-// shouldShowSkillPickerScreen returns true when the custom preset is active
-// and the Skills component has been selected.
-func (m Model) shouldShowSkillPickerScreen() bool {
-	return m.Selection.Preset == model.PresetCustom &&
-		hasSelectedComponent(m.Selection.Components, model.ComponentSkills)
 }
 
 func (m *Model) buildDependencyPlan() {
@@ -3183,36 +2998,26 @@ func (m Model) shouldShowCodexModelPickerScreen() bool {
 }
 
 // pickerFlowSlice returns the ordered conditional picker chain for the current
-// Selection, filtered by shouldShow* predicates. ScreenPreset is always the
-// first anchor. In non-custom mode ScreenDependencyTree is always the last
-// anchor. In custom mode ScreenDependencyTree is the second element (component
-// selector precedes pickers). The slice is rebuilt per call (≤8 elements —
-// trivial cost, no stale-state risk).
+// Selection, filtered by shouldShow* predicates. ScreenAgents is always the
+// first anchor and ScreenDependencyTree (the read-only Install Plan) is always
+// the last. The slice is rebuilt per call (≤4 elements — trivial cost, no
+// stale-state risk).
 //
 // Invariant: no predicate that reads m.Screen may be used here.
 func (m Model) pickerFlowSlice() []Screen {
-	custom := m.Selection.Preset == model.PresetCustom
-	s := []Screen{ScreenPreset}
-	if custom {
-		// Custom preset: component selector (DependencyTree) precedes pickers.
-		s = append(s, ScreenDependencyTree)
-	}
+	s := []Screen{ScreenAgents}
 	if m.shouldShowClaudeModelPickerScreen() {
 		s = append(s, ScreenClaudeModelPicker)
 	}
 	if m.shouldShowCodexModelPickerScreen() {
 		s = append(s, ScreenCodexModelPicker)
 	}
-	if !custom {
-		// Non-custom: DependencyTree is the last anchor.
-		s = append(s, ScreenDependencyTree)
-	}
-	return s
+	return append(s, ScreenDependencyTree)
 }
 
 // pickerNextScreen returns the screen that follows m.Screen in the picker flow
 // slice. ok=false when m.Screen is not a chain member or is at the last
-// position (DependencyTree in non-custom, last picker in custom).
+// position (DependencyTree).
 func (m Model) pickerNextScreen() (Screen, bool) {
 	slice := m.pickerFlowSlice()
 	for i, s := range slice {
@@ -3225,7 +3030,7 @@ func (m Model) pickerNextScreen() (Screen, bool) {
 
 // pickerPreviousScreen returns the screen that precedes m.Screen in the picker
 // flow slice. ok=false when m.Screen is not a chain member or is at position 0
-// (ScreenPreset).
+// (ScreenAgents).
 func (m Model) pickerPreviousScreen() (Screen, bool) {
 	slice := m.pickerFlowSlice()
 	for i, s := range slice {
@@ -3246,8 +3051,8 @@ func (m *Model) advanceToNextPickerScreen(next Screen) tea.Cmd {
 // applyPickerEntry initializes the target picker's state and transitions to it.
 // This is the single place that sets up picker-specific state (model selections,
 // presets) before calling setScreen. It handles every target a caller may
-// navigate to, including Codex-first custom paths where Claude is
-// absent and navigation comes directly from ScreenDependencyTree.
+// navigate to, including chain anchors such as ScreenAgents that need no
+// picker state.
 func (m *Model) applyPickerEntry(next Screen) tea.Cmd {
 	var discoveryCmd tea.Cmd
 	switch next {

@@ -80,10 +80,7 @@ func joinIDs[T ~string](values []T) string {
 	return strings.Join(parts, ", ")
 }
 
-func reviewPresetLabel(preset model.PresetID) string {
-	if preset == model.PresetCustom {
-		return "choose components and skills manually"
-	}
-
-	return string(preset)
+// reviewPresetLabel names the only setup the installer offers.
+func reviewPresetLabel(model.PresetID) string {
+	return "Dev Stack + Permissions"
 }

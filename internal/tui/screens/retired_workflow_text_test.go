@@ -13,19 +13,11 @@ func TestScreensShowNoRetiredWorkflowText(t *testing.T) {
 	retired := regexp.MustCompile(`(?i)openspec`)
 	for name, view := range map[string]string{
 		"complete":               RenderComplete(CompletePayload{ConfiguredAgents: 1, InstalledComponents: 1}),
-		"preset":                 RenderPreset(model.PresetEcosystemOnly, 0),
 		"uninstall engram scope": RenderUninstallEngramScope(false, model.EngramUninstallScopeGlobal, 0),
 		"uninstall confirm":      RenderUninstallConfirm(model.UninstallModeFull, []model.AgentID{model.AgentCodex}, []model.ComponentID{model.ComponentSkills}, model.EngramUninstallScopeGlobal, false, 0, false, 0),
 	} {
 		if match := retired.FindString(view); match != "" {
 			t.Errorf("%s screen shows retired workflow text %q:\n%s", name, match, view)
 		}
-	}
-}
-
-func TestEcosystemPresetDescribesItsComponents(t *testing.T) {
-	view := RenderPreset(model.PresetEcosystemOnly, 0)
-	if !regexp.MustCompile(`Memory \+ skills \+ docs`).MatchString(view) {
-		t.Fatalf("Dev Stack description does not list its components:\n%s", view)
 	}
 }

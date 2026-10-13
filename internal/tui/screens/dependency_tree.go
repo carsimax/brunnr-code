@@ -14,23 +14,9 @@ func DependencyTreeOptions() []string {
 	return []string{"Continue", "Back"}
 }
 
-// AllComponents returns the components the custom picker offers as toggles.
-// Mandatory components (the managed persona) are always installed and hidden.
-func AllComponents() []catalog.Component {
-	return catalog.SelectableComponents()
-}
-
-// RenderDependencyTree shows the install plan. For custom presets, it shows
-// toggleable checkboxes; for other presets it shows a read-only ordered list.
-func RenderDependencyTree(plan planner.ResolvedPlan, selection model.Selection, cursor int) string {
-	if selection.Preset == model.PresetCustom {
-		return renderCustomPicker(selection, cursor)
-	}
-
-	return renderPresetPlan(plan, selection, cursor)
-}
-
-func renderPresetPlan(plan planner.ResolvedPlan, selection model.Selection, cursor int) string {
+// RenderDependencyTree shows the read-only install plan for the single
+// Dev Stack + Permissions setup.
+func RenderDependencyTree(plan planner.ResolvedPlan, cursor int) string {
 	var b strings.Builder
 
 	b.WriteString(styles.TitleStyle.Render("Install Plan"))
@@ -69,36 +55,6 @@ func renderPresetPlan(plan planner.ResolvedPlan, selection model.Selection, curs
 	b.WriteString(renderOptions(DependencyTreeOptions(), cursor))
 	b.WriteString("\n")
 	b.WriteString(styles.HelpStyle.Render("j/k: navigate • enter: select • esc: back"))
-
-	return b.String()
-}
-
-func renderCustomPicker(selection model.Selection, cursor int) string {
-	var b strings.Builder
-
-	b.WriteString(styles.TitleStyle.Render("Select Components"))
-	b.WriteString("\n\n")
-	b.WriteString(styles.SubtextStyle.Render("Toggle components with enter or space."))
-	b.WriteString("\n\n")
-
-	allComps := AllComponents()
-	selectedSet := make(map[model.ComponentID]struct{}, len(selection.Components))
-	for _, c := range selection.Components {
-		selectedSet[c] = struct{}{}
-	}
-
-	for idx, comp := range allComps {
-		_, checked := selectedSet[comp.ID]
-		focused := idx == cursor
-		b.WriteString(renderCheckbox(string(comp.ID), checked, focused))
-		b.WriteString(styles.SubtextStyle.Render("    "+comp.Description) + "\n")
-	}
-
-	b.WriteString("\n")
-	actionOffset := cursor - len(allComps)
-	b.WriteString(renderOptions(DependencyTreeOptions(), actionOffset))
-	b.WriteString("\n")
-	b.WriteString(styles.HelpStyle.Render("j/k: navigate • space/enter: toggle • esc: back"))
 
 	return b.String()
 }

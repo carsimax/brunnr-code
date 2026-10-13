@@ -75,18 +75,15 @@ func TestRenderReviewShowsDeferredInstallReviewMode(t *testing.T) {
 	}
 }
 
-func TestRenderReviewClarifiesCustomPreset(t *testing.T) {
+func TestRenderReviewNamesSingleSetup(t *testing.T) {
 	payload := planner.ReviewPayload{
 		Agents: []model.AgentID{model.AgentClaudeCode},
-		Preset: model.PresetCustom,
+		Preset: model.PresetFull,
 	}
 
 	out := RenderReview(payload, 0, "")
 
-	if !strings.Contains(out, "choose components and skills manually") {
-		t.Fatalf("RenderReview missing custom preset clarification; output:\n%s", out)
-	}
-	if strings.Contains(out, "Preset  custom") {
-		t.Fatalf("RenderReview should not show raw custom preset label; output:\n%s", out)
+	if !strings.Contains(out, "Dev Stack + Permissions") {
+		t.Fatalf("RenderReview missing the single setup name; output:\n%s", out)
 	}
 }

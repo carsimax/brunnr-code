@@ -342,7 +342,7 @@ func TestCodexCustomDiscoveryNewestRequestWins(t *testing.T) {
 
 func TestNavigationBackWithEscape(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
+	m.Screen = ScreenDependencyTree
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	state := updated.(Model)
@@ -377,8 +377,8 @@ func TestAgentSelectionToggleAndContinue(t *testing.T) {
 	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state = updated.(Model)
 
-	if state.Screen != ScreenPreset {
-		t.Fatalf("screen = %v, want %v", state.Screen, ScreenPreset)
+	if state.Screen != ScreenDependencyTree {
+		t.Fatalf("screen = %v, want %v", state.Screen, ScreenDependencyTree)
 	}
 }
 
@@ -396,23 +396,16 @@ func TestCombinedAgentsTUIInstallKeepsAllAgentsInPlan(t *testing.T) {
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
-	if state.Screen != ScreenPreset {
-		t.Fatalf("after agents screen = %v, want %v", state.Screen, ScreenPreset)
-	}
-
-	state.Cursor = 2 // Minimal preset: Engram only, no model detours.
-	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state = updated.(Model)
 	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("after preset screen = %v, want %v", state.Screen, ScreenDependencyTree)
+		t.Fatalf("after agents screen = %v, want %v", state.Screen, ScreenDependencyTree)
 	}
 
 	wantAgents := []model.AgentID{model.AgentCodex, model.AgentClaudeCode}
 	if !reflect.DeepEqual(state.DependencyPlan.Agents, wantAgents) {
 		t.Fatalf("dependency agents = %v, want %v", state.DependencyPlan.Agents, wantAgents)
 	}
-	// Minimal preset now includes ComponentPersona (persona is the source of truth).
-	wantComponents := []model.ComponentID{model.ComponentPersona, model.ComponentEngram}
+	// The single setup always installs the full component set.
+	wantComponents := []model.ComponentID{model.ComponentPersona, model.ComponentEngram, model.ComponentPermission, model.ComponentSkills}
 	if !reflect.DeepEqual(state.DependencyPlan.OrderedComponents, wantComponents) {
 		t.Fatalf("dependency components = %v, want %v", state.DependencyPlan.OrderedComponents, wantComponents)
 	}
@@ -1071,12 +1064,11 @@ func TestShouldShowClaudeModelPickerScreen(t *testing.T) {
 	}
 }
 
-func TestPresetFlowShowsClaudeModelPickerBeforeDependencyTree(t *testing.T) {
+func TestAgentsFlowSkipsClaudeModelPickerBeforeDependencyTree(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
+	m.Screen = ScreenAgents
 	m.Selection.Agents = []model.AgentID{model.AgentClaudeCode}
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
-	m.Cursor = 0
+	m.Cursor = len(screensAgentOptions())
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
@@ -1957,8 +1949,8 @@ func TestCodexPickerBackRowEnterNavigates(t *testing.T) {
 	}
 }
 
-// The install plan returns to Preset without an intermediate choice.
-func TestInstallerPlanBackReturnsToPreset(t *testing.T) {
+// The install plan returns to Agents without an intermediate choice.
+func TestInstallerPlanBackReturnsToAgents(t *testing.T) {
 	for _, key := range []tea.KeyType{tea.KeyEnter, tea.KeyEsc} {
 		t.Run(key.String(), func(t *testing.T) {
 			m := NewModel(system.DetectionResult{}, "dev")
@@ -1967,65 +1959,10 @@ func TestInstallerPlanBackReturnsToPreset(t *testing.T) {
 			m.Selection.Agents = []model.AgentID{model.AgentCodex, model.AgentClaudeCode}
 			m.Cursor = 1 // Back
 			updated, _ := m.Update(tea.KeyMsg{Type: key})
-			if got := updated.(Model).Screen; got != ScreenPreset {
-				t.Fatalf("screen = %v, want Preset", got)
+			if got := updated.(Model).Screen; got != ScreenAgents {
+				t.Fatalf("screen = %v, want Agents", got)
 			}
 		})
-	}
-}
-
-// TestPresetConfirmEntersDependencyTreeForPickerAgents ensures the ODD installer
-// bypasses retired phase-model pickers for Codex.
-func TestPresetConfirmEntersDependencyTreeForPickerAgents(t *testing.T) {
-	tests := []struct {
-		name       string
-		agents     []model.AgentID
-		wantScreen Screen
-	}{
-		{
-			name:       "Codex enters component review",
-			agents:     []model.AgentID{model.AgentCodex},
-			wantScreen: ScreenDependencyTree,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := NewModel(system.DetectionResult{}, "dev")
-			m.Screen = ScreenPreset
-			m.Selection.Agents = tt.agents
-			m.Cursor = presetCursor(t, model.PresetFull)
-
-			updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-			state := updated.(Model)
-
-			if state.Screen != tt.wantScreen {
-				t.Fatalf("Preset confirm: screen = %v, want %v", state.Screen, tt.wantScreen)
-			}
-		})
-	}
-}
-
-func TestPresetConfirmCustomEntersDependencyTreeComponentPicker(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
-	m.InstallFlowActive = true
-	m.Cursor = presetCursor(t, model.PresetCustom)
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("screen = %v, want %v", state.Screen, ScreenDependencyTree)
-	}
-	if state.Cursor != 0 {
-		t.Fatalf("cursor = %d, want 0", state.Cursor)
-	}
-	if state.Selection.Preset != model.PresetCustom {
-		t.Fatalf("preset = %q, want %q", state.Selection.Preset, model.PresetCustom)
-	}
-	if !slices.Equal(state.Selection.Components, []model.ComponentID{model.ComponentPersona}) {
-		t.Fatalf("components = %v, want custom selection with only the mandatory persona", state.Selection.Components)
 	}
 }
 
@@ -2774,11 +2711,10 @@ func TestNewModel_StateAgentsArePreselected(t *testing.T) {
 
 // ─── Bug fixes: Enter-Back navigation must be consistent with ESC ────────────
 
-// Enter-on-Back returns to Preset, matching Esc without external plugin detours.
-func TestDependencyTreeEnterBackNavigatesToPreset(t *testing.T) {
+// Enter-on-Back returns to Agents, matching Esc without external plugin detours.
+func TestDependencyTreeEnterBackNavigatesToAgents(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenDependencyTree
-	m.Selection.Preset = model.PresetFull // non-custom
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
 	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 	// cursor == 1 → the "Back" option in DependencyTreeOptions() = ["Continue", "Back"]
@@ -2787,103 +2723,19 @@ func TestDependencyTreeEnterBackNavigatesToPreset(t *testing.T) {
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
 
-	if state.Screen != ScreenPreset {
-		t.Fatalf("screen = %v, want ScreenPreset after Enter on Back", state.Screen)
+	if state.Screen != ScreenAgents {
+		t.Fatalf("screen = %v, want ScreenAgents after Enter on Back", state.Screen)
 	}
 }
 
-func TestPresetClaudeSkipsInstallerPhasePickers(t *testing.T) {
+func TestAgentsClaudeSkipsInstallerPhasePickers(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
+	m.Screen = ScreenAgents
 	m.Selection.Agents = []model.AgentID{model.AgentClaudeCode}
-	m.Cursor = presetCursor(t, model.PresetFull)
+	m.Cursor = len(screensAgentOptions())
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if got := updated.(Model).Screen; got != ScreenDependencyTree {
 		t.Fatalf("screen = %v, want DependencyTree", got)
-	}
-}
-
-func TestPresetCursorGoesToDependencyTree(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
-	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Cursor = presetCursor(t, model.PresetFull)
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	if got := updated.(Model).Screen; got != ScreenDependencyTree {
-		t.Fatalf("screen = %v, want DependencyTree", got)
-	}
-}
-
-// Custom components advance to the next applicable installer screen.
-func TestCustomPresetSkillsAfterComponentSelection(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenDependencyTree
-	m.Selection.Preset = model.PresetCustom
-	// Codex agent: no ClaudeModelPicker.
-	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	// Skills is selected, so Continue opens its picker.
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSkills}
-	// cursor == len(allComps) → "Continue"
-	allComps := screens.AllComponents()
-	m.Cursor = len(allComps)
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	if state.Screen != ScreenSkillPicker {
-		t.Fatalf("screen = %v, want SkillPicker", state.Screen)
-	}
-}
-
-func TestCustomPresetClaudeSkipsInstallerPhasePicker(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen, m.Selection.Preset = ScreenDependencyTree, model.PresetCustom
-	m.Selection.Agents = []model.AgentID{model.AgentClaudeCode}
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
-	m.Cursor = len(screens.AllComponents())
-	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	if got := updated.(Model).Screen; got != ScreenInstallReviewMode || cmd == nil {
-		t.Fatalf("screen/load = %v/%t, want loaded RDD choice", got, cmd != nil)
-	}
-}
-
-// Custom component selection proceeds to Skills or the deferred RDD choice.
-func TestCustomPresetContinueGoesToSkillPickerOrReview(t *testing.T) {
-	// Case 1: Skills selected → should go to ScreenSkillPicker.
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenDependencyTree
-	m.Selection.Preset = model.PresetCustom
-	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSkills}
-	m.Cursor = len(screens.AllComponents())
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	if state.Screen != ScreenSkillPicker {
-		t.Fatalf("case Skills selected: screen = %v, want ScreenSkillPicker", state.Screen)
-	}
-
-	// Case 2: No Skills → load RDD, explicitly choose OFF, then review.
-	m2 := installReviewModeTestModel(t, NewModel(system.DetectionResult{}, "dev"))
-	m2.Screen = ScreenDependencyTree
-	m2.Selection.Preset = model.PresetCustom
-	m2.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m2.Selection.Components = []model.ComponentID{model.ComponentEngram} // no Skills
-	m2.Cursor = len(screens.AllComponents())
-
-	updated2, load := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state2 := updated2.(Model)
-	if state2.Screen != ScreenInstallReviewMode || load == nil {
-		t.Fatalf("case no Skills: screen/load = %v/%t, want loaded ScreenInstallReviewMode", state2.Screen, load != nil)
-	}
-	updated2, _ = state2.Update(load())
-	state2 = updated2.(Model)
-	state2.Cursor = 1 // RDD OFF
-	updated2, _ = state2.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state2 = updated2.(Model)
-	if state2.Screen != ScreenReview {
-		t.Fatalf("case no Skills: screen = %v, want ScreenReview after an explicit RDD choice", state2.Screen)
 	}
 }
 
@@ -2894,54 +2746,6 @@ func installReviewModeTestModel(t *testing.T, m Model) Model {
 		return reviewtransaction.RDDModeStatus{Schema: reviewtransaction.RDDModeStatusSchema, Global: reviewtransaction.RDDModeUnset}, nil
 	}
 	return m
-}
-
-// Custom skill selection returns directly to components.
-func TestCustomPresetSkillPickerBackGoesToComponents(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenSkillPicker
-	m.Selection.Preset = model.PresetCustom
-	// Codex agent: no ClaudeModelPicker.
-	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSkills}
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
-	state := updated.(Model)
-
-	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("screen = %v, want DependencyTree after Esc on SkillPicker", state.Screen)
-	}
-}
-
-func TestSkillPickerToggleUsesCanonicalIndex(t *testing.T) {
-	all := screens.AllSkillsOrdered()
-	for i, skill := range all {
-		m := Model{Screen: ScreenSkillPicker, Cursor: i, SkillPicker: append([]model.SkillID(nil), all...)}
-		m.toggleCurrentSkill()
-		if slices.Contains(m.SkillPicker, skill) {
-			t.Errorf("cursor %d did not toggle canonical skill %q", i, skill)
-		}
-	}
-}
-
-// Custom Review Back returns to components, not a removed installer choice.
-func TestCustomPresetReviewBackGoesToComponents(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenReview
-	m.Selection.Preset = model.PresetCustom
-	// Codex agent: no ClaudeModelPicker.
-	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	// No Skills component → shouldShowSkillPickerScreen() = false.
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
-	// cursor == 1 → "Back" option on ScreenReview.
-	m.Cursor = 1
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("screen = %v, want DependencyTree after Back on Review", state.Screen)
-	}
 }
 
 // ─── Issue #147: Cursor not reset after ClaudeModelPicker custom mode Back ───
@@ -3003,9 +2807,9 @@ func TestClaudeModelPickerBackRowExitCustomModeResetsCursor(t *testing.T) {
 // Closes #150.
 func TestWrapAroundDownAtLast(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
+	m.Screen = ScreenAgents
 
-	// optionCount() for ScreenPreset = len(PresetOptions()) + 1 (Back).
+	// optionCount() for ScreenAgents = agents + Continue + Back.
 	last := m.optionCount() - 1
 	m.Cursor = last
 
@@ -3023,7 +2827,7 @@ func TestWrapAroundDownAtLast(t *testing.T) {
 // Closes #150.
 func TestWrapAroundUpAtFirst(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
+	m.Screen = ScreenAgents
 	m.Cursor = 0
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("k")})
@@ -3040,7 +2844,7 @@ func TestWrapAroundUpAtFirst(t *testing.T) {
 // Closes #150.
 func TestWrapAroundDownAtLastWithArrowKey(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
+	m.Screen = ScreenAgents
 	last := m.optionCount() - 1
 	m.Cursor = last
 
@@ -3057,7 +2861,7 @@ func TestWrapAroundDownAtLastWithArrowKey(t *testing.T) {
 // Closes #150.
 func TestWrapAroundUpAtFirstWithArrowKey(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
+	m.Screen = ScreenAgents
 	m.Cursor = 0
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
@@ -3111,25 +2915,6 @@ func TestNoWrapAroundUpOnBackupScreen(t *testing.T) {
 }
 
 // ─── Issue #130: ModelConfig pre-populate model assignments ────────────────
-
-// Enter on Back from custom Skills returns to components.
-func TestCustomSkillPickerBackGoesToComponents(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenSkillPicker
-	m.Selection.Preset = model.PresetCustom
-	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSkills}
-	// cursor > len(allSkills)+1 → the "Back" option (default case in switch).
-	allSkills := screens.AllSkillsOrdered()
-	m.Cursor = len(allSkills) + 1
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("screen = %v, want DependencyTree after Back on SkillPicker", state.Screen)
-	}
-}
 
 // ─── T_BACKUP_PIN: Pin key tests ───────────────────────────────────────────
 
@@ -3300,53 +3085,6 @@ func TestPinErrClearedOnScreenReentry(t *testing.T) {
 	}
 }
 
-// TestCustomPresetKeepsMandatoryPersona pins that the custom picker never
-// offers persona as a toggle and that persona stays selected while the user
-// toggles the optional components.
-func TestCustomPresetKeepsMandatoryPersona(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
-	m.Cursor = len(screens.PresetOptions()) - 1 // Custom preset
-
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state := updated.(Model)
-
-	if state.Selection.Preset != model.PresetCustom {
-		t.Fatalf("Preset = %v, want %v", state.Selection.Preset, model.PresetCustom)
-	}
-	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("Screen = %v, want ScreenDependencyTree for custom component selection", state.Screen)
-	}
-	if !slices.Equal(state.Selection.Components, []model.ComponentID{model.ComponentPersona}) {
-		t.Fatalf("custom preset should start with only the mandatory persona; got %v", state.Selection.Components)
-	}
-
-	engramCursor := -1
-	for idx, component := range screens.AllComponents() {
-		if component.ID == model.ComponentPersona {
-			t.Fatalf("custom component picker offers mandatory %v as a toggle", model.ComponentPersona)
-		}
-		if component.ID == model.ComponentEngram {
-			engramCursor = idx
-		}
-	}
-	if engramCursor < 0 {
-		t.Fatal("Engram component not found in custom component picker")
-	}
-	state.Cursor = engramCursor
-	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeySpace})
-	state = updated.(Model)
-
-	if !slices.Equal(state.Selection.Components, []model.ComponentID{model.ComponentPersona, model.ComponentEngram}) {
-		t.Fatalf("components = %v, want persona and Engram selected", state.Selection.Components)
-	}
-
-	view := screens.RenderDependencyTree(state.DependencyPlan, state.Selection, 0)
-	if strings.Contains(view, string(model.ComponentPersona)) {
-		t.Fatalf("custom picker renders persona as a choice:\n%s", view)
-	}
-}
-
 func TestShouldShowCodexModelPickerScreen_FalseForInstaller(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
@@ -3370,31 +3108,31 @@ func TestShouldShowCodexModelPickerScreen_FalseWhenNoCodex(t *testing.T) {
 // Codex-only installation goes straight to the component review.
 func TestCodexOnly_InstallFlowReachesCodexPicker(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
+	m.Screen = ScreenAgents
 	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Cursor = 0 // PresetFull
+	m.Cursor = len(screensAgentOptions())
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
 
 	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("Codex-only preset: screen = %v, want DependencyTree", state.Screen)
+		t.Fatalf("Codex-only agents: screen = %v, want DependencyTree", state.Screen)
 	}
 }
 
-// A Claude/Codex preset skips installer phase pickers.
+// A Claude/Codex selection skips installer phase pickers.
 func TestClaudeAndCodex_InstallFlowReachesCodexPickerAfterClaude(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
+	m.Screen = ScreenAgents
 	m.Selection.Agents = []model.AgentID{model.AgentClaudeCode, model.AgentCodex}
-	m.Cursor = presetCursor(t, model.PresetFull)
+	m.Cursor = len(screensAgentOptions())
 
-	// Confirm the full preset.
+	// Continue from agent selection.
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
 
 	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("Claude+Codex preset: screen = %v, want DependencyTree", state.Screen)
+		t.Fatalf("Claude+Codex agents: screen = %v, want DependencyTree", state.Screen)
 	}
 }
 
@@ -3402,19 +3140,19 @@ func TestClaudeAndCodex_InstallFlowReachesCodexPickerAfterClaude(t *testing.T) {
 // with every former phase-picker agent selected.
 func TestClaudeCodex_InstallFlowSequence(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenPreset
+	m.Screen = ScreenAgents
 	m.Selection.Agents = []model.AgentID{model.AgentClaudeCode, model.AgentCodex}
-	m.Cursor = presetCursor(t, model.PresetFull)
+	m.Cursor = len(screensAgentOptions())
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state := updated.(Model)
 	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("preset: screen = %v, want DependencyTree", state.Screen)
+		t.Fatalf("agents: screen = %v, want DependencyTree", state.Screen)
 	}
 }
 
-// TestCodexPicker_EscBackNavToPreset verifies that a stale
+// TestCodexPicker_EscBackNavToAgents verifies that a stale
 // installer picker cannot return to another retired picker.
-func TestCodexPicker_EscBackNavToPreset(t *testing.T) {
+func TestCodexPicker_EscBackNavToAgents(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenCodexModelPicker
 	m.ModelConfigMode = false
@@ -3426,8 +3164,8 @@ func TestCodexPicker_EscBackNavToPreset(t *testing.T) {
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	state := updated.(Model)
 
-	if state.Screen != ScreenPreset {
-		t.Fatalf("retired Codex picker Esc: screen = %v, want Preset", state.Screen)
+	if state.Screen != ScreenAgents {
+		t.Fatalf("retired Codex picker Esc: screen = %v, want Agents", state.Screen)
 	}
 }
 
@@ -3445,15 +3183,15 @@ func TestCodexPicker_EscBackNavToClaudeWhenClaudeSelected(t *testing.T) {
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	state := updated.(Model)
 
-	if state.Screen != ScreenPreset {
-		t.Fatalf("retired Codex picker Esc: screen = %v, want Preset", state.Screen)
+	if state.Screen != ScreenAgents {
+		t.Fatalf("retired Codex picker Esc: screen = %v, want Agents", state.Screen)
 	}
 }
 
-// TestCodexPicker_EscBackNavToPresetWithoutClaude verifies that
-// pressing Esc from ScreenCodexModelPicker goes back to ScreenPreset when
+// TestCodexPicker_EscBackNavToAgentsWithoutClaude verifies that
+// pressing Esc from ScreenCodexModelPicker goes back to ScreenAgents when
 // Claude is not in the flow.
-func TestCodexPicker_EscBackNavToPresetWithoutClaude(t *testing.T) {
+func TestCodexPicker_EscBackNavToAgentsWithoutClaude(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenCodexModelPicker
 	m.ModelConfigMode = false
@@ -3465,8 +3203,8 @@ func TestCodexPicker_EscBackNavToPresetWithoutClaude(t *testing.T) {
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	state := updated.(Model)
 
-	if state.Screen != ScreenPreset {
-		t.Fatalf("CodexPicker esc (no Claude): screen = %v, want ScreenPreset", state.Screen)
+	if state.Screen != ScreenAgents {
+		t.Fatalf("CodexPicker esc (no Claude): screen = %v, want ScreenAgents", state.Screen)
 	}
 }
 
@@ -4525,7 +4263,7 @@ func TestPickerFlowSlice(t *testing.T) {
 		wantSlice []Screen
 	}{
 		{
-			name: "non-custom all agents skip installer phase pickers",
+			name: "all agents skip installer phase pickers",
 			setup: func(t *testing.T) Model {
 				m := NewModel(system.DetectionResult{}, "dev")
 				m.Selection.Preset = model.PresetFull
@@ -4533,7 +4271,7 @@ func TestPickerFlowSlice(t *testing.T) {
 				m.Selection.Components = []model.ComponentID{model.ComponentEngram}
 				return m
 			},
-			wantSlice: []Screen{ScreenPreset, ScreenDependencyTree},
+			wantSlice: []Screen{ScreenAgents, ScreenDependencyTree},
 		},
 		{
 			name: "legacy multi mode cannot restore installer model picker",
@@ -4543,27 +4281,16 @@ func TestPickerFlowSlice(t *testing.T) {
 				m.Selection.Agents = allPickerAgents
 				return m
 			},
-			wantSlice: []Screen{ScreenPreset, ScreenDependencyTree},
+			wantSlice: []Screen{ScreenAgents, ScreenDependencyTree},
 		},
 		{
-			name: "custom Codex ends with dependency tree",
+			name: "no selected agent has only agents and dependency anchors",
 			setup: func(t *testing.T) Model {
 				m := NewModel(system.DetectionResult{}, "dev")
-				m.Selection.Preset = model.PresetCustom
-				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				return m
-			},
-			wantSlice: []Screen{ScreenPreset, ScreenDependencyTree},
-		},
-		{
-			name: "no selected agent has only preset and dependency anchors",
-			setup: func(t *testing.T) Model {
-				m := NewModel(system.DetectionResult{}, "dev")
-				m.Selection.Preset = model.PresetMinimal
 				m.Selection.Agents = nil
 				return m
 			},
-			wantSlice: []Screen{ScreenPreset, ScreenDependencyTree},
+			wantSlice: []Screen{ScreenAgents, ScreenDependencyTree},
 		},
 		{
 			name: "Configure models mode does not add generic picker to installer slice",
@@ -4574,7 +4301,7 @@ func TestPickerFlowSlice(t *testing.T) {
 				m.ModelConfigMode = true
 				return m
 			},
-			wantSlice: []Screen{ScreenPreset, ScreenClaudeModelPicker, ScreenCodexModelPicker, ScreenDependencyTree},
+			wantSlice: []Screen{ScreenAgents, ScreenClaudeModelPicker, ScreenCodexModelPicker, ScreenDependencyTree},
 		},
 	}
 
@@ -4612,20 +4339,11 @@ func TestPickerNextScreen(t *testing.T) {
 		wantOK     bool
 	}{
 		{
-			name:       "Preset to DependencyTree without phase pickers",
+			name:       "Agents to DependencyTree without phase pickers",
 			setup:      newFullChainModel,
-			screen:     ScreenPreset,
+			screen:     ScreenAgents,
 			wantScreen: ScreenDependencyTree,
 			wantOK:     true,
-		},
-		{
-			name: "custom Preset to DependencyTree",
-			setup: func(t *testing.T) Model {
-				m := newFullChainModel(t)
-				m.Selection.Preset = model.PresetCustom
-				return m
-			},
-			screen: ScreenPreset, wantScreen: ScreenDependencyTree, wantOK: true,
 		},
 		{
 			name:  "legacy phase picker is not an installer member",
@@ -4639,29 +4357,9 @@ func TestPickerNextScreen(t *testing.T) {
 			wantOK:     false,
 		},
 		{
-			name: "DependencyTree is last in custom chain returns ok=false",
-			setup: func(t *testing.T) Model {
-				m := NewModel(system.DetectionResult{}, "dev")
-				m.Selection.Preset = model.PresetCustom
-				m.Selection.Agents = []model.AgentID{model.AgentClaudeCode}
-				m.Selection.Components = []model.ComponentID{model.ComponentEngram}
-				return m
-			},
-			screen:     ScreenDependencyTree,
-			wantScreen: 0,
-			wantOK:     false,
-		},
-		{
 			name:       "non-member ScreenModelConfig returns ok=false",
 			setup:      newFullChainModel,
 			screen:     ScreenModelConfig,
-			wantScreen: 0,
-			wantOK:     false,
-		},
-		{
-			name:       "non-member ScreenSkillPicker returns ok=false",
-			setup:      newFullChainModel,
-			screen:     ScreenSkillPicker,
 			wantScreen: 0,
 			wantOK:     false,
 		},
@@ -4711,20 +4409,20 @@ func TestPickerPreviousScreen(t *testing.T) {
 		wantOK     bool
 	}{
 		{
-			name:       "DependencyTree to Preset",
+			name:       "DependencyTree to Agents",
 			setup:      newFullChainModel,
 			screen:     ScreenDependencyTree,
-			wantScreen: ScreenPreset,
+			wantScreen: ScreenAgents,
 			wantOK:     true,
 		},
 		{
-			name: "no agent DependencyTree to Preset",
+			name: "no agent DependencyTree to Agents",
 			setup: func(t *testing.T) Model {
 				m := newFullChainModel(t)
 				m.Selection.Agents = nil
 				return m
 			},
-			screen: ScreenDependencyTree, wantScreen: ScreenPreset, wantOK: true,
+			screen: ScreenDependencyTree, wantScreen: ScreenAgents, wantOK: true,
 		},
 		{
 			name:  "retired Codex installer picker is not a member",
@@ -4735,9 +4433,9 @@ func TestPickerPreviousScreen(t *testing.T) {
 			setup: newFullChainModel, screen: ScreenClaudeModelPicker, wantOK: false,
 		},
 		{
-			name:       "Preset is first anchor returns ok=false",
+			name:       "Agents is first anchor returns ok=false",
 			setup:      newFullChainModel,
-			screen:     ScreenPreset,
+			screen:     ScreenAgents,
 			wantScreen: 0,
 			wantOK:     false,
 		},
@@ -4745,13 +4443,6 @@ func TestPickerPreviousScreen(t *testing.T) {
 			name:       "non-member ScreenModelConfig returns ok=false",
 			setup:      newFullChainModel,
 			screen:     ScreenModelConfig,
-			wantScreen: 0,
-			wantOK:     false,
-		},
-		{
-			name:       "non-member ScreenSkillPicker returns ok=false",
-			setup:      newFullChainModel,
-			screen:     ScreenSkillPicker,
 			wantScreen: 0,
 			wantOK:     false,
 		},
@@ -4842,27 +4533,6 @@ func TestApplyPickerEntry(t *testing.T) {
 				}
 			},
 		},
-		{
-			name: "custom Codex-only: applyPickerEntry to CodexModelPicker initializes state",
-			setup: func(t *testing.T) Model {
-				m := NewModel(system.DetectionResult{}, "dev")
-				m.Selection.Preset = model.PresetCustom
-				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				m.Selection.Components = engramComponents
-				m.Screen = ScreenDependencyTree
-				return m
-			},
-			target: ScreenCodexModelPicker,
-			assertFn: func(t *testing.T, got Model) {
-				t.Helper()
-				if got.Screen != ScreenCodexModelPicker {
-					t.Fatalf("Screen = %v, want ScreenCodexModelPicker", got.Screen)
-				}
-				if got.CodexModelPicker.Preset == "" {
-					t.Fatalf("CodexModelPicker.Preset is empty — state not initialized for Codex-first entry")
-				}
-			},
-		},
 	}
 
 	for _, tt := range tests {
@@ -4881,7 +4551,7 @@ func TestPickerBackRowRegression(t *testing.T) {
 
 	// codexBackRow returns the cursor index for the "← Back" row in ScreenCodexModelPicker.
 	codexBackRow := screens.CodexModelPickerOptionCount(screens.NewCodexModelPickerState()) - 1
-	// depTreeBackRow is the Back row in ScreenDependencyTree (non-custom only).
+	// depTreeBackRow is the Back row in ScreenDependencyTree.
 	depTreeBackRow := 1
 
 	tests := []struct {
@@ -4905,22 +4575,7 @@ func TestPickerBackRowRegression(t *testing.T) {
 			wantScreen: ScreenModelConfig,
 		},
 		{
-			name: "Configure models Codex Back ignores custom preset",
-			setup: func(t *testing.T) Model {
-				m := NewModel(system.DetectionResult{}, "dev")
-				m.Screen = ScreenCodexModelPicker
-				m.ModelConfigMode = true
-				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				m.Selection.Components = components
-				m.Selection.Preset = model.PresetCustom
-				m.CodexModelPicker = screens.NewCodexModelPickerState()
-				m.Cursor = codexBackRow
-				return m
-			},
-			wantScreen: ScreenModelConfig,
-		},
-		{
-			name: "DependencyTree Back Codex-only returns to Preset",
+			name: "DependencyTree Back Codex-only returns to Agents",
 			setup: func(t *testing.T) Model {
 				m := NewModel(system.DetectionResult{}, "dev")
 				m.Screen = ScreenDependencyTree
@@ -4930,20 +4585,7 @@ func TestPickerBackRowRegression(t *testing.T) {
 				m.Cursor = depTreeBackRow
 				return m
 			},
-			wantScreen: ScreenPreset,
-		},
-		{
-			name: "custom Codex-only DependencyTree Continue loads RDD",
-			setup: func(t *testing.T) Model {
-				m := NewModel(system.DetectionResult{}, "dev")
-				m.Screen = ScreenDependencyTree
-				m.Selection.Preset = model.PresetCustom
-				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				m.Selection.Components = components
-				m.Cursor = len(screens.AllComponents()) // "Continue" row
-				return m
-			},
-			wantScreen: ScreenInstallReviewMode,
+			wantScreen: ScreenAgents,
 		},
 	}
 
@@ -4962,18 +4604,7 @@ func TestPickerBackRowRegression(t *testing.T) {
 	}
 }
 
-func TestGoBackCustomSkipsRetiredModelPicker(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen, m.Selection.Preset = ScreenInstallReviewMode, model.PresetCustom
-	m.Selection.Agents = []model.AgentID{model.AgentCodex}
-	m.Selection.Components = []model.ComponentID{model.ComponentEngram}
-	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
-	if got := updated.(Model); got.Screen != ScreenDependencyTree || cmd != nil {
-		t.Fatalf("screen/cmd = %v/%v", got.Screen, cmd)
-	}
-}
-
-// DependencyTree Continue respects preset and optional setup ordering.
+// Agents Continue opens the Install Plan, whose Continue loads RDD before Review.
 func TestDependencyTreeForward(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -4982,44 +4613,27 @@ func TestDependencyTreeForward(t *testing.T) {
 		confirmRDD bool
 	}{
 		{
-			name: "non-custom preset goes to DependencyTree",
+			name: "agents continue goes to DependencyTree",
 			setup: func(t *testing.T) Model {
 				m := NewModel(system.DetectionResult{}, "dev")
-				m.Screen = ScreenPreset
-				m.Selection.Preset = model.PresetFull
+				m.Screen = ScreenAgents
 				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				m.Selection.Components = []model.ComponentID{model.ComponentEngram}
-				m.Cursor = presetCursor(t, model.PresetFull)
+				m.Cursor = len(screensAgentOptions())
 				return m
 			},
 			wantScreen: ScreenDependencyTree,
 		},
 		{
-			name: "custom no Skills loads RDD before Review",
+			name: "install plan continue loads RDD before Review",
 			setup: func(t *testing.T) Model {
 				m := installReviewModeTestModel(t, NewModel(system.DetectionResult{}, "dev"))
 				m.Screen = ScreenDependencyTree
-				m.Selection.Preset = model.PresetCustom
 				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				m.Selection.Components = []model.ComponentID{model.ComponentEngram} // no Skills
-				m.Cursor = len(screens.AllComponents())
+				m.Cursor = 0
 				return m
 			},
 			wantScreen: ScreenReview,
 			confirmRDD: true,
-		},
-		{
-			name: "custom with Skills goes to SkillPicker",
-			setup: func(t *testing.T) Model {
-				m := NewModel(system.DetectionResult{}, "dev")
-				m.Screen = ScreenDependencyTree
-				m.Selection.Preset = model.PresetCustom
-				m.Selection.Agents = []model.AgentID{model.AgentCodex}
-				m.Selection.Components = []model.ComponentID{model.ComponentEngram, model.ComponentSkills}
-				m.Cursor = len(screens.AllComponents())
-				return m
-			},
-			wantScreen: ScreenSkillPicker,
 		},
 	}
 
