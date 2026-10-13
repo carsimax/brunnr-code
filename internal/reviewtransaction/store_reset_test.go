@@ -979,3 +979,20 @@ func TestReviewStoreResetFreedBytesNeverGoesNegative(t *testing.T) {
 		})
 	}
 }
+
+// Terminal-consumption tombstones only mean something next to the burned
+// lineage they record; a reset that keeps them keeps answering
+// target_already_acknowledged after promising to start from nothing.
+func TestResetReviewStoreRemovesTerminalConsumptionTombstones(t *testing.T) {
+	repo := initSnapshotRepo(t)
+	root := storeResetBrunnrRoot(t, repo)
+	tombstone := filepath.Join(root, "review-transactions", "terminal-consumption", "v1", "abc.json")
+	writeStoreResetFile(t, tombstone, "{}\n")
+
+	if _, err := ResetReviewStore(context.Background(), repo, StoreResetRequest{}); err != nil {
+		t.Fatalf("reset: %v", err)
+	}
+	if _, err := os.Lstat(tombstone); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("terminal-consumption tombstone survived the reset: %v", err)
+	}
+}
