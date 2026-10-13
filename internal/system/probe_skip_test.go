@@ -17,7 +17,8 @@ import (
 func recordProbes(t *testing.T) func() []string {
 	t.Helper()
 	bin := t.TempDir()
-	for _, name := range []string{"git", "curl", "node", "npm", "go"} {
+	// apt stands in for the package manager Linux support requires.
+	for _, name := range []string{"git", "curl", "node", "npm", "go", "apt"} {
 		file := name
 		if runtime.GOOS == "windows" {
 			file += ".exe"
