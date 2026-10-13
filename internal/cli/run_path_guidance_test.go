@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -30,8 +32,9 @@ func TestEngramPathGuidanceDefault(t *testing.T) {
 }
 
 func TestIsInPATH(t *testing.T) {
-	t.Setenv("PATH", "/usr/bin:/home/user/.local/bin")
-	if !isInPATH("/home/user/.local/bin") {
+	entry := filepath.FromSlash("/home/user/.local/bin")
+	t.Setenv("PATH", strings.Join([]string{filepath.FromSlash("/usr/bin"), entry}, string(os.PathListSeparator)))
+	if !isInPATH(entry) {
 		t.Fatal("isInPATH should return true for entry in PATH")
 	}
 	if isInPATH("/not/in/path") {

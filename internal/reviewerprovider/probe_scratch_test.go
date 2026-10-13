@@ -18,7 +18,10 @@ func TestProbeScratchParentRefusesCaseVariantInsideWorkspace(t *testing.T) {
 	if _, err := os.Stat(variant); err != nil {
 		t.Skip("case-sensitive filesystem: a case variant is a different directory")
 	}
-	t.Setenv("TMPDIR", filepath.Join(variant, "tmp"))
+	// os.TempDir reads TMPDIR on Unix and TMP/TEMP on Windows.
+	for _, name := range []string{"TMPDIR", "TMP", "TEMP"} {
+		t.Setenv(name, filepath.Join(variant, "tmp"))
+	}
 	if _, err := probeScratchParent(source); err == nil || !strings.Contains(err.Error(), "inside the reviewed workspace") {
 		t.Fatalf("probeScratchParent = %v, want inside-workspace refusal", err)
 	}

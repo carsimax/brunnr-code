@@ -67,7 +67,7 @@ func TestRunDoctorToolExecution(t *testing.T) {
 			}
 			if tt.powershell {
 				filename = tt.tool + ".ps1"
-				script = "if ($args.Count -ne 1 -or $args[0] -ne '--version') { exit 2 }; exit 0\n"
+				script = "if ($args.Count -ne 1 -or $args[0] -ne '" + tt.arg + "') { exit 2 }; exit 0\n"
 			}
 			pidFile := filepath.Join(t.TempDir(), "child.pid")
 			if tt.hangs {

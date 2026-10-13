@@ -115,6 +115,11 @@ func TestClaudeUninstallRetiresModulePilotOnlyOnFullRemoval(t *testing.T) {
 	routing := readTestFile(t, corePath)
 	routing = routing[strings.Index(routing, "<!-- brunnr-code:agent-routing -->"):]
 
+	// Compare against the pre-uninstall mode: Windows exposes only a read-only bit, never 0o600.
+	coreBefore, err := os.Stat(corePath)
+	if err != nil {
+		t.Fatal(err)
+	}
 	result, err := svc.PartialUninstall([]model.AgentID{model.AgentClaudeCode}, nil)
 	if err != nil {
 		t.Fatalf("PartialUninstall: %v", err)
@@ -136,7 +141,7 @@ func TestClaudeUninstallRetiresModulePilotOnlyOnFullRemoval(t *testing.T) {
 		!strings.HasSuffix(core, routing) || strings.Contains(core, moduleDir) {
 		t.Fatalf("core is not user text, monolith and unchanged routing:\n%s", core)
 	}
-	if info, err := os.Stat(corePath); err != nil || info.Mode().Perm() != 0o600 {
+	if info, err := os.Stat(corePath); err != nil || info.Mode().Perm() != coreBefore.Mode().Perm() {
 		t.Fatalf("core mode changed: %v, %v", info.Mode(), err)
 	}
 	for _, path := range append(installed[1:], ledger) {

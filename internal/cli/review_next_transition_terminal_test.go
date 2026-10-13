@@ -281,12 +281,9 @@ func grantedDerivedRangeStart(t *testing.T, repo string, offered ReviewTargetSta
 		if choice.Answer != "granted" {
 			continue
 		}
-		fields := strings.Fields(choice.Invocation)
-		if len(fields) < 3 || fields[0] != "brunnr-code" || fields[1] != "review" {
-			t.Fatalf("granted invocation = %q", choice.Invocation)
-		}
+		// The invocation is shell-quoted (a Windows --cwd is quoted), so split it as a shell would.
 		output.Reset()
-		if err := RunReview(fields[2:], &output); err != nil {
+		if err := RunReview(invocationArgs(t, choice.Invocation), &output); err != nil {
 			t.Fatalf("granted START: %v\n%s", err, output.String())
 		}
 		break

@@ -38,13 +38,16 @@ func TestRunDoctor_AssetVersionRemediation(t *testing.T) {
 	spaces := filepath.Join(home, "pinned build", "brunnr-code")
 	apostrophe := filepath.Join(home, "user's build", "brunnr-code")
 	other := filepath.Join(home, "other-install", "brunnr-code")
+	// The temp dir may hold unsafe bytes (Windows short names such as RUNNER~1), so the POSIX token comes from the product helper.
+	reviewManagedAssetsGOOS = "linux"
+	simpleSync := managedAssetsExecutableToken(simple) + " sync"
 	for _, tc := range []struct {
 		name, invoked, pathCopy, goos, want string
 		execErr                             error
 		matching                            bool
 	}{
-		{name: "different PATH build", invoked: simple, pathCopy: other, goos: "linux", want: simple + " sync"},
-		{name: "same PATH build", invoked: simple, pathCopy: simple, goos: "linux", want: simple + " sync"},
+		{name: "different PATH build", invoked: simple, pathCopy: other, goos: "linux", want: simpleSync},
+		{name: "same PATH build", invoked: simple, pathCopy: simple, goos: "linux", want: simpleSync},
 		{name: "POSIX spaces", invoked: spaces, pathCopy: other, goos: "linux", want: "'" + spaces + "' sync"},
 		{name: "POSIX apostrophe", invoked: apostrophe, pathCopy: other, goos: "linux", want: "'" + strings.ReplaceAll(apostrophe, "'", `'\''`) + "' sync"},
 		{name: "Windows spaces", invoked: spaces, pathCopy: other, goos: "windows", want: "\"" + spaces + "\" sync"},
