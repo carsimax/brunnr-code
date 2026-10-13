@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"regexp"
+	"sync"
 
 	"github.com/carsimax/brunnr-code/internal/reviewtransaction"
 )
@@ -216,15 +217,16 @@ func reviewNarrationStripCodeSpans(text string) string {
 
 // reviewNarrationWordRegexpCache avoids recompiling the same word-boundary
 // regexp on every call across a large registry.
-var reviewNarrationWordRegexpCache = map[string]*regexp.Regexp{}
+// A sync.Map, not a plain map: concurrent callers would otherwise race on
+// the write, which the Go runtime turns into a fatal error.
+var reviewNarrationWordRegexpCache sync.Map
 
 func reviewNarrationContainsWord(lowered, word string) bool {
-	pattern, ok := reviewNarrationWordRegexpCache[word]
+	cached, ok := reviewNarrationWordRegexpCache.Load(word)
 	if !ok {
-		pattern = regexp.MustCompile(`\b` + regexp.QuoteMeta(word) + `\b`)
-		reviewNarrationWordRegexpCache[word] = pattern
+		cached, _ = reviewNarrationWordRegexpCache.LoadOrStore(word, regexp.MustCompile(`\b`+regexp.QuoteMeta(word)+`\b`))
 	}
-	return pattern.MatchString(lowered)
+	return cached.(*regexp.Regexp).MatchString(lowered)
 }
 
 // There is deliberately no stderr emission machinery here anymore: a
