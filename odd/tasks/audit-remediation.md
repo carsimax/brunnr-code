@@ -46,7 +46,7 @@ A whole-repo audit (6 read-only Sonnet auditors, parent spot checks) found user-
 
 ### Should fix
 
-- [ ] T7: TOML header with a trailing comment is not matched, so a duplicate table is appended and Codex fails to parse (`filemerge/toml.go:40,99,193,239`). Strip a `#...` outside quotes before comparing.
+- [x] T7: TOML header with a trailing comment is not matched, so a duplicate table is appended and Codex fails to parse (`filemerge/toml.go:40,99,193,239`). Strip a `#...` outside quotes before comparing.
 - [ ] T8: corrupt `state.json` blocks every `review mode` verb with a raw JSON error (`cli/review_mode.go:440-455`). Wrap with path and repair hint; skip the global read in `--scope clone`.
 - [ ] T9: `pathquote.Quote` lets `$`, backtick and `$(...)` expand in printed executable commands (`compact_reconcile.go:148`, `compact_reclaim.go:206,211,221`, `authority_disposition_execute.go:643-663`, `cli/review_mode.go:231-236,296`). Switch executable lines to `pathquote.ShellWord`; delete `quotePOSIXShellToken` (`review_mode.go:272`).
 - [ ] T10: `restore` overwrites current files with no pre-restore snapshot (`cli/restore.go:143`). Snapshot the manifest's original paths to `pre-restore-<ts>` first.
@@ -126,7 +126,8 @@ main
 - T4 done on `fix/audit-remediation-t04`. Route: inline (one line plus test). The stop-hook STATUS line renders the root with `pathquote.ShellWord`, like its START line. RED observed first: `TestReviewStopHookReasonQuotesRepositoryRoot` (root `my repo;touch pwned` unquoted), then GREEN. Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok. Commit `af83cea5`, PR #5, merged.
 - T5 done on `fix/audit-remediation-t05`. Route: inline (one file plus test). `restoreCompressed` and `restorePlain` repeated the same loop (and an inline copy of `reconcileExistingSymlink`); both now call `restoreManifestEntries`, which restores every entry and returns `errors.Join` of the failures. Net -20 lines. RED observed first: `TestRestoreContinuesPastAFailingEntry` (later entry left modified), then GREEN. Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok.
 - T6 decision (user, 2026-10-12): accept the concurrent-sync race (single user, no hook runs sync); document it with a `shortcut:` comment only. Commit for T5 is in PR #6, merged.
-- T6 done on `fix/audit-remediation-t06`. Route: inline (comment only). `statecoord.WithLock` carries a `shortcut:` comment naming the limit and when to upgrade. No test (no behavior change). Verification: `go build ./...` ok; `go run ./internal/gofmtcheck` ok.
+- T6 done on `fix/audit-remediation-t06`. Route: inline (comment only). `statecoord.WithLock` carries a `shortcut:` comment naming the limit and when to upgrade. No test (no behavior change). Verification: `go build ./...` ok; `go run ./internal/gofmtcheck` ok. PR #7, merged.
+- T7 done on `fix/audit-remediation-t07`. Route: inline (scan moved out of `isTOMLTableHeader` into exported `TOMLHeaderWithoutComment`, used by the four header matches in `toml.go` and the one in `engram/inject.go`). RED observed first: `TestTOMLTableHeaderWithTrailingComment` (`[features] # my flags` got a duplicate `[features]`), then GREEN. Verification: `go run ./internal/gofmtcheck` ok; `go test ./... -timeout 28m` ok.
 
 ## Next step
 

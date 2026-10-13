@@ -323,7 +323,7 @@ func upsertCodexTableKeyBeforeMCPServers(content, section, key, rawValue string)
 		if inString {
 			continue
 		}
-		if trimmed == "["+section+"]" {
+		if filemerge.TOMLHeaderWithoutComment(trimmed) == "["+section+"]" {
 			return filemerge.UpsertTOMLTableKey(content, section, key, rawValue)
 		}
 		if firstMCP < 0 && strings.HasPrefix(trimmed, "[mcp_servers.") {
