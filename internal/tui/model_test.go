@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/carsimax/brunnr-code/internal/backup"
-	"github.com/carsimax/brunnr-code/internal/components/communitytool"
 	componentuninstall "github.com/carsimax/brunnr-code/internal/components/uninstall"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/pipeline"
@@ -404,21 +403,8 @@ func TestCombinedAgentsTUIInstallKeepsAllAgentsInPlan(t *testing.T) {
 	state.Cursor = 2 // Minimal preset: Engram only, no model detours.
 	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	state = updated.(Model)
-	if state.Screen != ScreenCommunityTools {
-		t.Fatalf("after preset screen = %v, want %v", state.Screen, ScreenCommunityTools)
-	}
-
-	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeySpace})
-	state = updated.(Model)
-	if !state.Selection.HasCommunityTool(model.CommunityToolCodeGraph) {
-		t.Fatalf("community tools = %v, want CodeGraph selected", state.Selection.CommunityTools)
-	}
-
-	state.Cursor = len(communityToolDefinitions()) * 2
-	updated, _ = state.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	state = updated.(Model)
 	if state.Screen != ScreenDependencyTree {
-		t.Fatalf("after community tools screen = %v, want %v", state.Screen, ScreenDependencyTree)
+		t.Fatalf("after preset screen = %v, want %v", state.Screen, ScreenDependencyTree)
 	}
 
 	wantAgents := []model.AgentID{model.AgentCodex, model.AgentClaudeCode}
@@ -487,11 +473,8 @@ func TestCombinedAgentsTUIInstallKeepsAllAgentsInPlan(t *testing.T) {
 	if !reflect.DeepEqual(gotSelection.Agents, wantAgents) {
 		t.Fatalf("execute selection agents = %v, want %v", gotSelection.Agents, wantAgents)
 	}
-	if !gotSelection.HasCommunityTool(model.CommunityToolCodeGraph) {
-		t.Fatalf("execute selection community tools = %v, want CodeGraph", gotSelection.CommunityTools)
-	}
-	if !slices.ContainsFunc(state.Progress.Items, func(item ProgressItem) bool { return item.Label == "community-tool:codegraph" }) {
-		t.Fatalf("progress items = %v, want community-tool:codegraph", state.Progress.Items)
+	if !slices.ContainsFunc(state.Progress.Items, func(item ProgressItem) bool { return item.Label == "codegraph:install" }) {
+		t.Fatalf("progress items = %v, want codegraph:install", state.Progress.Items)
 	}
 	if !reflect.DeepEqual(gotPlan.Agents, wantAgents) {
 		t.Fatalf("execute plan agents = %v, want %v", gotPlan.Agents, wantAgents)
@@ -995,16 +978,16 @@ func TestBuildProgressLabelsFromResolvedPlan(t *testing.T) {
 		OrderedComponents: []model.ComponentID{model.ComponentEngram, model.ComponentPersona},
 	}
 
-	labels := buildProgressLabels(resolved, []model.CommunityToolID{model.CommunityToolCodeGraph})
+	labels := buildProgressLabels(resolved)
 
 	want := []string{
 		"prepare:check-dependencies",
 		"prepare:backup-snapshot",
 		"apply:rollback-restore",
 		"agent:claude-code",
-		"community-tool:codegraph",
 		"component:engram",
 		"component:persona",
+		"codegraph:install",
 	}
 
 	if !reflect.DeepEqual(labels, want) {
@@ -1479,218 +1462,12 @@ func TestWelcomeMenu_UninstallNavigation(t *testing.T) {
 	}
 }
 
-// TestWelcomeMenu_OptionCount verifies the 12 retained welcome options.
+// TestWelcomeMenu_OptionCount verifies the 11 retained welcome options.
 func TestWelcomeMenu_OptionCount(t *testing.T) {
 	m := NewModel(system.DetectionResult{}, "dev")
 	opts := screens.WelcomeOptions(m.UpdateResults, m.UpdateCheckDone, true)
-	if len(opts) != 12 {
-		t.Fatalf("WelcomeOptions() len = %d, want 12; got %v", len(opts), opts)
-	}
-}
-
-func TestCommunityToolsToggleSelectsCodeGraph(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenCommunityTools
-	m.Cursor = 0
-
-	updated, _ := m.handleKeyPress(tea.KeyMsg{Type: tea.KeySpace})
-	state := updated.(Model)
-
-	if !state.Selection.HasCommunityTool(model.CommunityToolCodeGraph) {
-		t.Fatalf("expected CodeGraph selected, got %v", state.Selection.CommunityTools)
-	}
-}
-
-func TestStandaloneCommunityToolsContinueWithoutSelectionNoOps(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenCommunityTools
-	m.CommunityToolsStandalone = true
-	m.Cursor = len(communityToolDefinitions()) * 2
-
-	updated, cmd := m.confirmSelection()
-	state := updated.(Model)
-
-	if cmd != nil {
-		t.Fatal("expected no command when no community tools are selected")
-	}
-	if state.Screen != ScreenCommunityToolResult {
-		t.Fatalf("screen = %v, want %v", state.Screen, ScreenCommunityToolResult)
-	}
-	if state.OperationRunning {
-		t.Fatal("OperationRunning should be false for no-op community tool selection")
-	}
-}
-
-func TestStandaloneCommunityToolsShowsInstallingBeforeCompletion(t *testing.T) {
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenCommunityTools
-	m.CommunityToolsStandalone = true
-	m.Selection.CommunityTools = []model.CommunityToolID{model.CommunityToolCodeGraph}
-	m.Cursor = len(communityToolDefinitions()) * 2
-
-	updated, cmd := m.confirmSelection()
-	state := updated.(Model)
-
-	if cmd == nil {
-		t.Fatal("expected install command for selected community tools")
-	}
-	if state.Screen != ScreenCommunityToolInstalling {
-		t.Fatalf("screen = %v, want %v", state.Screen, ScreenCommunityToolInstalling)
-	}
-	if !state.OperationRunning {
-		t.Fatal("OperationRunning should be true while community tool installation is in flight")
-	}
-
-	out := state.View()
-	for _, want := range []string{"Installing community tools…", "1 selected.", "CodeGraph"} {
-		if !strings.Contains(out, want) {
-			t.Fatalf("installing view missing %q; output:\n%s", want, out)
-		}
-	}
-	for _, unexpected := range []string{"✓ Community tools configured", "> Return to menu"} {
-		if strings.Contains(out, unexpected) {
-			t.Fatalf("installing view should not show %q before completion; output:\n%s", unexpected, out)
-		}
-	}
-}
-
-func TestStandaloneCommunityToolsLoadsStatusBeforeInstall(t *testing.T) {
-	originalStatus := communityToolStatusFn
-	t.Cleanup(func() { communityToolStatusFn = originalStatus })
-
-	communityToolStatusFn = func(id model.CommunityToolID, homeDir string, detector communitytool.Detector) communitytool.Status {
-		return communitytool.Status{
-			Tool: id,
-			CLI:  communitytool.AvailabilityAvailable,
-			Agents: []communitytool.AgentStatus{
-				{Agent: model.AgentClaudeCode, Name: "Claude Code", Detected: true, Configured: true, Status: communitytool.AgentStatusConfigured},
-				{Agent: model.AgentCodex, Name: "Codex", Detected: true, Configured: false, Status: communitytool.AgentStatusMissing},
-			},
-		}
-	}
-
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.CommunityToolStatusLoading = true
-	m.Screen = ScreenCommunityTools
-
-	loading := m.View()
-	if !strings.Contains(loading, "Detecting installed tool and agent wiring") {
-		t.Fatalf("loading view missing status detection text:\n%s", loading)
-	}
-
-	msg := m.startCommunityToolStatusDetection()()
-	updated, _ := m.Update(msg)
-	state := updated.(Model)
-
-	if state.CommunityToolStatusLoading {
-		t.Fatal("status loading should be false after status message")
-	}
-	out := state.View()
-	for _, want := range []string{"CodeGraph CLI: available", "Claude Code: configured", "Codex: missing"} {
-		if !strings.Contains(out, want) {
-			t.Fatalf("status view missing %q; output:\n%s", want, out)
-		}
-	}
-	if strings.Contains(out, "✓ Community tools configured") {
-		t.Fatalf("status view should not claim install success before install; output:\n%s", out)
-	}
-}
-
-func TestStandaloneCommunityToolsShowsResultAfterCompletion(t *testing.T) {
-	tests := []struct {
-		name     string
-		msg      CommunityToolInstallationDoneMsg
-		wantText string
-	}{
-		{
-			name: "success",
-			msg: CommunityToolInstallationDoneMsg{Results: []communitytool.Result{{
-				Tool: model.CommunityToolCodeGraph,
-			}}},
-			wantText: "✓ Community tools configured",
-		},
-		{
-			name: "error with partial result",
-			msg: CommunityToolInstallationDoneMsg{
-				Results: []communitytool.Result{{Tool: model.CommunityToolCodeGraph}},
-				Err:     errors.New("install failed"),
-			},
-			wantText: "Community tool setup failed",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := NewModel(system.DetectionResult{}, "dev")
-			m.Screen = ScreenCommunityToolInstalling
-			m.OperationRunning = true
-			m.Selection.CommunityTools = []model.CommunityToolID{model.CommunityToolCodeGraph}
-
-			updated, _ := m.Update(tt.msg)
-			state := updated.(Model)
-
-			if state.Screen != ScreenCommunityToolResult {
-				t.Fatalf("screen = %v, want %v", state.Screen, ScreenCommunityToolResult)
-			}
-			if state.OperationRunning {
-				t.Fatal("OperationRunning should be false after community tool completion")
-			}
-			out := state.View()
-			if !strings.Contains(out, tt.wantText) {
-				t.Fatalf("result view missing %q; output:\n%s", tt.wantText, out)
-			}
-			if strings.Contains(out, "Installing community tools…") {
-				t.Fatalf("result view should not keep loading text; output:\n%s", out)
-			}
-		})
-	}
-}
-
-func TestCommunityToolInstallationPreservesPartialResultOnError(t *testing.T) {
-	originalInstall, originalGetwd := communityToolInstallFn, osGetwdFn
-	t.Cleanup(func() {
-		communityToolInstallFn, osGetwdFn = originalInstall, originalGetwd
-	})
-
-	osGetwdFn = func() (string, error) { return "/work/project", nil }
-	communityToolInstallFn = func(id model.CommunityToolID, workspaceDir string, runner communitytool.Runner) (communitytool.Result, error) {
-		if id != model.CommunityToolCodeGraph || workspaceDir != "/work/project" || runner == nil {
-			t.Fatalf("install args = (%q, %q, %#v), want CodeGraph, workspace, runner", id, workspaceDir, runner)
-		}
-		return communitytool.Result{
-			Tool:        id,
-			CommandsRun: []string{"npm exec --yes --package @colbymchenry/codegraph@latest -- codegraph install --yes"},
-		}, errors.New("install failed")
-	}
-
-	m := NewModel(system.DetectionResult{}, "dev")
-	m.Screen = ScreenCommunityToolInstalling
-	m.OperationRunning = true
-	m.Selection.CommunityTools = []model.CommunityToolID{model.CommunityToolCodeGraph}
-	cmd := m.startCommunityToolInstallation()
-	if cmd == nil {
-		t.Fatal("startCommunityToolInstallation() command = nil")
-	}
-
-	msg := cmd()
-	done, ok := msg.(CommunityToolInstallationDoneMsg)
-	if !ok {
-		t.Fatalf("message = %T, want CommunityToolInstallationDoneMsg", msg)
-	}
-	if done.Err == nil {
-		t.Fatal("expected install error")
-	}
-	if len(done.Results) != 1 || done.Results[0].Tool != model.CommunityToolCodeGraph || len(done.Results[0].CommandsRun) != 1 {
-		t.Fatalf("results = %#v, want partial CodeGraph result", done.Results)
-	}
-
-	updated, _ := m.Update(done)
-	state := updated.(Model)
-	if state.CommunityToolErr == nil {
-		t.Fatal("expected state to retain community tool error")
-	}
-	if len(state.CommunityToolResults) != 1 || len(state.CommunityToolResults[0].CommandsRun) != 1 {
-		t.Fatalf("state results = %#v, want preserved partial result", state.CommunityToolResults)
+	if len(opts) != 11 {
+		t.Fatalf("WelcomeOptions() len = %d, want 11; got %v", len(opts), opts)
 	}
 }
 

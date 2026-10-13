@@ -478,9 +478,10 @@ func (r *syncRuntime) stagePlan() pipeline.StagePlan {
 		})
 	}
 
-	if r.scope == ScopeGlobal && r.selection.HasCommunityTool(model.CommunityToolCodeGraph) {
+	// CodeGraph is mandatory, so global sync always reconciles its guidance.
+	if r.scope == ScopeGlobal {
 		apply = append(apply, &codeGraphGuidanceSyncStep{
-			id:                 "sync:community-tool:codegraph-guidance",
+			id:                 "sync:codegraph-guidance",
 			homeDir:            r.homeDir,
 			runner:             codeGraphHomeRunner{homeDir: r.homeDir},
 			changedFiles:       &r.changedFiles,
@@ -614,7 +615,7 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 			}
 		}
 	}
-	if !workspace && selection.HasCommunityTool(model.CommunityToolCodeGraph) {
+	if !workspace {
 		for _, path := range communitytool.CodeGraphManagedPaths(homeDir) {
 			paths[path] = struct{}{}
 		}
@@ -1245,8 +1246,6 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 	if err := validatePersistedSyncState(persistedStateErr); err != nil {
 		return SyncResult{Agents: agentIDs, Selection: selection}, err
 	}
-	restorePersistedCommunityTools(homeDir, &selection, persistedState)
-
 	result := SyncResult{
 		Agents:    agentIDs,
 		Selection: selection,
@@ -1315,7 +1314,7 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 		return result, rollbackPostApplyError(orchestrator, result.Execution, fmt.Errorf("derive managed asset writer identity: %w", err))
 	}
 	// A workspace sync is a pure managed-asset refresh: it never stamps the
-	// global state file with provenance or community tools (issue #1074).
+	// global state file with provenance (issue #1074).
 	if scope == ScopeGlobal {
 		err := persistSyncManagedAssetState(homeDir, selection, writer)
 		if err == nil {
@@ -1355,11 +1354,6 @@ func persistSyncManagedAssetState(homeDir string, selection model.Selection, wri
 		}
 		if latest.ManagedAssetDigest != writer {
 			latest.ManagedAssetDigest = writer
-			shouldWrite = true
-		}
-		if !latest.CommunityToolsConfigured && selection.CommunityTools != nil {
-			latest.CommunityTools = communityToolIDsToStrings(selection.CommunityTools)
-			latest.CommunityToolsConfigured = true
 			shouldWrite = true
 		}
 		now := time.Now().UTC()
@@ -1420,7 +1414,6 @@ func RunSync(args []string) (SyncResult, error) {
 	}
 	RestorePersistedSelection(&selection, persistedState, flags)
 	restoreCodexServiceTier(&selection, persistedState)
-	restorePersistedCommunityTools(homeDir, &selection, persistedState)
 
 	// Load persisted model assignments from state when not provided via flags.
 	// Without this, every CLI sync falls back to defaults and would silently
@@ -1530,25 +1523,6 @@ func zeroAgentSyncNoOp(homeDir string, scope InstallScope, selection model.Selec
 	}
 	result.NoOp = true
 	return result, true, nil
-}
-
-func restorePersistedCommunityTools(homeDir string, selection *model.Selection, persisted state.InstallState) {
-	if selection.CommunityTools != nil {
-		return
-	}
-	if persisted.CommunityToolsConfigured {
-		selection.CommunityTools = make([]model.CommunityToolID, 0, len(persisted.CommunityTools))
-		for _, tool := range persisted.CommunityTools {
-			switch model.CommunityToolID(tool) {
-			case model.CommunityToolCodeGraph:
-				selection.CommunityTools = append(selection.CommunityTools, model.CommunityToolCodeGraph)
-			}
-		}
-		return
-	}
-	if communitytool.HasManagedCodeGraphGuidance(homeDir) {
-		selection.CommunityTools = []model.CommunityToolID{model.CommunityToolCodeGraph}
-	}
 }
 
 // RenderSyncReport renders a human-readable summary of a sync execution.

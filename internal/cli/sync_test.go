@@ -886,7 +886,7 @@ func TestCodeGraphGuidanceSyncStepRepairsCodexConfigOnlyGuidance(t *testing.T) {
 
 	var changed []string
 	step := codeGraphGuidanceSyncStep{
-		id:           "sync:community-tool:codegraph-guidance",
+		id:           "sync:codegraph-guidance",
 		homeDir:      home,
 		changedFiles: &changed,
 	}

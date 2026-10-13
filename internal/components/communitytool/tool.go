@@ -144,7 +144,7 @@ func InstallWithHome(id model.CommunityToolID, workspaceDir string, homeDir stri
 		return result, cause
 	}
 	if before.CodeGraphReconcileSatisfied() || codeGraphCanRepairWithoutFullInstall(homeDir, before) {
-		guidanceResult, err := InjectCodeGraphGuidanceIfSelected(homeDir, []model.CommunityToolID{id})
+		guidanceResult, err := InjectCodeGraphGuidance(homeDir)
 		if err != nil {
 			return rollback(err)
 		}
@@ -213,7 +213,7 @@ func InstallWithHome(id model.CommunityToolID, workspaceDir string, homeDir stri
 			}
 		}
 	}
-	if _, err := InjectCodeGraphGuidanceIfSelected(homeDir, []model.CommunityToolID{id}); err != nil {
+	if _, err := InjectCodeGraphGuidance(homeDir); err != nil {
 		return rollback(err)
 	}
 	after := DetectStatus(id, homeDir, detector)

@@ -40,7 +40,6 @@ func WelcomeOptions(updateResults []update.UpdateResult, updateCheckDone bool, h
 	opts = append(opts, "Reset review store")
 	opts = append(opts, "Receipt-Driven Development")
 	opts = append(opts, "Managed uninstall")
-	opts = append(opts, "Community Tools")
 	opts = append(opts, "Quit")
 
 	return opts

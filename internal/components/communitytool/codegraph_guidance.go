@@ -21,14 +21,14 @@ const (
 )
 
 // GuidanceInjectionResult describes the managed agent-instruction updates made
-// when the CodeGraph community tool is enabled.
+// for CodeGraph.
 type GuidanceInjectionResult struct {
 	Changed bool
 	Files   []string
 }
 
 // CodeGraphGuidanceMarkdown is the shared instruction block injected into every
-// detected supported agent when the CodeGraph community tool is selected.
+// detected supported agent.
 func CodeGraphGuidanceMarkdown() string {
 	return strings.Join([]string{
 		"## CodeGraph",
@@ -63,22 +63,13 @@ func CodeGraphGuidanceMarkdown() string {
 	}, "\n")
 }
 
-// InjectCodeGraphGuidanceIfSelected is the central community-tool hook for
-// agent guidance. It is a no-op unless CodeGraph is among the selected tools.
-func InjectCodeGraphGuidanceIfSelected(homeDir string, selected []model.CommunityToolID) (GuidanceInjectionResult, error) {
-	if !slices.Contains(selected, model.CommunityToolCodeGraph) {
-		return GuidanceInjectionResult{}, nil
-	}
-	return InjectCodeGraphGuidance(homeDir)
-}
-
 // RefreshCodeGraphGuidanceIfConfigured refreshes CodeGraph guidance during
-// managed sync flows without requiring persisted Community Tools selection.
+// managed sync flows.
 //
 // It is deliberately conservative: guidance is refreshed only when the
 // CodeGraph CLI is available and at least one detected supported agent already
-// has CodeGraph wiring or a managed guidance marker. This prevents normal sync
-// from introducing CodeGraph prompts for users who never installed/enabled it.
+// has CodeGraph wiring or a managed guidance marker. Install is what puts the
+// CLI in place, so sync never points agents at a CodeGraph that is not there.
 func RefreshCodeGraphGuidanceIfConfigured(homeDir string, detector Detector) (GuidanceInjectionResult, bool, error) {
 	if !HasConfiguredCodeGraph(homeDir, detector) && !hasAvailableCodeGraphGuidance(homeDir, detector) {
 		return GuidanceInjectionResult{}, false, nil
@@ -143,6 +134,9 @@ func CleanLegacyCodeGraphGuidance(homeDir string) (GuidanceInjectionResult, erro
 		if err != nil {
 			return result, err
 		}
+		if !containsLegacyCodeGraphGuidance(existing) {
+			continue
+		}
 		cleaned := stripLegacyCodeGraphGuidance(existing)
 		if cleaned == existing {
 			continue
@@ -164,9 +158,9 @@ func CleanLegacyCodeGraphGuidance(homeDir string) (GuidanceInjectionResult, erro
 // supported agents the user selected at install time.
 //
 // agents.DiscoverSelected intersects the persisted selection with existing
-// config directories, keeping the original property — standalone Community
-// Tools setup never creates configs for tools the user does not use — while
-// also honouring the selection, so guidance never lands in an IDE the user
+// config directories, keeping the original property — CodeGraph setup never
+// creates configs for tools the user does not use — while also honouring the
+// selection, so guidance never lands in an IDE the user
 // declined. Installs predating state persistence have no
 // selection to honour, and there guidance still reaches every detected agent.
 func InjectCodeGraphGuidance(homeDir string) (GuidanceInjectionResult, error) {

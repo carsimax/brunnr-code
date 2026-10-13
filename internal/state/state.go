@@ -39,12 +39,6 @@ type InstallState struct {
 	Skills                 []model.SkillID     `json:"skills,omitempty"`
 	Preset                 model.PresetID      `json:"preset,omitempty"`
 	StrictTDD              bool                `json:"-"` // decoded only for legacy compatibility; never persisted or used for routing
-	// CommunityTools records optional tools explicitly selected in the Brunnr-Code
-	// installer. Configured distinguishes a completed empty selection from legacy
-	// state files that predate persistence of this choice.
-	CommunityTools           []string `json:"community_tools,omitempty"`
-	CommunityToolsConfigured bool     `json:"community_tools_configured,omitempty"`
-
 	// ClaudeModelAssignments maps sub-agent role names (e.g. "odd-explorer") to a
 	// Claude model alias ("fable", "opus", "sonnet", "haiku"). Persisted so that
 	// `brunnr-code sync` preserves the user's model choices instead of falling
@@ -203,8 +197,6 @@ func MergeAgents(existing InstallState, newAgents []string) InstallState {
 		Skills:                      existing.Skills,
 		Preset:                      existing.Preset,
 		StrictTDD:                   false,
-		CommunityTools:              existing.CommunityTools,
-		CommunityToolsConfigured:    existing.CommunityToolsConfigured,
 		ClaudeModelAssignments:      existing.ClaudeModelAssignments,
 		ClaudePhaseAssignments:      existing.ClaudePhaseAssignments,
 		CodexModelAssignments:       existing.CodexModelAssignments,

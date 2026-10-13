@@ -46,17 +46,16 @@ type InstallResult struct {
 }
 
 var (
-	osUserHomeDir                = os.UserHomeDir
-	osSetenv                     = os.Setenv
-	osStat                       = os.Stat
-	runCommand                   = executeCommand
-	cmdLookPath                  = exec.LookPath
-	streamCommandOutput          = true
-	installCommunityTool         = communitytool.Install
-	installCommunityToolWithHome = communitytool.InstallWithHome
-	injectInstallPersona         = persona.Inject
-	injectSyncPersona            = persona.InjectForSync
-	pathEnvEntries               = func(profile system.PlatformProfile) []string {
+	osUserHomeDir        = os.UserHomeDir
+	osSetenv             = os.Setenv
+	osStat               = os.Stat
+	runCommand           = executeCommand
+	cmdLookPath          = exec.LookPath
+	streamCommandOutput  = true
+	installCodeGraph     = communitytool.InstallWithHome
+	injectInstallPersona = persona.Inject
+	injectSyncPersona    = persona.InjectForSync
+	pathEnvEntries       = func(profile system.PlatformProfile) []string {
 		return splitPathForOS(os.Getenv("PATH"), profile.OS)
 	}
 	addUserPath         = system.AddToUserPath
@@ -232,8 +231,6 @@ func RunPreparedInstall(prepared PreparedInstall, detection system.DetectionResu
 	newState := state.InstallState{
 		InstalledAgents:             agentIDs,
 		InstalledBinaryVersion:      AppVersion,
-		CommunityTools:              communityToolIDsToStrings(input.Selection.CommunityTools),
-		CommunityToolsConfigured:    true,
 		ClaudeModelAssignments:      claudeLegacyAssignmentsForState(input.Selection.ClaudeModelAssignments, claudePhaseState),
 		ClaudePhaseAssignments:      claudePhaseState,
 		CodexModelAssignments:       codexEffortsToStrings(input.Selection.CodexModelAssignments),
@@ -294,7 +291,6 @@ func mergeFullInstallState(existing, fresh state.InstallState) state.InstallStat
 	merged.InstalledAgents = fresh.InstalledAgents
 	merged.SelectionConfigured, merged.Components, merged.Skills = fresh.SelectionConfigured, fresh.Components, fresh.Skills
 	merged.Preset, merged.StrictTDD = fresh.Preset, false
-	merged.CommunityTools, merged.CommunityToolsConfigured = fresh.CommunityTools, fresh.CommunityToolsConfigured
 	merged.ClaudeModelAssignments, merged.ClaudePhaseAssignments = fresh.ClaudeModelAssignments, fresh.ClaudePhaseAssignments
 	merged.CodexModelAssignments = fresh.CodexModelAssignments
 	merged.CodexOrchestratorAssignment = fresh.CodexOrchestratorAssignment
@@ -614,7 +610,7 @@ func (r *installRuntime) stagePlan() pipeline.StagePlan {
 		},
 	}
 
-	apply := make([]pipeline.Step, 0, len(r.resolved.Agents)+len(r.selection.CommunityTools)+len(r.resolved.OrderedComponents)+1)
+	apply := make([]pipeline.Step, 0, len(r.resolved.Agents)+len(r.resolved.OrderedComponents)+2)
 	// Check prerequisites before anything else in the prepare stage.
 	prepare = append([]pipeline.Step{checkDependenciesStep{id: "prepare:check-dependencies", profile: r.profile, homeDir: r.homeDir, selection: r.selection, resolved: r.resolved}}, prepare...)
 	apply = append(apply, rollbackRestoreStep{id: "apply:rollback-restore", state: r.state, homeDir: r.homeDir, workspaceDir: r.workspaceDir})
@@ -667,12 +663,11 @@ func (r *installRuntime) stagePlan() pipeline.StagePlan {
 		})
 	}
 
-	// Community tools run after persona and routing guidance, matching sync:
-	// persona replaces whole prompt files for some agents, so CodeGraph guidance
-	// injected before it would be dropped and re-added by the first sync.
-	for _, tool := range r.selection.CommunityTools {
-		apply = append(apply, communityToolInstallStep{id: "community-tool:" + string(tool), tool: tool, workspaceDir: r.workspaceDir, homeDir: r.homeDir, agents: r.resolved.Agents, state: r.state})
-	}
+	// CodeGraph is mandatory and runs after persona and routing guidance,
+	// matching sync: persona replaces whole prompt files for some agents, so
+	// CodeGraph guidance injected before it would be dropped and re-added by
+	// the first sync.
+	apply = append(apply, codeGraphInstallStep{id: "codegraph:install", workspaceDir: r.workspaceDir, homeDir: r.homeDir})
 
 	if needsCompatibilitySkillsRefresh(r.resolved.OrderedComponents) {
 		apply = append(apply, compatibilitySkillsRefreshStep{
@@ -709,7 +704,7 @@ func (s nativeReviewAgentStep) Run() error {
 	res, err := reviewassets.InstallNativeAgents(target, adapter, reviewassets.InstallOptions{
 		ClaudeModelAssignments:    s.selection.ClaudeModelAssignments,
 		ClaudePhaseAssignments:    s.selection.ClaudePhaseAssignments,
-		CodeGraphGuidanceMarkdown: nativeReviewCodeGraphGuidanceMarkdown(s.homeDir, s.selection.CommunityTools),
+		CodeGraphGuidanceMarkdown: communitytool.CodeGraphGuidanceMarkdown(),
 	})
 	if err != nil {
 		return fmt.Errorf("install native review agents for %q: %w", s.agent, err)
@@ -1061,20 +1056,28 @@ type componentApplyStep struct {
 	backgroundPolicy bool
 }
 
-type communityToolInstallStep struct {
-	id           string
-	tool         model.CommunityToolID
-	workspaceDir string
-	homeDir      string
-	agents       []model.AgentID
-	state        *runtimeState
+// SetCodeGraphInstallerForTest replaces the CodeGraph installer for tests in
+// other packages that drive a full install, so they never run npm or a real
+// codegraph CLI against the developer's home. It returns a restore function.
+func SetCodeGraphInstallerForTest(fn func(model.CommunityToolID, string, string, communitytool.Runner, communitytool.Detector) (communitytool.Result, error)) func() {
+	previous := installCodeGraph
+	installCodeGraph = fn
+	return func() { installCodeGraph = previous }
 }
 
-func (s communityToolInstallStep) ID() string { return s.id }
+// codeGraphInstallStep installs the CodeGraph CLI and wires it into the
+// detected supported agents. CodeGraph is mandatory, so every install runs it.
+type codeGraphInstallStep struct {
+	id           string
+	workspaceDir string
+	homeDir      string
+}
 
-func (s communityToolInstallStep) Run() error {
-	if _, err := installCommunityToolWithHome(s.tool, s.workspaceDir, s.homeDir, communitytool.RunnerFunc(runCommand), communitytool.DetectorFunc(cmdLookPath)); err != nil {
-		return fmt.Errorf("install community tool %q: %w", s.tool, err)
+func (s codeGraphInstallStep) ID() string { return s.id }
+
+func (s codeGraphInstallStep) Run() error {
+	if _, err := installCodeGraph(model.CommunityToolCodeGraph, s.workspaceDir, s.homeDir, communitytool.RunnerFunc(runCommand), communitytool.DetectorFunc(cmdLookPath)); err != nil {
+		return fmt.Errorf("install CodeGraph: %w", err)
 	}
 	return nil
 }
@@ -1602,10 +1605,8 @@ func installBackupTargets(homeDir, workspaceDir string, scope InstallScope, sele
 			}
 		}
 	}
-	if selection.HasCommunityTool(model.CommunityToolCodeGraph) {
-		for _, path := range communitytool.CodeGraphManagedPaths(homeDir) {
-			paths[path] = struct{}{}
-		}
+	for _, path := range communitytool.CodeGraphManagedPaths(homeDir) {
+		paths[path] = struct{}{}
 	}
 	targets := make([]string, 0, len(paths))
 	for path := range paths {
@@ -1806,33 +1807,6 @@ func routingGuidanceDir(homeDir, workspaceDir string, scope InstallScope, adapte
 // components write to workspaceDir instead of the selected agent's global config root.
 func componentInjectionDirScoped(homeDir, workspaceDir string, scope InstallScope, adapter agents.Adapter) string {
 	return ResolveAgentConfigDir(scope, homeDir, workspaceDir)
-}
-
-func nativeReviewCodeGraphGuidanceMarkdown(homeDir string, selected []model.CommunityToolID) string {
-	if !shouldInjectNativeReviewCodeGraphGuidance(homeDir, selected) {
-		return ""
-	}
-	return communitytool.CodeGraphGuidanceMarkdown()
-}
-
-func shouldInjectNativeReviewCodeGraphGuidance(homeDir string, selected []model.CommunityToolID) bool {
-	for _, tool := range selected {
-		if tool == model.CommunityToolCodeGraph {
-			return true
-		}
-	}
-	return false
-}
-
-func communityToolIDsToStrings(tools []model.CommunityToolID) []string {
-	if tools == nil {
-		return nil
-	}
-	result := make([]string, 0, len(tools))
-	for _, tool := range tools {
-		result = append(result, string(tool))
-	}
-	return result
 }
 
 func componentPathDir(homeDir, workspaceDir string, adapter agents.Adapter, component model.ComponentID) string {

@@ -550,8 +550,6 @@ func tuiExecute(
 				return fmt.Errorf("read persisted install state: %w", readErr)
 			}
 			installState.InstalledAgents = agentIDs
-			installState.CommunityTools = appCommunityToolIDsToStrings(selection.CommunityTools)
-			installState.CommunityToolsConfigured = true
 			installState.ClaudeModelAssignments = claudeLegacyAssignmentsForState(selection.ClaudeModelAssignments, claudePhaseState)
 			installState.ClaudePhaseAssignments = claudePhaseState
 			installState.CodexModelAssignments = codexEffortsToStrings(selection.CodexModelAssignments)
@@ -579,17 +577,6 @@ func tuiExecute(
 	}
 
 	return execResult
-}
-
-func appCommunityToolIDsToStrings(tools []model.CommunityToolID) []string {
-	if tools == nil {
-		return nil
-	}
-	result := make([]string, 0, len(tools))
-	for _, tool := range tools {
-		result = append(result, string(tool))
-	}
-	return result
 }
 
 // tuiRestore restores a backup from its manifest.

@@ -41,11 +41,11 @@ func TestInstallerFailureRollbackReturnsControl(t *testing.T) {
 		"prepare:check-dependencies", "prepare:backup-snapshot",
 		"apply:rollback-restore",
 		"agent:claude-code", "agent:codex",
-		"community-tool:codegraph",
 		"component:persona", "component:engram",
 		"component:permissions",
 		"component:skills", "agent-guidance:claude-code",
 		"agent-guidance:codex",
+		"codegraph:install",
 		"component:compatibility-skills-refresh",
 	}
 	rollbackIDs := []string{
@@ -57,7 +57,7 @@ func TestInstallerFailureRollbackReturnsControl(t *testing.T) {
 	var plan pipeline.StagePlan
 	for i, id := range labels {
 		step := installerFailureStep{id: id, order: &order}
-		if id == "community-tool:codegraph" {
+		if id == "codegraph:install" {
 			step.err = failure
 		}
 		if i < 2 {

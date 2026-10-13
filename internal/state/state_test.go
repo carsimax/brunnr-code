@@ -51,17 +51,15 @@ func fullyPopulatedInstallState() InstallState {
 	lastUpdateCheck := time.Date(2026, 8, 12, 9, 30, 0, 0, time.UTC)
 	rddModeRecordedAt := time.Date(2026, 8, 12, 9, 0, 0, 0, time.UTC)
 	return InstallState{
-		InstalledAgents:          []string{"claude-code", "example-agent"},
-		InstalledBinaryVersion:   "1.2.3",
-		ManagedAssetDigest:       "sha256:managed-assets",
-		SelectionConfigured:      true,
-		Components:               []model.ComponentID{model.ComponentEngram, model.ComponentSkills},
-		Skills:                   []model.SkillID{model.SkillGoTesting, model.SkillWorkUnitCommits},
-		Preset:                   model.PresetCustom,
-		StrictTDD:                true,
-		CommunityTools:           []string{"codegraph"},
-		CommunityToolsConfigured: true,
-		ClaudeModelAssignments:   map[string]string{"odd-explorer": "sonnet"},
+		InstalledAgents:        []string{"claude-code", "example-agent"},
+		InstalledBinaryVersion: "1.2.3",
+		ManagedAssetDigest:     "sha256:managed-assets",
+		SelectionConfigured:    true,
+		Components:             []model.ComponentID{model.ComponentEngram, model.ComponentSkills},
+		Skills:                 []model.SkillID{model.SkillGoTesting, model.SkillWorkUnitCommits},
+		Preset:                 model.PresetCustom,
+		StrictTDD:              true,
+		ClaudeModelAssignments: map[string]string{"odd-explorer": "sonnet"},
 		ClaudePhaseAssignments: map[string]ClaudePhaseAssignmentState{
 			"odd-worker": {Model: "opus", Effort: "max"},
 		},
@@ -128,7 +126,6 @@ func TestInstallStatePreservesEveryField(t *testing.T) {
 // installed_agents with deduplication and preserves all other fields.
 func TestMergeAgents(t *testing.T) {
 	existingClaude := map[string]string{"odd-explorer": "sonnet", "jd-fix-agent": "haiku"}
-	existingCommunityTools := []string{"codegraph"}
 
 	tests := []struct {
 		name      string
@@ -163,10 +160,8 @@ func TestMergeAgents(t *testing.T) {
 		{
 			name: "model_assignments preserved across merge",
 			existing: InstallState{
-				InstalledAgents:          []string{"example-agent"},
-				CommunityTools:           existingCommunityTools,
-				CommunityToolsConfigured: true,
-				ClaudeModelAssignments:   existingClaude,
+				InstalledAgents:        []string{"example-agent"},
+				ClaudeModelAssignments: existingClaude,
 			},
 			newAgents: []string{"third-agent"},
 			wantIDs:   []string{"example-agent", "third-agent"},
@@ -185,29 +180,41 @@ func TestMergeAgents(t *testing.T) {
 			if !reflect.DeepEqual(got.ClaudeModelAssignments, tt.existing.ClaudeModelAssignments) {
 				t.Errorf("ClaudeModelAssignments not preserved: got %v, want %v", got.ClaudeModelAssignments, tt.existing.ClaudeModelAssignments)
 			}
-			if !reflect.DeepEqual(got.CommunityTools, tt.existing.CommunityTools) || got.CommunityToolsConfigured != tt.existing.CommunityToolsConfigured {
-				t.Errorf("CommunityTools not preserved: got (%v, %t), want (%v, %t)", got.CommunityTools, got.CommunityToolsConfigured, tt.existing.CommunityTools, tt.existing.CommunityToolsConfigured)
-			}
 		})
 	}
 }
 
-func TestCommunityToolsRoundTrip(t *testing.T) {
+// TestLegacyCodeGraphSelectionKeysAreIgnored proves that state files written
+// while CodeGraph was an optional selection still decode, and that the retired
+// keys are not written back.
+func TestLegacyCodeGraphSelectionKeysAreIgnored(t *testing.T) {
 	home := t.TempDir()
-	want := InstallState{
-		InstalledAgents:          []string{"example-agent"},
-		CommunityTools:           []string{"codegraph"},
-		CommunityToolsConfigured: true,
+	legacy := []byte(`{"installed_agents":["claude-code"],"community_tools":["codegraph"],"community_tools_configured":true}`)
+	path := Path(home)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
 	}
-	if err := Write(home, want); err != nil {
-		t.Fatalf("Write() error = %v", err)
+	if err := os.WriteFile(path, legacy, 0o644); err != nil {
+		t.Fatal(err)
 	}
+
 	got, err := Read(home)
 	if err != nil {
-		t.Fatalf("Read() error = %v", err)
+		t.Fatalf("Read() legacy state error = %v", err)
 	}
-	if !reflect.DeepEqual(got.CommunityTools, want.CommunityTools) || !got.CommunityToolsConfigured {
-		t.Fatalf("community tool state = (%v, %t), want (%v, true)", got.CommunityTools, got.CommunityToolsConfigured, want.CommunityTools)
+	if !reflect.DeepEqual(got.InstalledAgents, []string{"claude-code"}) {
+		t.Fatalf("InstalledAgents = %v, want [claude-code]", got.InstalledAgents)
+	}
+
+	if err := Write(home, got); err != nil {
+		t.Fatalf("Write() error = %v", err)
+	}
+	written, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(written), "community_tools") {
+		t.Fatalf("rewritten state still carries retired keys: %s", written)
 	}
 }
 

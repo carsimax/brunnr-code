@@ -733,3 +733,28 @@ func findAgentStatus(t *testing.T, status Status, id model.AgentID) AgentStatus 
 	t.Fatalf("agent %s not found in %#v", id, status.Agents)
 	return AgentStatus{}
 }
+
+// Sync runs the legacy cleanup on every install now that CodeGraph is
+// mandatory, so it must not reformat prompt files that carry no legacy
+// CodeGraph guidance.
+func TestCleanLegacyCodeGraphGuidanceLeavesFilesWithoutLegacyGuidanceUntouched(t *testing.T) {
+	home := t.TempDir()
+	promptPath := filepath.Join(home, ".claude", "CLAUDE.md")
+	original := "# Rules\n\n\n## Section\n\n\n"
+	mustWrite(t, promptPath, original)
+
+	result, err := CleanLegacyCodeGraphGuidance(home)
+	if err != nil {
+		t.Fatalf("CleanLegacyCodeGraphGuidance() error = %v", err)
+	}
+	if result.Changed || len(result.Files) != 0 {
+		t.Fatalf("cleanup result = %#v, want no change", result)
+	}
+	got, err := os.ReadFile(promptPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != original {
+		t.Fatalf("prompt rewritten:\n got %q\nwant %q", got, original)
+	}
+}

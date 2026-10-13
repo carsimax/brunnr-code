@@ -718,9 +718,8 @@ func TestTuiSyncClaudeModelConfigWritesSelectedAssignments(t *testing.T) {
 func TestTuiSyncModelConfigPropagatesAssignmentWriteFailure(t *testing.T) {
 	home := t.TempDir()
 	original := state.InstallState{
-		InstalledAgents:          []string{string(model.AgentClaudeCode)},
-		CommunityToolsConfigured: true,
-		ClaudeModelAssignments:   map[string]string{"review-risk": "haiku"},
+		InstalledAgents:        []string{string(model.AgentClaudeCode)},
+		ClaudeModelAssignments: map[string]string{"review-risk": "haiku"},
 	}
 	if err := state.Write(home, original); err != nil {
 		t.Fatalf("state.Write: %v", err)

@@ -37,7 +37,7 @@ func TestRunningScreensRejectInputAndExposeNoOptions(t *testing.T) {
 }
 
 func TestResultScreensDoNotExposePhantomCursorRows(t *testing.T) {
-	for _, screen := range []Screen{ScreenRestoreResult, ScreenDeleteResult, ScreenUninstallResult, ScreenCommunityToolResult, ScreenComplete, ScreenReviewStoreResetResult} {
+	for _, screen := range []Screen{ScreenRestoreResult, ScreenDeleteResult, ScreenUninstallResult, ScreenComplete, ScreenReviewStoreResetResult} {
 		m := NewModel(system.DetectionResult{}, "dev")
 		m.Screen = screen
 		if got := m.optionCount(); got != 0 {

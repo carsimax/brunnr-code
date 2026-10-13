@@ -17,7 +17,6 @@ import (
 	"github.com/carsimax/brunnr-code/internal/backup"
 	"github.com/carsimax/brunnr-code/internal/catalog"
 	"github.com/carsimax/brunnr-code/internal/cli"
-	"github.com/carsimax/brunnr-code/internal/components/communitytool"
 	componentuninstall "github.com/carsimax/brunnr-code/internal/components/uninstall"
 	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/pipeline"
@@ -61,8 +60,6 @@ var osGetwdFn = os.Getwd
 var osExecutableFn = os.Executable
 var osRemoveFn = os.Remove
 var execCommandFn = exec.Command
-var communityToolInstallFn = communitytool.Install
-var communityToolStatusFn = communitytool.DetectStatus
 
 var discoverCodexModels = model.DiscoverCodexModels
 
@@ -335,16 +332,6 @@ type InstallReviewModePersistedMsg struct {
 	Err    error
 }
 
-type CommunityToolInstallationDoneMsg struct {
-	Results []communitytool.Result
-	Err     error
-}
-
-type CommunityToolStatusLoadedMsg struct {
-	Statuses []communitytool.Status
-	Err      error
-}
-
 // AgentBuilderState holds all transient state for the agent-builder TUI flow.
 type AgentBuilderState struct {
 	AvailableEngines []model.AgentID
@@ -416,9 +403,6 @@ const (
 	ScreenPreset
 	ScreenClaudeModelPicker
 	ScreenCodexModelPicker
-	ScreenCommunityTools
-	ScreenCommunityToolInstalling
-	ScreenCommunityToolResult
 	ScreenDependencyTree
 	ScreenSkillPicker
 	ScreenInstallReviewMode
@@ -660,12 +644,6 @@ type Model struct {
 	InstallReviewModeEnabled    bool
 	InstallReviewModePersisting bool
 	InstallReviewModePersistErr error
-	CommunityToolsStandalone    bool
-	CommunityToolStatusLoading  bool
-	CommunityToolStatuses       []communitytool.Status
-	CommunityToolStatusErr      error
-	CommunityToolResults        []communitytool.Result
-	CommunityToolErr            error
 }
 
 // NewModel constructs the initial TUI model for the given detection result.
@@ -916,21 +894,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.ReviewStoreResetReport = msg.Report
 		m.ReviewStoreResetErr = msg.Err
 		m.setScreen(ScreenReviewStoreResetResult)
-		return m, nil
-	case CommunityToolInstallationDoneMsg:
-		if m.Screen != ScreenCommunityToolInstalling {
-			return m, nil
-		}
-		m.OperationRunning = false
-		m.CommunityToolResults = msg.Results
-		m.CommunityToolErr = msg.Err
-		m.CommunityToolStatuses = communityToolStatusesFromResults(msg.Results, m.CommunityToolStatuses)
-		m.setScreen(ScreenCommunityToolResult)
-		return m, nil
-	case CommunityToolStatusLoadedMsg:
-		m.CommunityToolStatusLoading = false
-		m.CommunityToolStatuses = msg.Statuses
-		m.CommunityToolStatusErr = msg.Err
 		return m, nil
 	case StepProgressMsg:
 		return m.handleStepProgress(msg)
@@ -1231,12 +1194,6 @@ func (m Model) View() string {
 		return screens.RenderClaudeModelPicker(m.ClaudeModelPicker, m.Cursor, m.Height)
 	case ScreenCodexModelPicker:
 		return screens.RenderCodexModelPicker(m.CodexModelPicker, m.Cursor, m.Height)
-	case ScreenCommunityTools:
-		return screens.RenderCommunityTools(m.Selection.CommunityTools, m.Cursor, m.CommunityToolStatuses, m.CommunityToolStatusLoading, m.CommunityToolStatusErr)
-	case ScreenCommunityToolInstalling:
-		return screens.RenderCommunityToolInstalling(m.Selection.CommunityTools, screens.SpinnerChar(m.SpinnerFrame), m.CommunityToolStatuses)
-	case ScreenCommunityToolResult:
-		return screens.RenderCommunityToolResult(m.CommunityToolResults, m.CommunityToolErr)
 	case ScreenDependencyTree:
 		return screens.RenderDependencyTree(m.DependencyPlan, m.Selection, m.Cursor)
 	case ScreenSkillPicker:
@@ -1505,7 +1462,7 @@ func (m Model) handleKeyPress(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "esc":
 		// Don't allow leaving while the pipeline or its selected RDD mode is running.
-		if (m.Screen == ScreenInstalling && (m.pipelineRunning || m.InstallReviewModePersisting)) || m.Screen == ScreenCommunityToolInstalling {
+		if m.Screen == ScreenInstalling && (m.pipelineRunning || m.InstallReviewModePersisting) {
 			return m, nil
 		}
 		var cmd tea.Cmd
@@ -1527,8 +1484,6 @@ func (m Model) handleKeyPress(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		case ScreenSkillPicker:
 			m.toggleCurrentSkill()
-		case ScreenCommunityTools:
-			m.toggleCurrentCommunityTool()
 		}
 		return m, nil
 	case "r":
@@ -1652,19 +1607,6 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			if m.Cursor == next {
 				m.setScreen(ScreenUninstallMode)
 				return m, nil
-			}
-			next++
-
-			if m.Cursor == next {
-				m.CommunityToolsStandalone = true
-				m.CommunityToolResults = nil
-				m.CommunityToolErr = nil
-				m.CommunityToolStatuses = nil
-				m.CommunityToolStatusErr = nil
-				m.CommunityToolStatusLoading = true
-				m.Selection.CommunityTools = nil
-				m.setScreen(ScreenCommunityTools)
-				return m, m.startCommunityToolStatusDetection()
 			}
 			next++
 
@@ -1875,11 +1817,6 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			if next, ok := m.pickerNextScreen(); ok && (next != ScreenDependencyTree || m.Selection.Preset == model.PresetCustom) {
 				return m, m.applyPickerEntry(next)
 			}
-			// Offer optional community tools before the dependency tree.
-			if m.shouldShowCommunityToolsScreen() {
-				m.setScreen(ScreenCommunityTools)
-				return m, nil
-			}
 			m.buildDependencyPlan()
 			m.setScreen(ScreenDependencyTree)
 			return m, nil
@@ -1911,18 +1848,6 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-	case ScreenCommunityTools:
-		return m.confirmCommunityTools()
-	case ScreenCommunityToolResult:
-		m.CommunityToolsStandalone = false
-		m.Selection.CommunityTools = nil
-		m.CommunityToolStatuses = nil
-		m.CommunityToolStatusErr = nil
-		m.CommunityToolStatusLoading = false
-		m.CommunityToolResults = nil
-		m.CommunityToolErr = nil
-		m.setScreen(ScreenWelcome)
-		return m, nil
 	case ScreenDependencyTree:
 		if m.Selection.Preset == model.PresetCustom {
 			allComps := screens.AllComponents()
@@ -1939,11 +1864,7 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				// No slice member after DependencyTree (no picker agents selected):
-				// check for CommunityTools guard, SkillPicker, or fall to Review.
-				if m.shouldShowCommunityToolsScreen() {
-					m.setScreen(ScreenCommunityTools)
-					return m, nil
-				}
+				// SkillPicker, or fall to Review.
 				if m.shouldShowSkillPickerScreen() {
 					if len(m.SkillPicker) == 0 {
 						m.initSkillPicker()
@@ -1962,15 +1883,9 @@ func (m Model) confirmSelection() (tea.Model, tea.Cmd) {
 			m.Review = planner.BuildReviewPayload(m.Selection, m.DependencyPlan)
 			return m.startInstallReviewModeLoad()
 		}
-		// Non-custom Back: mirrors goBack (Esc) — optional setup guards
-		// (outside the slice), then pickerPreviousScreen.
+		// Non-custom Back: mirrors goBack (Esc) through pickerPreviousScreen.
 		// INV-2: Enter-on-Back and Esc must produce identical results.
-		if m.shouldShowCommunityToolsScreen() {
-			// CommunityTools sits between the picker chain and DependencyTree in
-			// the actual flow but is NOT in pickerFlowSlice. Check it so
-			// Enter-on-Back matches Esc behavior (INV-2).
-			m.setScreen(ScreenCommunityTools)
-		} else if prev, ok := m.pickerPreviousScreen(); ok {
+		if prev, ok := m.pickerPreviousScreen(); ok {
 			// Step back through the picker slice.
 			m.applyPickerEntry(prev)
 		}
@@ -2179,8 +2094,8 @@ func (m Model) startInstalling() (tea.Model, tea.Cmd) {
 	m.setScreen(ScreenInstalling)
 	m.SpinnerFrame = 0
 
-	// Build progress labels from the resolved plan and selected tools.
-	labels := buildProgressLabels(m.DependencyPlan, m.Selection.CommunityTools)
+	// Build progress labels from the resolved plan.
+	labels := buildProgressLabels(m.DependencyPlan)
 	if len(labels) == 0 {
 		// Fallback labels when the plan is empty (dev/test).
 		labels = []string{
@@ -2509,119 +2424,6 @@ func (m Model) withResetReviewStoreResetState() Model {
 	return m
 }
 
-func (m Model) startCommunityToolInstallation() tea.Cmd {
-	tools := append([]model.CommunityToolID(nil), m.Selection.CommunityTools...)
-	workspaceDir, _ := osGetwdFn()
-	runner := communityToolRuntimeRunner{}
-	return func() tea.Msg {
-		results := make([]communitytool.Result, 0, len(tools))
-		for _, tool := range tools {
-			var result communitytool.Result
-			var err error
-			result, err = communityToolInstallFn(tool, workspaceDir, runner)
-			if err != nil {
-				if hasCommunityToolResultContext(result) {
-					results = append(results, result)
-				}
-				return CommunityToolInstallationDoneMsg{Results: results, Err: err}
-			}
-			results = append(results, result)
-		}
-		return CommunityToolInstallationDoneMsg{Results: results}
-	}
-}
-
-func (m Model) startCommunityToolStatusDetection() tea.Cmd {
-	definitions := communityToolDefinitions()
-	tools := make([]model.CommunityToolID, 0, len(definitions))
-	for _, definition := range definitions {
-		tools = append(tools, definition.ID)
-	}
-	home := homeDir()
-	detector := communitytool.DetectorFunc(func(name string) (string, error) {
-		path, err := exec.LookPath(name)
-		return path, err
-	})
-	return func() tea.Msg {
-		statuses := make([]communitytool.Status, 0, len(tools))
-		for _, tool := range tools {
-			statuses = append(statuses, communityToolStatusFn(tool, home, detector))
-		}
-		return CommunityToolStatusLoadedMsg{Statuses: statuses}
-	}
-}
-
-func communityToolStatusesFromResults(results []communitytool.Result, fallback []communitytool.Status) []communitytool.Status {
-	if len(results) == 0 {
-		return fallback
-	}
-	statuses := make([]communitytool.Status, 0, len(results))
-	for _, result := range results {
-		if result.StatusAfter != nil {
-			statuses = append(statuses, *result.StatusAfter)
-			continue
-		}
-		if result.StatusBefore != nil {
-			statuses = append(statuses, *result.StatusBefore)
-		}
-	}
-	if len(statuses) == 0 {
-		return fallback
-	}
-	return statuses
-}
-
-func hasCommunityToolResultContext(result communitytool.Result) bool {
-	return result.Tool != "" || len(result.CommandsRun) > 0 || len(result.ManualActions) > 0
-}
-
-type communityToolRuntimeRunner struct{}
-
-func (communityToolRuntimeRunner) Run(name string, args ...string) error {
-	return executeExternalCommand(execCommandFn, name, args...)
-}
-
-func (communityToolRuntimeRunner) RunWithEnv(environment map[string]string, name string, args ...string) error {
-	cmd := execCommandFn(name, args...)
-	system.EnsureCommandDir(cmd)
-	cmd.Env = commandEnvironmentWithOverrides(os.Environ(), environment)
-	output, err := cmd.CombinedOutput()
-	if err != nil && len(output) > 0 {
-		return fmt.Errorf("%w\noutput:\n%s", err, strings.TrimSpace(string(output)))
-	}
-	return err
-}
-
-func commandEnvironmentWithOverrides(environment []string, overrides map[string]string) []string {
-	out := make([]string, 0, len(environment)+len(overrides))
-	for _, entry := range environment {
-		key, _, found := strings.Cut(entry, "=")
-		if found {
-			if _, replace := overrides[key]; replace {
-				continue
-			}
-		}
-		out = append(out, entry)
-	}
-	for key, value := range overrides {
-		out = append(out, key+"="+value)
-	}
-	return out
-}
-
-func executeExternalCommand(commandFn func(string, ...string) *exec.Cmd, name string, args ...string) error {
-	cmd := commandFn(name, args...)
-	system.EnsureCommandDir(cmd)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		if len(output) > 0 {
-			return fmt.Errorf("%w\noutput:\n%s", err, strings.TrimSpace(string(output)))
-		}
-		return err
-	}
-	return nil
-}
-
 func (m Model) startUninstall() tea.Cmd {
 	uninstallFn := m.UninstallFn
 	uninstallWithEngramScopeFn := m.UninstallWithEngramScopeFn
@@ -2764,8 +2566,8 @@ func (m Model) finishBackupResult(clearDeleteError bool) Model {
 
 // buildProgressLabels creates step labels from the resolved plan that match
 // the step IDs the pipeline will produce.
-func buildProgressLabels(resolved planner.ResolvedPlan, communityTools []model.CommunityToolID) []string {
-	labels := make([]string, 0, 3+len(resolved.Agents)+len(communityTools)+len(resolved.OrderedComponents))
+func buildProgressLabels(resolved planner.ResolvedPlan) []string {
+	labels := make([]string, 0, 4+len(resolved.Agents)+len(resolved.OrderedComponents))
 
 	labels = append(labels, "prepare:check-dependencies")
 	labels = append(labels, "prepare:backup-snapshot")
@@ -2775,13 +2577,12 @@ func buildProgressLabels(resolved planner.ResolvedPlan, communityTools []model.C
 		labels = append(labels, "agent:"+string(agent))
 	}
 
-	for _, tool := range communityTools {
-		labels = append(labels, "community-tool:"+string(tool))
-	}
-
 	for _, component := range resolved.OrderedComponents {
 		labels = append(labels, "component:"+string(component))
 	}
+
+	// CodeGraph is mandatory and installs after the components.
+	labels = append(labels, "codegraph:install")
 
 	return labels
 }
@@ -2808,15 +2609,6 @@ func (m Model) goBack(cmd *tea.Cmd) Model {
 	}
 	if m.Screen == ScreenUninstallResult {
 		m = m.withResetUninstallState()
-		m.setScreen(ScreenWelcome)
-		return m
-	}
-
-	if m.Screen == ScreenCommunityToolResult {
-		m.CommunityToolsStandalone = false
-		m.Selection.CommunityTools = nil
-		m.CommunityToolResults = nil
-		m.CommunityToolErr = nil
 		m.setScreen(ScreenWelcome)
 		return m
 	}
@@ -2896,25 +2688,14 @@ func (m Model) goBack(cmd *tea.Cmd) Model {
 		return m
 	}
 
-	// Non-custom DependencyTree Esc: optional setup guards (outside the
-	// slice), then pickerPreviousScreen.
+	// Non-custom DependencyTree Esc: step back through pickerPreviousScreen.
 	// INV-2: Esc and Enter-on-Back must produce identical results.
 	if m.Screen == ScreenDependencyTree && m.Selection.Preset != model.PresetCustom {
-		if m.shouldShowCommunityToolsScreen() {
-			// CommunityTools sits between the picker chain and DependencyTree but
-			// is NOT in pickerFlowSlice; check it so Esc matches Enter-on-Back.
-			m.setScreen(ScreenCommunityTools)
-			return m
-		}
 		if prev, ok := m.pickerPreviousScreen(); ok {
 			// Step back through the picker slice.
 			m.applyPickerEntry(prev)
 			return m
 		}
-	}
-
-	if m.Screen == ScreenCommunityTools {
-		return m.goBackFromCommunityTools()
 	}
 
 	if m.Screen == ScreenClaudeModelPicker {
@@ -3092,12 +2873,6 @@ func (m Model) optionCount() int {
 		return screens.ClaudeModelPickerOptionCount(m.ClaudeModelPicker)
 	case ScreenCodexModelPicker:
 		return screens.CodexModelPickerOptionCount(m.CodexModelPicker)
-	case ScreenCommunityTools:
-		return screens.CommunityToolsOptionCount()
-	case ScreenCommunityToolInstalling:
-		return 0
-	case ScreenCommunityToolResult:
-		return 0
 	case ScreenDependencyTree:
 		if m.Selection.Preset == model.PresetCustom {
 			return len(screens.AllComponents()) + len(screens.DependencyTreeOptions())
@@ -3274,111 +3049,6 @@ func (m *Model) toggleCurrentSkill() {
 	m.SkillPicker = append(m.SkillPicker, skillID)
 }
 
-func (m *Model) toggleCurrentCommunityTool() {
-	defs := communityToolDefinitions()
-	if m.Cursor%2 != 0 || m.Cursor/2 >= len(defs) {
-		return
-	}
-	id := defs[m.Cursor/2].ID
-	for idx, selected := range m.Selection.CommunityTools {
-		if selected == id {
-			m.Selection.CommunityTools = append(m.Selection.CommunityTools[:idx], m.Selection.CommunityTools[idx+1:]...)
-			return
-		}
-	}
-	m.Selection.CommunityTools = append(m.Selection.CommunityTools, id)
-}
-
-func (m Model) confirmCommunityTools() (tea.Model, tea.Cmd) {
-	defs := communityToolDefinitions()
-	toolRows := len(defs) * 2
-	switch {
-	case m.Cursor < toolRows && m.Cursor%2 == 0:
-		m.toggleCurrentCommunityTool()
-		return m, nil
-	case m.Cursor < toolRows && m.Cursor%2 == 1:
-		return m, openBrowserCmd(defs[m.Cursor/2].RepoURL)
-	case m.Cursor == toolRows:
-		if m.CommunityToolsStandalone {
-			m.CommunityToolResults = nil
-			m.CommunityToolErr = nil
-			m.OperationRunning = len(m.Selection.CommunityTools) > 0
-			if len(m.Selection.CommunityTools) == 0 {
-				m.setScreen(ScreenCommunityToolResult)
-				return m, nil
-			}
-			m.setScreen(ScreenCommunityToolInstalling)
-			return m, tea.Batch(m.startCommunityToolInstallation(), tickCmd())
-		}
-		return m.continueAfterCommunityTools()
-	default:
-		return m.goBackFromCommunityTools(), nil
-	}
-}
-
-func (m Model) continueAfterCommunityTools() (tea.Model, tea.Cmd) {
-	if m.Selection.Preset == model.PresetCustom {
-		if m.shouldShowSkillPickerScreen() {
-			if len(m.SkillPicker) == 0 {
-				m.initSkillPicker()
-			}
-			m.setScreen(ScreenSkillPicker)
-		} else {
-			m.Review = planner.BuildReviewPayload(m.Selection, m.DependencyPlan)
-			return m.startInstallReviewModeLoad()
-		}
-		return m, nil
-	}
-	m.buildDependencyPlan()
-	m.setScreen(ScreenDependencyTree)
-	return m, nil
-}
-
-func (m Model) goBackFromCommunityTools() Model {
-	if m.CommunityToolsStandalone {
-		m.CommunityToolsStandalone = false
-		m.Selection.CommunityTools = nil
-		m.CommunityToolResults = nil
-		m.CommunityToolErr = nil
-		m.setScreen(ScreenWelcome)
-		return m
-	}
-	if m.shouldShowCodexModelPickerScreen() {
-		m.setScreen(ScreenCodexModelPicker)
-		return m
-	}
-	if m.shouldShowClaudeModelPickerScreen() {
-		m.setScreen(ScreenClaudeModelPicker)
-		return m
-	}
-	if m.Selection.Preset == model.PresetCustom {
-		m.setScreen(ScreenDependencyTree)
-		return m
-	}
-	m.setScreen(ScreenPreset)
-	return m
-}
-
-func communityToolDefinitions() []communitytool.Definition {
-	return communitytool.Definitions()
-}
-
-func openBrowserCmd(url string) tea.Cmd {
-	return func() tea.Msg {
-		var cmd *exec.Cmd
-		switch runtime.GOOS {
-		case "darwin":
-			cmd = execCommandFn("open", url)
-		case "windows":
-			cmd = execCommandFn("rundll32", "url.dll,FileProtocolHandler", url)
-		default:
-			cmd = execCommandFn("xdg-open", url)
-		}
-		_ = cmd.Start()
-		return nil
-	}
-}
-
 // initSkillPicker pre-selects ALL available skills (custom mode default).
 func (m *Model) initSkillPicker() {
 	all := screens.AllSkillsOrdered()
@@ -3391,10 +3061,6 @@ func (m *Model) initSkillPicker() {
 func (m Model) shouldShowSkillPickerScreen() bool {
 	return m.Selection.Preset == model.PresetCustom &&
 		hasSelectedComponent(m.Selection.Components, model.ComponentSkills)
-}
-
-func (m Model) shouldShowCommunityToolsScreen() bool {
-	return m.InstallFlowActive && !m.CommunityToolsStandalone
 }
 
 func (m *Model) buildDependencyPlan() {
@@ -3571,10 +3237,6 @@ func (m Model) pickerPreviousScreen() (Screen, bool) {
 }
 
 func (m *Model) advanceToNextPickerScreen(next Screen) tea.Cmd {
-	if next == ScreenDependencyTree && m.shouldShowCommunityToolsScreen() {
-		m.setScreen(ScreenCommunityTools)
-		return nil
-	}
 	if next == ScreenDependencyTree {
 		m.buildDependencyPlan()
 	}

@@ -34,7 +34,7 @@ func TestRenderWelcome_StaysWithinViewport(t *testing.T) {
 		{name: "narrow resize", width: 80, height: 24},
 		{name: "short viewport", width: 120, height: 19},
 		{name: "below compact height", width: 120, height: 2, minimum: true},
-		{name: "below compact width", width: 18, height: 19, minimum: true},
+		{name: "below compact width", width: 18, height: 18, minimum: true},
 		{name: "below frame border width", width: 2, height: 20, minimum: true, wantPrimary: "Go"},
 		{name: "tiny viewport uses atomic labels", width: 2, height: 2, minimum: true, wantPrimary: "Go", wantControl: "q"},
 		{name: "single column tiny viewport uses atomic labels", width: 1, height: 2, minimum: true, wantPrimary: ">", wantControl: "q"},

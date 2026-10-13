@@ -16,16 +16,6 @@ type Selection struct {
 	CodexManagedServiceTier          string                           // service_tier Brunnr-Code previously wrote (from state); retired on standard only while config still holds it
 	CodexCarrilModelAssignments      map[string]string                // key = ODD role (odd-explorer|odd-worker|odd-verify); value = model id
 	CodexPhaseModelAssignments       map[string]string                // key = phase name; value = model id (Custom per-phase picker only)
-	CommunityTools                   []CommunityToolID                // optional cross-agent community tools/plugins
-}
-
-func (s Selection) HasCommunityTool(tool CommunityToolID) bool {
-	for _, current := range s.CommunityTools {
-		if current == tool {
-			return true
-		}
-	}
-	return false
 }
 
 func (s Selection) HasAgent(agent AgentID) bool {

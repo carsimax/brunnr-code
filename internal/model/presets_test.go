@@ -51,17 +51,3 @@ func TestWithMandatoryComponentsAddsPersonaOnce(t *testing.T) {
 		t.Fatal("IsMandatoryComponent: want persona mandatory and engram optional")
 	}
 }
-
-func TestExistingPresetsDoNotImplyCommunityTools(t *testing.T) {
-	for _, preset := range []PresetID{PresetFull, PresetEcosystemOnly, PresetMinimal, PresetCustom} {
-		t.Run(string(preset), func(t *testing.T) {
-			selection := Selection{
-				Preset:     preset,
-				Components: ComponentsForPreset(preset),
-			}
-			if len(selection.CommunityTools) != 0 {
-				t.Fatalf("preset %q community tools = %v, want none", preset, selection.CommunityTools)
-			}
-		})
-	}
-}

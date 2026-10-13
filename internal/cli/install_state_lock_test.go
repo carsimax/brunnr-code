@@ -29,11 +29,11 @@ func TestPersistSyncManagedAssetStateReReadsLatestStateAfterLockContention(t *te
 	if err := held.Release(); err != nil {
 		t.Fatal(err)
 	}
-	if err := persistSyncManagedAssetState(home, model.Selection{CommunityTools: []model.CommunityToolID{model.CommunityToolCodeGraph}}, "sha256:current-writer"); err != nil {
+	if err := persistSyncManagedAssetState(home, model.Selection{}, "sha256:current-writer"); err != nil {
 		t.Fatal(err)
 	}
 	got, err := state.Read(home)
-	if err != nil || got.Preset != "concurrent" || got.ManagedAssetDigest != "sha256:current-writer" || !got.CommunityToolsConfigured || len(got.CommunityTools) != 1 || got.CommunityTools[0] != string(model.CommunityToolCodeGraph) {
+	if err != nil || got.Preset != "concurrent" || got.ManagedAssetDigest != "sha256:current-writer" {
 		t.Fatalf("persisted sync state = %#v, err = %v", got, err)
 	}
 }

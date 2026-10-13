@@ -7,9 +7,6 @@ import (
 
 	"github.com/carsimax/brunnr-code/internal/components/communitytool"
 	"github.com/carsimax/brunnr-code/internal/model"
-	"github.com/carsimax/brunnr-code/internal/planner"
-	"github.com/carsimax/brunnr-code/internal/state"
-	"github.com/carsimax/brunnr-code/internal/statecoord"
 	"github.com/carsimax/brunnr-code/internal/system"
 )
 
@@ -123,51 +120,26 @@ func TestCodexReinstallKeepsConfigTOML(t *testing.T) {
 	}
 }
 
-// TestCodeGraphInstallThenSyncConverges covers the TUI install path, the only
-// one that selects CodeGraph. Its guidance must be injected after persona so
-// install keeps it, and sync must keep it even when persona replaces the
-// prompt file earlier in the same run and no CodeGraph MCP wiring exists.
+// TestCodeGraphInstallThenSyncConverges pins that CodeGraph guidance, which
+// every install now writes, survives install and the following sync even when
+// persona replaces the prompt file earlier in the same run and no CodeGraph
+// MCP wiring exists.
 func TestCodeGraphInstallThenSyncConverges(t *testing.T) {
-	for _, tt := range []struct {
-		agent        model.AgentID
-		wantGuidance bool
-	}{} {
-		agent := tt.agent
+	for _, agent := range []model.AgentID{model.AgentClaudeCode, model.AgentCodex} {
 		t.Run(string(agent), func(t *testing.T) {
 			home := convergenceTestHome(t)
-			previous := installCommunityToolWithHome
-			t.Cleanup(func() { installCommunityToolWithHome = previous })
-			installCommunityToolWithHome = func(id model.CommunityToolID, _, homeDir string, _ communitytool.Runner, _ communitytool.Detector) (communitytool.Result, error) {
-				_, err := communitytool.InjectCodeGraphGuidanceIfSelected(homeDir, []model.CommunityToolID{id})
+			previous := installCodeGraph
+			t.Cleanup(func() { installCodeGraph = previous })
+			installCodeGraph = func(id model.CommunityToolID, _, homeDir string, _ communitytool.Runner, _ communitytool.Detector) (communitytool.Result, error) {
+				_, err := communitytool.InjectCodeGraphGuidance(homeDir)
 				return communitytool.Result{Tool: id}, err
 			}
 
-			input, err := NormalizeInstallFlags(InstallFlags{Agents: []string{string(agent)}, Preset: "full"}, system.DetectionResult{})
-			if err != nil {
-				t.Fatal(err)
+			if _, err := RunInstall([]string{"--agent", string(agent), "--preset", "full"}, system.DetectionResult{}); err != nil {
+				t.Fatalf("RunInstall() error = %v", err)
 			}
-			selection := input.Selection
-			selection.CommunityTools = []model.CommunityToolID{model.CommunityToolCodeGraph}
-			resolved, err := planner.NewResolver(planner.MVPGraph()).Resolve(selection)
-			if err != nil {
-				t.Fatal(err)
-			}
-			execution, _, _ := executeTUIInstall(home, selection, resolved, ResolveInstallProfile(system.DetectionResult{}), nil)
-			if execution.Err != nil {
-				t.Fatalf("TUI install error = %v", execution.Err)
-			}
-			installState := state.InstallState{
-				InstalledAgents:          []string{string(agent)},
-				CommunityTools:           []string{string(model.CommunityToolCodeGraph)},
-				CommunityToolsConfigured: true,
-			}
-			installState.SetSelection(selection)
-			// Persist state the way the TUI does after a successful install.
-			if err := statecoord.WithLock(home, func() error { return state.WriteReconciled(home, installState) }); err != nil {
-				t.Fatal(err)
-			}
-			if got := communitytool.HasManagedCodeGraphGuidance(home); got != tt.wantGuidance {
-				t.Fatalf("CodeGraph guidance after install = %v, want %v", got, tt.wantGuidance)
+			if !communitytool.HasManagedCodeGraphGuidance(home) {
+				t.Fatal("CodeGraph guidance missing after install")
 			}
 			installed := snapshotManagedTree(t, home)
 

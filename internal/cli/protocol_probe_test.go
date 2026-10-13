@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/carsimax/brunnr-code/internal/agents/claude"
+	"github.com/carsimax/brunnr-code/internal/components/communitytool"
+	"github.com/carsimax/brunnr-code/internal/model"
 	"github.com/carsimax/brunnr-code/internal/system"
 	"github.com/carsimax/brunnr-code/internal/testenv"
 )
@@ -118,6 +120,12 @@ func TestMain(m *testing.M) {
 	// tests that do not stub it themselves off the network.
 	engramDownloadFn = func(system.PlatformProfile) (string, error) {
 		return filepath.Join(testHome, "engram-bin", "engram"), nil
+	}
+
+	// CodeGraph installs on every install; keep tests that do not stub it
+	// themselves from running npm or the codegraph CLI.
+	installCodeGraph = func(id model.CommunityToolID, _, _ string, _ communitytool.Runner, _ communitytool.Detector) (communitytool.Result, error) {
+		return communitytool.Result{Tool: id}, nil
 	}
 
 	agentPresent := func(name string) (string, error) { return "/usr/local/bin/" + name, nil }
