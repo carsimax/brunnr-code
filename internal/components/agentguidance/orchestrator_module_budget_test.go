@@ -45,8 +45,8 @@ var claudeModuleFiles = map[string]struct {
 // updating it, measures bytes only, and proves nothing about whether or when
 // Claude actually reads a module.
 func TestOrchestratorModuleBudgetClaudeGlobal(t *testing.T) {
-	if runtime.GOOS != "linux" {
-		t.Skipf("%s pins Linux install bytes; %s is not measured", moduleBaselineFile, runtime.GOOS)
+	if runtime.GOOS != "darwin" {
+		t.Skipf("%s pins macOS install bytes; %s is not measured", moduleBaselineFile, runtime.GOOS)
 	}
 	home := t.TempDir()
 	t.Setenv("HOME", home)

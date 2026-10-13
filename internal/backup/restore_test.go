@@ -3,7 +3,6 @@ package backup
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -69,14 +68,12 @@ func TestRestoreRestoresExistingAndRemovesCreated(t *testing.T) {
 	// though originalPath currently sits at a wider mode (0644): restoring a
 	// backup snapshot must reproduce its exact recorded state, not preserve
 	// whatever mode the file happens to have when the restore runs.
-	if runtime.GOOS != "windows" {
-		info, err := os.Stat(originalPath)
-		if err != nil {
-			t.Fatalf("Stat() restored path error = %v", err)
-		}
-		if got := info.Mode().Perm(); got != 0o600 {
-			t.Fatalf("restored mode = %v, want the recorded 0600", got)
-		}
+	info, err := os.Stat(originalPath)
+	if err != nil {
+		t.Fatalf("Stat() restored path error = %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("restored mode = %v, want the recorded 0600", got)
 	}
 
 	if _, err := os.Stat(removedPath); !os.IsNotExist(err) {
@@ -517,9 +514,6 @@ func TestRestoreScope_TraversalEscapingRootStillRefuses(t *testing.T) {
 // refused — mirroring the existing symlink handling documented at the top
 // of restore.go for the single-root case.
 func TestRestoreScope_SymlinkEscapingRootStillRefuses(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("symlink creation requires elevated privileges on Windows")
-	}
 
 	workspace := t.TempDir()
 	outside := t.TempDir()
@@ -615,9 +609,6 @@ func TestRestoreScope_RefusalNamesTheValidatedRoots(t *testing.T) {
 // Writing /r/foo/bar/newfile.json would land in /etc/bar/newfile.json.
 // isPathUnderRoot must return false so the restore refuses.
 func TestIsPathUnderRoot_FailsClosedOnAncestorSymlink(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("symlink creation requires elevated privileges on Windows")
-	}
 
 	root := t.TempDir()
 	outside := t.TempDir()
@@ -694,9 +685,6 @@ func TestRestoreSymlinkCollisionDetectsTypeMismatch(t *testing.T) {
 // one pointed at a real codepath by an admin) to a manifest-claimed
 // target that diverges from reality.
 func TestRestoreSymlinkCollisionDetectsTargetMismatch(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("symlink creation requires elevated privileges on Windows")
-	}
 	home := t.TempDir()
 
 	// On-disk symlink points at an in-home target; manifest claims
@@ -750,9 +738,6 @@ func TestRestoreSymlinkCollisionDetectsTargetMismatch(t *testing.T) {
 // (no cross-entry contamination, every entry's OriginalPath is
 // restored).
 func TestRestoreCompressedMixedEntries(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("symlink creation requires elevated privileges on Windows")
-	}
 	home := t.TempDir()
 	// Override the home-root resolver so RestoreService accepts our
 	// t.TempDir() tree as a legitimate target.

@@ -3,15 +3,11 @@ package skillregistry
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 )
 
 func TestRefreshSkipFilesystemRoot(t *testing.T) {
 	root := "/"
-	if runtime.GOOS == "windows" {
-		root = filepath.VolumeName(os.Getenv("SystemDrive")) + `\`
-	}
 	home := t.TempDir()
 	if got := RefreshSkip(root, home); got != SkipFilesystemRoot {
 		t.Fatalf("RefreshSkip(%q) = %q, want %q", root, got, SkipFilesystemRoot)
