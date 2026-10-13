@@ -3,7 +3,7 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/carsimax/brunnr-code/main/scripts/install.sh | bash
 #
-# Env: BRUNNR_CODE_VERSION=v1.0.0 to pin a version, BRUNNR_CODE_INSTALL_DIR to override the target dir.
+# Env: BRUNNR_CODE_VERSION=v0.1.0 to pin a version, BRUNNR_CODE_INSTALL_DIR to override the target dir.
 set -euo pipefail
 
 OWNER="carsimax"

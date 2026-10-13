@@ -26,7 +26,7 @@ the binary to `/usr/local/bin` or `~/.local/bin`.
 
 | Variable | Effect |
 |----------|--------|
-| `BRUNNR_CODE_VERSION` | Pin a release, for example `v1.0.0`. |
+| `BRUNNR_CODE_VERSION` | Pin a release, for example `v0.1.0`. |
 | `BRUNNR_CODE_INSTALL_DIR` | Install to another directory. |
 
 See [`scripts/install.sh`](scripts/install.sh) for details.
