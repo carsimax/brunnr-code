@@ -498,6 +498,7 @@ func TestSkillsCarryAnatomySections(t *testing.T) {
 		"skills/skill-improver/SKILL.md",
 		"skills/go-testing/SKILL.md",
 		"skills/work-unit-commits/SKILL.md",
+		"skills/debugging/SKILL.md",
 	} {
 		skill := MustRead(path)
 		for _, want := range sections {
@@ -657,8 +658,8 @@ func TestEmbeddedAssetCount(t *testing.T) {
 		}
 	}
 
-	if skillDirs != 14 {
-		t.Fatalf("expected 14 retained skill directories, got %d", skillDirs)
+	if skillDirs != 15 {
+		t.Fatalf("expected 15 retained skill directories, got %d", skillDirs)
 	}
 
 	// Verify each skill directory has a SKILL.md.

@@ -39,6 +39,7 @@ func TestMVPSkillsNoDuplicates(t *testing.T) {
 func TestMVPSkillsIncludeRequestedBundledSkillsWithCanonicalNames(t *testing.T) {
 	required := map[model.SkillID]string{
 		model.SkillCreator:             "skill-creator",
+		model.SkillDebugging:           "debugging",
 		model.SkillSkillRegistry:       "skill-registry",
 		model.SkillCognitiveDoc:        "cognitive-doc-design",
 		model.SkillCommentWriter:       "comment-writer",

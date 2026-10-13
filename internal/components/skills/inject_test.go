@@ -205,6 +205,7 @@ func requiredBundledSkillIDs() []model.SkillID {
 		model.SkillJudgmentDay,
 		model.SkillWorkUnitCommits,
 		model.SkillGoTesting,
+		model.SkillDebugging,
 		model.SkillImprover,
 		model.SkillRDDDefectWorkflow,
 		model.SkillSystemicIssueTriage,

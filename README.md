@@ -52,12 +52,12 @@ Run `brunnr-code` with no arguments to open the interactive TUI, or use a comman
 Every command supports `--help`.
 
 There is one setup, Dev Stack + Permissions. `install` and `sync` always apply
-Engram memory, the persona, the permissions overlay and eight skills
-(judgment-day, go-testing, skill-creator, skill-improver, skill-registry,
-chained-pr, cognitive-doc-design, work-unit-commits). Only the agents are
-selectable.
+Engram memory, the persona, the permissions overlay and nine skills
+(judgment-day, go-testing, debugging, skill-creator, skill-improver,
+skill-registry, chained-pr, cognitive-doc-design, work-unit-commits). Only the
+agents are selectable.
 
-The files of those eight skills belong to the installer: every `install` and
+The files of those nine skills belong to the installer: every `install` and
 `sync` rewrites them, so local edits are lost. To customize one, copy it under a
 skill ID of your own.
 

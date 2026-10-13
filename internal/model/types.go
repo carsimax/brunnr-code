@@ -79,6 +79,7 @@ type SkillID string
 
 const (
 	SkillGoTesting           SkillID = "go-testing"
+	SkillDebugging           SkillID = "debugging"
 	SkillCreator             SkillID = "skill-creator"
 	SkillImprover            SkillID = "skill-improver"
 	SkillJudgmentDay         SkillID = "judgment-day"

@@ -19,6 +19,7 @@ var contributorSkills = []model.SkillID{
 // skills. Contributor skills keep their historical positions.
 var selectableFoundationSkills = []model.SkillID{
 	model.SkillGoTesting,
+	model.SkillDebugging,
 	model.SkillCreator,
 	model.SkillImprover,
 	model.SkillBranchPR,

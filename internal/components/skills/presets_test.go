@@ -11,6 +11,7 @@ func TestSetupSkillsIsTheFixedSetupSet(t *testing.T) {
 	want := []model.SkillID{
 		model.SkillJudgmentDay,
 		model.SkillGoTesting,
+		model.SkillDebugging,
 		model.SkillCreator,
 		model.SkillImprover,
 		model.SkillSkillRegistry,

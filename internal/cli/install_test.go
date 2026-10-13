@@ -46,6 +46,7 @@ func TestNormalizeInstallFlagsDefaults(t *testing.T) {
 		Skills: []model.SkillID{
 			model.SkillJudgmentDay,
 			model.SkillGoTesting,
+			model.SkillDebugging,
 			model.SkillCreator,
 			model.SkillImprover,
 			model.SkillSkillRegistry,
