@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/carsimax/brunnr-code/internal/components/permissions"
 )
 
 func FuzzNormalizeJSON_NoPanic(f *testing.F) {
@@ -422,5 +424,48 @@ func TestJSONCleanup_OnRealFileWithTempDir(t *testing.T) {
 	}
 	if _, exists := mcpServers["custom"]; !exists {
 		t.Fatalf("custom server should remain in file JSON: %#v", mcpServers)
+	}
+}
+
+func TestRemoveManagedPermissionsKeepsUserRules(t *testing.T) {
+	deny, mode := permissions.ManagedClaudeDenyRules()
+	root := map[string]any{
+		"theme": "dark",
+		"permissions": map[string]any{
+			"defaultMode": mode,
+			"allow":       []any{"Bash(go test:*)"},
+			"deny":        []any{"Bash(my-rule)", deny[0]},
+		},
+	}
+	raw, _ := json.Marshal(root)
+
+	updated, changed, err := removeManagedPermissions(raw)
+	if err != nil || !changed {
+		t.Fatalf("changed=%v err=%v", changed, err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(updated, &got); err != nil {
+		t.Fatal(err)
+	}
+	perms := got["permissions"].(map[string]any)
+	if _, ok := perms["defaultMode"]; ok {
+		t.Fatalf("managed defaultMode kept: %v", perms)
+	}
+	if d := perms["deny"].([]any); len(d) != 1 || d[0] != "Bash(my-rule)" {
+		t.Fatalf("deny = %v", d)
+	}
+	if a := perms["allow"].([]any); len(a) != 1 || got["theme"] != "dark" {
+		t.Fatalf("user data lost: %v", got)
+	}
+
+	// Only managed content: the whole permissions key goes; a user defaultMode stays.
+	raw, _ = json.Marshal(map[string]any{"permissions": map[string]any{"defaultMode": mode, "deny": deny}})
+	updated, _, _ = removeManagedPermissions(raw)
+	if strings.Contains(string(updated), "permissions") {
+		t.Fatalf("empty permissions kept: %s", updated)
+	}
+	raw, _ = json.Marshal(map[string]any{"permissions": map[string]any{"defaultMode": "plan"}})
+	if _, changed, _ := removeManagedPermissions(raw); changed {
+		t.Fatal("user defaultMode must not be touched")
 	}
 }

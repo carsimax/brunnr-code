@@ -27,11 +27,11 @@ type ArchiveEntry struct {
 //
 // The archive uses filepath.ToSlash for cross-platform tar path compatibility.
 func CreateArchive(archivePath string, entries []ArchiveEntry) error {
-	if err := os.MkdirAll(filepath.Dir(archivePath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(archivePath), 0o700); err != nil {
 		return fmt.Errorf("create archive directory %q: %w", filepath.Dir(archivePath), err)
 	}
 
-	f, err := os.Create(archivePath)
+	f, err := os.OpenFile(archivePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("create archive file %q: %w", archivePath, err)
 	}

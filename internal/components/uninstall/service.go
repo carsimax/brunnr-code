@@ -644,7 +644,7 @@ func (s *Service) componentOperations(adapter agents.Adapter, componentID model.
 			targets = append(targets, path)
 			switch adapter.Agent() {
 			case model.AgentClaudeCode:
-				ops = append(ops, rewriteJSONFile(path, jsonPath{"permissions"}))
+				ops = append(ops, rewriteJSONFileWith(path, removeManagedPermissions))
 			}
 		}
 	case model.ComponentSkills:

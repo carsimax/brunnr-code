@@ -37,6 +37,10 @@ func run(root string, stdout, stderr io.Writer) int {
 		if name == "" {
 			continue
 		}
+		// --cached lists files deleted from the worktree; gofmt cannot open them.
+		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(name))); os.IsNotExist(err) {
+			continue
+		}
 		var output bytes.Buffer
 		cmd = exec.Command("gofmt", "-l", filepath.FromSlash(name))
 		cmd.Dir = root
