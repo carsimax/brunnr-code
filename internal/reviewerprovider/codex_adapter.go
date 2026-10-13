@@ -93,7 +93,7 @@ func (adapter *CodexAdapter) Review(ctx context.Context, invocation Invocation) 
 	var stderr bytes.Buffer
 	command.Stderr = &stderr
 	if err := command.Run(); err != nil {
-		return nil, fmt.Errorf("codex reviewer transport failed: %w: %s", err, stderr.String())
+		return nil, fmt.Errorf("codex reviewer transport failed: %w: %s", err, reviewerTransportFailureDetail(stderr.String(), ""))
 	}
 
 	raw, err := os.ReadFile(outputPath)
