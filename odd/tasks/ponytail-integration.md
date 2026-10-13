@@ -20,7 +20,7 @@ Assumption: credit to the source goes in the PR description and this document; n
 |----|-------|-------|--------|----------|
 | T1 | S1, S2 | delegated (two asset files, their wording tests and goldens) | done (`a4fab5f9`) | RED: `TestPersonaChannelsCarryClosingLineAndSimplicityRefinements` failed, five rules missing in both assets; GREEN: same test, assets/components/cli ok, `scripts/test-fast.sh` exit 0, gofmtcheck clean; parent spot check: new test ok, and on Linux `TestOrchestratorModuleBaseline` and the budget tests pass unchanged |
 | T2 | S1, S3 | delegated (two skills and their tests) | done (`b8af2810`) | RED: `TestSkillsCarryShortcutLedger` 8 phrases missing; GREEN: same test, assets/components ok (trigger and duplicate tests included), `scripts/test-fast.sh` exit 0, gofmtcheck clean; ledger command run against `origin/main`; parent spot check: ok |
-| T3 | S1, S4 | delegated (judgment-day and its tests) | done | RED: `TestJudgmentDayCarriesFindingFormat` 14 phrases missing; GREEN: same test, assets/components/cli ok, `scripts/test-fast.sh` exit 0, gofmtcheck clean; parent spot check: judgment-day, shortcut, trigger, and duplicate tests ok |
+| T3 | S1, S4 | delegated (judgment-day and its tests) | done (`a73f9b93`) | RED: `TestJudgmentDayCarriesFindingFormat` 14 phrases missing; GREEN: same test, assets/components/cli ok, `scripts/test-fast.sh` exit 0, gofmtcheck clean; parent spot check: judgment-day, shortcut, trigger, and duplicate tests ok |
 
 ## Log
 
