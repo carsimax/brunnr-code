@@ -25,6 +25,7 @@ var skillTriggerCases = map[string][]string{
 	"chained-pr": {
 		"This change is over 1200 lines, split it into stacked PRs.",
 		"Break the oversized diff into review slices.",
+		"Set up chained PRs for this feature.",
 	},
 	"cognitive-doc-design": {
 		"Rewrite the README so onboarding is easier for new contributors.",
