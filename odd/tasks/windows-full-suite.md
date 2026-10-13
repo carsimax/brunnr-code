@@ -36,7 +36,7 @@ Run `38429727532` on `76b49686` (log copy outside the repo, in the session scrat
 ## Tasks
 
 - [x] T1 — Diagnose and fix the 7 failures. Route: delegated (writer; 7 independent failures across 3 packages, preparation reading).
-- [ ] T2 — Push branch, dispatch Windows Full Suite, confirm green. Route: inline (git/gh state).
+- [x] T2 — Push branch, dispatch Windows Full Suite, confirm green. Route: inline (git/gh state).
 
 ## Acceptance criteria
 
@@ -61,6 +61,8 @@ Run `38429727532` on `76b49686` (log copy outside the repo, in the session scrat
   - `TestClaudeUninstallRetiresModulePilotOnlyOnFullRemoval`: Windows exposes only a read-only bit; test now asserts the core mode is unchanged from before uninstall.
   - `TestProbeScratchParentRefusesCaseVariantInsideWorkspace`: `os.TempDir` reads `TMP`/`TEMP` on Windows, not `TMPDIR`; test sets all three. `pathidentity.Contains` is identity-based, so the product refuses correctly.
 
+- T2 observed: Windows Full Suite run 38433752622 on the branch, all 10 shards success.
+
 ## Next step
 
-T1.
+Fast-forward to main (user decision).
