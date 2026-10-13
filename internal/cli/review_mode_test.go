@@ -1046,3 +1046,13 @@ func TestReviewModeCloneScopeEnableInheritsDefaultOnWhileGlobalUnset(t *testing.
 		t.Fatalf("clone enable while global is on must report on without a note:\n%s", got)
 	}
 }
+
+func TestReviewModeGlobalScopeRefusesExpectedRevision(t *testing.T) {
+	reviewModeHome(t)
+	repo := initReviewCLIRepo(t)
+	var output bytes.Buffer
+	err := RunReviewMode([]string{"disable", "--cwd", repo, "--expected-revision", "abc"}, &output)
+	if err == nil || !strings.Contains(err.Error(), "--expected-revision") {
+		t.Fatalf("global scope must refuse --expected-revision, got %v", err)
+	}
+}

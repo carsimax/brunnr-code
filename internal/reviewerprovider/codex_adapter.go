@@ -108,6 +108,10 @@ func (adapter *CodexAdapter) Review(ctx context.Context, invocation Invocation) 
 // disabled explicitly rather than trusted to a default, and the temp-dir
 // writable roots workspace-write would otherwise add are excluded. The final
 // message path stays outside the writable copy.
+//
+// shortcut: read-only still lets Codex read absolute paths outside the
+// workspace, so injected prompt text in reviewed code could pull home files
+// into its result; upgrade to a sandbox with a path allowlist when Codex offers one.
 func codexReviewerArguments(workdir, outputPath string, probe bool) ([]string, error) {
 	sandbox := "read-only"
 	if probe {

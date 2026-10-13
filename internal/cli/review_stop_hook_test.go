@@ -614,3 +614,29 @@ func TestReviewStopHookReasonQuotesRepositoryRoot(t *testing.T) {
 		t.Fatalf("stop-hook reason does not quote the root; want %q in:\n%s", want, reason)
 	}
 }
+
+// The record is only a dedupe hint: failing to write it must not turn the
+// already-printed block JSON into a non-zero exit, which Claude Code ignores.
+func TestReviewStopHookRecordWriteFailureKeepsBlockAndSucceeds(t *testing.T) {
+	home := reviewModeHome(t)
+	repo := initReviewCLIRepo(t)
+	stageReviewStopHookCandidate(t, repo)
+	enableReviewStopHookRDD(t, repo)
+	dir := filepath.Dir(reviewStopHookStateFile(home, "sess-record-fail"))
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// A dangling symlink reads as "no record" but cannot be written through.
+	if err := os.Symlink(filepath.Join(dir, "missing", "x.json"), reviewStopHookStateFile(home, "sess-record-fail")); err != nil {
+		t.Fatal(err)
+	}
+
+	payload := reviewStopHookTestPayload(t, "sess-record-fail", repo, false, nil)
+	var stdout bytes.Buffer
+	if err := runReviewStopHook([]string{"--agent", "claude-code"}, strings.NewReader(payload), &stdout, io.Discard); err != nil {
+		t.Fatalf("record write failure must not fail the hook: %v", err)
+	}
+	if decodeReviewStopHookResult(t, stdout.Bytes()).Decision != "block" {
+		t.Fatalf("expected block JSON: %s", stdout.String())
+	}
+}

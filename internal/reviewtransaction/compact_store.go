@@ -36,6 +36,8 @@ const (
 const CompactTransportSchema = "brunnr-code.review-transport/v2"
 const LegacyReadOnlyErrorCode = "legacy_v1_read_only"
 
+// shortcut: git evidence validation runs under this lock and can outlast 2s on
+// big repos; upgrade by validating before the lock and rechecking the revision under it.
 var compactStartLockTimeout = 2 * time.Second
 var compactStartLockPollInterval = 25 * time.Millisecond
 

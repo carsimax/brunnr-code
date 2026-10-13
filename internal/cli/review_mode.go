@@ -84,6 +84,10 @@ func RunReviewMode(args []string, stdout io.Writer) error {
 		}
 	})
 
+	if revisionProvided && selectedScope == reviewModeScopeGlobal {
+		return errors.New("--expected-revision only applies with --scope clone")
+	}
+
 	ctx := context.Background()
 	result := ReviewModeResult{Schema: ReviewModeSchema, Operation: operation, Scope: selectedScope}
 	var err error
