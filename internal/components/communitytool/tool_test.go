@@ -309,6 +309,7 @@ func TestCodeGraphGuidanceInjectsForRepresentativeAgents(t *testing.T) {
 	result, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
 		installed = true
 		mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
+		mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\nargs = [\"serve\", \"--mcp\"]\n")
 		return nil
 	}), DetectorFunc(func(string) (string, error) {
 		if installed {
@@ -378,7 +379,7 @@ func TestInstallRunsCommandsAndReturnsLazyProjectIndexManualAction(t *testing.T)
 
 func TestDetectStatusReportsCLIAndPerAgentWiring(t *testing.T) {
 	home := t.TempDir()
-	mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph"}}}`)
+	mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
 	mustWrite(t, filepath.Join(home, ".claude", "CLAUDE.md"), strings.Join([]string{
 		"existing Claude guidance",
 		"<!-- brunnr-code:codegraph-guidance -->",
@@ -423,6 +424,7 @@ func TestDetectStatusReportsCodexMissingWhenConfigHasCodeGraphButGuidanceIsMissi
 	mustWrite(t, filepath.Join(home, ".codex", "config.toml"), strings.Join([]string{
 		`[mcp_servers.codegraph]`,
 		`command = "codegraph"`,
+		`args = ["serve", "--mcp"]`,
 	}, "\n"))
 
 	status := DetectStatus(model.CommunityToolCodeGraph, home, DetectorFunc(func(name string) (string, error) {
@@ -481,7 +483,7 @@ func TestValidateCodeGraphInstallStatusFailsForDetectedMissingAgent(t *testing.T
 
 func TestInstallSkipsWhenCodeGraphAlreadyReconciled(t *testing.T) {
 	home := t.TempDir()
-	mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph"}}}`)
+	mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
 
 	calls := 0
 	result, err := InstallWithHome(model.CommunityToolCodeGraph, "/work/project", home, RunnerFunc(func(string, ...string) error {
@@ -503,7 +505,7 @@ func TestInstallSkipsWhenCodeGraphAlreadyReconciled(t *testing.T) {
 
 func TestInstallAlreadyReconciledHealthyMessage(t *testing.T) {
 	home := t.TempDir()
-	mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph"}}}`)
+	mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
 	mustWrite(t, filepath.Join(home, ".claude", "CLAUDE.md"), "user guidance\n")
 	runner := RunnerFunc(func(string, ...string) error {
 		t.Fatal("already reconciled healthy agent must not invoke installer")
@@ -522,7 +524,7 @@ func TestInstallAlreadyReconciledHealthyMessage(t *testing.T) {
 
 func TestInstallRepairsMissingCLIWhenAgentMarkerExists(t *testing.T) {
 	home := t.TempDir()
-	mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph"}}}`)
+	mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
 
 	var commands []string
 	installed := false

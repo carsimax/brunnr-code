@@ -873,6 +873,7 @@ func TestCodeGraphGuidanceSyncStepRepairsCodexConfigOnlyGuidance(t *testing.T) {
 	mustWriteFile(t, configPath, []byte(strings.Join([]string{
 		`[mcp_servers.codegraph]`,
 		`command = "codegraph"`,
+		`args = ["serve", "--mcp"]`,
 	}, "\n")))
 
 	restoreLookPath := cmdLookPath

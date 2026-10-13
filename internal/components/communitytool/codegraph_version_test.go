@@ -95,7 +95,7 @@ func stubCodeGraphVersionSequence(t *testing.T, versions ...string) *[]string {
 func wireBothNativeTargets(t *testing.T, home string) {
 	t.Helper()
 	mustWrite(t, filepath.Join(home, ".claude.json"), `{"mcpServers":{"codegraph":{"command":"codegraph","args":["serve","--mcp"]}}}`)
-	mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\n")
+	mustWrite(t, filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.codegraph]\ncommand = \"codegraph\"\nargs = [\"serve\", \"--mcp\"]\n")
 }
 
 func TestInstallEnforcesTheUpstreamFloorBeforeTargetedInstall(t *testing.T) {

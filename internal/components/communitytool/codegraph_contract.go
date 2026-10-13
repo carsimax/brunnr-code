@@ -6,10 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
+
+	"github.com/BurntSushi/toml"
 
 	"github.com/carsimax/brunnr-code/internal/agents"
 	"github.com/carsimax/brunnr-code/internal/model"
+	"github.com/carsimax/brunnr-code/internal/system"
 )
 
 // codeGraphUpstreamVersion is the minimum CodeGraph release Brunnr-Code is
@@ -68,35 +70,70 @@ func codeGraphPostcondition(homeDir string, adapter agents.Adapter) (string, boo
 func codeGraphToolWiringPaths(homeDir string, adapter agents.Adapter) []string {
 	switch adapter.Agent() {
 	case model.AgentClaudeCode:
-		return []string{filepath.Join(homeDir, ".claude.json")}
+		return []string{claudeCodeGraphConfigPath(homeDir)}
+	case model.AgentCodex:
+		return []string{codexCodeGraphConfigPath(homeDir)}
 	default:
-		paths := []string{adapter.MCPConfigPath(homeDir, "codegraph"), adapter.SettingsPath(homeDir)}
-		if _, ok := adapter.(agents.EffectiveCodeGraphWiringDetector); ok && strings.HasSuffix(adapter.SettingsPath(homeDir), ".json") {
-			paths = append(paths, strings.TrimSuffix(adapter.SettingsPath(homeDir), ".json")+".jsonc")
-		}
-		return paths
+		return nil
 	}
 }
 
+func claudeCodeGraphConfigPath(homeDir string) string {
+	return filepath.Join(homeDir, ".claude.json")
+}
+
+// codexCodeGraphConfigPath follows upstream `codegraph install --target codex
+// --location global`, which writes $CODEX_HOME/config.toml and falls back to
+// ~/.codex. CODEX_HOME only applies to the real user home, matching the
+// environment Brunnr hands the upstream CLI for isolated homes.
+func codexCodeGraphConfigPath(homeDir string) string {
+	return filepath.Join(system.CodexConfigDir(homeDir), "config.toml")
+}
+
+// hasCodeGraphToolWiring reports whether the agent's global config holds the
+// MCP server entry upstream v1.6.2 writes. An outdated or hand-edited entry is
+// reported as not configured, so install re-runs the targeted upstream install.
 func hasCodeGraphToolWiring(homeDir string, adapter agents.Adapter) (string, bool) {
-	if adapter.Agent() == model.AgentClaudeCode {
-		path := filepath.Join(homeDir, ".claude.json")
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return "", false
-		}
-		return path, hasCanonicalCodeGraphServer(data)
+	switch adapter.Agent() {
+	case model.AgentClaudeCode:
+		return readCodeGraphWiring(claudeCodeGraphConfigPath(homeDir), hasCanonicalCodeGraphServer)
+	case model.AgentCodex:
+		return readCodeGraphWiring(codexCodeGraphConfigPath(homeDir), hasCanonicalCodexCodeGraphServer)
 	}
 	if detector, ok := adapter.(agents.EffectiveCodeGraphWiringDetector); ok {
 		return detector.EffectiveCodeGraphWiring(homeDir)
 	}
-	for _, path := range codeGraphToolWiringPaths(homeDir, adapter) {
-		data, err := os.ReadFile(path)
-		if err == nil && strings.Contains(strings.ToLower(string(data)), "codegraph") {
-			return path, true
+	return "", false
+}
+
+func readCodeGraphWiring(path string, valid func([]byte) bool) (string, bool) {
+	data, err := os.ReadFile(path)
+	if err != nil || !valid(data) {
+		return "", false
+	}
+	return path, true
+}
+
+// codeGraphMCPServer is the server entry upstream writes for every agent
+// (src/installer/targets/shared.ts getMcpServerConfig): the bare command
+// `codegraph` with args `serve --mcp`. Upstream never writes an absolute
+// command path, so only the bare name counts. Agent-specific extras such as
+// Claude's alwaysLoad stay user-editable and are not checked.
+type codeGraphMCPServer struct {
+	Command string   `json:"command" toml:"command"`
+	Args    []string `json:"args" toml:"args"`
+}
+
+func (s codeGraphMCPServer) canonical() bool {
+	if s.Command != "codegraph" {
+		return false
+	}
+	for i := 0; i+1 < len(s.Args); i++ {
+		if s.Args[i] == "serve" && s.Args[i+1] == "--mcp" {
+			return true
 		}
 	}
-	return "", false
+	return false
 }
 
 func hasCanonicalCodeGraphServer(data []byte) bool {
@@ -106,11 +143,26 @@ func hasCanonicalCodeGraphServer(data []byte) bool {
 	if json.Unmarshal(data, &config) != nil {
 		return false
 	}
-	var server struct {
-		Command string `json:"command"`
-	}
 	raw, ok := config.MCPServers["codegraph"]
-	return ok && json.Unmarshal(raw, &server) == nil && server.Command == "codegraph"
+	var server *codeGraphMCPServer
+	return ok && json.Unmarshal(raw, &server) == nil && server != nil && server.canonical()
+}
+
+// hasCanonicalCodexCodeGraphServer parses config.toml, so a comment, a string
+// value or another table that merely mentions codegraph never counts.
+func hasCanonicalCodexCodeGraphServer(data []byte) bool {
+	var config struct {
+		MCPServers map[string]toml.Primitive `toml:"mcp_servers"`
+	}
+	meta, err := toml.Decode(string(data), &config)
+	if err != nil {
+		return false
+	}
+	// Decode only the codegraph entry, so another server's unusual shape
+	// cannot hide a valid one.
+	raw, ok := config.MCPServers["codegraph"]
+	var server codeGraphMCPServer
+	return ok && meta.PrimitiveDecode(raw, &server) == nil && server.canonical()
 }
 
 func detectedCodeGraphTargets(homeDir string) []string {
