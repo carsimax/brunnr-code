@@ -67,6 +67,8 @@ Strategy: `single-pr`. Forecast: ~1000–1400 authored lines, mostly deletions i
 
 - T4 done. Route: delegated (writer; Dockerfiles plus shell). `e2e/lib.sh` gains `setup_fake_codegraph_binary`, a node `codegraph` shim on PATH (opt out with `BRUNNR_CODE_E2E_REAL_CODEGRAPH=1`), enabled next to the Engram shim for Tier 2/3. It reports `CodeGraph v1.6.2`, the contract floor, so the installer skips npm and `codegraph upgrade`; on `install --target claude,codex --location global --yes` it merges the canonical entry (`command = "codegraph"`, args `serve --mcp`) into `~/.claude.json` `mcpServers.codegraph` and appends `[mcp_servers.codegraph]` to `$CODEX_HOME/config.toml`; `init <root>` creates `<root>/.codegraph/`; other subcommands exit 0. No Dockerfile or production Go change. The full-setup tests now assert the CodeGraph MCP entry for Claude and Codex. Verification: `bash -n` on `e2e/lib.sh` and `e2e/e2e_test.sh` ok; shellcheck not installed; local shim smoke test (merge preserves the existing engram entries, second install is idempotent) ok. `RUN_FULL_E2E=1 RUN_BACKUP_TESTS=1 ./e2e/docker-test.sh`: ubuntu 129 passed / 0 failed, fedora 129 / 0; arch's container exited mid-Tier-1 with no failing assertion (amd64 image under emulation on an arm64 host), and a direct rerun of the same arch image with both tiers gave 129 passed / 0 failed.
 
+- Parent rerun of `RUN_FULL_E2E=1 RUN_BACKUP_TESTS=1 ./e2e/docker-test.sh` after `86dad964`: exit 0, 3/3 platforms passed (129 passed, 0 failed each). The earlier arch interruption did not reproduce.
+
 ## Next step
 
 Feature complete. Push and PR are the maintainer's decision.
