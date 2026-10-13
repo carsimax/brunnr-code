@@ -45,7 +45,8 @@ func RunReviewCaptureCorrectionPlan(args []string, stdout io.Writer) error {
 		return reviewPreflightError(errors.New("review capture-correction-plan requires --lineage, --target, --expected-revision, --request-hash, and positive --correction-lines")) // refusal:by-design operator-knowledge: STATUS provides the exact correction-plan binding and the user supplies a positive forecast
 	}
 	contextHandle := strings.TrimSpace(*repositoryContext)
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), reviewProviderRoleCaptureTimeout)
+	defer cancel()
 	var root string
 	var err error
 	if contextHandle != "" {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/carsimax/brunnr-code/internal/model"
 )
@@ -74,6 +75,8 @@ func (adapter *ClaudeAdapter) Review(ctx context.Context, invocation Invocation)
 		}
 	}
 	command := commandContext(ctx, binary, arguments...)
+	// A grandchild holding stdout must not keep Wait blocked after the context ends.
+	command.WaitDelay = time.Second
 	command.Dir = scratch
 	// On Windows, `claude` from an npm-style install resolves to a `.cmd`
 	// shim; launching it goes through cmd.exe's own command-line reparsing,
