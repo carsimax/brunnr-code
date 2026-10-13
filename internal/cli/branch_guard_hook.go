@@ -10,15 +10,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/carsimax/brunnr-code/internal/model"
 )
 
-// BranchGuardHookCommand is the exact command the Claude PreToolUse hook runs.
-// Install deduplicates and uninstall removes the hook by this string.
-const BranchGuardHookCommand = "brunnr-code hook branch-guard --agent claude-code"
-
-// maxBranchGuardPayloadBytes bounds the hook stdin payload, like the review
-// stop-hook: a PreToolUse event is small, and Write content is never needed.
-const maxBranchGuardPayloadBytes = 4 << 20
+const branchGuardUsage = "usage: brunnr-code hook branch-guard --agent <agent>"
 
 const branchGuardDenyReason = "Brunnr-Code blocks file edits on the default branch %q. Create a feature branch first (for example `git switch -c feat/<name>`), then retry the edit."
 
@@ -42,13 +38,13 @@ type branchGuardDecision struct {
 // agent hooks run.
 func RunHook(args []string, stdin io.Reader, stdout io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: brunnr-code hook branch-guard --agent claude-code")
+		return errors.New(branchGuardUsage)
 	}
 	switch args[0] {
 	case "branch-guard":
 		return runBranchGuardHook(args[1:], stdin, stdout)
 	default:
-		return fmt.Errorf("unknown hook %q; usage: brunnr-code hook branch-guard --agent claude-code", args[0])
+		return fmt.Errorf("unknown hook %q; %s", args[0], branchGuardUsage)
 	}
 }
 
@@ -58,20 +54,18 @@ func RunHook(args []string, stdin io.Reader, stdout io.Writer) error {
 func runBranchGuardHook(args []string, stdin io.Reader, stdout io.Writer) error {
 	flags := flag.NewFlagSet("hook branch-guard", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	agent := flags.String("agent", "", "required; only claude-code is supported")
+	agent := flags.String("agent", "", "required; the executing runtime (only Claude Code is supported)")
 	if err := flags.Parse(args); err != nil {
 		return fmt.Errorf("hook branch-guard: %w", err)
 	}
-	if *agent != "claude-code" {
-		return fmt.Errorf("hook branch-guard requires --agent claude-code; got %q", *agent)
+	if *agent != string(model.AgentClaudeCode) {
+		return fmt.Errorf("hook branch-guard does not support runtime %q; only %s is supported", *agent, model.AgentClaudeCode)
 	}
 
-	raw, err := io.ReadAll(io.LimitReader(stdin, maxBranchGuardPayloadBytes))
-	if err != nil {
-		return nil
-	}
+	// The payload is decoded whole and unbounded on purpose: a cap would turn
+	// a large Write into an undecodable payload, which this guard must allow.
 	var payload branchGuardPayload
-	if json.Unmarshal(raw, &payload) != nil {
+	if json.NewDecoder(stdin).Decode(&payload) != nil {
 		return nil
 	}
 
@@ -130,8 +124,17 @@ func nearestExistingDir(dir string) string {
 	}
 }
 
+// gitOutput runs git in dir. Inherited repository variables are dropped:
+// GIT_DIR or GIT_WORK_TREE would override -C and judge another repository.
 func gitOutput(dir string, args ...string) (string, bool) {
-	out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).Output()
+	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	for _, kv := range os.Environ() {
+		name, _, _ := strings.Cut(kv, "=")
+		if name != "GIT_DIR" && name != "GIT_WORK_TREE" && name != "GIT_INDEX_FILE" && name != "GIT_COMMON_DIR" {
+			cmd.Env = append(cmd.Env, kv)
+		}
+	}
+	out, err := cmd.Output()
 	if err != nil {
 		return "", false
 	}

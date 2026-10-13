@@ -175,3 +175,28 @@ func TestRunHookRejectsUnknownHook(t *testing.T) {
 		t.Fatal("RunHook() error = nil, want unknown hook error")
 	}
 }
+
+// TestBranchGuardDeniesLargeWrite pins that a Write bigger than any payload
+// cap is still judged: an undecodable payload would be allowed.
+func TestBranchGuardDeniesLargeWrite(t *testing.T) {
+	isolateBranchGuardGit(t)
+	repo := newBranchGuardRepo(t, "main")
+	payload, _ := json.Marshal(map[string]any{
+		"cwd":             repo,
+		"hook_event_name": "PreToolUse",
+		"tool_name":       "Write",
+		"tool_input":      map[string]any{"file_path": filepath.Join(repo, "big.txt"), "content": strings.Repeat("x", 5<<20)},
+	})
+	assertBranchGuardDenies(t, runBranchGuard(t, string(payload)))
+}
+
+// TestBranchGuardIgnoresInheritedGitDir pins that GIT_DIR from the hook's
+// environment cannot redirect the decision to another repository.
+func TestBranchGuardIgnoresInheritedGitDir(t *testing.T) {
+	isolateBranchGuardGit(t)
+	feature := newBranchGuardRepo(t, "main")
+	branchGuardGit(t, feature, "switch", "-q", "-c", "feat/x")
+	onMain := newBranchGuardRepo(t, "main")
+	t.Setenv("GIT_DIR", filepath.Join(feature, ".git"))
+	assertBranchGuardDenies(t, runBranchGuard(t, branchGuardInput(onMain, filepath.Join(onMain, "a.go"))))
+}
