@@ -166,10 +166,7 @@ artifacts = json.loads(artifacts_path.read_text(encoding="utf-8"))
 archives = [artifact for artifact in artifacts if artifact.get("type") == "Archive"]
 platform_archives = [artifact for artifact in archives if artifact.get("goos") and artifact.get("goarch")]
 expected_platforms = {
-    ("darwin", "amd64"),
     ("darwin", "arm64"),
-    ("linux", "amd64"),
-    ("linux", "arm64"),
 }
 platforms = {(item.get("goos"), item.get("goarch")) for item in platform_archives}
 assert platforms == expected_platforms and len(platform_archives) == len(expected_platforms), (

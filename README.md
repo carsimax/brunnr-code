@@ -15,7 +15,7 @@ independent fork and is not affiliated with or endorsed by the Gentle AI project
 
 ## Install
 
-macOS and Linux (amd64, arm64):
+macOS on Apple Silicon (arm64) only:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/carsimax/brunnr-code/main/scripts/install.sh | bash
