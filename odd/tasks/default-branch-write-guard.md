@@ -22,7 +22,7 @@ Branch: `feat/default-branch-write-guard`. Delivery: `ask-on-risk` (forecast ~35
 | T1 | S1-S4 | inline (no writer reason: one sequential unit) | done | `d8eeef82` (RED: `RunHook` undefined; GREEN 11/11), hardening `53e7134c` (RED: large write + GIT_DIR tests fail on `d8eeef82`) |
 | T2 | S5-S6 | inline | done | `efc4f0f4` (RED: installer byte test + uninstall test) |
 | T3 | S7 | inline | done | `d8eeef82` help, `efc4f0f4` README |
-| V  | S1-S7 | delegated independent verifier (high risk) | partial | T1 at `d8eeef82`: S1-S4 PASS, no blockers; S5-S7 pending |
+| V  | S1-S7 | delegated independent verifier (high risk) | done | `0c3abee1`: S1-S7 PASS, no blockers; review `review-f8c8c7f555c29a7a` (4 lenses) approved and acknowledged |
 
 ## Log
 
@@ -35,4 +35,7 @@ Branch: `feat/default-branch-write-guard`. Delivery: `ask-on-risk` (forecast ~35
 - **L7 (2026-10-13):** Full suite run 1 failed `TestNoGoSourceBindsALiteralRuntimeIdentityIntoPrintedCommands` (literal `--agent claude-code` in printed strings, #2440 guard) and `TestRunArgsRestoreUnknownIDReturnsError` (passed 3/3 in isolation, intermittent). Fixed literals; run 2: `scripts/test-fast.sh` exit 0.
 - **L8 (2026-10-13, user, verbatim):** "lo que estamos haciendo resuelve el tema de que no se delega a subagentes?" — answered: no; the hook only enforces branching. Proposed a follow-up lookup-counter hook.
 - **L9 (2026-10-13, user, verbatim):** "Y como lo hace gentle-ia para que funcione sin un hook? esta bien la idea de hacerlo asi pero por que gentle ai no lo hace y si lo pidemos portar de  https://github.com/Gentleman-Programming/gentle-ai eso inclute el trabajo en ramas, dale un ojo." — explorer auditing upstream branch mechanisms and post-fork commits.
-- **Next:** verifier over S5-S7 (`efc4f0f4`), then the due review; upstream port decision pending the audit.
+- **L10 (2026-10-13):** Upstream audit: gentle-ai enforces neither branching nor delegation (prompt-only, thresholds advisory); fork lacks upstream `f0b6e477` "Authorized work continuity". User approved porting it in a separate PR after this one ("ok").
+- **L11 (2026-10-13):** Verifier at `0c3abee1`: S1-S7 PASS, no blockers; sync diff vs baseline is only the new entry. Pre-existing advisories (not caused here): install over JSONC settings loses all hooks (baseline identical), uninstall drops JSONC comments, second install not byte-idempotent. Change-caused cosmetic: `hook branch-guard --help` exits 1.
+- **L12 (2026-10-13):** Review `review-f8c8c7f555c29a7a` (risk, resilience, readability, reliability) approved and acknowledged. Informational follow-ups: deny reason omits the repository path; NotebookEdit `notebook_path` lacks a unit test; relative `file_path` resolves against the hook process cwd (Claude sends absolute paths); test git helper inherits GIT_* env; guard also covers non-project repos the agent edits.
+- **Next:** open PR; follow-ups above; then port `f0b6e477` on its own branch.
