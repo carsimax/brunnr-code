@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -115,9 +114,6 @@ func TestSkillRegistryHooksInstall(t *testing.T) {
 				t.Fatal(err)
 			}
 			command := tc.command
-			if tc.agent == model.AgentClaudeCode && runtime.GOOS == "windows" {
-				command = `powershell -NoProfile -Command 'if (Test-Path env:CLAUDE_PROJECT_DIR) { $dir = $env:CLAUDE_PROJECT_DIR } else { $dir = $PWD }; brunnr-code skill-registry refresh --quiet --no-gitignore --cwd "$dir"; exit 0'`
-			}
 			event := "SessionStart"
 			if tc.agent == model.AgentClaudeCode {
 				event = "UserPromptSubmit"

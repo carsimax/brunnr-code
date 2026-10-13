@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -15,9 +14,6 @@ import (
 // executable bit, and symlinks -- and nothing from the live workspace, not even
 // its .git directory.
 func TestMaterializeRefuterProbeTreeWritesTheExactCandidateTree(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX file modes and symlinks")
-	}
 	repo := initSnapshotRepo(t)
 	gitSnapshot(t, repo, "rm", "-q", "--", "deleted.txt")
 	if err := os.Symlink("tracked.txt", filepath.Join(repo, "link")); err != nil {

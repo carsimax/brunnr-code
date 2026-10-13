@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build darwin
 
 // This file drives the `brunnr-code review mode` CLI surface for the #5112
 // filesystem-capability class from the same external package as

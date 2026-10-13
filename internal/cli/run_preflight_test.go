@@ -7,9 +7,8 @@ import (
 	"github.com/carsimax/brunnr-code/internal/system"
 )
 
-// windowsProfile is a convenience profile for Windows tests that exercise the
-// npm preflight (scoop is the package manager reported by Windows scoop users).
-var windowsProfile = system.PlatformProfile{OS: "windows", PackageManager: "winget", Supported: true}
+// darwinProfile is the only supported platform profile.
+var darwinProfile = system.PlatformProfile{OS: "darwin", Supported: true}
 
 // checkDependenciesStep only preflights Pi now: Pi is the sole agent that
 // still executes anything on the user's behalf (its own already-present `pi`
@@ -40,8 +39,7 @@ func TestCheckDependenciesStepDoesNotRequireUVForOtherAgents(t *testing.T) {
 //
 // These four tests used to prove that a missing npm blocked the pipeline
 // with a clear, actionable error before `npm install -g …` ran and surfaced
-// a cryptic "exec: npm: executable file not found" (the Windows regression
-// this file was originally written for). brunnr-code no longer runs that
+// a cryptic "exec: npm: executable file not found". brunnr-code no longer runs that
 // command at all for non-Pi agents — the refusal in agentInstallStep prints
 // it instead — so there is nothing left to preflight here, and no exec to
 // crash: the cryptic-error scenario these guarded against cannot happen
@@ -50,7 +48,7 @@ func TestCheckDependenciesStepDoesNotRequireUVForOtherAgents(t *testing.T) {
 func TestCheckDependenciesStepDoesNotBlockClaudeCodeOnMissingNpm(t *testing.T) {
 	step := checkDependenciesStep{
 		id:      "prepare:check-dependencies",
-		profile: windowsProfile,
+		profile: darwinProfile,
 		selection: model.Selection{
 			Agents: []model.AgentID{model.AgentClaudeCode},
 		},
@@ -69,7 +67,7 @@ func TestCheckDependenciesStepPassesWhenNpmPresent(t *testing.T) {
 		t.Run(string(agent), func(t *testing.T) {
 			step := checkDependenciesStep{
 				id:      "prepare:check-dependencies",
-				profile: windowsProfile,
+				profile: darwinProfile,
 				selection: model.Selection{
 					Agents: []model.AgentID{agent},
 				},

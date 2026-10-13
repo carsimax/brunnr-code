@@ -79,12 +79,6 @@ func (adapter *ClaudeAdapter) Review(ctx context.Context, invocation Invocation)
 	// A grandchild holding stdout must not keep Wait blocked after the context ends.
 	command.WaitDelay = time.Second
 	command.Dir = scratch
-	// On Windows, `claude` from an npm-style install resolves to a `.cmd`
-	// shim; launching it goes through cmd.exe's own command-line reparsing,
-	// which needs its own quoting when the resolved path contains a space
-	// (issue #4039). This is a no-op for every other binary and platform: the
-	// binary is otherwise launched directly, with no shell.
-	configureWindowsBatchLaunch(command, binary, arguments)
 	command.Stdin = bytes.NewReader(invocation.Prompt())
 	var stdout, stderr bytes.Buffer
 	command.Stdout, command.Stderr = &stdout, &stderr

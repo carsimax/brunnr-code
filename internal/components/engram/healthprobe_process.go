@@ -1,5 +1,3 @@
-//go:build !windows
-
 package engram
 
 import (
@@ -17,8 +15,8 @@ func startProbeProcessTree(command *exec.Cmd) (func() error, error) {
 	}
 	return func() error {
 		// The leader is never reaped before this kill, so its process group
-		// cannot be reused. Linux reports a group of only exited members as
-		// ESRCH; macOS reports EPERM. Both mean there is nothing left to stop.
+		// cannot be reused. A group of only exited members reports ESRCH or,
+		// on macOS, EPERM. Both mean there is nothing left to stop.
 		if err := syscall.Kill(-command.Process.Pid, syscall.SIGKILL); err != nil && !errors.Is(err, syscall.ESRCH) && !errors.Is(err, syscall.EPERM) {
 			return err
 		}

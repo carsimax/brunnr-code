@@ -107,15 +107,7 @@ func TestRepositoryIdentityLeaseRejectsGitControlReplacement(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.Rename(replacementPath, controlPath); err != nil {
-		// Windows does not replace an occupied destination with os.Rename.
-		// The replacement inode/file-ID was allocated before removing the
-		// original, so this fallback cannot recycle the captured identity.
-		if removeErr := os.Remove(controlPath); removeErr != nil {
-			t.Fatal(removeErr)
-		}
-		if renameErr := os.Rename(replacementPath, controlPath); renameErr != nil {
-			t.Fatal(renameErr)
-		}
+		t.Fatal(err)
 	}
 	replaced, err := os.Stat(controlPath)
 	if err != nil {

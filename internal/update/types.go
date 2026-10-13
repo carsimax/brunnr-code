@@ -33,14 +33,14 @@ type ToolInfo struct {
 	InstallMethod     InstallMethod // how this tool is installed (used by upgrade executor)
 
 	// FallbackPaths returns a list of absolute paths to check when exec.LookPath
-	// fails. This covers the Windows scenario where AddToUserPath updates the
-	// registry but the running process PATH is stale after install. When a path
+	// fails. This covers a running process PATH that is stale after install
+	// (the install dir is added for new shells only). When a path
 	// is found on disk, detectInstalledVersion runs the detect command using that
 	// full path rather than the bare binary name.
 	//
-	// The function receives the user home directory and the value of LOCALAPPDATA
-	// (empty on non-Windows). May be nil when no fallback is needed.
-	FallbackPaths func(homeDir, localAppData string) []string
+	// The function receives the user home directory. May be nil when no
+	// fallback is needed.
+	FallbackPaths func(homeDir string) []string
 }
 
 // UpdateResult holds the result of checking a single tool for updates.

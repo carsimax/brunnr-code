@@ -1,7 +1,7 @@
 package agenthooks
 
 // Re-execute a copy of the test binary as brunnr-code to capture argv without
-// introducing a shell that would re-tokenize arguments on Windows.
+// introducing a shell that would re-tokenize arguments.
 import (
 	"bytes"
 	"fmt"

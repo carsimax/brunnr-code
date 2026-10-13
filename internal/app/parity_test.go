@@ -70,92 +70,38 @@ func TestInstallPlannerParityWithTUISelection(t *testing.T) {
 
 // --- Batch D: App guard-flow tests ---
 
-func TestGuardAcceptsWindows(t *testing.T) {
-	if err := system.EnsureSupportedOS("windows"); err != nil {
-		t.Fatalf("expected windows to be accepted, got %v", err)
+func TestGuardAcceptsDarwinArm64(t *testing.T) {
+	if err := system.EnsureSupportedPlatform("darwin", "arm64"); err != nil {
+		t.Fatalf("expected darwin/arm64 to be accepted, got %v", err)
 	}
 }
 
-func TestGuardRejectsUnsupportedOS(t *testing.T) {
-	err := system.EnsureSupportedOS("freebsd")
-	if err == nil {
-		t.Fatalf("expected error for unsupported OS")
-	}
-	if !errors.Is(err, system.ErrUnsupportedOS) {
-		t.Fatalf("expected ErrUnsupportedOS, got %v", err)
-	}
-}
-
-func TestGuardAcceptsDarwin(t *testing.T) {
-	if err := system.EnsureSupportedOS("darwin"); err != nil {
-		t.Fatalf("expected darwin to be accepted, got %v", err)
-	}
-}
-
-func TestGuardAcceptsLinux(t *testing.T) {
-	if err := system.EnsureSupportedOS("linux"); err != nil {
-		t.Fatalf("expected linux to be accepted, got %v", err)
+func TestGuardRejectsEveryOtherPlatform(t *testing.T) {
+	for _, platform := range [][2]string{
+		{"darwin", "amd64"},
+		{"linux", "arm64"},
+		{"linux", "amd64"},
+		{"windows", "amd64"},
+		{"freebsd", "arm64"},
+	} {
+		err := system.EnsureSupportedPlatform(platform[0], platform[1])
+		if err == nil {
+			t.Fatalf("expected %s/%s to be rejected", platform[0], platform[1])
+		}
+		if !errors.Is(err, system.ErrUnsupportedPlatform) {
+			t.Fatalf("%s/%s: expected ErrUnsupportedPlatform, got %v", platform[0], platform[1], err)
+		}
 	}
 }
 
-func TestGuardRejectsUnknownUnsupportedLinuxDistro(t *testing.T) {
-	profile := system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroUnknown, Supported: false}
-	err := system.EnsureSupportedPlatform(profile)
-	if err == nil {
-		t.Fatalf("expected error for unsupported linux distro")
-	}
-	if !errors.Is(err, system.ErrUnsupportedLinuxDistro) {
-		t.Fatalf("expected ErrUnsupportedLinuxDistro, got %v", err)
-	}
-}
-
-func TestGuardAcceptsUbuntuProfile(t *testing.T) {
-	profile := system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt", Supported: true}
-	if err := system.EnsureSupportedPlatform(profile); err != nil {
-		t.Fatalf("expected ubuntu profile to be accepted, got %v", err)
-	}
-}
-
-func TestGuardAcceptsArchProfile(t *testing.T) {
-	profile := system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroArch, PackageManager: "pacman", Supported: true}
-	if err := system.EnsureSupportedPlatform(profile); err != nil {
-		t.Fatalf("expected arch profile to be accepted, got %v", err)
-	}
-}
-
-func TestGuardAcceptsFedoraProfile(t *testing.T) {
-	profile := system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroFedora, PackageManager: "dnf", Supported: true}
-	if err := system.EnsureSupportedPlatform(profile); err != nil {
-		t.Fatalf("expected fedora profile to be accepted, got %v", err)
-	}
-}
-
-func TestGuardFlowLinuxDryRunPropagatesDecision(t *testing.T) {
-	detection := system.DetectionResult{
-		System: system.SystemInfo{
-			OS:        "linux",
-			Arch:      "amd64",
-			Shell:     "/bin/bash",
-			Supported: true,
-			Profile: system.PlatformProfile{
-				OS:             "linux",
-				LinuxDistro:    system.LinuxDistroUbuntu,
-				PackageManager: "apt",
-				Supported:      true,
-			},
-		},
-	}
-
-	result, err := runInstallForParity([]string{"--dry-run"}, detection)
+func TestGuardFlowDarwinDryRunPropagatesDecision(t *testing.T) {
+	result, err := runInstallForParity([]string{"--dry-run"}, darwinArm64Detection())
 	if err != nil {
 		t.Fatalf("RunInstall() dry-run error = %v", err)
 	}
 
-	if result.Resolved.PlatformDecision.OS != "linux" {
-		t.Fatalf("platform decision OS = %q, want linux", result.Resolved.PlatformDecision.OS)
-	}
-	if result.Resolved.PlatformDecision.PackageManager != "apt" {
-		t.Fatalf("platform decision PackageManager = %q, want apt", result.Resolved.PlatformDecision.PackageManager)
+	if result.Resolved.PlatformDecision.OS != "darwin" {
+		t.Fatalf("platform decision OS = %q, want darwin", result.Resolved.PlatformDecision.OS)
 	}
 	if !result.Resolved.PlatformDecision.Supported {
 		t.Fatalf("platform decision Supported = false, want true")
@@ -251,11 +197,10 @@ func TestRunArgsSyncNoAgentsIsNoOp(t *testing.T) {
 	}
 }
 
-// --- Batch E: macOS parity regression and Linux cross-verification ---
+// --- Batch E: macOS parity regression ---
 
 func TestMacOSDefaultProfileFallbackWhenDetectionEmpty(t *testing.T) {
-	// When DetectionResult is zero-value (no profile), CLI defaults to macOS,
-	// which has no package manager.
+	// When DetectionResult is zero-value (no profile), CLI defaults to macOS.
 	detection := system.DetectionResult{}
 	result, err := runInstallForParity([]string{"--dry-run"}, detection)
 	if err != nil {
@@ -265,99 +210,13 @@ func TestMacOSDefaultProfileFallbackWhenDetectionEmpty(t *testing.T) {
 	if result.Resolved.PlatformDecision.OS != "darwin" {
 		t.Fatalf("default platform decision OS = %q, want darwin", result.Resolved.PlatformDecision.OS)
 	}
-	if result.Resolved.PlatformDecision.PackageManager != "" {
-		t.Fatalf("default platform decision PM = %q, want none", result.Resolved.PlatformDecision.PackageManager)
-	}
 	if !result.Resolved.PlatformDecision.Supported {
 		t.Fatalf("default platform decision Supported = false, want true")
 	}
 }
 
-func TestLinuxDryRunPreservesSameResolverOutputAsMacOS(t *testing.T) {
-	// Platform decision differs but the resolver output (agents, components, order) should be identical.
-	macOSResult, err := runInstallForParity([]string{"--dry-run"}, system.DetectionResult{})
-	if err != nil {
-		t.Fatalf("macOS RunInstall() error = %v", err)
-	}
-
-	linuxDetection := system.DetectionResult{
-		System: system.SystemInfo{
-			OS:        "linux",
-			Arch:      "amd64",
-			Shell:     "/bin/bash",
-			Supported: true,
-			Profile: system.PlatformProfile{
-				OS:             "linux",
-				LinuxDistro:    system.LinuxDistroUbuntu,
-				PackageManager: "apt",
-				Supported:      true,
-			},
-		},
-	}
-	linuxResult, err := runInstallForParity([]string{"--dry-run"}, linuxDetection)
-	if err != nil {
-		t.Fatalf("Linux RunInstall() error = %v", err)
-	}
-
-	// Agents should match
-	if !reflect.DeepEqual(macOSResult.Resolved.Agents, linuxResult.Resolved.Agents) {
-		t.Fatalf("agents differ\nmacOS=%v\nlinux=%v", macOSResult.Resolved.Agents, linuxResult.Resolved.Agents)
-	}
-
-	// Ordered components should match
-	if !reflect.DeepEqual(macOSResult.Resolved.OrderedComponents, linuxResult.Resolved.OrderedComponents) {
-		t.Fatalf("ordered components differ\nmacOS=%v\nlinux=%v", macOSResult.Resolved.OrderedComponents, linuxResult.Resolved.OrderedComponents)
-	}
-
-	// Selection should match
-	if !reflect.DeepEqual(macOSResult.Selection, linuxResult.Selection) {
-		t.Fatalf("selection differs\nmacOS=%#v\nlinux=%#v", macOSResult.Selection, linuxResult.Selection)
-	}
-
-	// Platform decisions SHOULD differ
-	if macOSResult.Resolved.PlatformDecision.OS == linuxResult.Resolved.PlatformDecision.OS {
-		t.Fatalf("platform decisions should differ between macOS and Linux but both have OS=%q", macOSResult.Resolved.PlatformDecision.OS)
-	}
-}
-
-func TestGuardFlowMacOSProfileExplicitlyPasses(t *testing.T) {
-	profile := system.PlatformProfile{OS: "darwin", Supported: true}
-	if err := system.EnsureSupportedPlatform(profile); err != nil {
-		t.Fatalf("macOS profile should pass guard, got %v", err)
-	}
-}
-
-func TestGuardFlowLinuxUbuntuProfileExplicitlyPasses(t *testing.T) {
-	profile := system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroUbuntu, PackageManager: "apt", Supported: true}
-	if err := system.EnsureSupportedPlatform(profile); err != nil {
-		t.Fatalf("Ubuntu profile should pass guard, got %v", err)
-	}
-}
-
-func TestGuardFlowLinuxArchProfileExplicitlyPasses(t *testing.T) {
-	profile := system.PlatformProfile{OS: "linux", LinuxDistro: system.LinuxDistroArch, PackageManager: "pacman", Supported: true}
-	if err := system.EnsureSupportedPlatform(profile); err != nil {
-		t.Fatalf("Arch profile should pass guard, got %v", err)
-	}
-}
-
-func TestInstallPlannerParityLinuxPreservesComponentOrder(t *testing.T) {
-	linuxDetection := system.DetectionResult{
-		System: system.SystemInfo{
-			OS:        "linux",
-			Arch:      "amd64",
-			Shell:     "/bin/bash",
-			Supported: true,
-			Profile: system.PlatformProfile{
-				OS:             "linux",
-				LinuxDistro:    system.LinuxDistroUbuntu,
-				PackageManager: "apt",
-				Supported:      true,
-			},
-		},
-	}
-
-	result, err := runInstallForParity([]string{"--dry-run", "--agent", "codex"}, linuxDetection)
+func TestInstallPlannerParityDarwinPreservesComponentOrder(t *testing.T) {
+	result, err := runInstallForParity([]string{"--dry-run", "--agent", "codex"}, darwinArm64Detection())
 	if err != nil {
 		t.Fatalf("RunInstall() error = %v", err)
 	}
@@ -371,11 +230,23 @@ func TestInstallPlannerParityLinuxPreservesComponentOrder(t *testing.T) {
 	if !reflect.DeepEqual(result.Selection.Components, model.SetupComponents()) {
 		t.Fatalf("selection components = %v, want %v", result.Selection.Components, model.SetupComponents())
 	}
-	if result.Resolved.PlatformDecision.OS != "linux" || result.Resolved.PlatformDecision.PackageManager != "apt" || !result.Resolved.PlatformDecision.Supported {
-		t.Fatalf("Linux platform decision = %+v", result.Resolved.PlatformDecision)
+	if result.Resolved.PlatformDecision.OS != "darwin" || !result.Resolved.PlatformDecision.Supported {
+		t.Fatalf("darwin platform decision = %+v", result.Resolved.PlatformDecision)
 	}
 	if wantReview := planner.BuildReviewPayload(result.Selection, result.Resolved); !reflect.DeepEqual(result.Review, wantReview) {
 		t.Fatalf("review mismatch\ncli=%#v\nplanner=%#v", result.Review, wantReview)
+	}
+}
+
+func darwinArm64Detection() system.DetectionResult {
+	return system.DetectionResult{
+		System: system.SystemInfo{
+			OS:        "darwin",
+			Arch:      "arm64",
+			Shell:     "/bin/zsh",
+			Supported: true,
+			Profile:   system.PlatformProfile{OS: "darwin", Supported: true},
+		},
 	}
 }
 

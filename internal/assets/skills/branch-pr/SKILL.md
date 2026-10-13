@@ -111,7 +111,6 @@ Check exactly ONE in the template and add the matching label:
 ```markdown
 - [ ] Unit tests pass: `go test ./...` (check only if run and passed)
 - [ ] Go format passes: `go run ./internal/gofmtcheck` (check only if run and passed)
-- [ ] E2E tests pass: `cd e2e && ./docker-test.sh` (check only if run and passed)
 - [ ] Manually tested the affected functionality (check only if observed)
 ```
 
@@ -123,7 +122,6 @@ Mark boxes only with observed evidence; leave pending actions unchecked and desc
 - Added exactly one `type:*` label (confirmed by target-host readback)
 - Unit tests pass (`go test ./...`)
 - Go format passes (`go run ./internal/gofmtcheck`)
-- E2E tests pass (`cd e2e && ./docker-test.sh`)
 - Benchmark validation completed, or explained as not applicable in the Test Plan
 - If behavior changed, docs in `docs/` are updated in the same PR
 - Conventional commit format

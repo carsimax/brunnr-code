@@ -36,7 +36,7 @@ func TestRunStrategy_UnsupportedMethodManualFallback(t *testing.T) {
 		},
 		LatestVersion: "1.0.0",
 	}
-	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
+	profile := system.PlatformProfile{OS: "darwin", Supported: true}
 
 	err := runStrategy(context.Background(), r, profile)
 	// Unsupported method → manual fallback error.
@@ -47,8 +47,8 @@ func TestRunStrategy_UnsupportedMethodManualFallback(t *testing.T) {
 
 // --- TestEngramUpgradeMacOSUsesDownload ---
 
-// TestEngramUpgradeMacOSUsesDownload verifies that on macOS, which has no
-// package manager, engram upgrade uses the binary download and never execs.
+// TestEngramUpgradeMacOSUsesDownload verifies that engram upgrade uses the
+// binary download and never execs (no go install; regression for issue #160).
 func TestEngramUpgradeMacOSUsesDownload(t *testing.T) {
 	origExecCommand := execCommand
 	origEngramDownloadFn := engramDownloadFn
@@ -91,104 +91,6 @@ func TestEngramUpgradeMacOSUsesDownload(t *testing.T) {
 	}
 }
 
-// --- TestEngramUpgradeUsesDownloadNotGoInstall ---
-
-// TestEngramUpgradeUsesDownloadNotGoInstall verifies that on Windows,
-// engram upgrade calls the binary download function, NOT go install.
-// This is the regression test for issue #160.
-func TestEngramUpgradeUsesDownloadNotGoInstall(t *testing.T) {
-	origExecCommand := execCommand
-	origEngramDownloadFn := engramDownloadFn
-	t.Cleanup(func() {
-		execCommand = origExecCommand
-		engramDownloadFn = origEngramDownloadFn
-	})
-
-	execCalled := false
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		execCalled = true
-		return mockCmd("echo", "should not be called")
-	}
-
-	downloadCalled := false
-	engramDownloadFn = func(profile system.PlatformProfile) (string, error) {
-		downloadCalled = true
-		return "/fake/path/engram.exe", nil
-	}
-
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "engram",
-			Owner:         "Gentleman-Programming",
-			Repo:          "engram",
-			InstallMethod: update.InstallBinary, // should be InstallBinary after fix
-		},
-		LatestVersion: "0.5.0",
-	}
-	profile := system.PlatformProfile{OS: "windows", PackageManager: "winget"}
-
-	err := runStrategy(context.Background(), r, profile)
-	if err != nil {
-		t.Fatalf("runStrategy engram windows: unexpected error: %v", err)
-	}
-
-	// Must call binary download, NOT go install.
-	if !downloadCalled {
-		t.Errorf("expected engramDownloadFn to be called, but it was not")
-	}
-	if execCalled {
-		t.Errorf("exec (go install) should NOT be called for engram on Windows — use binary download")
-	}
-}
-
-// --- TestEngramUpgradeLinuxUsesDownload ---
-
-// TestEngramUpgradeLinuxUsesDownload verifies that on Linux,
-// engram upgrade uses the binary download function, not go install.
-func TestEngramUpgradeLinuxUsesDownload(t *testing.T) {
-	origExecCommand := execCommand
-	origEngramDownloadFn := engramDownloadFn
-	t.Cleanup(func() {
-		execCommand = origExecCommand
-		engramDownloadFn = origEngramDownloadFn
-	})
-
-	execCalled := false
-	execCommand = func(name string, args ...string) *exec.Cmd {
-		execCalled = true
-		return mockCmd("echo", "should not be called")
-	}
-
-	downloadCalled := false
-	engramDownloadFn = func(profile system.PlatformProfile) (string, error) {
-		downloadCalled = true
-		return "/home/user/.local/bin/engram", nil
-	}
-
-	r := update.UpdateResult{
-		Tool: update.ToolInfo{
-			Name:          "engram",
-			Owner:         "Gentleman-Programming",
-			Repo:          "engram",
-			InstallMethod: update.InstallBinary, // should be InstallBinary after fix
-		},
-		LatestVersion: "0.5.0",
-	}
-	profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
-
-	err := runStrategy(context.Background(), r, profile)
-	if err != nil {
-		t.Fatalf("runStrategy engram linux: unexpected error: %v", err)
-	}
-
-	if !downloadCalled {
-		t.Errorf("expected engramDownloadFn to be called for engram on Linux, but it was not")
-	}
-	if execCalled {
-		t.Errorf("exec (go install) should NOT be called for engram on Linux — use binary download")
-	}
-}
-
 // TestEngramBinaryUpgrade_CallsDownloadFn verifies that engramBinaryUpgrade
 // delegates to engramDownloadFn (the release-download path) and never execs.
 func TestEngramBinaryUpgrade_CallsDownloadFn(t *testing.T) {
@@ -212,7 +114,7 @@ func TestEngramBinaryUpgrade_CallsDownloadFn(t *testing.T) {
 				return mockCmd("echo", "unexpected")
 			}
 
-			profile := system.PlatformProfile{OS: "linux", PackageManager: "apt"}
+			profile := system.PlatformProfile{OS: "darwin", Supported: true}
 			err := engramBinaryUpgrade(profile)
 			if err != nil {
 				t.Fatalf("engramBinaryUpgrade: unexpected error: %v", err)

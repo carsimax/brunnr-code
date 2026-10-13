@@ -115,7 +115,7 @@ func TestClaudeUninstallRetiresModulePilotOnlyOnFullRemoval(t *testing.T) {
 	routing := readTestFile(t, corePath)
 	routing = routing[strings.Index(routing, "<!-- brunnr-code:agent-routing -->"):]
 
-	// Compare against the pre-uninstall mode: Windows exposes only a read-only bit, never 0o600.
+	// Compare against the pre-uninstall mode.
 	coreBefore, err := os.Stat(corePath)
 	if err != nil {
 		t.Fatal(err)

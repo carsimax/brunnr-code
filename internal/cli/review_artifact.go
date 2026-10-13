@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"reflect"
-	"runtime"
 	"sort"
 	"strings"
 
@@ -126,7 +125,6 @@ func validateReviewerResultPayload(payload []byte) error {
 }
 
 var reviewArtifactAfterLstat = func() {}
-var reviewArtifactRuntimeGOOS = func() string { return runtime.GOOS }
 var syncReviewerArtifactDirectory = func(path string) error {
 	directory, err := os.Open(path)
 	if err != nil {

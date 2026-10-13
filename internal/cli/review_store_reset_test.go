@@ -5,7 +5,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -225,9 +224,6 @@ func TestReviewStoreResetRunsWhileReviewsAreDisabled(t *testing.T) {
 // honesty requirement end to end: the CLI still prints the report, still exits
 // non-zero, and never shows a category it failed to remove as removed.
 func TestReviewStoreResetReportsPartialFailureWithoutClaimingSuccess(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("the permission bit this test withholds is not enforced on Windows")
-	}
 	if os.Getuid() == 0 {
 		t.Skip("root ignores the permission bit this test withholds")
 	}

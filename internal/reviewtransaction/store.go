@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"runtime"
 	"strings"
 	"syscall"
 )
@@ -27,7 +26,6 @@ const GitCommonDirName = "brunnr-code"
 var ErrConcurrentUpdate = errors.New("review transaction changed concurrently")
 var ErrInvalidSuccessor = errors.New("review transaction successor is invalid")
 
-var reviewRuntimeGOOS = func() string { return runtime.GOOS }
 var syncReviewDirectory = func(path string) error {
 	directory, err := os.Open(path)
 	if err != nil {
@@ -92,12 +90,9 @@ func (err *directorySyncError) Error() string {
 func (err *directorySyncError) Unwrap() error { return err.cause }
 
 // SyncReviewDirectory persists a directory entry when the platform supports it.
-// Windows filesystems may reject directory handles; in that case the file rename
-// remains atomic, but power-loss durability of the directory entry is not claimed.
 func SyncReviewDirectory(path string) error {
 	if err := syncReviewDirectory(path); err != nil {
-		unsupported := errors.Is(err, syscall.EINVAL) || errors.Is(err, errors.ErrUnsupported) ||
-			reviewRuntimeGOOS() == "windows" && errors.Is(err, os.ErrPermission)
+		unsupported := errors.Is(err, syscall.EINVAL) || errors.Is(err, errors.ErrUnsupported)
 		if !unsupported {
 			return err
 		}

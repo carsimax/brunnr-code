@@ -291,8 +291,7 @@ type syncRuntime struct {
 // newSyncRuntimeWithScope builds the sync runtime for the requested scope.
 // ScopeWorkspace never touches the global backup store: the rollback snapshot
 // lives in a temporary transaction directory that is removed when the run ends
-// (issue #1074), and the global compatibility-skills transaction is not
-// created because the shared compatibility tree is global-only.
+// (issue #1074).
 func newSyncRuntimeWithScope(homeDir string, selection model.Selection, scope InstallScope) (*syncRuntime, error) {
 	workspaceDir, _ := os.Getwd()
 	backupRoot := state.BackupsDir(homeDir)
@@ -304,12 +303,6 @@ func newSyncRuntimeWithScope(homeDir string, selection model.Selection, scope In
 		}
 		state.rollbackSnapshotDir = snapshotDir
 		backupRoot = ""
-	} else {
-		compatibilityTransaction, err := newCompatibilityRefreshTransaction(homeDir, selection.Components, selection)
-		if err != nil {
-			return nil, err
-		}
-		state.compatibilityTransaction = compatibilityTransaction
 	}
 
 	runtime := &syncRuntime{
@@ -374,8 +367,6 @@ func (r *syncRuntime) stagePlan() pipeline.StagePlan {
 			components:   r.selection.Components,
 			selection:    r.selection,
 			changedFiles: &r.changedFiles,
-			transaction:  r.state.compatibilityTransaction,
-			anchored:     usesAnchoredCompatibilityTransaction(),
 		})
 	}
 
@@ -535,7 +526,7 @@ func syncBackupTargetsScoped(homeDir, workspaceDir string, scope InstallScope, s
 	for _, path := range adapterSkillPaths {
 		paths[path] = struct{}{}
 	}
-	if !workspace && !usesAnchoredCompatibilityTransaction() && needsCompatibilitySkillsRefresh(selection.Components) {
+	if !workspace && needsCompatibilitySkillsRefresh(selection.Components) {
 		skillDir, ok, err := compatibilitySkillsDir(homeDir)
 		if err != nil {
 			return nil, err
@@ -1222,7 +1213,6 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 	if err != nil {
 		return result, err
 	}
-	defer rt.state.cleanupCompatibilityTransaction()
 	defer rt.state.cleanupRollbackSnapshot()
 
 	stagePlan := syncStagePlan(rt)
@@ -1234,7 +1224,6 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 
 	orchestrator := pipeline.NewOrchestrator(pipeline.DefaultRollbackPolicy())
 	result.Execution = orchestrator.Execute(stagePlan)
-	compatibilityChanged := rt.state.compatibilityChangedFiles()
 	if result.Execution.Err != nil {
 		return result, fmt.Errorf("execute sync pipeline: %w", result.Execution.Err)
 	}
@@ -1249,7 +1238,7 @@ func runSyncWithSelectionScope(homeDir string, selection model.Selection, scope 
 	if err != nil {
 		return result, rollbackPostApplyError(orchestrator, result.Execution, err)
 	}
-	result.ChangedFiles = dedupPaths(append(result.ChangedFiles, compatibilityChanged...))
+	result.ChangedFiles = dedupPaths(result.ChangedFiles)
 	result.FilesChanged = len(result.ChangedFiles)
 
 	// True no-op: agents were discovered but all managed assets were already
@@ -1440,7 +1429,6 @@ func RunSync(args []string) (SyncResult, error) {
 		if err != nil {
 			return result, err
 		}
-		defer rt.state.cleanupCompatibilityTransaction()
 		defer rt.state.cleanupRollbackSnapshot()
 		result.Plan = rt.stagePlan()
 		for _, step := range result.Plan.Prepare {

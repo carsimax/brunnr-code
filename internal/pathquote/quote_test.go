@@ -9,7 +9,7 @@ func TestQuote(t *testing.T) {
 		want string
 	}{
 		{
-			name: "windows path keeps single backslashes",
+			name: "backslash path keeps single backslashes",
 			path: `C:\Users\dev\repo`,
 			want: `"C:\Users\dev\repo"`,
 		},

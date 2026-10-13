@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -154,9 +153,6 @@ func TestGenuineRepositoryContextCaptureFailureKeepsItsCode(t *testing.T) {
 
 func blockCanonicalAuthorityWrite(t *testing.T, repo, lineage string) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("the compact authority permission failure fixture requires POSIX permissions")
-	}
 	store, err := reviewtransaction.CompactAuthoritativeStore(t.Context(), repo, lineage)
 	if err != nil {
 		t.Fatal(err)

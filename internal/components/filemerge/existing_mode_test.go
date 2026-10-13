@@ -4,14 +4,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 )
 
 func TestExistingFileMode(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permission bits are not meaningful on Windows")
-	}
 	dir := t.TempDir()
 	private := filepath.Join(dir, "private.json")
 	if err := os.WriteFile(private, []byte("{}"), 0o600); err != nil {

@@ -10,11 +10,10 @@ builds:
     binary: brunnr-code
     env:
       - CGO_ENABLED=0
+    # Personal tool: macOS on Apple Silicon only.
     goos:
-      - linux
       - darwin
     goarch:
-      - amd64
       - arm64
     flags:
       - -trimpath

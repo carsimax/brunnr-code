@@ -6,7 +6,6 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"testing"
 
@@ -218,7 +217,7 @@ func TestClaudeInstalledModulePilotFailsClosedBeforeAnyWrite(t *testing.T) {
 	})
 
 	t.Run("uninspectable ledger", func(t *testing.T) {
-		if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		if os.Geteuid() == 0 {
 			t.Skip("needs POSIX permissions enforced for the current user")
 		}
 		home := t.TempDir()

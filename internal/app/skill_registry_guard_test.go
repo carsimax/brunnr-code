@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -13,15 +12,10 @@ import (
 func setFakeHome(t *testing.T, dir string) {
 	t.Helper()
 	t.Setenv("HOME", dir)
-	t.Setenv("USERPROFILE", dir)
 }
 
-// filesystemRoot returns the platform filesystem root ("/" on POSIX, the
-// volume root on Windows).
+// filesystemRoot returns the filesystem root.
 func filesystemRoot() string {
-	if runtime.GOOS == "windows" {
-		return filepath.VolumeName(os.Getenv("SystemDrive")) + `\`
-	}
 	return "/"
 }
 

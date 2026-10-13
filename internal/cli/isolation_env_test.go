@@ -3,7 +3,6 @@ package cli
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -65,9 +64,6 @@ func TestBackupRootsHonorBrunnrCodeHome(t *testing.T) {
 // answers `version` like a real Engram binary.
 func writeFakeEngram(t *testing.T, dir string) (bin, log string) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX script stands in for the engram binary")
-	}
 	bin = filepath.Join(dir, "engram")
 	log = filepath.Join(dir, "engram.log")
 	script := "#!/bin/sh\necho \"$*\" >> '" + log + "'\nif [ \"$1\" = version ]; then echo 'engram 1.15.3'; fi\nexit 0\n"
@@ -145,9 +141,6 @@ func TestEngramHealthChecksUseCallerSuppliedBinary(t *testing.T) {
 }
 
 func TestPreparedInstallRejectsEngramBinaryThatDoesNotRun(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX script stands in for the engram binary")
-	}
 	home := t.TempDir()
 	bin := filepath.Join(t.TempDir(), "engram")
 	if err := os.WriteFile(bin, []byte("#!/bin/sh\nexit 3\n"), 0o755); err != nil {

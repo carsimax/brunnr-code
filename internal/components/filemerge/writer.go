@@ -4,32 +4,16 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 )
 
-// runtimeGOOS and syncDirFn are package-level vars so tests can override them
-// without spawning a real Windows process.
-//
-// Background: Windows/NTFS does not support fsyncing a directory file
-// descriptor. Calling (*os.File).Sync() on a directory handle returns
-// ERROR_ACCESS_DENIED (syscall 5) regardless of user privileges — even as
-// Administrator. FlushFileBuffers requires GENERIC_WRITE access on the handle,
-// which Windows refuses for directories. The ErrPermission from syncDirFn is
-// therefore silently tolerated when runtimeGOOS() == "windows". On Linux and
-// macOS the full error is propagated so unexpected failures are still surfaced.
-// See issues #293 and #294.
-var runtimeGOOS = func() string { return runtime.GOOS }
-
 // renameFn publishes the staged replacement. It is a package-level var so tests
-// can simulate a rename that reports success without taking effect: the shape
-// reported on Windows in #2319, where an antivirus/indexer hold turns the swap
-// into a silent no-op.
+// can simulate a rename that reports success without taking effect (#2319),
+// where an antivirus/indexer hold turns the swap into a silent no-op.
 var renameFn = os.Rename
 
 // stagedFile is the staged destination of a durable write. The interface exists
@@ -143,8 +127,8 @@ func writeFileAtomic(path string, content []byte, perm fs.FileMode, forceMode bo
 
 // enforceFileMode applies perm to the existing file at path and reports
 // Changed when the permission bits read back from disk differ from the ones
-// read before, so a platform that ignores part of perm (Windows keeps only the
-// read-only bit) never reports a repair that did not happen.
+// read before, so a filesystem that ignores part of perm never reports a
+// repair that did not happen.
 func enforceFileMode(path string, perm fs.FileMode) (WriteResult, error) {
 	before, err := os.Lstat(path)
 	if err != nil {
@@ -281,8 +265,8 @@ func replaceDurably(path string, src io.Reader, perm fs.FileMode) (landed bool, 
 	}
 
 	// Read the destination back before claiming anything about it. A rename that
-	// returns nil has not necessarily taken effect. On Windows an antivirus or
-	// indexer hold turns the swap into a silent no-op (#2319), and the whole
+	// returns nil has not necessarily taken effect. An antivirus or indexer
+	// hold can turn the swap into a silent no-op (#2319), and the whole
 	// point of this sequence is that its result describes disk, not intent.
 	diskDigest, diskBytes, err := digestFileOnDisk(path)
 	if err != nil {
@@ -307,20 +291,10 @@ func replaceDurably(path string, src io.Reader, perm fs.FileMode) (landed bool, 
 }
 
 // SyncDir flushes dir's entries to stable storage so a published name survives
-// recovery.
-//
-// Windows/NTFS refuses to fsync a directory handle and returns ErrPermission
-// regardless of privilege; that specific error is tolerated there and nowhere
-// else, so a real failure (a full disk, say) still surfaces.
+// recovery. Every failure surfaces, so a real problem (a full disk, say) is
+// never swallowed.
 func SyncDir(dir string) error {
-	err := syncDirFn(dir)
-	if err == nil {
-		return nil
-	}
-	if runtimeGOOS() == "windows" && errors.Is(err, os.ErrPermission) {
-		return nil
-	}
-	return err
+	return syncDirFn(dir)
 }
 
 // digestFileOnDisk streams path and returns its SHA-256 and size. It refuses
@@ -399,15 +373,6 @@ func ensureAtomicParentDir(dir, path string) error {
 			return fmt.Errorf("stat symlink target %q for %q: %w", resolved, path, err)
 		}
 		dir = resolved
-	} else {
-		resolved, resolvedInfo, handled, err := resolveAtomicParentJunction(dir, info)
-		if err != nil {
-			return fmt.Errorf("resolve parent directory for %q: %w", path, err)
-		}
-		if handled {
-			dir = resolved
-			info = resolvedInfo
-		}
 	}
 	if !info.IsDir() {
 		return fmt.Errorf("parent path %q for %q is not a directory", dir, path)

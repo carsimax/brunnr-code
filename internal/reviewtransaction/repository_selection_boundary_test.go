@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 )
 
@@ -137,9 +136,6 @@ func TestRepositorySelectionRejectsAliasesThatAreNotTheSameRepository(t *testing
 		}
 	})
 
-	if runtime.GOOS == "windows" {
-		return
-	}
 	t.Run("symlink into a different repository is not the requested repository", func(t *testing.T) {
 		t.Parallel()
 		alias := filepath.Join(t.TempDir(), "alias")

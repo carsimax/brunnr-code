@@ -23,8 +23,6 @@ type compatibilitySkillsRefreshStep struct {
 	components   []model.ComponentID
 	selection    model.Selection
 	changedFiles *[]string
-	transaction  compatibilityRefreshTransaction
-	anchored     bool
 }
 
 var lstatCompatibilityDestination = os.Lstat
@@ -32,15 +30,6 @@ var lstatCompatibilityDestination = os.Lstat
 type compatibilityDirectoryWriter interface {
 	Write(string, []byte, fs.FileMode) (filemerge.WriteResult, error)
 	Remove(string) (bool, error)
-	Close() error
-}
-
-// compatibilityRefreshTransaction owns the Windows compatibility tree for an
-// entire pipeline run. The generic snapshotter must never inspect these paths.
-type compatibilityRefreshTransaction interface {
-	Run() error
-	Rollback() error
-	ChangedFiles() []string
 	Close() error
 }
 
@@ -159,16 +148,6 @@ func validateCompatibilityDestinations(root string, destinations []string) error
 }
 
 func (s compatibilitySkillsRefreshStep) Run() error {
-	if s.anchored {
-		if s.transaction == nil {
-			return nil
-		}
-		if err := s.transaction.Run(); err != nil {
-			return err
-		}
-		return nil
-	}
-
 	skillDir, ok, err := compatibilitySkillsDir(s.homeDir)
 	if err != nil {
 		return err
@@ -208,9 +187,8 @@ func (s compatibilitySkillsRefreshStep) Run() error {
 	return nil
 }
 
+// Rollback undoes nothing on macOS; it exists so a failed run still reports
+// this step in its rollback progress, as it did before Windows was dropped.
 func (s compatibilitySkillsRefreshStep) Rollback() error {
-	if !s.anchored || s.transaction == nil {
-		return nil
-	}
-	return s.transaction.Rollback()
+	return nil
 }

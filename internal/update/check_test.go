@@ -10,7 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -126,7 +126,7 @@ func TestDetectInstalledVersion(t *testing.T) {
 
 // TestDetectInstalledVersionFallbackPaths verifies that detectInstalledVersion
 // reports a version when LookPath fails but the binary is present at a known
-// fallback path (the Windows post-install stale-PATH scenario, issue #177).
+// fallback path (the post-install stale-PATH scenario, issue #177).
 func TestDetectInstalledVersionFallbackPaths(t *testing.T) {
 	// Create a real executable in a temp dir to serve as the "known install dir".
 	tmpDir := t.TempDir()
@@ -139,7 +139,7 @@ func TestDetectInstalledVersionFallbackPaths(t *testing.T) {
 	tool := ToolInfo{
 		Name:      "mytool",
 		DetectCmd: []string{binaryName, "--version"},
-		FallbackPaths: func(homeDir, localAppData string) []string {
+		FallbackPaths: func(homeDir string) []string {
 			return []string{filepath.Join(tmpDir, binaryName)}
 		},
 	}
@@ -184,7 +184,7 @@ func TestDetectInstalledVersionFallbackPathsNotFoundStillNotInstalled(t *testing
 	tool := ToolInfo{
 		Name:      "mytool",
 		DetectCmd: []string{"mytool", "--version"},
-		FallbackPaths: func(homeDir, localAppData string) []string {
+		FallbackPaths: func(homeDir string) []string {
 			return []string{"/nonexistent/path/to/mytool"}
 		},
 	}
@@ -624,7 +624,7 @@ func TestCheckAll_NetworkError(t *testing.T) {
 	lookPath = func(string) (string, error) { return "", fmt.Errorf("not found") }
 	execCommand = func(name string, args ...string) *exec.Cmd { return mockCmd("false") }
 
-	profile := system.PlatformProfile{OS: "linux", LinuxDistro: "ubuntu", PackageManager: "apt", Supported: true}
+	profile := system.PlatformProfile{OS: "darwin", Supported: true}
 	results := CheckAll(context.Background(), profile)
 
 	if results[0].Status != CheckFailed {
@@ -685,18 +685,6 @@ func TestUpdateHint(t *testing.T) {
 			name:    "engram macOS",
 			tool:    ToolInfo{Name: "engram"},
 			profile: system.PlatformProfile{OS: "darwin"},
-			want:    "brunnr-code upgrade (downloads pre-built binary)",
-		},
-		{
-			name:    "engram linux",
-			tool:    ToolInfo{Name: "engram"},
-			profile: system.PlatformProfile{OS: "linux", PackageManager: "apt"},
-			want:    "brunnr-code upgrade (downloads pre-built binary)",
-		},
-		{
-			name:    "engram windows",
-			tool:    ToolInfo{Name: "engram"},
-			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget"},
 			want:    "brunnr-code upgrade (downloads pre-built binary)",
 		},
 		{
@@ -845,6 +833,20 @@ func TestParseVersionFromOutput(t *testing.T) {
 }
 
 // TestRegistryContents verifies the registry has all expected tools.
+// TestEngramFallbackPathsOnlyProbeLocalBin pins the darwin-only fallback: the
+// binary installer's ~/.local/bin location, and no Windows AppData path.
+func TestEngramFallbackPathsOnlyProbeLocalBin(t *testing.T) {
+	home := filepath.Join(string(filepath.Separator), "Users", "dev")
+	got := Tools[0].FallbackPaths(home)
+	want := []string{filepath.Join(home, ".local", "bin", "engram")}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("engram FallbackPaths(%q) = %v, want %v", home, got, want)
+	}
+	if got := Tools[0].FallbackPaths(""); len(got) != 0 {
+		t.Fatalf("engram FallbackPaths(\"\") = %v, want none", got)
+	}
+}
+
 func TestRegistryContents(t *testing.T) {
 	if len(Tools) != 1 {
 		t.Fatalf("len(Tools) = %d, want 1", len(Tools))
@@ -1038,12 +1040,9 @@ func TestCheckFiltered_UnknownToolIgnored(t *testing.T) {
 func TestNoUpdatesPath(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
-	t.Setenv("LOCALAPPDATA", filepath.Join(home, "local"))
 	originalStat := osStat
 	t.Cleanup(func() { osStat = originalStat })
-	// An absent PATH entry must not discover a real fallback installation,
-	// especially a .ps1 shim that bypasses execCommand through PowerShell.
+	// An absent PATH entry must not discover a real fallback installation.
 	osStat = func(string) (os.FileInfo, error) { return nil, os.ErrNotExist }
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -1066,26 +1065,19 @@ func TestNoUpdatesPath(t *testing.T) {
 	origExecCommand := execCommand
 	origTools := Tools
 	origOsStat := osStat
-	origRunPowerShell := runPowerShell
 	t.Cleanup(func() {
 		httpClient = origClient
 		lookPath = origLookPath
 		execCommand = origExecCommand
 		Tools = origTools
 		osStat = origOsStat
-		runPowerShell = origRunPowerShell
 	})
 
 	httpClient = server.Client()
 	httpClient.Transport = &testTransport{server: server}
 
-	// Absence includes fallback locations, not just PATH. Never let a local
-	// PowerShell shim escape the command fixture and run on the host.
+	// Absence includes fallback locations, not just PATH.
 	osStat = func(string) (os.FileInfo, error) { return nil, os.ErrNotExist }
-	runPowerShell = func(context.Context, ...string) ([]byte, error) {
-		t.Error("absent-tool detection must not execute PowerShell")
-		return nil, fmt.Errorf("unexpected PowerShell execution")
-	}
 
 	// engram is at v0.3.2 (same as remote), the absent tool is not installed
 	lookPath = func(name string) (string, error) {
@@ -1135,14 +1127,6 @@ func TestEngramHintIsBinaryDownload(t *testing.T) {
 			name:    "macOS",
 			profile: system.PlatformProfile{OS: "darwin"},
 		},
-		{
-			name:    "linux apt",
-			profile: system.PlatformProfile{OS: "linux", PackageManager: "apt"},
-		},
-		{
-			name:    "windows winget",
-			profile: system.PlatformProfile{OS: "windows", PackageManager: "winget"},
-		},
 	}
 
 	for _, tc := range tests {
@@ -1178,130 +1162,6 @@ func TestInstallMethodFieldsOnRegistry(t *testing.T) {
 		}
 	}
 }
-
-func TestBuildExecCmd_Ps1UsesPoershellFile(t *testing.T) {
-	ps1Path := `C:\Users\test\bin\faketool.ps1`
-
-	gotBin, gotArgs := buildExecCmd(ps1Path, []string{"--version"})
-
-	if gotBin == ps1Path {
-		t.Fatalf("buildExecCmd returned the .ps1 path as argv[0]: %q — "+
-			"exec.Command cannot launch .ps1 directly on Windows (CreateProcess rejects non-PE images). "+
-			"Must be wrapped via the PowerShell resolver.", gotBin)
-	}
-
-	wantArgs := []string{"-NoProfile", "-File", ps1Path, "--version"}
-	if len(gotArgs) != len(wantArgs) {
-		t.Fatalf("buildExecCmd args len = %d, want %d; args = %v", len(gotArgs), len(wantArgs), gotArgs)
-	}
-	for i, want := range wantArgs {
-		if gotArgs[i] != want {
-			t.Fatalf("buildExecCmd args[%d] = %q, want %q; full args = %v", i, gotArgs[i], want, gotArgs)
-		}
-	}
-}
-
-func TestBuildExecCmd_NonPs1Passthrough(t *testing.T) {
-	cases := []struct {
-		binary string
-		args   []string
-	}{
-		{"/usr/local/bin/engram", []string{"version"}},
-		{`C:\Users\user\AppData\Local\engram\bin\engram.exe`, []string{"version"}},
-		{"/home/user/.local/bin/faketool", []string{"--version"}},
-	}
-
-	for _, c := range cases {
-		gotBin, gotArgs := buildExecCmd(c.binary, c.args)
-		if gotBin != c.binary {
-			t.Errorf("buildExecCmd(%q) binary = %q, want passthrough %q", c.binary, gotBin, c.binary)
-		}
-		if len(gotArgs) != len(c.args) {
-			t.Errorf("buildExecCmd(%q) args = %v, want %v", c.binary, gotArgs, c.args)
-			continue
-		}
-		for i := range c.args {
-			if gotArgs[i] != c.args[i] {
-				t.Errorf("buildExecCmd(%q) args[%d] = %q, want %q", c.binary, i, gotArgs[i], c.args[i])
-			}
-		}
-	}
-}
-
-// TestDetectInstalledVersionPs1FallbackInvokesViaPowershell verifies the full
-// integration path: when LookPath fails for faketool, the fallback finds a .ps1
-// file on disk and dispatches it through the central PowerShell resolver.
-func TestDetectInstalledVersionPs1FallbackInvokesViaPowershell(t *testing.T) {
-	tmpDir := t.TempDir()
-	ps1Path := filepath.Join(tmpDir, "faketool.ps1")
-	if err := os.WriteFile(ps1Path, []byte(""), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	tool := ToolInfo{
-		Name:      "faketool",
-		DetectCmd: []string{"faketool", "--version"},
-		FallbackPaths: func(homeDir, localAppData string) []string {
-			return []string{ps1Path}
-		},
-	}
-
-	origLookPath := lookPath
-	origExecCommand := execCommand
-	origRunPowerShell := runPowerShell
-	origOsStat := osStat
-	origUserHomeDir := userHomeDir
-	t.Cleanup(func() {
-		lookPath = origLookPath
-		execCommand = origExecCommand
-		runPowerShell = origRunPowerShell
-		osStat = origOsStat
-		userHomeDir = origUserHomeDir
-	})
-
-	// Simulate stale PATH: faketool not found via LookPath.
-	lookPath = func(string) (string, error) { return "", fmt.Errorf("not found") }
-	osStat = os.Stat // real stat so the .ps1 file is found
-	userHomeDir = func() (string, error) { return t.TempDir(), nil }
-
-	// Capture the command planned for the PowerShell runner.
-	var capturedBinary string
-	var capturedArgs []string
-	runPowerShell = func(_ context.Context, args ...string) ([]byte, error) {
-		capturedBinary = powerShellCommand
-		capturedArgs = append([]string{}, args...)
-		return []byte("faketool 1.2.3"), nil
-	}
-
-	got := detectInstalledVersion(context.Background(), tool)
-
-	// Primary assertion: the binary must NOT be the .ps1 path itself.
-	if capturedBinary == ps1Path {
-		t.Fatalf("PowerShell runner received the .ps1 path as the executable (%q)", capturedBinary)
-	}
-
-	// The first arg must be -NoProfile (PowerShell wrapping).
-	if len(capturedArgs) == 0 || capturedArgs[0] != "-NoProfile" {
-		t.Fatalf("PowerShell args[0] = %q, want \"-NoProfile\"; full args = %v", func() string {
-			if len(capturedArgs) > 0 {
-				return capturedArgs[0]
-			}
-			return "(empty)"
-		}(), capturedArgs)
-	}
-
-	// The -File flag must point to the .ps1 path.
-	if len(capturedArgs) < 3 || capturedArgs[1] != "-File" || capturedArgs[2] != ps1Path {
-		t.Fatalf("expected args [-NoProfile, -File, %q, ...], got %v", ps1Path, capturedArgs)
-	}
-
-	// The version must still be extracted from output.
-	if got != "1.2.3" {
-		t.Fatalf("detectInstalledVersion() = %q, want \"1.2.3\"", got)
-	}
-}
-
-// --- helpers ---
 
 // simulateStrayForeignRequest sends the exact request shape issue #2483
 // observed landing on this package's test servers during overlapping suite
@@ -1378,17 +1238,6 @@ func contains(s, sub string) bool {
 }
 
 func mockCmd(name string, args ...string) *exec.Cmd {
-	if runtime.GOOS == "windows" {
-		if name == "echo" {
-			return exec.Command("cmd", "/c", "echo "+strings.Join(args, " "))
-		}
-		if name == "true" {
-			return exec.Command("cmd", "/c", "exit 0")
-		}
-		if name == "false" {
-			return exec.Command("cmd", "/c", "exit 1")
-		}
-	}
 	return exec.Command(name, args...)
 }
 

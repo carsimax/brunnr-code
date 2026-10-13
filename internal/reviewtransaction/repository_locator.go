@@ -13,7 +13,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
 
@@ -1125,11 +1124,11 @@ func validatePrivateLocatorDirectory(base, dir string) error {
 }
 
 func privateLocatorDirectoryModeSafe(mode fs.FileMode) bool {
-	return runtime.GOOS == "windows" || mode.Perm()&0o077 == 0
+	return mode.Perm()&0o077 == 0
 }
 
 func privateLocatorFileModeSafe(mode fs.FileMode) bool {
-	return runtime.GOOS == "windows" || mode.Perm() == 0o600
+	return mode.Perm() == 0o600
 }
 
 func locatorPathWithin(base, candidate string) bool {

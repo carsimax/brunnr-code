@@ -12,16 +12,17 @@ BINARY="brunnr-code"
 
 fatal() { echo "error: $*" >&2; exit 1; }
 
-case "$(uname -s)" in
-  Darwin) os=darwin ;;
-  Linux) os=linux ;;
-  *) fatal "unsupported OS: $(uname -s)" ;;
-esac
+# Only macOS on Apple Silicon is supported.
+[ "$(uname -s)" = "Darwin" ] || fatal "unsupported OS: $(uname -s); brunnr-code supports only macOS on Apple Silicon"
 case "$(uname -m)" in
-  x86_64|amd64) arch=amd64 ;;
-  arm64|aarch64) arch=arm64 ;;
-  *) fatal "unsupported architecture: $(uname -m)" ;;
+  arm64) ;;
+  # A shell running under Rosetta reports x86_64 on Apple Silicon hardware.
+  x86_64) [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = "1" ] \
+    || fatal "unsupported architecture: Intel Mac; brunnr-code supports only Apple Silicon" ;;
+  *) fatal "unsupported architecture: $(uname -m); brunnr-code supports only Apple Silicon" ;;
 esac
+os=darwin
+arch=arm64
 
 tag="${BRUNNR_CODE_VERSION:-}"
 if [ -z "$tag" ]; then
@@ -42,11 +43,7 @@ curl -fsSL -o "$tmp/checksums.txt" "$base/checksums.txt"
 
 expected="$(awk -v f="$archive" '$2 == f {print $1}' "$tmp/checksums.txt")"
 [ -n "$expected" ] || fatal "${archive} not listed in checksums.txt"
-if command -v sha256sum >/dev/null 2>&1; then
-  actual="$(sha256sum "$tmp/$archive" | awk '{print $1}')"
-else
-  actual="$(shasum -a 256 "$tmp/$archive" | awk '{print $1}')"
-fi
+actual="$(shasum -a 256 "$tmp/$archive" | awk '{print $1}')"
 [ "$expected" = "$actual" ] || fatal "checksum mismatch for ${archive}"
 
 tar -xzf "$tmp/$archive" -C "$tmp" "$BINARY"

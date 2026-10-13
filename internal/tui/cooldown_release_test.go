@@ -16,7 +16,6 @@ import (
 func TestCooldownReleaseWelcomeDoesNotClaimCurrent(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 	now := time.Now()
 	recent := now.Add(-time.Minute)
 	if err := state.Write(home, state.InstallState{LastUpdateCheck: &recent}); err != nil {
@@ -48,7 +47,6 @@ func TestCooldownReleaseRefreshOnUpgradeEntry(t *testing.T) {
 		t.Run("upgrade-and-sync", func(t *testing.T) {
 			home := t.TempDir()
 			t.Setenv("HOME", home)
-			t.Setenv("USERPROFILE", home)
 			now := time.Now()
 			recent := now.Add(-time.Minute)
 			if err := state.Write(home, state.InstallState{LastUpdateCheck: &recent}); err != nil {
@@ -115,7 +113,6 @@ func TestCooldownReleaseLateFailedStartupRefreshesOnce(t *testing.T) {
 			t.Run(name, func(t *testing.T) {
 				home := t.TempDir()
 				t.Setenv("HOME", home)
-				t.Setenv("USERPROFILE", home)
 				oldCheck := updateCheckFn
 				t.Cleanup(func() { updateCheckFn = oldCheck })
 				calls := 0

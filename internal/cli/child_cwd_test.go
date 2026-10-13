@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 )
 
@@ -43,9 +42,6 @@ func helperGetwdArgv(t *testing.T) []string {
 // directory when the test finishes.
 func chdirIntoDeletedDir(t *testing.T) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("Windows keeps a process current directory open, so the deleted-CWD integration setup is impossible")
-	}
 	gone := filepath.Join(t.TempDir(), "gone")
 	if err := os.Mkdir(gone, 0o755); err != nil {
 		t.Fatal(err)

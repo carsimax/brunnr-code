@@ -5,31 +5,11 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
-	"syscall"
 	"testing"
 )
 
-// isSymlinkPrivilegeError reports whether err is the Windows
-// ERROR_PRIVILEGE_NOT_HELD (1314) error returned by os.Symlink when the
-// process lacks SeCreateSymbolicLinkPrivilege. errors.Is does not map this
-// errno to os.ErrPermission, so we unwrap and check the raw value.
-func isSymlinkPrivilegeError(err error) bool {
-	var le *os.LinkError
-	if errors.As(err, &le) {
-		var errno syscall.Errno
-		if errors.As(le.Err, &errno) {
-			return errno == 1314 // ERROR_PRIVILEGE_NOT_HELD
-		}
-	}
-	return false
-}
-
 func TestWriteFileAtomicReadOnlyDirRelaxesOwnerWritePermission(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("chmod 555 semantics differ on Windows")
-	}
 	base := t.TempDir()
 	skillDir := filepath.Join(base, "example-skill")
 	if err := os.Mkdir(skillDir, 0o555); err != nil {
@@ -91,9 +71,6 @@ func TestWriteFileAtomicCreatesAndIsIdempotent(t *testing.T) {
 // caller passes a wider perm literal — the common case across ~76 call sites
 // that pass a literal 0o644.
 func TestWriteFileAtomicPreservesExistingModeByDefault(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permission bits are not meaningful on Windows")
-	}
 	path := filepath.Join(t.TempDir(), "settings.json")
 	if err := os.WriteFile(path, []byte("{}"), 0o600); err != nil {
 		t.Fatal(err)
@@ -115,9 +92,6 @@ func TestWriteFileAtomicPreservesExistingModeByDefault(t *testing.T) {
 // TestWriteFileAtomicNewFileUsesRequestedPerm confirms perm still applies when
 // there is no existing file whose mode could be preserved.
 func TestWriteFileAtomicNewFileUsesRequestedPerm(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permission bits are not meaningful on Windows")
-	}
 	path := filepath.Join(t.TempDir(), "fresh.json")
 
 	if _, err := WriteFileAtomic(path, []byte("{}"), 0o640); err != nil {
@@ -137,9 +111,6 @@ func TestWriteFileAtomicNewFileUsesRequestedPerm(t *testing.T) {
 // contract: a byte-identical rewrite through the default (non-forced) API must
 // not touch the file's mode even when perm differs.
 func TestWriteFileAtomicIdenticalContentNeverTouchesMode(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permission bits are not meaningful on Windows")
-	}
 	path := filepath.Join(t.TempDir(), "settings.json")
 	content := []byte("{}")
 	if err := os.WriteFile(path, content, 0o600); err != nil {
@@ -164,9 +135,6 @@ func TestWriteFileAtomicIdenticalContentNeverTouchesMode(t *testing.T) {
 // widening an existing file, for callers that own the target mode outright
 // (executable scripts, credential files, backup restores).
 func TestWriteFileAtomicModeForcesRequestedPermOnExistingFile(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permission bits are not meaningful on Windows")
-	}
 	path := filepath.Join(t.TempDir(), "script.sh")
 	if err := os.WriteFile(path, []byte("old\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -191,9 +159,6 @@ func TestWriteFileAtomicModeForcesRequestedPermOnExistingFile(t *testing.T) {
 // forced to the intended mode (0755) by the forced API. That mode-only repair
 // mutates the file, so it reports Changed=true (#5022).
 func TestWriteFileAtomicModeEnforcesPermOnIdenticalContent(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permission bits are not meaningful on Windows")
-	}
 	path := filepath.Join(t.TempDir(), "script.sh")
 	content := []byte("#!/bin/sh\necho hi\n")
 	if err := os.WriteFile(path, content, 0o644); err != nil {
@@ -220,9 +185,6 @@ func TestWriteFileAtomicModeEnforcesPermOnIdenticalContent(t *testing.T) {
 // TestWriteFileAtomicModeIdenticalContentAndModeIsNoOp pins the other half of
 // #5022: same bytes and same mode touch nothing and report Changed=false.
 func TestWriteFileAtomicModeIdenticalContentAndModeIsNoOp(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permission bits are not meaningful on Windows")
-	}
 	path := filepath.Join(t.TempDir(), "script.sh")
 	content := []byte("#!/bin/sh\necho hi\n")
 	if err := os.WriteFile(path, content, 0o755); err != nil {
@@ -257,12 +219,6 @@ func TestWriteFileAtomicRejectsExistingSymlink(t *testing.T) {
 	}
 	path := filepath.Join(dir, "linked.txt")
 	if err := os.Symlink(target, path); err != nil {
-		// On Windows without Developer Mode or admin rights, symlink creation
-		// requires SeCreateSymbolicLinkPrivilege (ERROR_PRIVILEGE_NOT_HELD = 1314).
-		// Skip gracefully — the test infrastructure lacks the privilege, not the code.
-		if isSymlinkPrivilegeError(err) {
-			t.Skipf("skipping: SeCreateSymbolicLinkPrivilege not held on this Windows build: %v", err)
-		}
 		t.Fatalf("Symlink() error = %v", err)
 	}
 
@@ -297,12 +253,6 @@ func TestWriteFileAtomicFollowsSymlinkParentDirectory(t *testing.T) {
 	}
 	linkDir := filepath.Join(base, "linked")
 	if err := os.Symlink(realDir, linkDir); err != nil {
-		// On Windows without Developer Mode or admin rights, symlink creation
-		// requires SeCreateSymbolicLinkPrivilege (ERROR_PRIVILEGE_NOT_HELD = 1314).
-		// Skip gracefully — the test infrastructure lacks the privilege, not the code.
-		if isSymlinkPrivilegeError(err) {
-			t.Skipf("skipping: SeCreateSymbolicLinkPrivilege not held on this Windows build: %v", err)
-		}
 		t.Fatalf("Symlink(linkDir) error = %v", err)
 	}
 
@@ -326,55 +276,18 @@ func TestWriteFileAtomicFollowsSymlinkParentDirectory(t *testing.T) {
 	}
 }
 
-// TestWriteFileAtomicIgnoresPermissionErrorFromSyncDirOnWindows verifies that
-// ErrPermission from syncDirFn is silently tolerated on Windows — NTFS returns
-// ACCESS_DENIED when syncing a directory fd, which must not fail the write.
-func TestWriteFileAtomicIgnoresPermissionErrorFromSyncDirOnWindows(t *testing.T) {
+// TestWriteFileAtomicPropagatesSyncDirError verifies that any syncDirFn
+// error is propagated — no silent swallowing.
+func TestWriteFileAtomicPropagatesSyncDirError(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "nested", "config.json")
 	content := []byte("{\"ok\":true}\n")
 
-	origGOOS := runtimeGOOS
 	origSyncDir := syncDirFn
 	t.Cleanup(func() {
-		runtimeGOOS = origGOOS
 		syncDirFn = origSyncDir
 	})
 
-	runtimeGOOS = func() string { return "windows" }
-	syncDirFn = func(string) error { return os.ErrPermission }
-
-	result, err := WriteFileAtomic(path, content, 0o644)
-	if err != nil {
-		t.Fatalf("WriteFileAtomic() error = %v, want nil on windows permission-denied dir sync", err)
-	}
-	if !result.Changed || !result.Created {
-		t.Fatalf("WriteFileAtomic() result = %+v, want Changed=true Created=true", result)
-	}
-	got, readErr := os.ReadFile(path)
-	if readErr != nil {
-		t.Fatalf("ReadFile() error = %v", readErr)
-	}
-	if string(got) != string(content) {
-		t.Fatalf("file content = %q, want %q", string(got), string(content))
-	}
-}
-
-// TestWriteFileAtomicPropagatesSyncDirErrorOnUnix verifies that any syncDirFn
-// error is propagated on non-Windows platforms — no silent swallowing.
-func TestWriteFileAtomicPropagatesSyncDirErrorOnUnix(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "nested", "config.json")
-	content := []byte("{\"ok\":true}\n")
-
-	origGOOS := runtimeGOOS
-	origSyncDir := syncDirFn
-	t.Cleanup(func() {
-		runtimeGOOS = origGOOS
-		syncDirFn = origSyncDir
-	})
-
-	runtimeGOOS = func() string { return "linux" }
 	syncDirFn = func(string) error { return os.ErrPermission }
 
 	_, err := WriteFileAtomic(path, content, 0o644)
@@ -383,34 +296,6 @@ func TestWriteFileAtomicPropagatesSyncDirErrorOnUnix(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "sync parent directory") {
 		t.Fatalf("WriteFileAtomic() error = %v, want sync parent directory context", err)
-	}
-}
-
-// TestWriteFileAtomicPropagatesUnexpectedSyncDirErrorOnWindows verifies that
-// non-ErrPermission errors from syncDirFn are still propagated on Windows —
-// only the specific NTFS directory-sync permission error is tolerated.
-func TestWriteFileAtomicPropagatesUnexpectedSyncDirErrorOnWindows(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "nested", "config.json")
-	content := []byte("{\"ok\":true}\n")
-	boom := errors.New("boom")
-
-	origGOOS := runtimeGOOS
-	origSyncDir := syncDirFn
-	t.Cleanup(func() {
-		runtimeGOOS = origGOOS
-		syncDirFn = origSyncDir
-	})
-
-	runtimeGOOS = func() string { return "windows" }
-	syncDirFn = func(string) error { return boom }
-
-	_, err := WriteFileAtomic(path, content, 0o644)
-	if err == nil {
-		t.Fatal("WriteFileAtomic() error = nil, want unexpected sync dir error on windows")
-	}
-	if !errors.Is(err, boom) {
-		t.Fatalf("WriteFileAtomic() error = %v, want wrapped boom", err)
 	}
 }
 
@@ -461,9 +346,6 @@ func TestWriteFileAtomicPreservesOriginalOnRenameFailure(t *testing.T) {
 // passed by restore paths for a recorded 0000 mode, lands as owner-only
 // instead of the 0644 default used for omitted modes on new files.
 func TestWriteFileAtomicModeZeroNeverWidens(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permission bits")
-	}
 	path := filepath.Join(t.TempDir(), "restored")
 	if err := os.WriteFile(path, []byte("before"), 0o600); err != nil {
 		t.Fatal(err)

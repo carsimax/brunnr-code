@@ -61,20 +61,10 @@ func formatPlatformDecision(decision planner.PlatformDecision) string {
 		osName = "unknown"
 	}
 
-	distro := decision.LinuxDistro
-	if strings.TrimSpace(distro) == "" {
-		distro = "n/a"
-	}
-
-	manager := decision.PackageManager
-	if strings.TrimSpace(manager) == "" {
-		manager = "n/a"
-	}
-
 	status := "unsupported"
 	if decision.Supported {
 		status = "supported"
 	}
 
-	return fmt.Sprintf("os=%s distro=%s package-manager=%s status=%s", osName, distro, manager, status)
+	return fmt.Sprintf("os=%s status=%s", osName, status)
 }

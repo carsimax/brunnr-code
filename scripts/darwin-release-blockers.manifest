@@ -2,16 +2,16 @@
 # which the "Darwin Runtime" CI job executes on macos-latest (see .github/workflows/ci.yml).
 #
 # Why this file exists: four macOS defects (#1773, #1781, #1804, #1850) and the
-# #1872 RAR lock convoy shipped because CI never executes Darwin. macOS runners
-# bill ~10x Linux minutes, so this lane runs a curated manifest, never the full
-# suite. The full suite stays on Linux.
+# #1872 RAR lock convoy shipped because CI never executed Darwin. The full suite
+# now runs on macOS in the "Unit Tests" job; this lane keeps the curated
+# platform-sensitive entries with their iteration counts and -race settings.
 #
 # Selection criterion — a test enters this manifest because its FAILURE MODE is
 # platform-dependent (APFS /var<->/private/var aliasing, Darwin advisory-lock
 # and filesystem timing, ENOTSUP rename fallbacks, Darwin permission semantics,
 # volume case folding), never because it is important. Importance is what the
-# Linux full-suite job already covers. When in doubt, ask: "could this test
-# pass on Linux and fail on a Mac for a reason the test is designed to catch?"
+# full-suite job already covers. When in doubt, ask: "is this test's failure
+# mode specific to Darwin filesystems, locks, or scheduling?"
 # If the answer is no, it does not belong here.
 #
 # Format: <package> <TestName> [count=N] [race]   ('#' starts a comment)

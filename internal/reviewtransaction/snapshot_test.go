@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -250,12 +249,10 @@ func TestSnapshotBuilderStagedProjectionPreservesExactIndexFidelity(t *testing.T
 		t.Fatal(err)
 	}
 	gitSnapshot(t, repo, "add", "-A", "--", "rename-old.txt", "renamed.txt")
-	if runtime.GOOS != "windows" {
-		if err := os.Chmod(filepath.Join(repo, "mode.txt"), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		gitSnapshot(t, repo, "add", "--", "mode.txt")
+	if err := os.Chmod(filepath.Join(repo, "mode.txt"), 0o755); err != nil {
+		t.Fatal(err)
 	}
+	gitSnapshot(t, repo, "add", "--", "mode.txt")
 	if err := os.Symlink("tracked.txt", filepath.Join(repo, "link.txt")); err != nil {
 		t.Fatal(err)
 	}
@@ -277,10 +274,8 @@ func TestSnapshotBuilderStagedProjectionPreservesExactIndexFidelity(t *testing.T
 	if !gitSnapshotSucceeds(repo, "cat-file", "-e", snapshot.CandidateTree+":added.txt") || gitSnapshotSucceeds(repo, "cat-file", "-e", snapshot.CandidateTree+":deleted.txt") || !gitSnapshotSucceeds(repo, "cat-file", "-e", snapshot.CandidateTree+":renamed.txt") || gitSnapshotSucceeds(repo, "cat-file", "-e", snapshot.CandidateTree+":rename-old.txt") {
 		t.Fatal("staged candidate does not retain add/delete/rename index entries")
 	}
-	if runtime.GOOS != "windows" {
-		if got := gitSnapshot(t, repo, "ls-tree", snapshot.CandidateTree, "mode.txt"); !strings.HasPrefix(got, "100755 ") {
-			t.Fatalf("staged mode entry = %q", got)
-		}
+	if got := gitSnapshot(t, repo, "ls-tree", snapshot.CandidateTree, "mode.txt"); !strings.HasPrefix(got, "100755 ") {
+		t.Fatalf("staged mode entry = %q", got)
 	}
 	if got := gitSnapshot(t, repo, "ls-tree", snapshot.CandidateTree, "link.txt"); !strings.HasPrefix(got, "120000 ") {
 		t.Fatalf("staged symlink entry = %q", got)
@@ -346,9 +341,6 @@ func TestSnapshotProjectionValidationAndIdentity(t *testing.T) {
 // normally.
 func installLargeStderrGitAddShim(t *testing.T) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("PATH shim requires a POSIX shell")
-	}
 	realGit, err := exec.LookPath("git")
 	if err != nil {
 		t.Skip("git is unavailable")
@@ -878,16 +870,14 @@ func TestBaseDiffPreservesIntendedAuthorityAfterTrackedTransition(t *testing.T) 
 	if err != nil || drifted.CandidateTree == reviewed.CandidateTree || drifted.IntendedUntrackedProof == reviewed.IntendedUntrackedProof {
 		t.Fatalf("content drift did not change authority: %#v, err=%v", drifted, err)
 	}
-	if runtime.GOOS != "windows" {
-		if err := os.Chmod(filepath.Join(repo, "delivery.txt"), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		gitSnapshot(t, repo, "add", "delivery.txt")
-		gitSnapshot(t, repo, "commit", "-m", "mode drift")
-		modeDrifted, err := builder.Build(context.Background(), target)
-		if err != nil || modeDrifted.IntendedUntrackedProof == drifted.IntendedUntrackedProof {
-			t.Fatalf("mode drift did not change proof: %#v, err=%v", modeDrifted, err)
-		}
+	if err := os.Chmod(filepath.Join(repo, "delivery.txt"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gitSnapshot(t, repo, "add", "delivery.txt")
+	gitSnapshot(t, repo, "commit", "-m", "mode drift")
+	modeDrifted, err := builder.Build(context.Background(), target)
+	if err != nil || modeDrifted.IntendedUntrackedProof == drifted.IntendedUntrackedProof {
+		t.Fatalf("mode drift did not change proof: %#v, err=%v", modeDrifted, err)
 	}
 	gitSnapshot(t, repo, "rm", "delivery.txt")
 	gitSnapshot(t, repo, "commit", "-m", "path drift")
@@ -1113,9 +1103,6 @@ func TestSnapshotDiffStatsExcludeGeneratedGoldensOnlyFromAuthoredLines(t *testin
 }
 
 func TestSnapshotDiffStatsIncludesCanonicalRawModesForModeOnlyChanges(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Git worktree executable-bit transitions are POSIX-only")
-	}
 	repo := initSnapshotRepo(t)
 	gitSnapshot(t, repo, "config", "core.filemode", "true")
 	if err := os.Chmod(filepath.Join(repo, "tracked.txt"), 0o755); err != nil {
@@ -1141,9 +1128,6 @@ func TestSnapshotDiffStatsIncludesCanonicalRawModesForModeOnlyChanges(t *testing
 }
 
 func TestSnapshotDiffStatsDistinguishesContentAndModeChanges(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Git worktree executable-bit transitions are POSIX-only")
-	}
 	repo := initSnapshotRepo(t)
 	gitSnapshot(t, repo, "config", "core.filemode", "true")
 	writeSnapshotFile(t, repo, "tracked.txt", "candidate\n")

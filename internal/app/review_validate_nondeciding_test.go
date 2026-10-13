@@ -16,7 +16,6 @@ import (
 func TestRunArgsReviewValidateEnabledUsesUnmanagedDeliveryForEveryGate(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 	t.Setenv("GOCACHE", filepath.Join(home, "go-cache"))
 	t.Setenv("TMPDIR", filepath.Join(home, "tmp"))
 	if err := os.MkdirAll(os.Getenv("TMPDIR"), 0o755); err != nil {
@@ -71,7 +70,6 @@ func TestRunArgsReviewValidateEnabledUsesUnmanagedDeliveryForEveryGate(t *testin
 func TestRunArgsReviewValidateNonDecidingNegotiatedAndLegacyRoutes(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 	t.Setenv("GOCACHE", filepath.Join(home, "go-cache"))
 	t.Setenv("TMPDIR", filepath.Join(home, "tmp"))
 	if err := os.MkdirAll(os.Getenv("TMPDIR"), 0o755); err != nil {
@@ -146,7 +144,6 @@ func TestRunArgsReviewValidateNonDecidingNegotiatedAndLegacyRoutes(t *testing.T)
 func TestRunArgsReviewValidateDoesNotReadOrMutateAuthority(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 	t.Setenv("GOCACHE", filepath.Join(home, "go-cache"))
 	t.Setenv("TMPDIR", filepath.Join(home, "tmp"))
 	if err := os.MkdirAll(os.Getenv("TMPDIR"), 0o755); err != nil {
@@ -191,7 +188,6 @@ func TestRunArgsReviewValidateDoesNotReadOrMutateAuthority(t *testing.T) {
 func TestRunArgsReviewValidateAllGatesRoutesAgreeAndMatchPublishedSchema(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 	t.Setenv("GOCACHE", filepath.Join(home, "go-cache"))
 	t.Setenv("TMPDIR", filepath.Join(home, "tmp"))
 	if err := os.MkdirAll(os.Getenv("TMPDIR"), 0o755); err != nil {
@@ -277,7 +273,6 @@ func TestRunArgsReviewValidateAllGatesRoutesAgreeAndMatchPublishedSchema(t *test
 func TestRunArgsReviewValidateDisabledAllGatesAreByteStable(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 	t.Setenv("GOCACHE", filepath.Join(home, "go-cache"))
 	t.Setenv("TMPDIR", filepath.Join(home, "tmp"))
 	if err := os.MkdirAll(os.Getenv("TMPDIR"), 0o755); err != nil {

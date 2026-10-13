@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build darwin
 
 // This file drives the `brunnr-code review mode disable --scope clone` CLI
 // surface, but it lives beside the package it exercises rather than in

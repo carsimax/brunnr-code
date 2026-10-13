@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -230,9 +229,6 @@ func TestFrozenCandidateReviewerDiffUsesLiteralManifestPaths(t *testing.T) {
 		"literal*.txt", "literal-one.txt",
 		"literal?.txt", "literal1.txt",
 		"literal[1].txt", ":(top)magic.txt", "magic.txt",
-	}
-	if runtime.GOOS == "windows" {
-		paths = []string{"literal1.txt", "literal[1].txt"}
 	}
 	for _, version := range []string{"base", "candidate"} {
 		for _, logicalPath := range paths {
@@ -914,9 +910,6 @@ func frozenCandidateGitDiff(t *testing.T, repo string, frozen FrozenCandidateCon
 // the real git.
 func installShowObjectFormatRejectingGitShim(t *testing.T) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("PATH shim requires a POSIX shell")
-	}
 	realGit, err := exec.LookPath("git")
 	if err != nil {
 		t.Skip("git is unavailable")

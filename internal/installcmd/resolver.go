@@ -32,9 +32,8 @@ func (profileResolver) ResolveAgentInstall(profile system.PlatformProfile, agent
 
 // resolveClaudeCodeInstall returns the npm install command sequence brunnr-code
 // shows for Claude Code — display text only, never executed by brunnr-code
-// (see agentInstallStep in internal/cli/run.go). On Linux with system npm,
-// sudo is required. With nvm/fnm/volta, it is not. On Windows and macOS,
-// sudo is never needed.
+// (see agentInstallStep in internal/cli/run.go). On macOS, the only supported
+// platform, sudo is never needed.
 //
 // --ignore-scripts blocks postinstall hooks, the primary supply-chain attack
 // vector for npm packages. The version advises "latest" rather than a pin:
@@ -42,11 +41,8 @@ func (profileResolver) ResolveAgentInstall(profile system.PlatformProfile, agent
 // ran the command unattended. Now a human reads and runs it, and a stale
 // hardcoded version goes wrong the moment a newer release ships (the same
 // drift this shape fixed for Codex's GPT-5.6 update advice).
-func resolveClaudeCodeInstall(profile system.PlatformProfile) CommandSequence {
+func resolveClaudeCodeInstall(_ system.PlatformProfile) CommandSequence {
 	const pkg = "@anthropic-ai/claude-code@latest"
-	if profile.OS == "linux" && !profile.NpmWritable {
-		return CommandSequence{{"sudo", "npm", "install", "-g", "--ignore-scripts", pkg}}
-	}
 	return CommandSequence{{"npm", "install", "-g", "--ignore-scripts", pkg}}
 }
 

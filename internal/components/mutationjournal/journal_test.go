@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -306,9 +305,6 @@ func TestRefusesSymlinkedAncestorOutsideRoot(t *testing.T) {
 }
 
 func TestWriteWithModePreservesExistingMode(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permission bits are not enforced on Windows")
-	}
 	dir := t.TempDir()
 	target := filepath.Join(dir, "mode.txt")
 	if err := os.WriteFile(target, []byte("x"), 0o644); err != nil {
@@ -328,9 +324,6 @@ func TestWriteWithModePreservesExistingMode(t *testing.T) {
 }
 
 func TestWriteWithModeAppliesToNewFile(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX permission bits are not enforced on Windows")
-	}
 	dir := t.TempDir()
 	target := filepath.Join(dir, "newmode.txt")
 	j := New(dir)

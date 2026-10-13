@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/carsimax/brunnr-code/internal/system"
 )
@@ -41,7 +40,7 @@ func ValidateCallerBinary() error {
 	if !info.Mode().IsRegular() {
 		return fmt.Errorf("%s=%s: not a regular file", system.EngramBinEnv, bin)
 	}
-	if runtime.GOOS != "windows" && info.Mode().Perm()&0o111 == 0 {
+	if info.Mode().Perm()&0o111 == 0 {
 		return fmt.Errorf("%s=%s: file is not executable", system.EngramBinEnv, bin)
 	}
 	return nil

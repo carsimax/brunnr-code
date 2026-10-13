@@ -17,11 +17,9 @@ func TestRunDoctor_AssetVersionRemediation(t *testing.T) {
 	t.Setenv(engramHealthEnvVar, "")
 	origExec, origLook := osExecutableDoctor, lookPathFn
 	origHome, origDirs, origAvail := osUserHomeDirDoctor, pathDirsFn, availableBytesFn
-	origGOOS := reviewManagedAssetsGOOS
 	t.Cleanup(func() {
 		osExecutableDoctor, lookPathFn = origExec, origLook
 		osUserHomeDirDoctor, pathDirsFn, availableBytesFn = origHome, origDirs, origAvail
-		reviewManagedAssetsGOOS = origGOOS
 	})
 
 	home := t.TempDir()
@@ -38,23 +36,21 @@ func TestRunDoctor_AssetVersionRemediation(t *testing.T) {
 	spaces := filepath.Join(home, "pinned build", "brunnr-code")
 	apostrophe := filepath.Join(home, "user's build", "brunnr-code")
 	other := filepath.Join(home, "other-install", "brunnr-code")
-	// The temp dir may hold unsafe bytes (Windows short names such as RUNNER~1), so the POSIX token comes from the product helper.
-	reviewManagedAssetsGOOS = "linux"
+	// The temp dir may hold unsafe bytes, so the POSIX token comes from the product helper.
 	simpleSync := managedAssetsExecutableToken(simple) + " sync"
 	for _, tc := range []struct {
-		name, invoked, pathCopy, goos, want string
-		execErr                             error
-		matching                            bool
+		name, invoked, pathCopy, want string
+		execErr                       error
+		matching                      bool
 	}{
-		{name: "different PATH build", invoked: simple, pathCopy: other, goos: "linux", want: simpleSync},
-		{name: "same PATH build", invoked: simple, pathCopy: simple, goos: "linux", want: simpleSync},
-		{name: "POSIX spaces", invoked: spaces, pathCopy: other, goos: "linux", want: "'" + spaces + "' sync"},
-		{name: "POSIX apostrophe", invoked: apostrophe, pathCopy: other, goos: "linux", want: "'" + strings.ReplaceAll(apostrophe, "'", `'\''`) + "' sync"},
-		{name: "Windows spaces", invoked: spaces, pathCopy: other, goos: "windows", want: "\"" + spaces + "\" sync"},
-		{name: "lookup failure", pathCopy: other, execErr: errors.New("unavailable"), goos: "linux"},
-		{name: "relative identity", invoked: "brunnr-code", pathCopy: other, goos: "linux"},
-		{name: "multiline identity", invoked: simple + "\nunsafe", pathCopy: other, goos: "linux"},
-		{name: "matching assets", invoked: simple, pathCopy: simple, goos: "linux", matching: true},
+		{name: "different PATH build", invoked: simple, pathCopy: other, want: simpleSync},
+		{name: "same PATH build", invoked: simple, pathCopy: simple, want: simpleSync},
+		{name: "POSIX spaces", invoked: spaces, pathCopy: other, want: "'" + spaces + "' sync"},
+		{name: "POSIX apostrophe", invoked: apostrophe, pathCopy: other, want: "'" + strings.ReplaceAll(apostrophe, "'", `'\''`) + "' sync"},
+		{name: "lookup failure", pathCopy: other, execErr: errors.New("unavailable")},
+		{name: "relative identity", invoked: "brunnr-code", pathCopy: other},
+		{name: "multiline identity", invoked: simple + "\nunsafe", pathCopy: other},
+		{name: "matching assets", invoked: simple, pathCopy: simple, matching: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			version := "v0.9.0"
@@ -72,7 +68,6 @@ func TestRunDoctor_AssetVersionRemediation(t *testing.T) {
 				}
 				return filepath.Join(home, name), nil
 			}
-			reviewManagedAssetsGOOS = tc.goos
 			var output bytes.Buffer
 			if err := RunDoctor(context.Background(), &output); err != nil {
 				t.Fatalf("RunDoctor: %v", err)

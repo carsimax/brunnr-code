@@ -5,12 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strings"
+	"syscall"
 	"time"
-
-	"github.com/carsimax/brunnr-code/internal/system"
 )
 
 const doctorToolProbeTimeout = 5 * time.Second
@@ -24,24 +20,10 @@ func probeDoctorTool(parent context.Context, tool, path string) error {
 	if tool == "engram" {
 		arg = "version"
 	}
-	run := func(ctx context.Context, name string, args ...string) ([]byte, error) {
-		cmd := exec.CommandContext(ctx, name, args...)
-		// A child that inherits output handles must not keep Wait blocked forever.
-		cmd.WaitDelay = 100 * time.Millisecond
-		return nil, runDoctorProbeCommand(ctx, cmd)
-	}
-	var err error
-	if runtime.GOOS == "windows" && strings.EqualFold(filepath.Ext(path), ".ps1") {
-		runner := system.PowerShellRunner{LookPath: exec.LookPath, RunCommand: run}
-		_, err = runner.Run(ctx, "-NoProfile", "-NonInteractive", "-File", path, arg)
-	} else {
-		cmd, buildErr := doctorToolProbeCommand(ctx, path, arg)
-		if buildErr != nil {
-			return buildErr
-		}
-		cmd.WaitDelay = 100 * time.Millisecond
-		err = runDoctorProbeCommand(ctx, cmd)
-	}
+	cmd := exec.CommandContext(ctx, path, arg)
+	// A child that inherits output handles must not keep Wait blocked forever.
+	cmd.WaitDelay = 100 * time.Millisecond
+	err := runDoctorProbeCommand(ctx, cmd)
 	if parent.Err() != nil {
 		return parent.Err()
 	}
@@ -51,7 +33,7 @@ func probeDoctorTool(parent context.Context, tool, path string) error {
 	return err
 }
 
-// Keep descendants in the probe's process group/job and release the whole tree
+// Keep descendants in the probe's process group and release the whole tree
 // before returning, including when a launcher exits before its child does.
 func runDoctorProbeCommand(ctx context.Context, cmd *exec.Cmd) error {
 	if err := ctx.Err(); err != nil {
@@ -63,4 +45,19 @@ func runDoctorProbeCommand(ctx context.Context, cmd *exec.Cmd) error {
 	}
 	err = cmd.Wait()
 	return errors.Join(err, terminate())
+}
+
+// startDoctorProbeProcessTree isolates the probe in its own process group so a
+// child retaining stdout cannot outlive the bounded MCP handshake.
+func startDoctorProbeProcessTree(command *exec.Cmd) (func() error, error) {
+	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if err := command.Start(); err != nil {
+		return nil, err
+	}
+	return func() error {
+		if err := syscall.Kill(-command.Process.Pid, syscall.SIGKILL); err != nil && !errors.Is(err, syscall.ESRCH) {
+			return err
+		}
+		return nil
+	}, nil
 }

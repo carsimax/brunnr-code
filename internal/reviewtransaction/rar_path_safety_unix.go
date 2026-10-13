@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build darwin
 
 package reviewtransaction
 
@@ -202,11 +202,20 @@ func rarRepositoryOpenDirectorySafe(_ *os.File, info fs.FileInfo) bool {
 // rarPOSIXFUSEProjectedOwnership reports whether path is hosted on a
 // filesystem that projects a fixed owner for every path -- a FUSE mount such
 // as ntfs-3g given a fixed user_id= -- rather than persisting real per-file
-// ownership metadata. Assigned per platform (real statfs-based detection on
-// Linux; "never FUSE" elsewhere, since #2838's evidence is Linux-specific);
-// kept as a variable so tests can reproduce either outcome, and any probe
-// error, without a real FUSE mount.
+// ownership metadata. Darwin always reports "not FUSE-projected" (see
+// posixFUSEProjectedOwnership); kept as a variable so tests can reproduce
+// either outcome, and any probe error, without a real FUSE mount.
 var rarPOSIXFUSEProjectedOwnership = posixFUSEProjectedOwnership
+
+// posixFUSEProjectedOwnership is the Darwin default: #2838's evidence
+// (ntfs-3g/fuseblk reporting FUSE_SUPER_MAGIC) has no Darwin counterpart --
+// golang.org/x/sys/unix.Statfs_t reports filesystem type as a string
+// (Fstypename) rather than a numeric magic on Darwin, with no
+// cross-referenceable magic number in scope here -- so it reports
+// "not FUSE-projected" rather than guessing at one.
+func posixFUSEProjectedOwnership(string) (bool, error) {
+	return false, nil
+}
 
 // rarPOSIXPrivateModeIneffective reports whether the filesystem hosting dir
 // cannot represent private POSIX modes at all: a fresh probe file that a

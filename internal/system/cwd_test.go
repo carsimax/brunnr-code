@@ -7,8 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strings"
 	"testing"
 )
 
@@ -47,9 +45,6 @@ func helperGetwdArgv(t *testing.T) []string {
 // directory when the test finishes.
 func chdirIntoDeletedDir(t *testing.T) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("Windows keeps a process current directory open, so the deleted-CWD integration setup is impossible")
-	}
 	gone := filepath.Join(t.TempDir(), "gone")
 	if err := os.Mkdir(gone, 0o755); err != nil {
 		t.Fatal(err)
@@ -57,21 +52,6 @@ func chdirIntoDeletedDir(t *testing.T) {
 	t.Chdir(gone)
 	if err := os.Remove(gone); err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestWindowsDeletedWorkingDirectorySetupIsInadmissible(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows-only filesystem behavior")
-	}
-
-	current := filepath.Join(t.TempDir(), "current")
-	if err := os.Mkdir(current, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Chdir(current)
-	if err := os.Remove(current); err == nil {
-		t.Fatal("Windows unexpectedly removed the process current working directory")
 	}
 }
 
@@ -160,23 +140,5 @@ func TestDetectSingleDepSurvivesDeletedWorkingDirectory(t *testing.T) {
 	}
 	if dep.Version != "1.2.3" {
 		t.Fatalf("version probe failed from deleted working directory: got version %q, want %q", dep.Version, "1.2.3")
-	}
-}
-
-func TestPowerShellRunnerSurvivesDeletedWorkingDirectory(t *testing.T) {
-	argv := helperGetwdArgv(t)
-	chdirIntoDeletedDir(t)
-
-	runner := NewPowerShellRunner()
-	runner.LookPath = func(host string) (string, error) {
-		if host == "pwsh" {
-			return argv[0], nil
-		}
-		return "", fmt.Errorf("%s is not present in this test", host)
-	}
-
-	out, err := runner.Run(context.Background(), argv[1:]...)
-	if err != nil {
-		t.Fatalf("PowerShell runner failed from deleted working directory: %v (output: %s)", err, strings.TrimSpace(string(out)))
 	}
 }

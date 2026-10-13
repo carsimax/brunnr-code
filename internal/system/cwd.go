@@ -5,8 +5,8 @@ import (
 	"os/exec"
 )
 
-// getwd is replaceable in tests so the public fallback remains testable where
-// an active working directory cannot be removed, such as Windows.
+// getwd is replaceable in tests so the public fallback can be exercised with
+// an injected working-directory failure.
 var getwd = os.Getwd
 
 // EnsureCommandDir pins cmd to a working directory that still exists on disk.
@@ -30,8 +30,8 @@ func EnsureCommandDir(cmd *exec.Cmd) {
 }
 
 // ensureCommandDir applies the fallback after the inherited directory has
-// been resolved. Keeping this decision separate lets Windows tests exercise
-// the deleted-CWD behavior without attempting an operation Windows forbids.
+// been resolved. Keeping this decision separate lets tests exercise the
+// deleted-CWD behavior without deleting the test process's own directory.
 func ensureCommandDir(cmd *exec.Cmd, wd string, wdErr error) {
 	if cmd == nil || cmd.Dir != "" {
 		return

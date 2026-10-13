@@ -3,11 +3,9 @@ package reviewtransaction
 import (
 	"context"
 	"errors"
-	"io"
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -136,36 +134,15 @@ func TestInventoryAuthorityDistinguishesReleasedBusyAndMalformedLockTruth(t *tes
 			var release func() error
 			readLock := func() ([]byte, error) { return os.ReadFile(lockPath) }
 			if tt.hold {
-				if runtime.GOOS == "windows" {
-					file, openErr := os.OpenFile(lockPath, os.O_RDWR, 0o600)
-					if openErr != nil {
-						t.Fatal(openErr)
-					}
-					locked, lockErr := tryLockFile(file)
-					if lockErr != nil || !locked {
-						t.Fatalf("hold advisory lock = %t, %v", locked, lockErr)
-					}
-					release = func() error { return errors.Join(unlockFile(file), file.Close()) }
-					// Windows byte-range locks are mandatory: the held coordination
-					// byte is unreadable from any other handle, so the held LOCK is
-					// read through the holder's own handle.
-					readLock = func() ([]byte, error) {
-						if _, err := file.Seek(0, io.SeekStart); err != nil {
-							return nil, err
-						}
-						return io.ReadAll(file)
-					}
-				} else {
-					held, lockErr := acquireStoreLock(lockPath)
-					if lockErr != nil {
-						t.Fatal(lockErr)
-					}
-					before, err = os.ReadFile(lockPath)
-					if err != nil {
-						t.Fatal(err)
-					}
-					release = held.release
+				held, lockErr := acquireStoreLock(lockPath)
+				if lockErr != nil {
+					t.Fatal(lockErr)
 				}
+				before, err = os.ReadFile(lockPath)
+				if err != nil {
+					t.Fatal(err)
+				}
+				release = held.release
 				defer func() {
 					if release != nil {
 						_ = release()

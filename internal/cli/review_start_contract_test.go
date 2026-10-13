@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -71,14 +70,9 @@ func TestNegotiatedReviewStartMatchesVersionedFixture(t *testing.T) {
 func TestNegotiatedReviewStartRiskReasonsUseOnlyImmutableSnapshotEvidence(t *testing.T) {
 	reviewEnabledHome(t)
 	t.Run("mode-only executable transition", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Git worktree executable-bit transitions are POSIX-only")
-		}
 		repo := initReviewCLIRepo(t)
-		if runtime.GOOS != "windows" {
-			if err := os.Chmod(filepath.Join(repo, "tracked.txt"), 0o755); err != nil {
-				t.Fatal(err)
-			}
+		if err := os.Chmod(filepath.Join(repo, "tracked.txt"), 0o755); err != nil {
+			t.Fatal(err)
 		}
 		result := runNegotiatedReviewStart(t, repo, "review-start-mode")
 		want := []reviewtransaction.RiskReason{{
@@ -103,9 +97,7 @@ func TestNegotiatedReviewStartRiskReasonsUseOnlyImmutableSnapshotEvidence(t *tes
 			{Code: reviewtransaction.RiskReasonHotPath, Signal: reviewtransaction.SignalSecurity, Path: "security/check.go"},
 			{Code: reviewtransaction.RiskReasonShellSource, Signal: reviewtransaction.SignalShellProcess, Path: "scripts/deploy.sh"},
 		}
-		if runtime.GOOS != "windows" {
-			want = append([]reviewtransaction.RiskReason{{Code: reviewtransaction.RiskReasonExecutableMode, Signal: reviewtransaction.SignalPermissions, Path: "tracked.txt", OldMode: "100644", NewMode: "100755"}}, want...)
-		}
+		want = append([]reviewtransaction.RiskReason{{Code: reviewtransaction.RiskReasonExecutableMode, Signal: reviewtransaction.SignalPermissions, Path: "tracked.txt", OldMode: "100644", NewMode: "100755"}}, want...)
 		if !reflect.DeepEqual(result.RiskReasons, want) {
 			t.Fatalf("canonical risk reasons = %#v, want %#v", result.RiskReasons, want)
 		}

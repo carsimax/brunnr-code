@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -104,7 +103,7 @@ func TestWriteStreamAtomicPreservesRequestedMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat: %v", err)
 	}
-	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o755 {
+	if info.Mode().Perm() != 0o755 {
 		t.Errorf("mode = %v, want 0755", info.Mode().Perm())
 	}
 }
@@ -215,13 +214,10 @@ func TestWriteStreamAtomicFailsWhenReplacementDoesNotLand(t *testing.T) {
 func TestWriteStreamAtomicReportsResultWhenParentSyncFails(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "archive.tar.gz")
 
-	origGOOS := runtimeGOOS
 	origSyncDir := syncDirFn
 	t.Cleanup(func() {
-		runtimeGOOS = origGOOS
 		syncDirFn = origSyncDir
 	})
-	runtimeGOOS = func() string { return "linux" }
 	syncDirFn = func(string) error { return errors.New("injected parent-directory sync failure") }
 
 	payload := "archive"

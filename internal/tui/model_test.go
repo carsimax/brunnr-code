@@ -386,7 +386,6 @@ func TestCombinedAgentsTUIInstallKeepsAllAgentsInPlan(t *testing.T) {
 	// Pin the host so detection reads only an isolated home.
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "xdg"))
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenAgents
@@ -3405,7 +3404,6 @@ func executeUpgradeSyncSequence(t *testing.T, m Model) []tea.Msg {
 func TestStartUpgradeSync_RunsSyncAfterUpgrade(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
 
 	m := NewModel(system.DetectionResult{}, "dev")
 	m.Screen = ScreenUpgradeSync

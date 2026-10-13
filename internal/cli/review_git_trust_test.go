@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -34,9 +33,6 @@ const gitMissingRepositoryStderr = "fatal: not a git repository (or any of the p
 // Git trust context breaks in the field.
 func installFailingGitShim(t *testing.T, stderr string) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("PATH shim requires a POSIX shell")
-	}
 	realGit, err := exec.LookPath("git")
 	if err != nil {
 		t.Skip("git is unavailable")

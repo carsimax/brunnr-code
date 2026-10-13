@@ -613,7 +613,6 @@ func TestNativeReviewPostApplyErrorsRestoreDeduplicatedSnapshot(t *testing.T) {
 		t.Run(branch, func(t *testing.T) {
 			home := t.TempDir()
 			t.Setenv("HOME", home)
-			t.Setenv("USERPROFILE", home)
 			originalHome, originalCommand, originalLookPath := osUserHomeDir, runCommand, cmdLookPath
 			osUserHomeDir = func() (string, error) { return home, nil }
 			runCommand = func(string, ...string) error { return nil }

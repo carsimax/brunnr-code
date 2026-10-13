@@ -36,7 +36,6 @@ func TestInstallClaudeHooksRollback(t *testing.T) {
 			t.Run(name, func(t *testing.T) {
 				home, workspace := installTestHome(t), t.TempDir()
 				t.Setenv("HOME", home)
-				t.Setenv("USERPROFILE", home)
 				t.Chdir(workspace)
 				target, untouched := workspace, home
 				if scope == ScopeGlobal {
@@ -124,7 +123,6 @@ func TestInstallClaudeHooksRespectScope(t *testing.T) {
 		t.Run(string(scope), func(t *testing.T) {
 			home, workspace := t.TempDir(), t.TempDir()
 			t.Setenv("HOME", home)
-			t.Setenv("USERPROFILE", home)
 			t.Chdir(workspace)
 			previousHome, previousCommand, previousLookPath := osUserHomeDir, runCommand, cmdLookPath
 			osUserHomeDir = func() (string, error) { return home, nil }

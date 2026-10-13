@@ -19,7 +19,7 @@ func UpsertCodexEngramBlock(content, engramCmd string) string {
 	if engramCmd == "" {
 		engramCmd = "engram"
 	}
-	// Escape backslashes for TOML double-quoted strings (Windows paths).
+	// Escape backslashes for TOML double-quoted strings.
 	// e.g. C:\Users\foo → C:\\Users\\foo — prevents TOML unicode escape errors (\U).
 	escapedCmd := strings.ReplaceAll(engramCmd, `\`, `\\`)
 	codexEngramBlock := "[mcp_servers.engram]\ncommand = \"" + escapedCmd + "\"\nargs = [\"mcp\", \"--tools=agent\"]"

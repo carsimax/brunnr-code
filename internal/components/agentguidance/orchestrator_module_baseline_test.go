@@ -99,8 +99,8 @@ func installedFiles(t *testing.T, input moduleVariantInput) []installedGuidance 
 // TestOrchestratorModuleBaseline is not parallel: it swaps the process-wide
 // HOME.
 func TestOrchestratorModuleBaseline(t *testing.T) {
-	if runtime.GOOS != "linux" {
-		t.Skipf("%s pins Linux install paths and bytes; %s is not measured", moduleBaselineFile, runtime.GOOS)
+	if runtime.GOOS != "darwin" {
+		t.Skipf("%s pins macOS install paths and bytes; %s is not measured", moduleBaselineFile, runtime.GOOS)
 	}
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())

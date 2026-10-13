@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"slices"
 	"sort"
 	"strings"
@@ -692,9 +691,6 @@ func TestAssessSnapshotRiskDerivesProvableShellAndExecutableModeReasons(t *testi
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if runtime.GOOS == "windows" && tt.name == "executable mode change" {
-				t.Skip("Git worktree executable-bit transitions are POSIX-only")
-			}
 			repo := initSnapshotRepo(t)
 			snapshot, err := (SnapshotBuilder{Repo: repo}).Build(context.Background(), tt.setup(t, repo))
 			if err != nil {

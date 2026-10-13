@@ -4,7 +4,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 )
@@ -222,9 +221,6 @@ func TestSnapshotterManifestEntrySnapshotPath(t *testing.T) {
 }
 
 func TestSnapshotCreateIsPrivate(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("POSIX modes")
-	}
 	src := filepath.Join(t.TempDir(), "claude.json")
 	if err := os.WriteFile(src, []byte(`{"token":"x"}`), 0o600); err != nil {
 		t.Fatal(err)

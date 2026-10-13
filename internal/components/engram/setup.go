@@ -60,7 +60,7 @@ func ProbeProtocolFlag(ctx context.Context) (string, error) {
 }
 
 // ProbeProtocolFlagCommand is like ProbeProtocolFlag but probes the provided
-// engram command path so beta installs and repaired Windows binaries use the
+// engram command path so beta installs and repaired binaries use the
 // same binary for setup, protocol detection, and version gating.
 func ProbeProtocolFlagCommand(ctx context.Context, command string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, protocolProbeTimeout)

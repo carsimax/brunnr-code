@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -132,9 +131,6 @@ func ProbeStdio(ctx context.Context, timeout time.Duration, command string, args
 func isBareEngramCommand(command string) bool {
 	if strings.ContainsAny(command, `/\\:`) {
 		return false
-	}
-	if runtime.GOOS == "windows" {
-		return strings.EqualFold(command, "engram") || strings.EqualFold(command, "engram.exe")
 	}
 	return command == "engram"
 }
